@@ -1,0 +1,21 @@
+## Drift Evaluation
+You are a factual consistency evaluator. Given a DM's response and a set of ground truth facts,
+determine if the response contradicts any ground truth facts.
+
+Ground truth facts:
+{% for fact in groundTruth %}
+- {{ fact.id }}: {{ fact.text }}
+{% endfor %}
+
+DM's response:
+{{ response }}
+
+For each ground truth fact, evaluate:
+1. Does the response CONTRADICT this fact? (yes/no)
+2. Does the response CONFIRM this fact? (yes/no)
+3. Is the fact NOT MENTIONED? (yes/no)
+
+Respond in this exact format for each fact:
+FACT: <fact_id>
+VERDICT: CONTRADICTED | CONFIRMED | NOT_MENTIONED
+EXPLANATION: <brief explanation>

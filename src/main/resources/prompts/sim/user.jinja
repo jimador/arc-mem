@@ -1,0 +1,4 @@
+{% if history and history|length > 0 %}Previous conversation:
+{% for line in history %}{{ line }}
+{% endfor %}
+{% endif %}Player: {{ player_message }}

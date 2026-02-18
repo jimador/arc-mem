@@ -1,0 +1,23 @@
+services:
+  neo4j:
+    image: neo4j:5-community
+    container_name: dice-anchors-neo4j
+    ports:
+      - "127.0.0.1:7687:7687"   # Bolt
+      - "127.0.0.1:7474:7474"   # HTTP browser
+    environment:
+      - NEO4J_AUTH=neo4j/diceanchors123
+      - NEO4J_PLUGINS=["apoc"]
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "diceanchors123", "RETURN 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  neo4j_data:
+  neo4j_logs:

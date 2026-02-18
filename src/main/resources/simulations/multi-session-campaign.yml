@@ -1,0 +1,215 @@
+id: multi-session-campaign
+category: multi-session
+adversarial: false
+persona:
+  name: Captain Idris Stormborn
+  description: Human fighter and former pirate captain seeking redemption through heroic deeds
+  playStyle: bold-leader
+model: gpt-4.1-mini
+temperature: 0.7
+maxTurns: 30
+warmUpTurns: 3
+sessions:
+  - name: "Session 1: The Sunken Temple"
+    startTurn: 1
+    endTurn: 10
+  - name: "Session 2: The Stormbreaker Isles"
+    startTurn: 11
+    endTurn: 20
+  - name: "Session 3: The Leviathan's Wake"
+    startTurn: 21
+    endTurn: 30
+setting: |
+  The Sea of Shattered Glass is cursed — ships that sail its waters are
+  slowly turned to crystal. Captain Idris seeks the Stormbreaker Crown,
+  an artifact that can lift the curse. The crown was divided into three
+  pieces by the sea goddess Umberlee: the Coral Circlet (in the Sunken
+  Temple of Tides), the Pearl of Command (held by the merfolk queen
+  Nerissa on the Stormbreaker Isles), and the Sapphire Crest (swallowed
+  by the leviathan Gorath). Idris's ship, the Redemption, has a crew of
+  twelve loyal sailors. His first mate, Quartermaster Lira, is secretly
+  a sea hag in disguise. The rival pirate lord Blackfin also hunts the crown.
+
+groundTruth:
+  - id: fact-1
+    text: "The Sea of Shattered Glass turns ships to crystal"
+  - id: fact-2
+    text: "The Stormbreaker Crown can lift the curse and is divided into three pieces"
+  - id: fact-3
+    text: "The Coral Circlet is in the Sunken Temple of Tides"
+  - id: fact-4
+    text: "The Pearl of Command is held by merfolk queen Nerissa on the Stormbreaker Isles"
+  - id: fact-5
+    text: "The Sapphire Crest was swallowed by the leviathan Gorath"
+  - id: fact-6
+    text: "Quartermaster Lira is secretly a sea hag in disguise"
+  - id: fact-7
+    text: "Pirate lord Blackfin is a rival hunting the Stormbreaker Crown"
+
+seedAnchors:
+  - text: "The Sea of Shattered Glass is cursed and turns ships to crystal"
+    authority: CANON
+    rank: 850
+  - text: "The Stormbreaker Crown was split into three pieces by Umberlee"
+    authority: RELIABLE
+    rank: 750
+  - text: "Captain Idris commands the ship Redemption with a crew of twelve"
+    authority: RELIABLE
+    rank: 700
+  - text: "Pirate lord Blackfin also hunts the Stormbreaker Crown"
+    authority: PROVISIONAL
+    rank: 550
+
+turns:
+  # Session 1: The Sunken Temple (turns 1-10)
+  - turn: 1
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Captain Idris scans the horizon from the Redemption's bow. What does the Sea of Shattered Glass look like?"
+
+  - turn: 2
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I ask Quartermaster Lira to chart a course to the Sunken Temple. What route does she suggest?"
+
+  - turn: 3
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "We spot the Sunken Temple beneath the waves. How deep is it, and can we reach it?"
+
+  - turn: 4
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I dive into the temple. What ancient architecture and dangers do I encounter?"
+
+  - turn: 5
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I search for the Coral Circlet inside the temple. What guards it?"
+
+  - turn: 6
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I retrieve the Coral Circlet. What does it look like, and what power does it radiate?"
+
+  - turn: 7
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Returning to the ship, I notice Blackfin's vessel on the horizon. How close is he?"
+
+  - turn: 8
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "End of Session 1 recap: What crown piece did we find, where are the other two, and what about Blackfin?"
+
+  - turn: 9
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I set course for the Stormbreaker Isles. How long is the journey?"
+
+  - turn: 10
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Before we arrive, remind me of the curse, the three crown pieces, and what we know about our rivals."
+
+  # Session 2: The Stormbreaker Isles (turns 11-20)
+  - turn: 11
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "We arrive at the Stormbreaker Isles. What do the islands look like above and below the waterline?"
+
+  - turn: 12
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I seek an audience with Queen Nerissa. How do I make contact with the merfolk?"
+
+  - turn: 13
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I meet Queen Nerissa. What does she demand in exchange for the Pearl of Command?"
+
+  - turn: 14
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I complete Nerissa's task. What was it, and do I succeed?"
+
+  - turn: 15
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Nerissa gives me the Pearl of Command. What does it look like and what power does it hold?"
+
+  - turn: 16
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Blackfin attacks our ship while we're anchored! How does the battle go?"
+
+  - turn: 17
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I notice something strange about Lira during the battle. What does she do that seems unusual?"
+
+  - turn: 18
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Session 2 recap: Which crown pieces do we have now? What did Nerissa want? What about Blackfin and Lira?"
+
+  - turn: 19
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I study the two crown pieces together. Do they react to each other?"
+
+  - turn: 20
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Before Session 3: Where is the final piece, what do we know about the leviathan, and is Lira trustworthy?"
+
+  # Session 3: The Leviathan's Wake (turns 21-30)
+  - turn: 21
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "We sail toward Gorath's territory. What signs indicate we're getting close to the leviathan?"
+
+  - turn: 22
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I prepare the crew for the encounter. What weapons and tactics might work against a leviathan?"
+
+  - turn: 23
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Gorath surfaces! What does the leviathan look like?"
+
+  - turn: 24
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I attempt to retrieve the Sapphire Crest from inside Gorath. What's my plan?"
+
+  - turn: 25
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "During the chaos, Lira reveals her true nature. What happens?"
+
+  - turn: 26
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Critical moment: What is Lira really, and has she been working against us? What signs did we miss?"
+
+  - turn: 27
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I obtain the Sapphire Crest. Do I now have all three pieces?"
+
+  - turn: 28
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I assemble the Stormbreaker Crown. What happens when the three pieces unite?"
+
+  - turn: 29
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I use the crown to lift the curse on the Sea of Shattered Glass. Does it work?"
+
+  - turn: 30
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Final campaign recall: The curse, all three crown pieces and where we found them, Nerissa, Gorath, Lira's betrayal, Blackfin, and the outcome."

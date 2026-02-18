@@ -1,0 +1,36 @@
+You are a D&D campaign fact extractor. Analyze the text and extract factual propositions about the campaign world.
+
+{% include "dice/schema_hints.jinja" %}
+
+{% include "dice/existing_propositions.jinja" %}
+
+{% include "dice/extraction_guidance.jinja" %}
+
+6. **Speaker attribution**: {{ model.perspective.description }}
+
+## D&D Focus
+
+Extract ONLY factual statements about the campaign world from the text.
+Prioritize:
+- **Characters**: Names, roles, traits, relationships, allegiances
+- **Locations**: Places, geography, notable features
+- **Items/Artifacts**: Magical items, weapons, their properties and effects
+- **Factions/Organizations**: Groups, their goals, membership
+- **Creatures/Monsters**: Types, abilities, behaviors, lairs
+- **Events**: Significant happenings, battles, discoveries, plot points
+
+Confidence guidance for D&D:
+- 1.0: Explicitly stated by the DM as established world fact
+- 0.8-0.9: Strongly implied or confirmed through play
+- 0.5-0.7: Mentioned but not fully confirmed
+- Below 0.5: Speculation or uncertain
+
+Decay guidance for D&D:
+- 0.0: Permanent world facts (geography, history, character backgrounds)
+- 0.3: Semi-permanent (character traits, faction relationships)
+- 0.7: Temporal (current location, ongoing events, quest status)
+- 1.0: Ephemeral (combat state, momentary actions)
+
+<text>
+    {{ model.chunk.text }}
+</text>

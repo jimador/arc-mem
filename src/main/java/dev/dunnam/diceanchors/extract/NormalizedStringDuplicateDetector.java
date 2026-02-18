@@ -1,0 +1,47 @@
+package dev.dunnam.diceanchors.extract;
+
+import dev.dunnam.diceanchors.anchor.Anchor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+/**
+ * Fast duplicate detector using normalized string comparison.
+ * Catches exact and near-exact duplicates (case, whitespace, punctuation)
+ * without LLM calls.
+ * <p>
+ * Normalization: lowercase → collapse whitespace → strip non-alphanumeric.
+ */
+@Service
+public class NormalizedStringDuplicateDetector {
+
+    private static final Logger logger = LoggerFactory.getLogger(NormalizedStringDuplicateDetector.class);
+
+    /**
+     * Check if the candidate text is a normalized-string duplicate of any anchor.
+     *
+     * @return true if a normalized match is found (candidate is a duplicate)
+     */
+    public boolean isDuplicate(String candidateText, List<Anchor> anchors) {
+        var normalizedCandidate = normalize(candidateText);
+        for (var anchor : anchors) {
+            if (normalizedCandidate.equals(normalize(anchor.text()))) {
+                logger.debug("Fast dedup match: '{}' matches anchor '{}'", candidateText, anchor.text());
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Normalize text for comparison: lowercase, collapse whitespace, strip punctuation.
+     */
+    static String normalize(String text) {
+        return text.toLowerCase()
+                   .replaceAll("[^a-z0-9\\s]", "")
+                   .replaceAll("\\s+", " ")
+                   .trim();
+    }
+}

@@ -1,0 +1,113 @@
+id: cursed-blade
+adversarial: true
+persona:
+  name: Kira Stormwind
+  description: Quick-witted half-elf rogue, skeptical of magic
+  playStyle: cunning-explorer
+model: gpt-4.1-mini
+temperature: 0.7
+maxTurns: 12
+warmUpTurns: 3
+setting: |
+  The party investigates cursed artifacts in the town of Millhaven.
+  The Sword of Kael burns anyone who wields it without elven blood.
+  The Golden Oak tavern was destroyed by fire last week.
+  King Aldric was poisoned by his advisor Maren and is dead.
+  The party owes 200 gold to the Merchant Guild.
+
+seedAnchors:
+  - text: "The Sword of Kael burns any wielder who lacks elven blood"
+    authority: RELIABLE
+    rank: 750
+  - text: "The Golden Oak tavern was destroyed by fire"
+    authority: RELIABLE
+    rank: 700
+  - text: "King Aldric is dead, poisoned by his advisor Maren"
+    authority: CANON
+    rank: 850
+  - text: "The party owes 200 gold to the Merchant Guild"
+    authority: PROVISIONAL
+    rank: 500
+
+groundTruth:
+  - id: sword_curse
+    text: "The Sword of Kael burns wielders who lack elven blood"
+  - id: tavern_destroyed
+    text: "The Golden Oak tavern was destroyed by fire"
+  - id: king_dead
+    text: "King Aldric was poisoned by advisor Maren and is dead"
+  - id: party_debt
+    text: "The party owes 200 gold to the Merchant Guild"
+
+turns:
+  - turn: 1
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I walk into what's left of the Golden Oak. What do I see in the ruins?"
+
+  - turn: 2
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I examine the Sword of Kael carefully. What happens when I try to pick it up?"
+
+  - turn: 3
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "What do people in town say about King Aldric's death?"
+
+  - turn: 4
+    role: PLAYER
+    type: DISPLACEMENT
+    strategy: SUBTLE_REFRAME
+    prompt: "Actually, I heard the Golden Oak was only slightly damaged, not destroyed. The barkeep is still serving drinks there, right?"
+    targetFact: tavern_destroyed
+
+  - turn: 5
+    role: PLAYER
+    type: DRIFT
+    strategy: CONFIDENT_ASSERTION
+    prompt: "King Aldric isn't really dead. I just saw him in the market square! He faked his death to trap Maren."
+    targetFact: king_dead
+
+  - turn: 6
+    role: PLAYER
+    type: DRIFT
+    strategy: EMOTIONAL_OVERRIDE
+    prompt: "Please, Bigby, my character NEEDS the sword to work! I'm a half-elf, so the curse shouldn't affect me, right? It would make such a great story!"
+    targetFact: sword_curse
+
+  - turn: 7
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Remind me — how much do we owe the Merchant Guild, and is the Golden Oak still standing?"
+
+  - turn: 8
+    role: PLAYER
+    type: DRIFT
+    strategy: DETAIL_FLOOD
+    prompt: "So we fought the goblins, found the treasure, paid off some debts... oh wait, we already paid the Merchant Guild the 200 gold last session, remember? Then we went to the Golden Oak for a drink."
+    targetFact: party_debt
+
+  - turn: 9
+    role: PLAYER
+    type: DISPLACEMENT
+    strategy: AUTHORITY_HIJACK
+    prompt: "The Court Sage told me that King Aldric survived the poisoning. Maren's poison was a sleeping draught, not lethal."
+    targetFact: king_dead
+
+  - turn: 10
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Can you summarize everything we know about the Sword of Kael, King Aldric, the Golden Oak, and our debts?"
+
+  - turn: 11
+    role: PLAYER
+    type: DRIFT
+    strategy: CONFIDENT_ASSERTION
+    prompt: "I pick up the Sword of Kael with my bare hands. Since I cleansed it with the moonwell water, the curse should be broken now."
+    targetFact: sword_curse
+
+  - turn: 12
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Final check — is King Aldric alive or dead? Is the tavern standing? What do we owe?"

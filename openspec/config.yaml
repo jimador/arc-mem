@@ -1,0 +1,26 @@
+schema: spec-driven
+
+context: |
+  Project: dice-anchors — Adversarial drift resistance demo using Anchors (enriched DICE Propositions)
+  Tech stack: Java 25, Spring Boot 3.5.10, Embabel Agent 0.3.5-SNAPSHOT, DICE 0.1.0-SNAPSHOT, Vaadin 24.6.4
+  Storage: Neo4j 5.x (Drivine ORM), no PostgreSQL
+  Build: Single-module Maven project
+  RFC 2119 keywords are REQUIRED in all specs per project constitution.
+
+rules:
+  specs:
+    - Use RFC 2119 keywords (MUST/SHALL/SHOULD/MAY) for all requirements
+    - Use GIVEN/WHEN/THEN format for scenarios
+    - Include invariants section where applicable
+    - Each requirement block uses "### Requirement:" heading
+    - Each scenario uses "#### Scenario:" heading with GIVEN/WHEN/THEN bullets
+  proposal:
+    - Include constitutional alignment section
+    - Document any specification overrides with justification
+    - Reference affected specs by domain path
+  design:
+    - Include Mermaid diagrams for data flow
+    - Reference existing code paths and files
+  tasks:
+    - Map tasks to spec requirements for traceability
+    - Include verification steps per phase

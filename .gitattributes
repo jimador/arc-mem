@@ -1,0 +1,17 @@
+# Normalize everything to LF in repo and checkout
+* text=auto eol=lf
+
+# Explicitly mark binaries
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.pdf  binary
+*.zip  binary
+*.gz   binary
+*.7z   binary
+*.exe  binary
+*.dll  binary
+*.so   binary
+*.dylib binary

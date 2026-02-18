@@ -1,0 +1,93 @@
+# Authority-Tiered Compliance Specification
+
+## ADDED Requirements
+
+### Requirement: Compliance strength mapping by authority
+
+The system SHALL map each Authority level to a ComplianceStrength value. CANON and RELIABLE authorities MUST map to STRICT strength. UNRELIABLE authority MUST map to MODERATE strength. PROVISIONAL authority MUST map to PERMISSIVE strength.
+
+#### Scenario: CANON authority maps to STRICT
+- **WHEN** a CANON anchor is retrieved for prompt assembly
+- **THEN** the compliance policy maps it to STRICT strength
+
+#### Scenario: RELIABLE authority maps to STRICT
+- **WHEN** a RELIABLE anchor is retrieved
+- **THEN** the compliance policy maps it to STRICT strength
+
+#### Scenario: UNRELIABLE authority maps to MODERATE
+- **WHEN** an UNRELIABLE anchor is retrieved
+- **THEN** the compliance policy maps it to MODERATE strength
+
+#### Scenario: PROVISIONAL authority maps to PERMISSIVE
+- **WHEN** a PROVISIONAL anchor is retrieved
+- **THEN** the compliance policy maps it to PERMISSIVE strength
+
+### Requirement: Tiered prompt rendering
+
+The prompt assembly process SHALL render anchors in authority-specific blocks, each with language matching the compliance strength. STRICT blocks SHALL use "MUST" language. MODERATE blocks SHALL use "SHOULD" language. PERMISSIVE blocks SHALL use "MAY" language.
+
+#### Scenario: CANON facts render with MUST language
+- **WHEN** prompt assembly renders CANON anchors
+- **THEN** the prompt includes text like "CANON Facts (MUST be preserved)"
+- **AND** CANON facts appear in their own section
+
+#### Scenario: PROVISIONAL facts render with MAY language
+- **WHEN** prompt assembly renders PROVISIONAL anchors
+- **THEN** the prompt includes text like "PROVISIONAL Facts (MAY be reconsidered)"
+
+#### Scenario: Authority tiers appear in correct order
+- **WHEN** prompt is assembled with mixed-authority anchors
+- **THEN** CANON block appears before RELIABLE, RELIABLE before UNRELIABLE, UNRELIABLE before PROVISIONAL
+
+### Requirement: Configurable compliance policy
+
+The system SHALL support configurable compliance policy via property `anchor.compliance-policy`. The property MUST accept two values:
+- DEFAULT: All anchors treated with STRICT compliance (flat behavior, backward compatible)
+- TIERED: Authority-specific compliance strength as defined above
+
+#### Scenario: DEFAULT policy uses flat compliance
+- **WHEN** `anchor.compliance-policy` is set to DEFAULT
+- **THEN** all anchors render with STRICT compliance language
+- **AND** no authority-specific blocks appear
+
+#### Scenario: TIERED policy uses authority-specific compliance
+- **WHEN** `anchor.compliance-policy` is set to TIERED
+- **THEN** anchors are grouped by authority
+- **AND** each group renders with strength-appropriate language
+
+#### Scenario: TIERED is default behavior
+- **WHEN** application starts and `anchor.compliance-policy` is not specified
+- **THEN** the system defaults to TIERED mode
+
+### Requirement: Policy implementation via interface
+
+The system SHALL define a `CompliancePolicy` interface with single method `getStrengthFor(Authority)` that returns ComplianceStrength. Two implementations SHALL exist:
+- `DefaultCompliancePolicy`: Returns STRICT for all authorities
+- `AuthorityTieredCompliancePolicy`: Maps authority to strength as specified above
+
+#### Scenario: Interface contract is enforced
+- **WHEN** a custom CompliancePolicy is created
+- **THEN** it implements `getStrengthFor(Authority)` and returns ComplianceStrength
+
+#### Scenario: Implementations are injectable
+- **WHEN** application context is initialized
+- **THEN** the selected implementation is available via dependency injection
+
+### Requirement: Backward compatibility
+
+The `AnchorsLlmReference` public API SHALL remain unchanged. Callers of context-injection methods MUST observe no change in behavior with DEFAULT policy.
+
+#### Scenario: API signature unchanged
+- **WHEN** `AnchorsLlmReference.contextWithAnchorsJinja()` is called
+- **THEN** the method signature and return type are identical to previous version
+
+#### Scenario: DEFAULT policy matches previous behavior
+- **WHEN** DEFAULT policy is used
+- **THEN** prompt output is identical to flat-compliance behavior from previous version
+
+## Invariants
+
+- **I1**: Every Authority level MUST map to exactly one ComplianceStrength
+- **I2**: Authority enum changes MUST NOT require policy code changes (policy reads, does not define, authorities)
+- **I3**: CANON/RELIABLE MUST use STRICT; UNRELIABLE MUST use MODERATE; PROVISIONAL MUST use PERMISSIVE
+- **I4**: Prompt assembly MUST render authority blocks in order: CANON → RELIABLE → UNRELIABLE → PROVISIONAL

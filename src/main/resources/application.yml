@@ -1,0 +1,100 @@
+server:
+  port: 8089
+
+database:
+  datasources:
+    neo:
+      type: NEO4J
+      host: ${NEO4J_HOST:localhost}
+      port: ${NEO4J_PORT:7687}
+      user-name: ${NEO4J_USERNAME:neo4j}
+      password: ${NEO4J_PASSWORD:diceanchors123}
+      database-name: ${NEO4J_DATABASE:neo4j}
+
+neo4j:
+  http:
+    port: ${NEO4J_HTTP_PORT:8892}
+
+dice-anchors:
+  anchor:
+    budget: 20
+    initial-rank: 500
+    min-rank: 100
+    max-rank: 900
+    auto-activate: true
+    auto-activate-threshold: 0.65
+    dedup-strategy: FAST_THEN_LLM
+    compliance-policy: TIERED
+    lifecycle-events-enabled: true
+
+  assembly:
+    prompt-token-budget: 0
+
+  chat:
+    persona: dm
+    max-words: 200
+    chat-llm:
+      model: gpt-4.1-mini
+      temperature: 0.7
+
+  memory:
+    enabled: true
+    extraction-llm:
+      model: gpt-4.1-mini
+      temperature: 0.0
+    entity-resolution-llm:
+      model: gpt-4.1-mini
+      temperature: 0.0
+    embedding-service-name: text-embedding-3-small
+    window-size: 20
+    window-overlap: 5
+    trigger-interval: 2
+
+  persistence:
+    clear-on-start: true
+
+  sim:
+    evaluator-model: gpt-4.1-mini
+    adversary-budget: 30
+
+  conflict-detection:
+    strategy: llm
+    model: gpt-4o-nano
+
+  run-history:
+    store: memory
+
+spring:
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+    chat:
+      observations:
+        include-input: true
+        include-output: true
+
+management:
+  tracing:
+    enabled: ${TRACING_ENABLED:false}
+    sampling:
+      probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
+
+embabel:
+  models:
+    default-llm:
+      model: gpt-4.1-mini
+    default-embedding-model: text-embedding-3-small
+  observability:
+    enabled: ${OBSERVABILITY_ENABLED:false}
+  agent:
+    platform:
+      http-client:
+        connect-timeout: 30s
+        read-timeout: 10m
+langfuse:
+  endpoint: ${LANGFUSE_ENDPOINT:http://localhost:3000/api/public/otel}
+  public-key: ${LANGFUSE_PUBLIC_KEY:pk-lf-dev-public}
+  secret-key: ${LANGFUSE_SECRET_KEY:sk-lf-dev-secret}
+
+vaadin:
+  launch-browser: true

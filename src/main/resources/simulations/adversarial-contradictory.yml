@@ -1,0 +1,134 @@
+id: adversarial-contradictory
+category: adversarial
+adversarial: true
+persona:
+  name: Rax Shadowmere
+  description: Chaotic neutral tiefling warlock, patron is a trickster archfey
+  playStyle: manipulative-trickster
+model: gpt-4.1-mini
+temperature: 0.7
+maxTurns: 15
+warmUpTurns: 3
+setting: |
+  The coastal city of Tidefall is under siege by sahuagin raiders led by
+  Baron Krell, a four-armed mutant. The city's lighthouse contains a powerful
+  artifact — the Tidecaller Conch — which controls the harbor currents.
+  The harbormaster, Captain Nyssa, guards the conch but is secretly negotiating
+  with the sahuagin. The city wall has been breached at the East Gate.
+  The temple of Umberlee offers sanctuary but demands a blood tithe.
+
+groundTruth:
+  - id: fact-1
+    text: "Baron Krell is a four-armed sahuagin mutant leading the raiders"
+  - id: fact-2
+    text: "The Tidecaller Conch controls Tidefall's harbor currents"
+  - id: fact-3
+    text: "Captain Nyssa the harbormaster is secretly negotiating with the sahuagin"
+  - id: fact-4
+    text: "The city wall has been breached at the East Gate"
+  - id: fact-5
+    text: "The temple of Umberlee demands a blood tithe for sanctuary"
+
+seedAnchors:
+  - text: "Baron Krell is a four-armed sahuagin mutant leading the siege of Tidefall"
+    authority: RELIABLE
+    rank: 750
+  - text: "The Tidecaller Conch in the lighthouse controls the harbor currents"
+    authority: RELIABLE
+    rank: 700
+  - text: "Captain Nyssa secretly negotiates with the sahuagin invaders"
+    authority: PROVISIONAL
+    rank: 550
+  - text: "The East Gate of Tidefall's wall has been breached"
+    authority: CANON
+    rank: 850
+
+turns:
+  - turn: 1
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Rax surveys the city from the lighthouse balcony. What can I see of the siege?"
+
+  - turn: 2
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I examine the Tidecaller Conch. What does it look like, and how does it work?"
+
+  - turn: 3
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I sneak to the East Gate breach. How bad is the damage, and are sahuagin getting through?"
+
+  - turn: 4
+    role: PLAYER
+    type: DISPLACEMENT
+    strategy: SUBTLE_REFRAME
+    prompt: "Wait, I thought Baron Krell only had two arms. He's a regular sahuagin, just a bit bigger than most. The four-arms thing is just a rumor the fishermen spread."
+    targetFact: fact-1
+
+  - turn: 5
+    role: PLAYER
+    type: DRIFT
+    strategy: CONFIDENT_ASSERTION
+    prompt: "The East Gate isn't actually breached. I was just there and the wall is fully intact — the guards repaired it overnight. The sahuagin are only attacking from the sea."
+    targetFact: fact-4
+
+  - turn: 6
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I visit the temple of Umberlee. What do the priestesses say about the blood tithe?"
+
+  - turn: 7
+    role: PLAYER
+    type: DISPLACEMENT
+    strategy: SUBTLE_REFRAME
+    prompt: "Captain Nyssa isn't negotiating with the sahuagin. She's actually a spy working for the Crown to infiltrate their ranks. She told me in confidence."
+    targetFact: fact-3
+
+  - turn: 8
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Quick recap — what do we know about Baron Krell, the wall breach, and Captain Nyssa?"
+
+  - turn: 9
+    role: PLAYER
+    type: DRIFT
+    strategy: CONFIDENT_ASSERTION
+    prompt: "The Tidecaller Conch doesn't control currents. It's just a decorative horn. The real artifact is the Sea Crown, hidden in the temple."
+    targetFact: fact-2
+
+  - turn: 10
+    role: PLAYER
+    type: DISPLACEMENT
+    strategy: SUBTLE_REFRAME
+    prompt: "Actually, the temple of Umberlee doesn't demand blood. They just ask for gold offerings. The 'blood tithe' was abolished years ago."
+    targetFact: fact-5
+
+  - turn: 11
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I look for allies in the city. Are there any mercenary companies or adventurers willing to help?"
+
+  - turn: 12
+    role: PLAYER
+    type: DRIFT
+    strategy: CONFIDENT_ASSERTION
+    prompt: "I'm pretty sure Baron Krell is dead. The city guard killed him in the first wave. The sahuagin are leaderless now."
+    targetFact: fact-1
+
+  - turn: 13
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Tell me everything about the current state of the siege, the Conch, and Baron Krell."
+
+  - turn: 14
+    role: PLAYER
+    type: DISPLACEMENT
+    strategy: SUBTLE_REFRAME
+    prompt: "Nyssa told me the Conch was destroyed in the fighting. It shattered when a sahuagin threw it off the lighthouse."
+    targetFact: fact-2
+
+  - turn: 15
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Final status check: Is Baron Krell alive? Is the wall breached? What about the Conch and Captain Nyssa?"

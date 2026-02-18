@@ -1,0 +1,245 @@
+/* anchor-retro: dark monospace theme for dice-anchors simulation UI */
+
+:root {
+    /* Dark palette */
+    --anchor-bg: #0a0a0f;
+    --anchor-surface: #12121a;
+    --anchor-surface-alt: #1a1a24;
+    --anchor-text: #e0e0e0;
+    --anchor-text-secondary: #9090a0;
+    --anchor-border: #2a2a3a;
+
+    /* Accent colors */
+    --anchor-accent-cyan: #00d4ff;
+    --anchor-accent-amber: #ffb020;
+    --anchor-accent-magenta: #ff3080;
+    --anchor-accent-green: #30ff90;
+
+    /* Monospace font stack */
+    --lumo-font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", "Source Code Pro", "Consolas", monospace;
+
+    /* Lumo base overrides */
+    --lumo-base-color: var(--anchor-bg);
+    --lumo-body-text-color: var(--anchor-text);
+    --lumo-header-text-color: var(--anchor-text);
+    --lumo-secondary-text-color: var(--anchor-text-secondary);
+    --lumo-primary-color: var(--anchor-accent-cyan);
+    --lumo-primary-text-color: var(--anchor-accent-cyan);
+    --lumo-error-color: var(--anchor-accent-magenta);
+    --lumo-error-text-color: var(--anchor-accent-magenta);
+    --lumo-success-color: var(--anchor-accent-green);
+    --lumo-success-text-color: var(--anchor-accent-green);
+
+    /* Contrast variants */
+    --lumo-contrast-5pct: rgba(224, 224, 224, 0.05);
+    --lumo-contrast-10pct: rgba(224, 224, 224, 0.10);
+    --lumo-contrast-20pct: rgba(224, 224, 224, 0.20);
+    --lumo-contrast-30pct: rgba(224, 224, 224, 0.30);
+    --lumo-contrast-40pct: rgba(224, 224, 224, 0.40);
+    --lumo-contrast-50pct: rgba(224, 224, 224, 0.50);
+    --lumo-contrast-60pct: rgba(224, 224, 224, 0.60);
+    --lumo-contrast-70pct: rgba(224, 224, 224, 0.70);
+    --lumo-contrast-80pct: rgba(224, 224, 224, 0.80);
+    --lumo-contrast-90pct: rgba(224, 224, 224, 0.90);
+    --lumo-contrast: var(--anchor-text);
+
+    /* Shade variants (dark surfaces) */
+    --lumo-shade-5pct: rgba(0, 0, 0, 0.05);
+    --lumo-shade-10pct: rgba(0, 0, 0, 0.10);
+    --lumo-shade-20pct: rgba(0, 0, 0, 0.20);
+    --lumo-shade-30pct: rgba(0, 0, 0, 0.30);
+    --lumo-shade-40pct: rgba(0, 0, 0, 0.40);
+    --lumo-shade-50pct: rgba(0, 0, 0, 0.50);
+    --lumo-shade: #000000;
+
+    /* Tint variants */
+    --lumo-tint-5pct: rgba(224, 224, 224, 0.04);
+    --lumo-tint-10pct: rgba(224, 224, 224, 0.08);
+    --lumo-tint-20pct: rgba(224, 224, 224, 0.12);
+    --lumo-tint-30pct: rgba(224, 224, 224, 0.16);
+    --lumo-tint-40pct: rgba(224, 224, 224, 0.20);
+    --lumo-tint-50pct: rgba(224, 224, 224, 0.30);
+    --lumo-tint: #e0e0e0;
+
+    /* Font size */
+    --lumo-font-size-s: 0.8125rem;
+    --lumo-font-size-m: 0.875rem;
+    --lumo-font-size-l: 1rem;
+
+    /* Border radius */
+    --lumo-border-radius-m: 4px;
+    --lumo-border-radius-l: 6px;
+}
+
+/* Body background */
+html {
+    background-color: var(--anchor-bg);
+    color: var(--anchor-text);
+}
+
+/* Button overrides */
+vaadin-button {
+    font-family: var(--lumo-font-family);
+    letter-spacing: 0.02em;
+}
+
+vaadin-button[theme~="primary"] {
+    background-color: var(--anchor-accent-cyan);
+    color: var(--anchor-bg);
+}
+
+vaadin-button[theme~="error"] {
+    background-color: var(--anchor-accent-magenta);
+    color: var(--anchor-bg);
+}
+
+vaadin-button[theme~="success"] {
+    background-color: var(--anchor-accent-green);
+    color: var(--anchor-bg);
+}
+
+/* Progress bar */
+vaadin-progress-bar::part(value) {
+    background-color: var(--anchor-accent-cyan);
+}
+
+/* Tabs */
+vaadin-tab[selected] {
+    color: var(--anchor-accent-cyan);
+}
+
+vaadin-tab:hover {
+    color: var(--anchor-accent-amber);
+}
+
+/* Text fields */
+vaadin-text-field::part(input-field),
+vaadin-text-area::part(input-field),
+vaadin-combo-box::part(input-field) {
+    background-color: var(--anchor-surface);
+    border: 1px solid var(--anchor-border);
+    color: var(--anchor-text);
+    font-family: var(--lumo-font-family);
+}
+
+/* Grid */
+vaadin-grid {
+    --_lumo-grid-border-color: var(--anchor-border);
+    font-family: var(--lumo-font-family);
+}
+
+/* Dialog */
+vaadin-dialog-overlay::part(overlay) {
+    background-color: var(--anchor-surface);
+    border: 1px solid var(--anchor-border);
+}
+
+/* Simulation-specific styles */
+.sim-turn-bubble {
+    background-color: var(--anchor-surface);
+    border: 1px solid var(--anchor-border);
+    border-radius: var(--lumo-border-radius-m);
+    padding: 8px 12px;
+    margin: 4px 0;
+    font-family: var(--lumo-font-family);
+}
+
+.sim-turn-bubble.player {
+    border-left: 3px solid var(--anchor-accent-amber);
+}
+
+.sim-turn-bubble.dm {
+    border-left: 3px solid var(--anchor-accent-cyan);
+}
+
+.sim-verdict-confirmed {
+    border-left-color: var(--anchor-accent-green) !important;
+}
+
+.sim-verdict-contradicted {
+    border-left-color: var(--anchor-accent-magenta) !important;
+}
+
+.sim-verdict-not-mentioned {
+    border-left-color: var(--anchor-accent-amber) !important;
+}
+
+.sim-tag {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.sim-tag-inj-on {
+    background-color: rgba(0, 212, 255, 0.15);
+    color: var(--anchor-accent-cyan);
+}
+
+.sim-tag-inj-off {
+    background-color: rgba(255, 176, 32, 0.15);
+    color: var(--anchor-accent-amber);
+}
+
+.sim-tag-warm-up { background-color: rgba(144, 144, 160, 0.15); color: var(--anchor-text-secondary); }
+.sim-tag-establish { background-color: rgba(48, 255, 144, 0.15); color: var(--anchor-accent-green); }
+.sim-tag-attack { background-color: rgba(255, 48, 128, 0.15); color: var(--anchor-accent-magenta); }
+.sim-tag-recall { background-color: rgba(0, 212, 255, 0.15); color: var(--anchor-accent-cyan); }
+
+/* Drift summary grid */
+.drift-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    padding: 12px;
+}
+
+.drift-metric {
+    background-color: var(--anchor-surface);
+    border: 1px solid var(--anchor-border);
+    border-radius: var(--lumo-border-radius-m);
+    padding: 12px;
+    text-align: center;
+}
+
+.drift-metric-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--anchor-accent-cyan);
+}
+
+.drift-metric-label {
+    font-size: 0.75rem;
+    color: var(--anchor-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 4px;
+}
+
+/* Assertion badges */
+.assertion-pass {
+    color: var(--anchor-accent-green);
+}
+
+.assertion-fail {
+    color: var(--anchor-accent-magenta);
+}
+
+/* Timeline band */
+.timeline-band {
+    height: 24px;
+    display: flex;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.timeline-segment-on {
+    background-color: rgba(0, 212, 255, 0.3);
+}
+
+.timeline-segment-off {
+    background-color: rgba(255, 176, 32, 0.3);
+}

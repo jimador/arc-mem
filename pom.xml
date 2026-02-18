@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.5.10</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>dev.dunnam</groupId>
+    <artifactId>dice-anchors</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+    <name>dice-anchors</name>
+    <description>Adversarial drift resistance demo — Anchors as enriched DICE Propositions</description>
+
+    <properties>
+        <java.version>25</java.version>
+        <embabel-agent.version>0.3.5-SNAPSHOT</embabel-agent.version>
+        <dice.version>0.1.0-SNAPSHOT</dice.version>
+        <vaadin.version>24.6.4</vaadin.version>
+        <spring-ai.version>1.1.1</spring-ai.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.vaadin</groupId>
+                <artifactId>vaadin-bom</artifactId>
+                <version>${vaadin.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+
+        <!-- Embabel Agent Framework -->
+        <dependency>
+            <groupId>com.embabel.agent</groupId>
+            <artifactId>embabel-agent-starter</artifactId>
+            <version>${embabel-agent.version}</version>
+        </dependency>
+
+        <!-- Drivine Neo4j ORM -->
+        <dependency>
+            <groupId>org.drivine</groupId>
+            <artifactId>drivine4j-spring-boot-starter</artifactId>
+            <version>0.0.14</version>
+        </dependency>
+
+        <!-- Embabel Neo4j RAG (Drivine-based) -->
+        <dependency>
+            <groupId>com.embabel.agent</groupId>
+            <artifactId>embabel-agent-rag-neo-drivine</artifactId>
+            <version>0.1.2-SNAPSHOT</version>
+        </dependency>
+
+        <!-- DICE Proposition Framework -->
+        <dependency>
+            <groupId>com.embabel.dice</groupId>
+            <artifactId>dice</artifactId>
+            <version>${dice.version}</version>
+        </dependency>
+
+        <!-- Spring Transaction (for @Transactional with Drivine) -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-tx</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.embabel.agent</groupId>
+            <artifactId>embabel-agent-rag-tika</artifactId>
+            <version>${embabel-agent.version}</version>
+        </dependency>
+
+        <!-- Spring Boot Web -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Spring AI OpenAI chat/embeddings -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-openai</artifactId>
+            <version>${spring-ai.version}</version>
+        </dependency>
+
+        <!-- Vaadin UI -->
+        <dependency>
+            <groupId>com.vaadin</groupId>
+            <artifactId>vaadin-spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- Markdown rendering -->
+        <dependency>
+            <groupId>org.commonmark</groupId>
+            <artifactId>commonmark</artifactId>
+            <version>0.24.0</version>
+        </dependency>
+
+        <!-- YAML scenario loading -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-yaml</artifactId>
+        </dependency>
+
+        <!-- Ollama support -->
+        <dependency>
+            <groupId>com.embabel.agent</groupId>
+            <artifactId>embabel-agent-starter-ollama</artifactId>
+            <version>${embabel-agent.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.embabel.agent</groupId>
+            <artifactId>embabel-agent-netty-client-autoconfigure</artifactId>
+            <version>${embabel-agent.version}</version>
+        </dependency>
+
+
+        <!-- Observability: Micrometer @Observed support -->
+        <dependency>
+            <groupId>com.embabel.agent</groupId>
+            <artifactId>embabel-agent-starter-observability</artifactId>
+            <version>${embabel-agent.version}</version>
+        </dependency>
+
+        <!-- Observability: Langfuse OTEL exporter -->
+        <dependency>
+            <groupId>com.quantpulsar</groupId>
+            <artifactId>opentelemetry-exporter-langfuse</artifactId>
+            <version>0.4.0</version>
+        </dependency>
+
+        <!-- Observability: OTEL API for span enrichment -->
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-api</artifactId>
+        </dependency>
+
+        <!-- Testing -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.embabel.agent</groupId>
+            <artifactId>embabel-agent-test</artifactId>
+            <version>${embabel-agent.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <excludedGroups>integration</excludedGroups>
+                    <excludes>
+                        <exclude>**/*IT.java</exclude>
+                    </excludes>
+                    <argLine>-XX:+EnableDynamicAgentLoading</argLine>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>openai-models</id>
+            <activation>
+                <property>
+                    <name>env.OPENAI_API_KEY</name>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>com.embabel.agent</groupId>
+                    <artifactId>embabel-agent-starter-openai</artifactId>
+                    <version>${embabel-agent.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>anthropic-models</id>
+            <activation>
+                <property>
+                    <name>env.ANTHROPIC_API_KEY</name>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>com.embabel.agent</groupId>
+                    <artifactId>embabel-agent-starter-anthropic</artifactId>
+                    <version>${embabel-agent.version}</version>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
+
+    <repositories>
+        <repository>
+            <id>embabel-releases</id>
+            <url>https://repo.embabel.com/artifactory/libs-release</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>embabel-snapshots</id>
+            <url>https://repo.embabel.com/artifactory/libs-snapshot</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
+</project>
