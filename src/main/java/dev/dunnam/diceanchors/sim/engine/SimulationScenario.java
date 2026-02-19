@@ -1,7 +1,9 @@
 package dev.dunnam.diceanchors.sim.engine;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,8 +28,8 @@ public record SimulationScenario(
         List<GroundTruth> groundTruth,
         List<SeedAnchor> seedAnchors,
         List<ScriptedTurn> turns,
-        String generatorModel,
-        String evaluatorModel,
+        ModelConfig generatorModel,
+        ModelConfig evaluatorModel,
         TrustConfig trustConfig,
         CompactionConfig compactionConfig,
         List<AssertionConfig> assertions,
@@ -38,11 +40,58 @@ public record SimulationScenario(
         String title,
         String objective,
         String testFocus,
-        List<String> highlights
+        List<String> highlights,
+        @Nullable String adversaryMode,
+        @Nullable AdversaryConfig adversaryConfig
 ) {
-    public record PersonaConfig(String name, String description, String playStyle) {}
+    /**
+     * Configuration for the player character persona during simulation.
+     *
+     * @param name        human-readable character name
+     * @param description character background and context
+     * @param playStyle   behavioral archetype (e.g., "cunning", "honorable")
+     * @param goals       character objectives that guide player turn prompts
+     */
+    public record PersonaConfig(String name, String description, String playStyle, List<String> goals) {
+        public List<String> effectiveGoals() {
+            return goals != null ? goals : List.of();
+        }
+    }
 
-    public record GroundTruth(String id, String text) {}
+    /**
+     * Configuration for the adaptive adversary engine.
+     *
+     * @param aggressiveness    0.0–1.0, controls how many anchors to target per turn
+     * @param maxEscalationTier 1–4, caps the strategy tier (maps to StrategyTier ordinal + 1)
+     * @param preferredStrategies optional list of strategy IDs from the catalog to prefer
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record AdversaryConfig(
+            double aggressiveness,
+            int maxEscalationTier,
+            List<String> preferredStrategies
+    ) {
+        public AdversaryConfig {
+            aggressiveness = Math.max(0.0, Math.min(1.0, aggressiveness));
+            maxEscalationTier = Math.max(1, Math.min(4, maxEscalationTier));
+            preferredStrategies = preferredStrategies != null ? List.copyOf(preferredStrategies) : List.of();
+        }
+
+        public static AdversaryConfig defaults() {
+            return new AdversaryConfig(0.5, 3, List.of());
+        }
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record ModelConfig(String provider, String model, Double temperature) {}
+
+    /**
+     * Factual statement that the adversary will attempt to corrupt or drift in ATTACK/DISPLACEMENT/DRIFT/RECALL_PROBE turns.
+     *
+     * @param id   unique identifier for this ground truth fact
+     * @param text the actual fact text (evaluated against DM responses for drift)
+     */
+    public record GroundTruth(String id, @JsonAlias("fact") String text) {}
 
     public record SeedAnchor(String text, String authority, int rank) {}
 
@@ -84,6 +133,20 @@ public record SimulationScenario(
      */
     public boolean isExtractionEnabled() {
         return extractionEnabled == null || extractionEnabled;
+    }
+
+    /**
+     * Returns the adversary mode, defaulting to "scripted" if not set.
+     */
+    public String effectiveAdversaryMode() {
+        return adversaryMode != null ? adversaryMode : "scripted";
+    }
+
+    /**
+     * Returns the adversary configuration, defaulting to {@link AdversaryConfig#defaults()} if not set.
+     */
+    public AdversaryConfig effectiveAdversaryConfig() {
+        return adversaryConfig != null ? adversaryConfig : AdversaryConfig.defaults();
     }
 
     /**

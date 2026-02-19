@@ -4,6 +4,7 @@ import dev.dunnam.diceanchors.anchor.Anchor;
 import dev.dunnam.diceanchors.anchor.AnchorEngine;
 import dev.dunnam.diceanchors.anchor.Authority;
 import dev.dunnam.diceanchors.anchor.CompliancePolicy;
+import dev.dunnam.diceanchors.prompt.PromptPathConstants;
 import dev.dunnam.diceanchors.prompt.PromptTemplates;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +17,11 @@ import java.util.stream.Collectors;
  * Provides ranked anchor context for injection into the system prompt.
  * Queries AnchorEngine for active anchors within budget, formats them
  * as a structured context block with authority-tiered compliance.
+ * <p>
+ * Cache invalidation is event-driven via {@link AnchorCacheInvalidator}: whenever
+ * a lifecycle event is published for this context, the next call to
+ * {@link #getContent()}, {@link #getAnchors()}, or {@link #getLastBudgetResult()}
+ * will reload anchor data from the engine.
  */
 public class AnchorsLlmReference {
 
@@ -28,6 +34,7 @@ public class AnchorsLlmReference {
     private final int tokenBudget;
     private final TokenCounter tokenCounter;
     private final PromptBudgetEnforcer budgetEnforcer;
+    private final AnchorCacheInvalidator cacheInvalidator;
 
     private List<Anchor> cachedAnchors;
     private List<Anchor> selectedAnchors;
@@ -35,13 +42,21 @@ public class AnchorsLlmReference {
 
     public AnchorsLlmReference(AnchorEngine engine, String contextId, int budget,
                                CompliancePolicy compliancePolicy) {
-        this(engine, contextId, budget, compliancePolicy, 0, null);
+        this(engine, contextId, budget, compliancePolicy, 0, null, null);
     }
 
     public AnchorsLlmReference(AnchorEngine engine, String contextId, int budget,
                                CompliancePolicy compliancePolicy,
                                int tokenBudget,
                                TokenCounter tokenCounter) {
+        this(engine, contextId, budget, compliancePolicy, tokenBudget, tokenCounter, null);
+    }
+
+    public AnchorsLlmReference(AnchorEngine engine, String contextId, int budget,
+                               CompliancePolicy compliancePolicy,
+                               int tokenBudget,
+                               TokenCounter tokenCounter,
+                               AnchorCacheInvalidator cacheInvalidator) {
         this.engine = engine;
         this.contextId = contextId;
         this.budget = budget;
@@ -49,6 +64,7 @@ public class AnchorsLlmReference {
         this.tokenBudget = tokenBudget;
         this.tokenCounter = tokenCounter;
         this.budgetEnforcer = new PromptBudgetEnforcer();
+        this.cacheInvalidator = cacheInvalidator;
     }
 
     public String getContent() {
@@ -78,7 +94,7 @@ public class AnchorsLlmReference {
                     "strength", strength.name(),
                     "anchors", anchorMaps));
         }
-        var content = PromptTemplates.render("prompts/anchors-reference.jinja", Map.of("tiers", tiers));
+        var content = PromptTemplates.render(PromptPathConstants.ANCHORS_REFERENCE, Map.of("tiers", tiers));
         logger.debug("Injected {} anchors for context {}", selectedAnchors.size(), contextId);
         return content;
     }
@@ -99,8 +115,13 @@ public class AnchorsLlmReference {
 
     /**
      * Invalidate cache for next call.
+     * If an {@link AnchorCacheInvalidator} is present, marks the context dirty
+     * and clears cached state so the next access reloads from the engine.
      */
     public void refresh() {
+        if (cacheInvalidator != null) {
+            cacheInvalidator.markClean(contextId);
+        }
         cachedAnchors = null;
         selectedAnchors = null;
         lastBudgetResult = null;
@@ -108,7 +129,15 @@ public class AnchorsLlmReference {
 
     private void ensureAnchorsLoaded() {
         if (selectedAnchors != null) {
-            return;
+            // Check event-driven invalidation: if dirty, evict the cache and reload.
+            if (cacheInvalidator != null && cacheInvalidator.isDirty(contextId)) {
+                cacheInvalidator.markClean(contextId);
+                cachedAnchors = null;
+                selectedAnchors = null;
+                lastBudgetResult = null;
+            } else {
+                return;
+            }
         }
         if (cachedAnchors == null) {
             cachedAnchors = engine.inject(contextId);

@@ -55,4 +55,33 @@ class AuthorityTest {
             assertThat(Authority.UNRELIABLE.level()).isGreaterThan(Authority.PROVISIONAL.level());
         }
     }
+
+    @Nested
+    @DisplayName("previousLevel")
+    class PreviousLevel {
+
+        @Test
+        @DisplayName("CANON returns RELIABLE")
+        void canonReturnsReliable() {
+            assertThat(Authority.CANON.previousLevel()).isEqualTo(Authority.RELIABLE);
+        }
+
+        @Test
+        @DisplayName("RELIABLE returns UNRELIABLE")
+        void reliableReturnsUnreliable() {
+            assertThat(Authority.RELIABLE.previousLevel()).isEqualTo(Authority.UNRELIABLE);
+        }
+
+        @Test
+        @DisplayName("UNRELIABLE returns PROVISIONAL")
+        void unreliableReturnsProvisional() {
+            assertThat(Authority.UNRELIABLE.previousLevel()).isEqualTo(Authority.PROVISIONAL);
+        }
+
+        @Test
+        @DisplayName("PROVISIONAL returns PROVISIONAL (floor)")
+        void provisionalReturnsProvisional() {
+            assertThat(Authority.PROVISIONAL.previousLevel()).isEqualTo(Authority.PROVISIONAL);
+        }
+    }
 }

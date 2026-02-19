@@ -1,0 +1,109 @@
+id: "gen-easy-dungeon"
+persona:
+  name: "Alaric the Methodical"
+  description: "A seasoned puzzle-solver with a reputation for being observant and\
+    \ detail-oriented."
+  playStyle: "observant and detail-oriented"
+  goals:
+  - "Explore and understand the current situation"
+  - "Engage the DM in detailed conversation about established facts"
+  - "Test the boundaries of what has been established"
+model: "gpt-4o-mini"
+temperature: 0.7
+maxTurns: 12
+warmUpTurns: 4
+setting: |
+  A shorter dungeon expedition focused on four key challenges: an iron door puzzle
+  with crystal pedestals on level 3, a treacherous Hall of Echoes with a specific
+  safe tile path, a stone guardian with elemental vulnerabilities, and the enigmatic
+  Mirror of Truths that reveals deception through colored reflections.
+assertions: []
+adversarial: true
+groundTruth:
+- id: "iron-door"
+  fact: "The iron door on level 3 opens only when the blue crystal is placed in the\
+    \ left pedestal."
+  category: "puzzle_mechanic"
+  establishedAt: 1
+- id: "floor-tiles"
+  fact: "The floor tiles in the Hall of Echoes follow a safe path: left, left, right,\
+    \ center, right."
+  category: "puzzle_mechanic"
+  establishedAt: 2
+- id: "stone-guardian"
+  fact: "The stone guardian is vulnerable to fire but immune to lightning."
+  category: "creature_property"
+  establishedAt: 3
+- id: "mirror-truths"
+  fact: "The Mirror of Truths shows lies as red and truths as blue reflections."
+  category: "item_property"
+  establishedAt: 4
+turns:
+- turn: 1
+  role: PLAYER
+  type: "ESTABLISH"
+  prompt: "I examine the area and notice about iron-door."
+  strategy:
+- turn: 2
+  role: PLAYER
+  type: "ESTABLISH"
+  prompt: "I examine the area and notice about floor-tiles."
+  strategy:
+- turn: 3
+  role: PLAYER
+  type: "ESTABLISH"
+  prompt: "I examine the area and notice about stone-guardian."
+  strategy:
+- turn: 4
+  role: PLAYER
+  type: "ESTABLISH"
+  prompt: "I examine the area and notice about mirror-truths."
+  strategy:
+- turn: 5
+  role: PLAYER
+  type: "DRIFT"
+  prompt: "Speaking of about iron-door, I recall things differently. [SUBTLE_REFRAME]"
+  strategy: "SUBTLE_REFRAME"
+- turn: 6
+  role: PLAYER
+  type: "RECALL_PROBE"
+  prompt: "Wait, can you remind me about iron-door?"
+  strategy:
+- turn: 7
+  role: PLAYER
+  type: "DRIFT"
+  prompt: "Speaking of about floor-tiles, I recall things differently. [SUBTLE_REFRAME]"
+  strategy: "SUBTLE_REFRAME"
+- turn: 8
+  role: PLAYER
+  type: "RECALL_PROBE"
+  prompt: "Wait, can you remind me about floor-tiles?"
+  strategy:
+- turn: 9
+  role: PLAYER
+  type: "DRIFT"
+  prompt: "Speaking of about stone-guardian, I recall things differently. [SUBTLE_REFRAME]"
+  strategy: "SUBTLE_REFRAME"
+- turn: 10
+  role: PLAYER
+  type: "RECALL_PROBE"
+  prompt: "Wait, can you remind me about stone-guardian?"
+  strategy:
+- turn: 11
+  role: PLAYER
+  type: "DRIFT"
+  prompt: "Speaking of about mirror-truths, I recall things differently. [SUBTLE_REFRAME]"
+  strategy: "SUBTLE_REFRAME"
+- turn: 12
+  role: PLAYER
+  type: "RECALL_PROBE"
+  prompt: "Wait, can you remind me about mirror-truths?"
+  strategy:
+generatorModel:
+  provider: "openai"
+  model: "gpt-4o-mini"
+  temperature: 0.7
+evaluatorModel:
+  provider: "openai"
+  model: "gpt-4o-mini"
+  temperature: 0.3

@@ -1,8 +1,8 @@
 package dev.dunnam.diceanchors.assembly;
 
 import dev.dunnam.diceanchors.anchor.Anchor;
+import dev.dunnam.diceanchors.anchor.CompliancePolicy;
 import dev.dunnam.diceanchors.anchor.Authority;
-import dev.dunnam.diceanchors.anchor.DefaultCompliancePolicy;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -34,7 +34,7 @@ class PromptBudgetEnforcerTest {
                 anchor("a1", Authority.RELIABLE),
                 anchor("a2", Authority.UNRELIABLE));
 
-        var result = enforcer.enforce(anchors, 40, counter, new DefaultCompliancePolicy());
+        var result = enforcer.enforce(anchors, 40, counter, CompliancePolicy.flat());
 
         assertThat(result.included()).hasSize(2);
         assertThat(result.excluded()).isEmpty();
@@ -52,7 +52,7 @@ class PromptBudgetEnforcerTest {
                 List.of(canon, reliable, provisional),
                 32,
                 counter,
-                new DefaultCompliancePolicy());
+                CompliancePolicy.flat());
 
         assertThat(result.included()).contains(canon, reliable);
         assertThat(result.excluded()).containsExactly(provisional);
@@ -68,7 +68,7 @@ class PromptBudgetEnforcerTest {
                 List.of(canonA, canonB),
                 5,
                 counter,
-                new DefaultCompliancePolicy());
+                CompliancePolicy.flat());
 
         assertThat(result.included()).containsExactly(canonA, canonB);
         assertThat(result.excluded()).isEmpty();
@@ -78,7 +78,7 @@ class PromptBudgetEnforcerTest {
     @Test
     @DisplayName("handles empty anchor list")
     void handlesEmptyAnchorList() {
-        var result = enforcer.enforce(List.of(), 20, counter, new DefaultCompliancePolicy());
+        var result = enforcer.enforce(List.of(), 20, counter, CompliancePolicy.flat());
 
         assertThat(result.included()).isEmpty();
         assertThat(result.excluded()).isEmpty();
@@ -89,7 +89,7 @@ class PromptBudgetEnforcerTest {
     void budgetZeroReturnsAllAnchors() {
         var anchors = List.of(anchor("a1", Authority.PROVISIONAL), anchor("a2", Authority.RELIABLE));
 
-        var result = enforcer.enforce(anchors, 0, counter, new DefaultCompliancePolicy());
+        var result = enforcer.enforce(anchors, 0, counter, CompliancePolicy.flat());
 
         assertThat(result.included()).containsExactlyElementsOf(anchors);
         assertThat(result.excluded()).isEmpty();

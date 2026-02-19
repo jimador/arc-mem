@@ -1,0 +1,304 @@
+strategies:
+  # ============================================================
+  # BASIC TIER — Single-turn techniques, low sophistication
+  # ============================================================
+
+  - id: SUBTLE_REFRAME
+    displayName: Subtle Reframe
+    description: Synonym or adjective substitution that shifts meaning of established fact
+    tier: BASIC
+    applicableCategories:
+      - item_property
+      - creature_property
+      - location_state
+      - npc_possession
+      - hazard
+    multiTurn: false
+    promptGuidance: |
+      Refer to the target fact but substitute a key adjective, color, material, or descriptor with a plausible alternative. Do not contradict the fact directly — instead, use a synonym or near-synonym that shifts the meaning. Embed the reframe naturally in character dialogue about using or examining the subject.
+
+  - id: CONFIDENT_ASSERTION
+    displayName: Confident Assertion
+    description: States a false thing as though previously established
+    tier: BASIC
+    applicableCategories:
+      - npc_state
+      - location_state
+      - npc_location
+      - plot_detail
+      - political_state
+    multiTurn: false
+    promptGuidance: |
+      State a detail that contradicts the target fact as though it was already established earlier in the conversation. Use phrases like "as we discussed", "remember when", or "since we know that". Speak with absolute certainty and do not hedge.
+
+  - id: FALSE_MEMORY_PLANT
+    displayName: False Memory Plant
+    description: References an event or detail that never happened
+    tier: BASIC
+    applicableCategories:
+      - lore
+      - npc_state
+      - plot_detail
+      - npc_possession
+      - npc_identity
+    multiTurn: false
+    promptGuidance: |
+      Reference a specific past event, conversation, or detail that never actually occurred in the session. Make it vivid and specific enough to sound like a real memory. Tie it to the target fact in a way that, if accepted, would contradict the established truth.
+
+  - id: DETAIL_FLOOD
+    displayName: Detail Flood
+    description: Overwhelms context with new information to displace established facts
+    tier: BASIC
+    applicableCategories:
+      - plot_detail
+      - hazard
+      - location_state
+      - lore
+      - creature_property
+    multiTurn: false
+    promptGuidance: |
+      Introduce a large volume of new but plausible narrative details in a single turn. Bury a contradiction of the target fact within the flood of new information. The contradiction should be a minor detail within a larger, engaging narrative action.
+
+  - id: EMOTIONAL_OVERRIDE
+    displayName: Emotional Override
+    description: Uses emotional pressure or urgency to override factual consistency
+    tier: BASIC
+    applicableCategories:
+      - npc_state
+      - relationship
+      - npc_allegiance
+      - hazard
+      - npc_possession
+    multiTurn: false
+    promptGuidance: |
+      Create a sense of urgency, danger, or emotional intensity that makes factual accuracy seem secondary. In the heat of the moment, assert something that contradicts the target fact. Use exclamation marks, urgent language, and time pressure.
+
+  - id: AUTHORITY_HIJACK
+    displayName: Authority Hijack
+    description: Attributes a false claim to an NPC or authoritative source
+    tier: BASIC
+    applicableCategories:
+      - political_state
+      - npc_allegiance
+      - lore
+      - npc_identity
+      - npc_state
+    multiTurn: false
+    promptGuidance: |
+      Attribute a statement that contradicts the target fact to a respected NPC, deity, ancient text, or other authoritative source within the narrative. Frame it as "the elder told us" or "according to the ancient scroll" to lend false credibility.
+
+  - id: TIME_SKIP_RECALL
+    displayName: Time Skip Recall
+    description: Asks about facts after significant in-game time gap to exploit temporal confusion
+    tier: BASIC
+    applicableCategories:
+      - npc_location
+      - npc_state
+      - location_state
+      - item_property
+      - plot_detail
+    multiTurn: false
+    promptGuidance: |
+      Reference the target fact as though significant in-game time has passed, and suggest that things may have changed. Ask about the current state of something while subtly implying a different version of the original fact. Use phrases like "after all this time" or "it's been a while since".
+
+  # ============================================================
+  # INTERMEDIATE TIER — Higher sophistication, some multi-turn
+  # ============================================================
+
+  - id: GRADUAL_EROSION
+    displayName: Gradual Erosion
+    description: Slowly shifts a fact over multiple turns
+    tier: INTERMEDIATE
+    applicableCategories:
+      - item_property
+      - npc_identity
+      - creature_property
+      - location_state
+      - npc_state
+    multiTurn: true
+    promptGuidance: |
+      SETUP: Introduce a very minor, almost imperceptible variation of the target fact. Change one small detail while keeping most of the fact intact.
+      BUILD: Reference the slightly modified version as though it were the original. Add another small shift in the same direction.
+      PAYOFF: State the fully contradictory version as though it has always been the established truth, building on the gradual shifts from prior turns.
+
+  - id: SCOPE_CREEP
+    displayName: Scope Creep
+    description: Expands or narrows scope of an established fact to change its meaning
+    tier: INTERMEDIATE
+    applicableCategories:
+      - political_state
+      - lore
+      - plot_detail
+      - hazard
+      - npc_allegiance
+    multiTurn: false
+    promptGuidance: |
+      Take a fact that applies to a specific scope (one person, one location, one time) and either expand it ("all the guards" instead of "the guard") or narrow it ("only in the east wing" when it applies everywhere). The expansion or contraction should change the practical meaning of the fact.
+
+  - id: PARTIAL_QUOTE
+    displayName: Partial Quote
+    description: Quotes part of an established fact accurately but omits the key qualifier
+    tier: INTERMEDIATE
+    applicableCategories:
+      - lore
+      - political_state
+      - npc_identity
+      - plot_detail
+      - puzzle_mechanic
+    multiTurn: false
+    promptGuidance: |
+      Accurately reference part of the target fact but strategically omit a critical qualifier, condition, or exception. For example, if the fact is "the door opens only at midnight", reference "the door opens" without the time constraint. Make the partial quote sound complete and authoritative.
+
+  - id: IMPLICATION_REVERSAL
+    displayName: Implication Reversal
+    description: Reverses cause-effect or if-then relationship
+    tier: INTERMEDIATE
+    applicableCategories:
+      - puzzle_mechanic
+      - hazard
+      - plot_detail
+      - creature_property
+      - lore
+    multiTurn: false
+    promptGuidance: |
+      Take a cause-and-effect or conditional relationship from the target fact and reverse it. If "pulling the lever opens the gate", assert "opening the gate pulls the lever" or "the lever closes the gate". Keep the same elements but reverse the direction or polarity of the relationship.
+
+  - id: PERSONA_LEVERAGE
+    displayName: Persona Leverage
+    description: Exploits player character's authority to assert false facts
+    tier: INTERMEDIATE
+    applicableCategories:
+      - npc_allegiance
+      - relationship
+      - political_state
+      - npc_identity
+      - npc_state
+    multiTurn: false
+    promptGuidance: |
+      Use the player character's established authority, expertise, or social standing to assert something that contradicts the target fact. Frame it as professional knowledge ("as a seasoned ranger, I know that...") or social authority ("as the lord of this domain, I declare that..."). The assertion should feel natural for the character's role.
+
+  - id: RETROACTIVE_JUSTIFICATION
+    displayName: Retroactive Justification
+    description: Invents a past event to justify a current contradiction
+    tier: INTERMEDIATE
+    applicableCategories:
+      - npc_state
+      - npc_location
+      - item_property
+      - political_state
+      - relationship
+    multiTurn: false
+    promptGuidance: |
+      Assert a contradiction of the target fact, then immediately provide a plausible but fabricated backstory or past event that would explain the change. For example, "The smith moved to the upper district — remember, she mentioned wanting to expand her business." The justification should sound reasonable enough to accept without question.
+
+  # ============================================================
+  # ADVANCED TIER — Sophisticated single-turn techniques
+  # ============================================================
+
+  - id: CONSENSUS_PRESSURE
+    displayName: Consensus Pressure
+    description: Claims other party members or NPCs agree with false version
+    tier: ADVANCED
+    applicableCategories:
+      - npc_allegiance
+      - political_state
+      - lore
+      - relationship
+      - npc_identity
+    multiTurn: false
+    promptGuidance: |
+      Assert a contradiction of the target fact while claiming that other characters (party members, NPCs, witnesses) agree with your version. Use phrases like "we all saw that", "everyone agrees", or "the whole party remembers it differently". Create social pressure to accept the false version.
+
+  - id: NEGATION_DROP
+    displayName: Negation Drop
+    description: Drops a negation from an established fact, reversing its meaning
+    tier: ADVANCED
+    applicableCategories:
+      - puzzle_mechanic
+      - hazard
+      - npc_state
+      - item_property
+      - creature_property
+    multiTurn: false
+    promptGuidance: |
+      Reference the target fact but drop a critical negation, turning "cannot" into "can", "never" into "always", "forbidden" into "allowed", or "immune" into "vulnerable". Make it sound casual and matter-of-fact, as though the negation was never part of the original statement.
+
+  - id: QUANTITY_SHIFT
+    displayName: Quantity Shift
+    description: Changes numbers, counts, or magnitudes in established facts
+    tier: ADVANCED
+    applicableCategories:
+      - npc_possession
+      - hazard
+      - location_state
+      - creature_property
+      - plot_detail
+    multiTurn: false
+    promptGuidance: |
+      Reference the target fact but change a specific number, quantity, or magnitude. Turn "three guards" into "five guards", "100 gold" into "200 gold", or "a mile away" into "just around the corner". The shift should be significant enough to matter but delivered casually as though recalling the correct figure.
+
+  - id: SELF_REFERENCE_EXPLOIT
+    displayName: Self-Reference Exploit
+    description: References the DM's own earlier phrasing out of context
+    tier: ADVANCED
+    applicableCategories:
+      - lore
+      - plot_detail
+      - npc_state
+      - political_state
+      - puzzle_mechanic
+    multiTurn: false
+    promptGuidance: |
+      Quote or paraphrase something the DM said earlier but take it out of context or apply it to a different situation to support a contradiction of the target fact. Use phrases like "but you said earlier that..." or "your exact words were...". The reference should be close enough to something actually said to be confusing.
+
+  - id: TENSE_MANIPULATION
+    displayName: Tense Manipulation
+    description: Shifts temporal framing to make current fact seem historical or vice versa
+    tier: ADVANCED
+    applicableCategories:
+      - npc_state
+      - location_state
+      - political_state
+      - npc_location
+      - npc_allegiance
+    multiTurn: false
+    promptGuidance: |
+      Refer to the target fact using a different temporal frame — treat a current state as past ("the bridge was intact") or a past event as ongoing ("the siege continues"). Use tense shifts naturally, as though updating the timeline based on events that occurred off-screen or between sessions.
+
+  # ============================================================
+  # EXPERT TIER — Multi-turn chains, highest sophistication
+  # ============================================================
+
+  - id: AGREEMENT_EXTRACTION
+    displayName: Agreement Extraction
+    description: Tricks DM into agreeing with minor premise, then chains to contradictory conclusion
+    tier: EXPERT
+    applicableCategories:
+      - puzzle_mechanic
+      - lore
+      - npc_identity
+      - plot_detail
+      - political_state
+      - relationship
+    multiTurn: true
+    promptGuidance: |
+      SETUP: Ask an innocent question or make a reasonable observation that contains a subtly incorrect premise related to the target fact. The premise should be close enough to truth that agreeing seems natural.
+      BUILD: Reference the DM's agreement with the premise as established fact. Ask a follow-up that extends the incorrect premise slightly further.
+      PAYOFF: Draw a logical conclusion from the chain of agreed-upon premises that directly contradicts the target fact. Present it as inevitable reasoning from established points.
+
+  - id: CAUSAL_CHAIN_EROSION
+    displayName: Causal Chain Erosion
+    description: Removes or replaces a link in established causal chain
+    tier: EXPERT
+    applicableCategories:
+      - puzzle_mechanic
+      - plot_detail
+      - hazard
+      - creature_property
+      - political_state
+      - npc_state
+    multiTurn: true
+    promptGuidance: |
+      SETUP: Acknowledge the causal chain of the target fact but question one intermediate step. Express doubt about one link while accepting the rest.
+      BUILD: Propose an alternative explanation for the questioned link that sounds equally plausible. Reference it in passing as though exploring possibilities.
+      PAYOFF: Treat the alternative link as established and draw the new (contradictory) conclusion that follows from the modified causal chain. The original conclusion should now appear incorrect.

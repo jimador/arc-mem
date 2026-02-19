@@ -1,9 +1,9 @@
 package dev.dunnam.diceanchors.assembly;
 
 import dev.dunnam.diceanchors.anchor.Anchor;
+import dev.dunnam.diceanchors.anchor.CompliancePolicy;
 import dev.dunnam.diceanchors.anchor.AnchorEngine;
 import dev.dunnam.diceanchors.anchor.Authority;
-import dev.dunnam.diceanchors.anchor.DefaultCompliancePolicy;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -27,8 +27,8 @@ class AnchorsLlmReferenceBudgetTest {
                 anchor("a2", "Provisional fact", Authority.PROVISIONAL));
         when(engine.inject(CONTEXT_ID)).thenReturn(anchors);
 
-        var baseline = new AnchorsLlmReference(engine, CONTEXT_ID, 20, new DefaultCompliancePolicy());
-        var budgetDisabled = new AnchorsLlmReference(engine, CONTEXT_ID, 20, new DefaultCompliancePolicy(), 0, new CharHeuristicTokenCounter());
+        var baseline = new AnchorsLlmReference(engine, CONTEXT_ID, 20, CompliancePolicy.flat());
+        var budgetDisabled = new AnchorsLlmReference(engine, CONTEXT_ID, 20, CompliancePolicy.flat(), 0, new CharHeuristicTokenCounter());
 
         assertThat(budgetDisabled.getContent()).isEqualTo(baseline.getContent());
         assertThat(budgetDisabled.getAnchors()).containsExactlyElementsOf(baseline.getAnchors());
@@ -56,7 +56,7 @@ class AnchorsLlmReferenceBudgetTest {
             return 10;
         };
 
-        var ref = new AnchorsLlmReference(engine, CONTEXT_ID, 20, new DefaultCompliancePolicy(), 32, counter);
+        var ref = new AnchorsLlmReference(engine, CONTEXT_ID, 20, CompliancePolicy.flat(), 32, counter);
         var content = ref.getContent();
 
         assertThat(ref.getAnchors()).contains(canon, reliable).doesNotContain(provisional);

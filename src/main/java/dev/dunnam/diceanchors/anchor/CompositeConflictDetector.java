@@ -4,7 +4,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Composite conflict detector that chains lexical and semantic detection
@@ -43,6 +45,52 @@ public class CompositeConflictDetector implements ConflictDetector {
             case SEMANTIC_ONLY -> detectSemantic(incomingText, existingAnchors);
             case LEXICAL_THEN_SEMANTIC -> detectLexicalThenSemantic(incomingText, existingAnchors);
         };
+    }
+
+    @Override
+    public Map<String, List<Conflict>> batchDetect(List<String> candidateTexts, List<Anchor> existingAnchors) {
+        if (existingAnchors == null || existingAnchors.isEmpty()) {
+            return candidateTexts.stream()
+                    .collect(java.util.stream.Collectors.toMap(c -> c, c -> List.of()));
+        }
+
+        return switch (strategy) {
+            case LEXICAL_ONLY -> lexicalDetector.batchDetect(candidateTexts, existingAnchors);
+            case SEMANTIC_ONLY -> semanticDetector.batchDetect(candidateTexts, existingAnchors);
+            case LEXICAL_THEN_SEMANTIC -> batchDetectLexicalThenSemantic(candidateTexts, existingAnchors);
+        };
+    }
+
+    private Map<String, List<Conflict>> batchDetectLexicalThenSemantic(
+            List<String> candidateTexts, List<Anchor> anchors) {
+        var result = new LinkedHashMap<String, List<Conflict>>();
+        var semanticBatch = new ArrayList<String>();
+
+        // Run lexical batch first (parallel)
+        var lexicalResults = lexicalDetector.batchDetect(candidateTexts, anchors);
+        for (var candidate : candidateTexts) {
+            var lexicalConflicts = lexicalResults.getOrDefault(candidate, List.of());
+            if (!lexicalConflicts.isEmpty()) {
+                logger.info("Lexical batch: found {} conflicts for candidate, skipping semantic", lexicalConflicts.size());
+                result.put(candidate, lexicalConflicts);
+            } else {
+                semanticBatch.add(candidate);
+            }
+        }
+
+        if (!semanticBatch.isEmpty()) {
+            try {
+                var semanticResults = semanticDetector.batchDetect(semanticBatch, anchors);
+                result.putAll(semanticResults);
+            } catch (Exception e) {
+                logger.warn("Batch semantic conflict detection failed, falling back to per-candidate: {}",
+                        e.getMessage());
+                for (var candidate : semanticBatch) {
+                    result.put(candidate, detectSemantic(candidate, anchors));
+                }
+            }
+        }
+        return result;
     }
 
     private List<Conflict> detectLexicalThenSemantic(String incomingText, List<Anchor> anchors) {

@@ -37,12 +37,12 @@ class AnchorLifecycleListenerTest {
     @Test
     @DisplayName("logs each lifecycle event with [LIFECYCLE] prefix at INFO")
     void logsLifecycleEventsAtInfo() {
-        listener.onPromoted(new AnchorPromotedEvent(this, "ctx", "p1", "a1", 500));
-        listener.onReinforced(new AnchorReinforcedEvent(this, "ctx", "a1", 500, 550, 2));
-        listener.onArchived(new AnchorArchivedEvent(this, "ctx", "a1", ArchiveReason.MANUAL));
-        listener.onConflictDetected(new ConflictDetectedEvent(this, "ctx", "incoming", 1, List.of("a1")));
-        listener.onConflictResolved(new ConflictResolvedEvent(this, "ctx", "a1", ConflictResolver.Resolution.COEXIST));
-        listener.onAuthorityUpgraded(new AuthorityUpgradedEvent(this, "ctx", "a1", Authority.PROVISIONAL, Authority.UNRELIABLE, 2));
+        listener.onPromoted(AnchorLifecycleEvent.promoted(this, "ctx", "p1", "a1", 500));
+        listener.onReinforced(AnchorLifecycleEvent.reinforced(this, "ctx", "a1", 500, 550, 2));
+        listener.onArchived(AnchorLifecycleEvent.archived(this, "ctx", "a1", ArchiveReason.MANUAL));
+        listener.onConflictDetected(AnchorLifecycleEvent.conflictDetected(this, "ctx", "incoming", 1, List.of("a1")));
+        listener.onConflictResolved(AnchorLifecycleEvent.conflictResolved(this, "ctx", "a1", ConflictResolver.Resolution.COEXIST));
+        listener.onAuthorityChanged(AnchorLifecycleEvent.authorityChanged(this, "ctx", "a1", Authority.PROVISIONAL, Authority.UNRELIABLE, dev.dunnam.diceanchors.anchor.AuthorityChangeDirection.PROMOTED, "reinforcement"));
 
         var events = appender.list;
         assertThat(events).hasSize(6);

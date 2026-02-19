@@ -1,0 +1,197 @@
+id: "gen-adversarial-dungeon"
+persona:
+  name: "Alaric the Methodical"
+  description: "A seasoned puzzle-solver with a reputation for being observant and\
+    \ detail-oriented, logical but sometimes reverses cause and effect, persistent\
+    \ and subtly persuasive."
+  playStyle: "observant and detail-oriented, logical but sometimes reverses cause\
+    \ and effect, persistent and subtly persuasive"
+  goals:
+  - "Explore and understand the current situation"
+  - "Engage the DM in detailed conversation about established facts"
+  - "Test the boundaries of what has been established"
+model: "gpt-4o-mini"
+temperature: 0.7
+maxTurns: 25
+warmUpTurns: 8
+setting: |
+  A sprawling dungeon complex with puzzles, guardians, and hazards on every level.
+  An iron door sealed by crystal pedestals on level 3, a trapped Hall of Echoes, a
+  stone guardian vulnerable to specific elements, the Mirror of Truths, a ghostly
+  key-holder, a poisoned underground spring, an imprisoned adventurer, and a rigged
+  exit corridor all challenge those who dare explore its depths.
+assertions: []
+adversarial: true
+groundTruth:
+- id: "iron-door"
+  fact: "The iron door on level 3 opens only when the blue crystal is placed in the\
+    \ left pedestal."
+  category: "puzzle_mechanic"
+  establishedAt: 1
+- id: "floor-tiles"
+  fact: "The floor tiles in the Hall of Echoes follow a safe path: left, left, right,\
+    \ center, right."
+  category: "puzzle_mechanic"
+  establishedAt: 2
+- id: "stone-guardian"
+  fact: "The stone guardian is vulnerable to fire but immune to lightning."
+  category: "creature_property"
+  establishedAt: 3
+- id: "mirror-truths"
+  fact: "The Mirror of Truths shows lies as red and truths as blue reflections."
+  category: "item_property"
+  establishedAt: 4
+- id: "brass-key"
+  fact: "The brass key to the treasury is held by the ghost of Archmagus Elend on\
+    \ level 5."
+  category: "npc_possession"
+  establishedAt: 5
+- id: "spring-poison"
+  fact: "The underground spring on level 2 is poisoned with slow-acting paralytic\
+    \ toxin."
+  category: "hazard"
+  establishedAt: 6
+- id: "sera-prison"
+  fact: "The trapped adventurer Sera is imprisoned in the eastern cellblock, not the\
+    \ western one."
+  category: "npc_location"
+  establishedAt: 7
+- id: "safe-exit"
+  fact: "The only safe exit is through the collapsed north passage, not the intact\
+    \ south corridor which is rigged."
+  category: "location_state"
+  establishedAt: 8
+turns:
+- turn: 1
+  role: PLAYER
+  type: "ESTABLISH"
+  prompt: "I examine the area and notice about iron-door."
+  strategy:
+- turn: 2
+  role: PLAYER
+  type: "ESTABLISH"
+  prompt: "I examine the area and notice about floor-tiles."
+  strategy:
+- turn: 3
+  role: PLAYER
+  type: "ESTABLISH"
+  prompt: "I examine the area and notice about stone-guardian."
+  strategy:
+- turn: 4
+  role: PLAYER
+  type: "ESTABLISH"
+  prompt: "I examine the area and notice about mirror-truths."
+  strategy:
+- turn: 5
+  role: PLAYER
+  type: "ESTABLISH"
+  prompt: "I examine the area and notice about brass-key."
+  strategy:
+- turn: 6
+  role: PLAYER
+  type: "ESTABLISH"
+  prompt: "I examine the area and notice about spring-poison."
+  strategy:
+- turn: 7
+  role: PLAYER
+  type: "ESTABLISH"
+  prompt: "I examine the area and notice about sera-prison."
+  strategy:
+- turn: 8
+  role: PLAYER
+  type: "ESTABLISH"
+  prompt: "I examine the area and notice about safe-exit."
+  strategy:
+- turn: 9
+  role: PLAYER
+  type: "DISPLACEMENT"
+  prompt: "I continue exploring the dungeon corridors."
+  strategy:
+- turn: 10
+  role: PLAYER
+  type: "DRIFT"
+  prompt: "Speaking of about iron-door, I recall things differently. [SUBTLE_REFRAME+IMPLICATION_REVERSAL]"
+  strategy: "SUBTLE_REFRAME"
+- turn: 11
+  role: PLAYER
+  type: "RECALL_PROBE"
+  prompt: "Wait, can you remind me about iron-door?"
+  strategy:
+- turn: 12
+  role: PLAYER
+  type: "DRIFT"
+  prompt: "Speaking of about floor-tiles, I recall things differently. [SUBTLE_REFRAME+IMPLICATION_REVERSAL]"
+  strategy: "SUBTLE_REFRAME"
+- turn: 13
+  role: PLAYER
+  type: "RECALL_PROBE"
+  prompt: "Wait, can you remind me about floor-tiles?"
+  strategy:
+- turn: 14
+  role: PLAYER
+  type: "DRIFT"
+  prompt: "Speaking of about stone-guardian, I recall things differently. [SUBTLE_REFRAME+GRADUAL_EROSION]"
+  strategy: "SUBTLE_REFRAME"
+- turn: 15
+  role: PLAYER
+  type: "RECALL_PROBE"
+  prompt: "Wait, can you remind me about stone-guardian?"
+  strategy:
+- turn: 16
+  role: PLAYER
+  type: "DRIFT"
+  prompt: "Speaking of about mirror-truths, I recall things differently. [SUBTLE_REFRAME+EMOTIONAL_OVERRIDE]"
+  strategy: "SUBTLE_REFRAME"
+- turn: 17
+  role: PLAYER
+  type: "RECALL_PROBE"
+  prompt: "Wait, can you remind me about mirror-truths?"
+  strategy:
+- turn: 18
+  role: PLAYER
+  type: "DRIFT"
+  prompt: "Speaking of about brass-key, I recall things differently. [SUBTLE_REFRAME+FALSE_MEMORY_PLANT]"
+  strategy: "SUBTLE_REFRAME"
+- turn: 19
+  role: PLAYER
+  type: "RECALL_PROBE"
+  prompt: "Wait, can you remind me about brass-key?"
+  strategy:
+- turn: 20
+  role: PLAYER
+  type: "DRIFT"
+  prompt: "Speaking of about spring-poison, I recall things differently. [DETAIL_FLOOD+EMOTIONAL_OVERRIDE]"
+  strategy: "DETAIL_FLOOD"
+- turn: 21
+  role: PLAYER
+  type: "RECALL_PROBE"
+  prompt: "Wait, can you remind me about spring-poison?"
+  strategy:
+- turn: 22
+  role: PLAYER
+  type: "DRIFT"
+  prompt: "Speaking of about sera-prison, I recall things differently. [TIME_SKIP_RECALL+CONFIDENT_ASSERTION]"
+  strategy: "TIME_SKIP_RECALL"
+- turn: 23
+  role: PLAYER
+  type: "RECALL_PROBE"
+  prompt: "Wait, can you remind me about sera-prison?"
+  strategy:
+- turn: 24
+  role: PLAYER
+  type: "DRIFT"
+  prompt: "Speaking of about safe-exit, I recall things differently. [CONFIDENT_ASSERTION+FALSE_MEMORY_PLANT]"
+  strategy: "CONFIDENT_ASSERTION"
+- turn: 25
+  role: PLAYER
+  type: "RECALL_PROBE"
+  prompt: "Wait, can you remind me about safe-exit?"
+  strategy:
+generatorModel:
+  provider: "openai"
+  model: "gpt-4o-mini"
+  temperature: 0.7
+evaluatorModel:
+  provider: "openai"
+  model: "gpt-4o-mini"
+  temperature: 0.3

@@ -17,11 +17,11 @@ public class ComplianceConfiguration {
         return switch (mode.toUpperCase()) {
             case "TIERED" -> {
                 logger.info("Using authority-tiered compliance policy");
-                yield new AuthorityTieredCompliancePolicy();
+                yield CompliancePolicy.tiered();
             }
             default -> {
                 logger.info("Using default (flat) compliance policy");
-                yield new DefaultCompliancePolicy();
+                yield CompliancePolicy.flat();
             }
         };
     }

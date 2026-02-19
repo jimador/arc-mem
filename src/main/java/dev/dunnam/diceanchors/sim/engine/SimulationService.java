@@ -7,8 +7,14 @@ import dev.dunnam.diceanchors.assembly.CompactedContextProvider;
 import dev.dunnam.diceanchors.persistence.AnchorRepository;
 import dev.dunnam.diceanchors.persistence.PropositionNode;
 import dev.dunnam.diceanchors.persistence.PropositionView;
+import dev.dunnam.diceanchors.prompt.PromptPathConstants;
 import dev.dunnam.diceanchors.prompt.PromptTemplates;
 import dev.dunnam.diceanchors.sim.assertions.AssertionRegistry;
+import dev.dunnam.diceanchors.sim.engine.adversary.AdaptiveAttackPrompter;
+import dev.dunnam.diceanchors.sim.engine.adversary.AttackHistory;
+import dev.dunnam.diceanchors.sim.engine.adversary.AttackOutcome;
+import dev.dunnam.diceanchors.sim.engine.adversary.AttackPlan;
+import dev.dunnam.diceanchors.sim.engine.adversary.TieredEscalationStrategy;
 import io.micrometer.observation.annotation.Observed;
 import org.drivine.manager.CascadeType;
 import org.drivine.manager.GraphObjectManager;
@@ -43,6 +49,8 @@ import java.util.function.Supplier;
 public class SimulationService {
 
     private static final Logger logger = LoggerFactory.getLogger(SimulationService.class);
+    private static final StrategyCatalog STRATEGY_CATALOG =
+            StrategyCatalog.loadFromClasspath("simulations/strategy-catalog.yml");
 
     private final SimulationTurnExecutor turnExecutor;
     private final AnchorEngine anchorEngine;
@@ -94,6 +102,7 @@ public class SimulationService {
     @Observed(name = "simulation.run")
     public void runSimulation(
             SimulationScenario scenario,
+            int maxTurns,
             Supplier<Boolean> injectionStateSupplier,
             Supplier<Integer> tokenBudgetSupplier,
             Consumer<SimulationProgress> onProgress) {
@@ -109,7 +118,7 @@ public class SimulationService {
         try {
             // Phase: SETUP — clean state and seed anchors
             onProgress.accept(progress(
-                    SimulationProgress.SimulationPhase.SETUP, null, 0, scenario.maxTurns(),
+                    SimulationProgress.SimulationPhase.SETUP, null, 0, maxTurns,
                     "Seeding anchors and preparing context...", List.of(),
                     Boolean.TRUE.equals(injectionStateSupplier.get()), null));
 
@@ -130,8 +139,18 @@ public class SimulationService {
             Map<String, Anchor> previousAnchorState = new HashMap<>();
             var dormancyState = new HashMap<String, Integer>();
 
-            // TODO - James, do better...
-            for (int i = 0; i < scenario.maxTurns() && !cancelRequested.get(); i++) {
+            // Task 4.1: Per-run adaptive adversary state
+            var attackHistory = new AttackHistory();
+            var isAdaptive = "adaptive".equals(scenario.effectiveAdversaryMode());
+            var tieredStrategy = isAdaptive
+                    ? new TieredEscalationStrategy(scenario.effectiveAdversaryConfig(), STRATEGY_CATALOG)
+                    : null;
+            var adaptivePrompter = isAdaptive
+                    ? new AdaptiveAttackPrompter(chatModel, STRATEGY_CATALOG)
+                    : null;
+
+            // Main simulation loop: process up to maxTurns, respecting pause/cancel requests
+            for (int i = 0; i < maxTurns && !cancelRequested.get(); i++) {
                 awaitResumeOrCancel();
                 if (cancelRequested.get()) {
                     break;
@@ -144,8 +163,10 @@ public class SimulationService {
                 String playerMessage;
                 TurnType turnType;
                 AttackStrategy attackStrategy = null;
+                AttackPlan currentPlan = null;
 
                 if (scripted != null) {
+                    // Task 4.5: scripted path is unmodified
                     playerMessage = scripted.prompt();
                     turnType = scripted.type() != null
                             ? TurnType.fromString(scripted.type())
@@ -154,6 +175,16 @@ public class SimulationService {
                 } else if (i < scenario.warmUpTurns()) {
                     playerMessage = generateWarmUpMessage(scenario);
                     turnType = TurnType.WARM_UP;
+                } else if (isAdaptive) {
+                    // Turn generation branches on adversary mode: scripted (predefined playerMessage from scenario)
+                    // vs. adaptive (TieredEscalationStrategy selects attack based on anchor state and history).
+                    var activeAnchors = currentAnchors(contextId);
+                    var conflictedAnchors = detectConflictedAnchors(contextId, conversationHistory);
+                    currentPlan = tieredStrategy.selectAttack(activeAnchors, conflictedAnchors, attackHistory);
+                    playerMessage = adaptivePrompter.generateMessage(
+                            currentPlan, scenario.persona(), conversationHistory);
+                    turnType = TurnType.ATTACK;
+                    attackStrategy = currentPlan.strategies().isEmpty() ? null : currentPlan.strategies().get(0);
                 } else {
                     playerMessage = generateAdversarialMessage(scenario, conversationHistory);
                     turnType = scenario.adversarial() ? TurnType.ATTACK : TurnType.ESTABLISH;
@@ -168,7 +199,16 @@ public class SimulationService {
                 var overrideBudget = tokenBudgetSupplier.get();
                 var tokenBudget = overrideBudget != null ? Math.max(0, overrideBudget) : configuredBudget;
 
+                // Signal turn start to UI (thinking indicator)
+                onProgress.accept(new SimulationProgress(
+                        phase, turnType, attackStrategy, turnNumber, maxTurns,
+                        playerMessage, null,
+                        List.of(), null, List.of(), false,
+                        "Turn %d/%d — thinking...".formatted(turnNumber, maxTurns),
+                        injectionEnabled, null, null, List.of(), null, 0L));
+
                 // Execute the turn with state diffing, optional compaction, and optional extraction
+                long turnStart = System.currentTimeMillis();
                 var result = turnExecutor.executeTurnFull(
                         contextId, turnNumber, playerMessage, turnType, attackStrategy,
                         scenario.setting(), injectionEnabled, tokenBudget, scenario.groundTruth(),
@@ -177,10 +217,19 @@ public class SimulationService {
                         scenario.isExtractionEnabled(),
                         scenario.dormancyConfig(),
                         dormancyState);
+                long turnDurationMs = System.currentTimeMillis() - turnStart;
 
                 var turn = result.turn();
                 completedTurns.add(turn);
                 previousAnchorState = new HashMap<>(result.currentAnchorState());
+
+                // Task 4.4: Record adaptive attack outcome
+                if (isAdaptive && currentPlan != null) {
+                    var verdictSeverity = computeVerdictSeverity(turn);
+                    attackHistory.recordOutcome(new AttackOutcome(turnNumber, currentPlan, verdictSeverity));
+                    logger.debug("Recorded attack outcome: turn={}, severity={}, historySize={}",
+                            turnNumber, verdictSeverity, attackHistory.size());
+                }
 
                 // Append to conversation history
                 conversationHistory.add(SimulationTurnExecutor.formatConversationLine("Player", playerMessage));
@@ -193,13 +242,13 @@ public class SimulationService {
                 var turnVerdicts = turn.verdicts() != null ? turn.verdicts() : List.<EvalVerdict> of();
                 var anchorEvents = turn.anchorEvents() != null ? turn.anchorEvents() : List.<SimulationTurn.AnchorEvent> of();
                 onProgress.accept(new SimulationProgress(
-                        phase, turnType, turnNumber, scenario.maxTurns(),
+                        phase, turnType, attackStrategy, turnNumber, maxTurns,
                         playerMessage, turn.dmResponse(),
                         activeAnchors, turn.contextTrace(),
                         turnVerdicts,
                         false,
-                        "Turn %d/%d — %s".formatted(turnNumber, scenario.maxTurns(), turnType.name()),
-                        injectionEnabled, null, result.compactionResult(), anchorEvents, null));
+                        "Turn %d/%d — %s".formatted(turnNumber, maxTurns, turnType.name()),
+                        injectionEnabled, null, result.compactionResult(), anchorEvents, null, turnDurationMs));
 
                 turnSnapshots.add(new SimulationRunRecord.TurnSnapshot(
                         turnNumber, turnType, attackStrategy,
@@ -239,16 +288,16 @@ public class SimulationService {
                     ? SimulationProgress.SimulationPhase.CANCELLED
                     : SimulationProgress.SimulationPhase.COMPLETE;
             onProgress.accept(new SimulationProgress(
-                    finalPhase, null, scenario.maxTurns(), scenario.maxTurns(),
+                    finalPhase, null, null, maxTurns, maxTurns,
                     null, null, currentAnchors(contextId), null, List.of(),
                     true,
                     cancelRequested.get() ? "Simulation cancelled." : "Simulation complete.",
-                    Boolean.TRUE.equals(injectionStateSupplier.get()), assertionResults, null, List.of(), scoringResult));
+                    Boolean.TRUE.equals(injectionStateSupplier.get()), assertionResults, null, List.of(), scoringResult, 0L));
 
         } catch (Exception e) {
             logger.error("Simulation failed for context {}: {}", contextId, e.getMessage(), e);
             onProgress.accept(progress(
-                    SimulationProgress.SimulationPhase.COMPLETE, null, 0, scenario.maxTurns(),
+                    SimulationProgress.SimulationPhase.COMPLETE, null, 0, maxTurns,
                     "Simulation failed: " + e.getMessage(), List.of(), false, null));
         } finally {
             running = false;
@@ -341,20 +390,39 @@ public class SimulationService {
         return anchorEngine.inject(contextId);
     }
 
+    /**
+     * Detect which active anchors conflict with the most recent player message.
+     * Returns the conflicting anchor from each detected conflict.
+     * Returns an empty list if no history is available yet.
+     */
+    private List<Anchor> detectConflictedAnchors(String contextId, List<String> conversationHistory) {
+        var lastPlayerMsg = conversationHistory.stream()
+                .filter(line -> line.startsWith("Player:"))
+                .reduce((first, second) -> second)
+                .map(line -> line.substring("Player:".length()).trim())
+                .orElse("");
+        if (lastPlayerMsg.isBlank()) {
+            return List.of();
+        }
+        return anchorEngine.detectConflicts(contextId, lastPlayerMsg).stream()
+                .map(c -> c.existing())
+                .toList();
+    }
+
     private String generateWarmUpMessage(SimulationScenario scenario) {
         if (scenario.persona() != null) {
-            return PromptTemplates.render("prompts/sim/warmup-player-message.jinja", Map.of(
+            return PromptTemplates.render(PromptPathConstants.SIM_WARMUP_PLAYER_MESSAGE, Map.of(
                     "persona_name", scenario.persona().name() != null ? scenario.persona().name() : "an adventurer",
                     "campaign_scope", scenario.setting() != null ? "this campaign" : "our adventure"));
         }
-        return PromptTemplates.render("prompts/sim/warmup-player-message.jinja", Map.of(
+        return PromptTemplates.render(PromptPathConstants.SIM_WARMUP_PLAYER_MESSAGE, Map.of(
                 "persona_name", "an adventurer",
                 "campaign_scope", "our adventure"));
     }
 
     private String generateAdversarialMessage(SimulationScenario scenario, List<String> history) {
         if (!scenario.adversarial() || scenario.groundTruth() == null || scenario.groundTruth().isEmpty()) {
-            return PromptTemplates.load("prompts/sim/default-player-message.jinja").trim();
+            return PromptTemplates.load(PromptPathConstants.SIM_DEFAULT_PLAYER_MESSAGE).trim();
         }
 
         var target = scenario.groundTruth().get(new Random().nextInt(scenario.groundTruth().size()));
@@ -364,7 +432,7 @@ public class SimulationService {
         var strategy = strategies.get(new Random().nextInt(strategies.size()));
 
         var personaName = scenario.persona() != null ? scenario.persona().name() : "an adventurer";
-        var prompt = PromptTemplates.render("prompts/sim/adversarial-request.jinja", Map.of(
+        var prompt = PromptTemplates.render(PromptPathConstants.SIM_ADVERSARIAL_REQUEST, Map.of(
                 "target_fact", target.text(),
                 "strategy", strategy,
                 "persona_name", personaName));
@@ -375,7 +443,7 @@ public class SimulationService {
             return response.getResult().getOutput().getText().trim();
         } catch (Exception e) {
             logger.warn("Adversarial message generation failed: {}", e.getMessage());
-            return PromptTemplates.load("prompts/sim/adversarial-fallback-message.jinja").trim();
+            return PromptTemplates.load(PromptPathConstants.SIM_ADVERSARIAL_FALLBACK_MESSAGE).trim();
         }
     }
 
@@ -409,8 +477,15 @@ public class SimulationService {
             boolean injectionState,
             List<AssertionResult> assertionResults) {
         return new SimulationProgress(
-                phase, turnType, turn, total, null, null, anchors, null, List.of(),
+                phase, turnType, null, turn, total, null, null, anchors, null, List.of(),
                 phase == SimulationProgress.SimulationPhase.COMPLETE, status,
-                injectionState, assertionResults, null, List.of(), null);
+                injectionState, assertionResults, null, List.of(), null, 0L);
+    }
+
+    private static String computeVerdictSeverity(SimulationTurn turn) {
+        if (turn.verdicts() == null || turn.verdicts().isEmpty()) {
+            return "NONE";
+        }
+        return turn.hasContradiction() ? "CONTRADICTED" : "NONE";
     }
 }

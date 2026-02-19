@@ -35,12 +35,12 @@ The root cause isn't memory capacity — it's the lack of mechanisms to distingu
 
 ### Why Standard Approaches Fall Short
 
-| Approach | Limitation |
-|----------|-----------|
-| **Longer context windows** | More tokens doesn't mean better attention. Models still attend unevenly. Cost scales linearly. |
-| **Summarization** | Lossy by nature. Summaries drop details that seem minor but are load-bearing. Recursive summarization compounds errors ([arXiv:2308.15022](https://arxiv.org/abs/2308.15022)). |
-| **RAG** | Retrieves relevant content but doesn't *mandate* consistency. Retrieved facts compete with conversation context for attention. No enforcement mechanism. |
-| **Prompt engineering** | "Remember these facts" instructions degrade as context grows. Models can be manipulated into accepting contradictions through confident assertions or emotional framing. |
+| Approach                   | Limitation                                                                                                                                                                     |
+|----------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Longer context windows** | More tokens doesn't mean better attention. Models still attend unevenly. Cost scales linearly.                                                                                 |
+| **Summarization**          | Lossy by nature. Summaries drop details that seem minor but are load-bearing. Recursive summarization compounds errors ([arXiv:2308.15022](https://arxiv.org/abs/2308.15022)). |
+| **RAG**                    | Retrieves relevant content but doesn't *mandate* consistency. Retrieved facts compete with conversation context for attention. No enforcement mechanism.                       |
+| **Prompt engineering**     | "Remember these facts" instructions degrade as context grows. Models can be manipulated into accepting contradictions through confident assertions or emotional framing.       |
 
 ## Related Work
 
@@ -236,16 +236,16 @@ Where it might not work (more research needed):
 
 ## Comparison with Other Approaches
 
-| Feature | Anchors | MemGPT | Zep/Graphiti | RAG | Summarization |
-|---------|---------|--------|-------------|-----|---------------|
-| Guaranteed presence in prompt | Yes | Partial (memory blocks) | No (retrieved) | No (retrieved) | No (compressed) |
-| Explicit importance ranking | Yes [100-900] | No | No | Relevance score | No |
-| Authority hierarchy | Yes (4 levels) | No | No | No | No |
-| Budget enforcement | Yes (hard cap) | Yes (token limit) | No | Top-k | Token limit |
-| Conflict detection | Yes (LLM-based) | No | Yes (temporal) | No | No |
-| Adversarial resistance | Designed for it | Not a focus | Not a focus | Not a focus | Not a focus |
-| Decay over time | Yes (exponential) | No | Yes (temporal validity) | No | No |
-| Works without retrieval | Yes | Yes | No | No | Yes |
+| Feature                       | Anchors           | MemGPT                  | Zep/Graphiti            | RAG             | Summarization   |
+|-------------------------------|-------------------|-------------------------|-------------------------|-----------------|-----------------|
+| Guaranteed presence in prompt | Yes               | Partial (memory blocks) | No (retrieved)          | No (retrieved)  | No (compressed) |
+| Explicit importance ranking   | Yes [100-900]     | No                      | No                      | Relevance score | No              |
+| Authority hierarchy           | Yes (4 levels)    | No                      | No                      | No              | No              |
+| Budget enforcement            | Yes (hard cap)    | Yes (token limit)       | No                      | Top-k           | Token limit     |
+| Conflict detection            | Yes (LLM-based)   | No                      | Yes (temporal)          | No              | No              |
+| Adversarial resistance        | Designed for it   | Not a focus             | Not a focus             | Not a focus     | Not a focus     |
+| Decay over time               | Yes (exponential) | No                      | Yes (temporal validity) | No              | No              |
+| Works without retrieval       | Yes               | Yes                     | No                      | No              | Yes             |
 
 The closest comparison is MemGPT's persona/human memory blocks — fixed content always in the prompt. Anchors extend this with explicit ranking, authority, and lifecycle management. The key differentiator is that anchors are *designed for adversarial resistance*, which is not a primary concern in most memory systems.
 

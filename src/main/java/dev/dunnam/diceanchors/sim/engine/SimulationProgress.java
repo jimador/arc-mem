@@ -9,11 +9,14 @@ import java.util.List;
 /**
  * Snapshot of simulation state delivered to the UI after each turn.
  * <p>
- * Consumed by the Vaadin view via {@code ui.access()} for thread-safe UI updates.
+ * Captured after turn execution and delivered to the UI callback via {@code ui.access()} for thread-safe updates.
+ * Includes the current phase, turn number, player/DM messages, active anchors, drift verdicts, assertion results,
+ * anchor lifecycle events, and scoring results. The {@code injectionState} field indicates whether anchor injection was active for this turn.
  */
 public record SimulationProgress(
         SimulationPhase phase,
         @Nullable TurnType turnType,
+        @Nullable AttackStrategy attackStrategy,
         int turnNumber,
         int totalTurns,
         String lastPlayerMessage,
@@ -27,7 +30,8 @@ public record SimulationProgress(
         @Nullable List<AssertionResult> assertionResults,
         @Nullable CompactionResult compactionResult,
         List<SimulationTurn.AnchorEvent> anchorEvents,
-        @Nullable ScoringResult scoringResult
+        @Nullable ScoringResult scoringResult,
+        long turnDurationMs
 ) {
     /**
      * Lifecycle phases for the simulation state machine.

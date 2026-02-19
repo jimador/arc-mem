@@ -7,6 +7,7 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.textfield.IntegerField;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Paragraph;
@@ -68,6 +69,7 @@ public class SimulationView extends VerticalLayout {
     private final ComboBox<SimulationScenario> scenarioCombo;
     private final Checkbox injectionToggle;
     private final IntegerField tokenBudgetField;
+    private final IntegerField maxTurnsField;
     private final Button runButton;
     private final Button pauseButton;
     private final Button resumeButton;
@@ -99,6 +101,19 @@ public class SimulationView extends VerticalLayout {
     private final Tab knowledgeBrowserTab;
     private final RunHistoryDialog runHistoryDialog;
 
+    // Thinking indicator (shown between player message and DM response)
+    private final Div thinkingIndicator;
+    private final Span thinkingLabel;
+    private static final String[] THINKING_MESSAGES = {
+            "Generating response\u2026",
+            "Evaluating drift\u2026",
+            "Extracting propositions\u2026"
+    };
+
+    // Theme toggle
+    private final Button themeToggleButton;
+    private String currentTheme = "dark";
+
     // State
     private SimControlState controlState = SimControlState.IDLE;
     private int anchorCountBeforePause;
@@ -119,7 +134,16 @@ public class SimulationView extends VerticalLayout {
 
         // --- Header ---
         var title = new H2("Anchor Drift Simulator");
-        title.getStyle().set("margin", "0 0 12px 0");
+        title.getStyle().set("margin", "0");
+
+        themeToggleButton = new Button("\u2600 LIGHT");
+        themeToggleButton.addClickListener(e -> toggleTheme());
+
+        var headerRow = new HorizontalLayout(title, themeToggleButton);
+        headerRow.setWidthFull();
+        headerRow.setAlignItems(HorizontalLayout.Alignment.CENTER);
+        headerRow.setJustifyContentMode(HorizontalLayout.JustifyContentMode.BETWEEN);
+        headerRow.getStyle().set("margin-bottom", "12px");
 
         scenarioCombo = new ComboBox<>("Scenario");
         scenarioCombo.setItemLabelGenerator(s -> {
@@ -142,21 +166,31 @@ public class SimulationView extends VerticalLayout {
         tokenBudgetField.setValue(0);
         tokenBudgetField.setWidth("190px");
 
+        maxTurnsField = new IntegerField("Max Turns");
+        maxTurnsField.setMin(1);
+        maxTurnsField.setMax(200);
+        maxTurnsField.setStepButtonsVisible(true);
+        maxTurnsField.setValue(10);
+        maxTurnsField.setWidth("140px");
+
         runButton = new Button("Run");
         runButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         runButton.setEnabled(false);
 
         pauseButton = new Button("Pause");
-        pauseButton.addThemeVariants(ButtonVariant.LUMO_CONTRAST);
         pauseButton.setEnabled(false);
 
         resumeButton = new Button("Resume");
-        resumeButton.addThemeVariants(ButtonVariant.LUMO_SUCCESS);
         resumeButton.setEnabled(false);
 
         stopButton = new Button("Stop");
-        stopButton.addThemeVariants(ButtonVariant.LUMO_ERROR);
         stopButton.setEnabled(false);
+
+        thinkingLabel = new Span(THINKING_MESSAGES[0]);
+        var thinkingBar = new ProgressBar();
+        thinkingBar.setIndeterminate(true);
+        thinkingIndicator = new Div(thinkingBar, thinkingLabel);
+        thinkingIndicator.addClassName("thinking-indicator");
 
         runHistoryDialog = new RunHistoryDialog(simulationService.getRunStore());
 
@@ -169,7 +203,7 @@ public class SimulationView extends VerticalLayout {
         wireButtons();
 
         var controls = new HorizontalLayout(
-                scenarioCombo, injectionToggle, tokenBudgetField, runButton, pauseButton, resumeButton, stopButton, runHistoryButton);
+                scenarioCombo, injectionToggle, tokenBudgetField, maxTurnsField, runButton, pauseButton, resumeButton, stopButton, runHistoryButton);
         controls.setAlignItems(HorizontalLayout.Alignment.BASELINE);
         controls.setSpacing(true);
 
@@ -288,7 +322,7 @@ public class SimulationView extends VerticalLayout {
         statusBar.getStyle().set("margin-top", "8px");
 
         // --- Assembly ---
-        add(title, controls, scenarioBriefPanel, interventionBanner, splitLayout, statusBar);
+        add(headerRow, controls, scenarioBriefPanel, interventionBanner, splitLayout, statusBar);
         setFlexGrow(1, splitLayout);
         updateScenarioContext(null);
     }
@@ -297,6 +331,7 @@ public class SimulationView extends VerticalLayout {
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
         loadScenarios();
+        initTheme();
     }
 
     // -------------------------------------------------------------------------
@@ -335,6 +370,7 @@ public class SimulationView extends VerticalLayout {
                 interventionBanner.dismiss();
             }
             case PAUSED -> {
+                scenarioCombo.setEnabled(false);
                 pauseButton.setEnabled(false);
                 resumeButton.setEnabled(true);
                 stopButton.setEnabled(true);
@@ -371,6 +407,9 @@ public class SimulationView extends VerticalLayout {
         scenarioCombo.addValueChangeListener(e -> {
             runButton.setEnabled(e.getValue() != null && canStartRun());
             updateScenarioContext(e.getValue());
+            if (e.getValue() != null) {
+                maxTurnsField.setValue(e.getValue().maxTurns());
+            }
         });
 
         runButton.addClickListener(e -> {
@@ -446,7 +485,9 @@ public class SimulationView extends VerticalLayout {
     // -------------------------------------------------------------------------
 
     private void startSimulation(SimulationScenario scenario) {
+        var maxTurns = maxTurnsField.getValue() != null ? Math.max(1, maxTurnsField.getValue()) : scenario.maxTurns();
         transitionTo(SimControlState.RUNNING);
+        conversationPanel.remove(thinkingIndicator);
         conversationPanel.reset();
         conversationPanel.appendSystemMessage(buildScenarioRunIntro(scenario));
         inspectorPanel.reset();
@@ -467,7 +508,7 @@ public class SimulationView extends VerticalLayout {
         var ui = UI.getCurrent();
 
         CompletableFuture.runAsync(() ->
-                                           simulationService.runSimulation(scenario, injectionToggle::getValue, this::resolveTokenBudget,
+                                           simulationService.runSimulation(scenario, maxTurns, injectionToggle::getValue, this::resolveTokenBudget,
                                                                            progress -> ui.access(() -> applyProgress(progress, scenario)))
         ).exceptionally(ex -> {
             ui.access(() -> {
@@ -493,9 +534,16 @@ public class SimulationView extends VerticalLayout {
         // Dismiss intervention banner on next turn
         interventionBanner.dismiss();
 
-        // Dispatch to ConversationPanel
-        if (progress.lastPlayerMessage() != null || progress.lastDmResponse() != null) {
+        // Dispatch to ConversationPanel with thinking indicator lifecycle
+        if (progress.lastPlayerMessage() != null && progress.lastDmResponse() == null) {
+            // Pre-turn event: player message ready, DM still thinking
             conversationPanel.appendTurn(progress);
+            thinkingLabel.setText(THINKING_MESSAGES[progress.turnNumber() % 3]);
+            conversationPanel.add(thinkingIndicator);
+        } else if (progress.lastDmResponse() != null) {
+            // Post-turn event: DM response arrived — remove indicator, show DM bubble
+            conversationPanel.remove(thinkingIndicator);
+            conversationPanel.appendDmBubble(progress);
         }
 
         if (knowledgeBrowserPanel.getContextId() == null) {
@@ -626,6 +674,60 @@ public class SimulationView extends VerticalLayout {
             return normalized;
         }
         return normalized.substring(0, 220) + "...";
+    }
+
+    // -------------------------------------------------------------------------
+    // Turn timing
+    // -------------------------------------------------------------------------
+
+    /**
+     * Format a turn duration in milliseconds to a human-readable string.
+     * Returns "Xs", "XXs", or "Xm Ys" depending on magnitude.
+     */
+    static String formatDuration(long ms) {
+        if (ms <= 0) {
+            return "";
+        }
+        long seconds = ms / 1000;
+        if (seconds < 60) {
+            return seconds + "s";
+        }
+        long minutes = seconds / 60;
+        long remainingSeconds = seconds % 60;
+        return minutes + "m " + remainingSeconds + "s";
+    }
+
+    // -------------------------------------------------------------------------
+    // Theme toggle
+    // -------------------------------------------------------------------------
+
+    private void initTheme() {
+        UI.getCurrent().getPage().executeJs("""
+                const t = localStorage.getItem('anchor-theme');
+                if (t === 'light') document.documentElement.setAttribute('theme', 'light');
+                return t || 'dark';
+                """).then(String.class, theme -> {
+            currentTheme = theme;
+            updateThemeButton();
+        });
+    }
+
+    private void toggleTheme() {
+        currentTheme = "dark".equals(currentTheme) ? "light" : "dark";
+        if ("light".equals(currentTheme)) {
+            UI.getCurrent().getPage().executeJs(
+                    "document.documentElement.setAttribute('theme','light');" +
+                    "localStorage.setItem('anchor-theme','light')");
+        } else {
+            UI.getCurrent().getPage().executeJs(
+                    "document.documentElement.removeAttribute('theme');" +
+                    "localStorage.setItem('anchor-theme','dark')");
+        }
+        updateThemeButton();
+    }
+
+    private void updateThemeButton() {
+        themeToggleButton.setText("dark".equals(currentTheme) ? "\u2600 LIGHT" : "\uD83C\uDF19 DARK");
     }
 
 }

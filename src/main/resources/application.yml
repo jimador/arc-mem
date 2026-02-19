@@ -56,6 +56,9 @@ dice-anchors:
   sim:
     evaluator-model: gpt-4.1-mini
     adversary-budget: 30
+    llm-call-timeout-seconds: 30
+    batch-max-size: 10
+    parallel-post-response: true
 
   conflict-detection:
     strategy: llm

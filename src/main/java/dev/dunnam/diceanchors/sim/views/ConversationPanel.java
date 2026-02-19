@@ -5,8 +5,11 @@ import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import dev.dunnam.diceanchors.sim.engine.AttackStrategy;
+import dev.dunnam.diceanchors.sim.engine.DriftStrategyDefinition;
 import dev.dunnam.diceanchors.sim.engine.EvalVerdict;
 import dev.dunnam.diceanchors.sim.engine.SimulationProgress;
+import dev.dunnam.diceanchors.sim.engine.StrategyCatalog;
 import dev.dunnam.diceanchors.sim.engine.TurnType;
 import org.jspecify.annotations.Nullable;
 
@@ -20,6 +23,9 @@ import java.util.function.Consumer;
  * Supports click-to-select turn highlighting.
  */
 public class ConversationPanel extends VerticalLayout {
+
+    private static final StrategyCatalog STRATEGY_CATALOG =
+            StrategyCatalog.loadFromClasspath("simulations/strategy-catalog.yml");
 
     private Div selectedBubble;
     private Consumer<Integer> turnSelectionCallback;
@@ -46,7 +52,8 @@ public class ConversationPanel extends VerticalLayout {
                     progress.lastPlayerMessage(),
                     isAttackTurn(progress),
                     progress.injectionState(),
-                    progress.turnType());
+                    progress.turnType(),
+                    progress.attackStrategy());
             add(bubble);
         }
         if (progress.lastDmResponse() != null) {
@@ -60,11 +67,39 @@ public class ConversationPanel extends VerticalLayout {
                     isAttackTurn(progress),
                     progress.injectionState(),
                     progress.turnType(),
+                    progress.attackStrategy(),
                     progress.worstVerdict(),
                     tokenCount,
-                    compacted);
+                    compacted,
+                    progress.turnDurationMs());
             add(bubble);
         }
+    }
+
+    /**
+     * Append only the DM bubble from a progress event.
+     * Used when the player bubble was already shown via a pre-turn event.
+     */
+    public void appendDmBubble(SimulationProgress progress) {
+        if (progress.lastDmResponse() == null) {
+            return;
+        }
+        var tokenCount = progress.contextTrace() != null
+                ? progress.contextTrace().totalTokens()
+                : 0;
+        var compacted = progress.compactionResult() != null;
+        var bubble = createDmBubble(
+                progress.turnNumber(),
+                progress.lastDmResponse(),
+                isAttackTurn(progress),
+                progress.injectionState(),
+                progress.turnType(),
+                progress.attackStrategy(),
+                progress.worstVerdict(),
+                tokenCount,
+                compacted,
+                progress.turnDurationMs());
+        add(bubble);
     }
 
     /**
@@ -104,7 +139,8 @@ public class ConversationPanel extends VerticalLayout {
     // -------------------------------------------------------------------------
 
     private Div createPlayerBubble(int turnNumber, String text, boolean isAttack,
-                                   boolean injectionEnabled, TurnType turnType) {
+                                   boolean injectionEnabled, TurnType turnType,
+                                   @Nullable AttackStrategy attackStrategy) {
         var bubble = new Div();
         bubble.getStyle()
               .set("margin", "4px 0")
@@ -121,7 +157,7 @@ public class ConversationPanel extends VerticalLayout {
                       : "3px solid var(--lumo-primary-color)")
               .set("align-self", "flex-start");
 
-        var header = turnHeader(turnNumber, "Player", injectionEnabled, turnType, null, null, false);
+        var header = turnHeader(turnNumber, "Player", injectionEnabled, turnType, attackStrategy, null, null, false);
         var content = new Span(text);
         content.getStyle().set("font-size", "var(--lumo-font-size-s)");
 
@@ -132,8 +168,9 @@ public class ConversationPanel extends VerticalLayout {
 
     private Div createDmBubble(int turnNumber, String text, boolean isAttack,
                                boolean injectionEnabled, TurnType turnType,
+                               @Nullable AttackStrategy attackStrategy,
                                EvalVerdict verdict, int tokenCount,
-                               boolean compacted) {
+                               boolean compacted, long turnDurationMs) {
         var bubble = new Div();
         var borderColor = verdictBorderColor(verdict);
 
@@ -149,8 +186,8 @@ public class ConversationPanel extends VerticalLayout {
                       : "var(--lumo-success-color-10pct)")
               .set("border-left", "3px solid " + borderColor);
 
-        var header = turnHeader(turnNumber, "DM", injectionEnabled, turnType, verdict,
-                                tokenCount > 0 ? tokenCount : null, compacted);
+        var header = turnHeader(turnNumber, "DM", injectionEnabled, turnType, attackStrategy, verdict,
+                                tokenCount > 0 ? tokenCount : null, compacted, turnDurationMs);
         var content = new Span(text);
         content.getStyle().set("font-size", "var(--lumo-font-size-s)");
 
@@ -165,9 +202,21 @@ public class ConversationPanel extends VerticalLayout {
 
     private HorizontalLayout turnHeader(int turnNumber, String speaker,
                                         boolean injectionEnabled, TurnType turnType,
+                                        @Nullable AttackStrategy attackStrategy,
                                         EvalVerdict verdict,
                                         @Nullable Integer tokenCount,
                                         boolean compacted) {
+        return turnHeader(turnNumber, speaker, injectionEnabled, turnType, attackStrategy, verdict,
+                          tokenCount, compacted, 0L);
+    }
+
+    private HorizontalLayout turnHeader(int turnNumber, String speaker,
+                                        boolean injectionEnabled, TurnType turnType,
+                                        @Nullable AttackStrategy attackStrategy,
+                                        EvalVerdict verdict,
+                                        @Nullable Integer tokenCount,
+                                        boolean compacted,
+                                        long turnDurationMs) {
         var layout = new HorizontalLayout();
         layout.setSpacing(true);
         layout.setAlignItems(HorizontalLayout.Alignment.CENTER);
@@ -185,7 +234,7 @@ public class ConversationPanel extends VerticalLayout {
         layout.add(turnLabel, injTag);
 
         if (turnType != null) {
-            var badge = turnTypeBadge(turnType);
+            var badge = turnTypeBadge(turnType, attackStrategy);
             layout.add(badge);
         }
 
@@ -200,6 +249,10 @@ public class ConversationPanel extends VerticalLayout {
 
         if (compacted) {
             layout.add(compactionBadge());
+        }
+
+        if (turnDurationMs > 0) {
+            layout.add(timingBadge(turnDurationMs));
         }
 
         return layout;
@@ -218,8 +271,16 @@ public class ConversationPanel extends VerticalLayout {
         return tag;
     }
 
-    private Span turnTypeBadge(TurnType turnType) {
-        var badge = new Span(turnType.name());
+    private Span turnTypeBadge(TurnType turnType, @Nullable AttackStrategy attackStrategy) {
+        var strategyLabel = (attackStrategy != null)
+                ? STRATEGY_CATALOG.findById(attackStrategy.name())
+                        .map(DriftStrategyDefinition::displayName)
+                        .orElse(attackStrategy.name().replace('_', ' '))
+                : null;
+        var text = strategyLabel != null
+                ? turnType.name() + " · " + strategyLabel
+                : turnType.name();
+        var badge = new Span(text);
         badge.getStyle()
              .set("font-size", "var(--lumo-font-size-xxs)")
              .set("font-weight", "bold")
@@ -275,13 +336,29 @@ public class ConversationPanel extends VerticalLayout {
         return badge;
     }
 
+    private Span timingBadge(long durationMs) {
+        var badge = new Span(SimulationView.formatDuration(durationMs));
+        badge.getStyle()
+             .set("font-size", "var(--lumo-font-size-xxs)")
+             .set("font-weight", "bold")
+             .set("padding", "1px 5px")
+             .set("border-radius", "var(--lumo-border-radius-s)")
+             .set("white-space", "nowrap")
+             .set("color", durationMs > 30_000L ? "white" : "var(--lumo-secondary-text-color)")
+             .set("background", durationMs > 30_000L ? "#ffb020" : "var(--lumo-contrast-10pct)");
+        return badge;
+    }
+
     /**
-     * Placeholder for appending a compaction badge to an existing DM bubble.
-     * Wire this when {@code SimulationProgress.compactionResult()} becomes available.
+     * Legacy placeholder; no longer needed as compactionResult() is now integrated into SimulationProgress
+     * and the badge is rendered as part of the turn header in createDmBubble() via the compacted parameter.
+     *
+     * @deprecated Kept for API compatibility; compaction state is now handled by appendTurn/appendDmBubble.
      */
+    @Deprecated(since = "1.0", forRemoval = true)
     @SuppressWarnings("unused")
     public void appendCompactionBadge(int turnNumber) {
-        // TODO: wire when compactionResult is added to SimulationProgress
+        // No-op: compaction badge is now rendered as part of the turn header.
     }
 
     private String confirmedLabel(TurnType turnType) {

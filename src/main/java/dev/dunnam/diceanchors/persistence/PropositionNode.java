@@ -124,6 +124,12 @@ public class PropositionNode {
      */
     private int reinforcementCount;
 
+    /**
+     * DICE importance score (0.0-1.0). High-importance anchors receive a rank boost
+     * during budget eviction priority calculations. Default 0.0 has no effect.
+     */
+    private double importance;
+
     @JsonCreator
     public PropositionNode(
             @JsonProperty("id") String id,
@@ -143,7 +149,8 @@ public class PropositionNode {
             @JsonProperty("pinned") boolean pinned,
             @JsonProperty("decayType") @Nullable String decayType,
             @JsonProperty("lastReinforced") @Nullable Instant lastReinforced,
-            @JsonProperty("reinforcementCount") int reinforcementCount) {
+            @JsonProperty("reinforcementCount") int reinforcementCount,
+            @JsonProperty("importance") double importance) {
         this.id = id != null ? id : UUID.randomUUID().toString();
         this.contextId = contextId != null ? contextId : "default";
         this.text = text;
@@ -162,6 +169,7 @@ public class PropositionNode {
         this.decayType = decayType;
         this.lastReinforced = lastReinforced;
         this.reinforcementCount = reinforcementCount;
+        this.importance = importance;
     }
 
     /**
@@ -171,13 +179,13 @@ public class PropositionNode {
                            @Nullable String reasoning, List<String> grounding, Instant created, Instant revised,
                            PropositionStatus status, @Nullable String uri, List<String> sourceIds) {
         this(id, contextId, text, confidence, decay, reasoning, grounding, created, revised,
-             status, uri, sourceIds, 0, null, false, null, null, 0);
+             status, uri, sourceIds, 0, null, false, null, null, 0, 0.0);
     }
 
     public PropositionNode(String text, double confidence) {
         this(UUID.randomUUID().toString(), "default", text, confidence, 0.0, null, List.of(),
              Instant.now(), Instant.now(), PropositionStatus.ACTIVE, null, List.of(),
-             0, null, false, null, null, 0);
+             0, null, false, null, null, 0, 0.0);
     }
 
     // --- Standard proposition getters and setters ---
@@ -334,6 +342,14 @@ public class PropositionNode {
 
     public void setReinforcementCount(int reinforcementCount) {
         this.reinforcementCount = reinforcementCount;
+    }
+
+    public double getImportance() {
+        return importance;
+    }
+
+    public void setImportance(double importance) {
+        this.importance = importance;
     }
 
     /**

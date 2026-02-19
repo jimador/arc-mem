@@ -13,7 +13,7 @@ class CompliancePolicyTest {
     @DisplayName("DefaultCompliancePolicy")
     class Default {
 
-        private final CompliancePolicy policy = new DefaultCompliancePolicy();
+        private final CompliancePolicy policy = CompliancePolicy.flat();
 
         @Test
         @DisplayName("maps all authorities to STRICT")
@@ -30,7 +30,7 @@ class CompliancePolicyTest {
     @DisplayName("AuthorityTieredCompliancePolicy")
     class Tiered {
 
-        private final CompliancePolicy policy = new AuthorityTieredCompliancePolicy();
+        private final CompliancePolicy policy = CompliancePolicy.tiered();
 
         @Test
         @DisplayName("CANON maps to STRICT")

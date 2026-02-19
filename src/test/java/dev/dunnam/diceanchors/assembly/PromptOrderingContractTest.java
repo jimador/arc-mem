@@ -3,9 +3,7 @@ package dev.dunnam.diceanchors.assembly;
 import dev.dunnam.diceanchors.anchor.Anchor;
 import dev.dunnam.diceanchors.anchor.AnchorEngine;
 import dev.dunnam.diceanchors.anchor.Authority;
-import dev.dunnam.diceanchors.anchor.AuthorityTieredCompliancePolicy;
 import dev.dunnam.diceanchors.anchor.CompliancePolicy;
-import dev.dunnam.diceanchors.anchor.DefaultCompliancePolicy;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -67,7 +65,7 @@ class PromptOrderingContractTest {
     @DisplayName("AuthorityTieredCompliancePolicy")
     class TieredPolicy {
 
-        private final CompliancePolicy policy = new AuthorityTieredCompliancePolicy();
+        private final CompliancePolicy policy = CompliancePolicy.tiered();
 
         @Test
         @DisplayName("authority tiers appear in descending order: CANON > RELIABLE > UNRELIABLE > PROVISIONAL")
@@ -140,7 +138,7 @@ class PromptOrderingContractTest {
     @DisplayName("DefaultCompliancePolicy")
     class FlatPolicy {
 
-        private final CompliancePolicy policy = new DefaultCompliancePolicy();
+        private final CompliancePolicy policy = CompliancePolicy.flat();
 
         @Test
         @DisplayName("all tiers use STRICT compliance language")
@@ -198,7 +196,7 @@ class PromptOrderingContractTest {
         @Test
         @DisplayName("empty anchor list returns empty string")
         void getContentNoAnchorsReturnsEmpty() {
-            var content = assemblePrompt(List.of(), new DefaultCompliancePolicy());
+            var content = assemblePrompt(List.of(), CompliancePolicy.flat());
             assertThat(content).isEmpty();
         }
 
@@ -209,7 +207,7 @@ class PromptOrderingContractTest {
                     anchor("a1", "Only reliable fact", 700, Authority.RELIABLE)
             );
 
-            var content = assemblePrompt(anchors, new AuthorityTieredCompliancePolicy());
+            var content = assemblePrompt(anchors, CompliancePolicy.tiered());
 
             assertThat(content).contains("RELIABLE FACTS");
             assertThat(content).doesNotContain("Verification Protocol");
@@ -225,7 +223,7 @@ class PromptOrderingContractTest {
                     anchor("a1", "The East Gate is breached", 650, Authority.RELIABLE)
             );
 
-            var content = assemblePrompt(anchors, new AuthorityTieredCompliancePolicy());
+            var content = assemblePrompt(anchors, CompliancePolicy.tiered());
 
             assertThat(content).contains("The East Gate is breached");
             assertThat(content).contains("(rank: 650)");

@@ -3,6 +3,7 @@ package dev.dunnam.diceanchors.assembly;
 import dev.dunnam.diceanchors.anchor.Anchor;
 import dev.dunnam.diceanchors.anchor.Authority;
 import dev.dunnam.diceanchors.anchor.CompliancePolicy;
+import dev.dunnam.diceanchors.prompt.PromptPathConstants;
 import dev.dunnam.diceanchors.prompt.PromptTemplates;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,14 +15,55 @@ import java.util.List;
 /**
  * Applies token-budget constraints to anchor prompt assembly while preserving
  * mandatory preamble/protocol text and all CANON anchors.
+ * <p>
+ * <strong>Budget algorithm:</strong> Given a list of candidate anchors and a token budget,
+ * this enforcer iteratively drops anchors in drop-order until the estimated token count
+ * falls within budget or no more droppable anchors remain.
+ * <p>
+ * <strong>Drop order</strong> (anchors dropped earliest are listed first):
+ * <ol>
+ *   <li>PROVISIONAL — lowest trust, highest eviction priority</li>
+ *   <li>UNRELIABLE</li>
+ *   <li>RELIABLE — dropped last among non-CANON anchors</li>
+ *   <li>CANON — <em>never dropped</em>, always included regardless of budget</li>
+ * </ol>
+ * Within each authority tier, anchors are sorted by:
+ * <ol>
+ *   <li>{@code diceImportance} ascending — anchors with low DICE importance (0.0 default)
+ *       are dropped before high-importance anchors</li>
+ *   <li>{@code rank} ascending — within the same importance value, lower-ranked anchors
+ *       are dropped first, preserving the original rank-based behavior</li>
+ * </ol>
+ * <p>
+ * <strong>Mandatory overhead:</strong> The enforcer accounts for a fixed token cost
+ * from the anchor reference preamble template
+ * ({@link dev.dunnam.diceanchors.prompt.PromptPathConstants#ANCHORS_REFERENCE_OVERHEAD}).
+ * This overhead is always counted against the budget, even when the anchor list is empty.
  */
 public class PromptBudgetEnforcer {
 
     private static final Logger logger = LoggerFactory.getLogger(PromptBudgetEnforcer.class);
 
     private static final String MANDATORY_OVERHEAD =
-            PromptTemplates.load("prompts/anchors-reference-overhead.jinja");
+            PromptTemplates.load(PromptPathConstants.ANCHORS_REFERENCE_OVERHEAD);
 
+    /**
+     * Enforce the token budget on a list of candidate anchors.
+     * <p>
+     * CANON anchors are always included. Non-CANON anchors are dropped in
+     * priority order (PROVISIONAL first, then UNRELIABLE, then RELIABLE), with
+     * low-importance anchors dropped before high-importance ones within each tier.
+     * If the budget cannot be satisfied even after dropping all non-CANON anchors,
+     * the result is returned with {@code budgetExceeded = true} and the full CANON
+     * set still included.
+     *
+     * @param anchors     candidate anchors to fit within budget (MUST NOT be null)
+     * @param tokenBudget maximum allowed tokens; pass {@code <= 0} to skip enforcement
+     * @param counter     token estimator used to measure anchor text and overhead
+     * @param policy      compliance policy (currently unused in budget math, reserved)
+     * @return a {@link BudgetResult} where {@link BudgetResult#included()} are the anchors
+     *         that fit within budget and {@link BudgetResult#excluded()} are those dropped
+     */
     public BudgetResult enforce(List<Anchor> anchors,
                                 int tokenBudget,
                                 TokenCounter counter,
@@ -49,7 +91,8 @@ public class PromptBudgetEnforcer {
             }
             var candidates = included.stream()
                     .filter(anchor -> anchor.authority() == authority)
-                    .sorted(Comparator.comparingInt(Anchor::rank))
+                    .sorted(Comparator.comparingDouble(Anchor::diceImportance)
+                            .thenComparingInt(Anchor::rank))
                     .toList();
             for (var candidate : candidates) {
                 if (estimated <= tokenBudget) {

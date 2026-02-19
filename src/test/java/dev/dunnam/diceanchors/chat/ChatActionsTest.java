@@ -73,7 +73,7 @@ class ChatActionsTest {
         var properties = properties();
         var assistantMessage = new AssistantMessage("ok");
         var actions = new ChatActions(anchorEngine, anchorRepository, eventPublisher, properties,
-                new dev.dunnam.diceanchors.anchor.AuthorityTieredCompliancePolicy(), new CharHeuristicTokenCounter());
+                dev.dunnam.diceanchors.anchor.CompliancePolicy.tiered(), new CharHeuristicTokenCounter());
 
         when(anchorEngine.inject("chat")).thenReturn(List.of());
         when(actionContext.ai()).thenReturn(ai);
@@ -100,7 +100,7 @@ class ChatActionsTest {
         var properties = properties();
         var assistantMessage = new AssistantMessage("ok");
         var actions = new ChatActions(anchorEngine, anchorRepository, eventPublisher, properties,
-                new dev.dunnam.diceanchors.anchor.AuthorityTieredCompliancePolicy(), new CharHeuristicTokenCounter());
+                dev.dunnam.diceanchors.anchor.CompliancePolicy.tiered(), new CharHeuristicTokenCounter());
 
         when(anchorEngine.inject("chat")).thenReturn(List.of());
         when(actionContext.ai()).thenReturn(ai);
@@ -128,7 +128,7 @@ class ChatActionsTest {
         var properties = properties();
         var assistantMessage = new AssistantMessage("ok");
         var actions = new ChatActions(anchorEngine, anchorRepository, eventPublisher, properties,
-                new dev.dunnam.diceanchors.anchor.AuthorityTieredCompliancePolicy(), new CharHeuristicTokenCounter());
+                dev.dunnam.diceanchors.anchor.CompliancePolicy.tiered(), new CharHeuristicTokenCounter());
 
         when(anchorEngine.inject("chat")).thenReturn(List.of());
         when(anchorRepository.findActiveUnanchoredPropositions("chat", properties.anchor().budget()))
@@ -170,11 +170,11 @@ class ChatActionsTest {
 
     private static DiceAnchorsProperties properties() {
         return new DiceAnchorsProperties(
-                new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, "FAST_THEN_LLM", "TIERED", true),
+                new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200),
                 new DiceAnchorsProperties.ChatConfig("dm", 200, null),
                 new DiceAnchorsProperties.MemoryConfig(true, null, null, "text-embedding-3-small", 20, 5, 2),
                 new DiceAnchorsProperties.PersistenceConfig(false),
-                new DiceAnchorsProperties.SimConfig("gpt-4.1-mini", 30),
+                new DiceAnchorsProperties.SimConfig("gpt-4.1-mini", 30, 30, 10, true),
                 new DiceAnchorsProperties.ConflictDetectionConfig("llm", "gpt-4o-nano"),
                 new DiceAnchorsProperties.RunHistoryConfig("memory"),
                 new DiceAnchorsProperties.AssemblyConfig(0)

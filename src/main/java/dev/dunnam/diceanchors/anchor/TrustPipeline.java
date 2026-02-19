@@ -3,9 +3,9 @@ package dev.dunnam.diceanchors.anchor;
 import dev.dunnam.diceanchors.persistence.PropositionNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Facade composing {@link TrustEvaluator} and zone routing.
@@ -14,7 +14,6 @@ import java.util.List;
  * Uses the NARRATIVE domain profile by default. Call {@link #withProfile(DomainProfile)}
  * to create a pipeline instance with a different profile for simulation-time switching.
  */
-@Service
 public class TrustPipeline {
 
     private static final Logger logger = LoggerFactory.getLogger(TrustPipeline.class);
@@ -41,6 +40,20 @@ public class TrustPipeline {
         logger.debug("Trust pipeline evaluated proposition {} — score={} zone={}",
                      proposition.getId(), score.score(), score.promotionZone());
         return score;
+    }
+
+    /**
+     * Evaluate trust for a batch of propositions.
+     * All current trust signals are non-LLM and computed per-proposition.
+     *
+     * @param contexts list of propositions with their context IDs
+     * @return map from proposition text to trust score
+     */
+    public Map<String, TrustScore> batchEvaluate(List<TrustContext> contexts) {
+        return contexts.stream()
+                .collect(Collectors.toMap(
+                        ctx -> ctx.proposition().getText(),
+                        ctx -> evaluate(ctx.proposition(), ctx.contextId())));
     }
 
     /**

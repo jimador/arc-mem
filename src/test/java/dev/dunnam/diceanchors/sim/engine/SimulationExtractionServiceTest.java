@@ -63,7 +63,7 @@ class SimulationExtractionServiceTest {
         when(propositionResults.propositionsToPersist()).thenReturn(List.of(proposition));
         when(proposition.getId()).thenReturn("p1");
         when(proposition.getText()).thenReturn("Fact text");
-        when(promoter.evaluateAndPromote(eq("ctx-1"), eq(List.of(proposition)))).thenReturn(1);
+        when(promoter.batchEvaluateAndPromote(eq("ctx-1"), eq(List.of(proposition)))).thenReturn(1);
         when(namedEntityRepositoryProvider.getIfAvailable()).thenReturn(null);
         when(anchorRepository.assignContextIds(List.of("p1"), "ctx-1")).thenReturn(1);
 
@@ -71,7 +71,7 @@ class SimulationExtractionServiceTest {
 
         verify(propositionRepository).saveAll(List.of(proposition));
         verify(anchorRepository).assignContextIds(List.of("p1"), "ctx-1");
-        verify(promoter).evaluateAndPromote("ctx-1", List.of(proposition));
+        verify(promoter).batchEvaluateAndPromote("ctx-1", List.of(proposition));
         assertThat(result.extractedCount()).isEqualTo(1);
         assertThat(result.promotedCount()).isEqualTo(1);
         assertThat(result.extractedTexts()).containsExactly("Fact text");
@@ -84,7 +84,7 @@ class SimulationExtractionServiceTest {
         when(propositionResults.propositionsToPersist()).thenReturn(List.of(proposition));
         when(proposition.getId()).thenReturn("p1");
         when(proposition.getText()).thenReturn("Fact text");
-        when(promoter.evaluateAndPromote(eq("ctx-1"), eq(List.of(proposition)))).thenReturn(0);
+        when(promoter.batchEvaluateAndPromote(eq("ctx-1"), eq(List.of(proposition)))).thenReturn(0);
         when(namedEntityRepositoryProvider.getIfAvailable()).thenReturn(namedEntityRepository);
         when(anchorRepository.assignContextIds(List.of("p1"), "ctx-1")).thenReturn(1);
 
@@ -104,7 +104,7 @@ class SimulationExtractionServiceTest {
         when(propositionResults.propositionsToPersist()).thenReturn(List.of(proposition));
         when(proposition.getId()).thenReturn("p1");
         when(proposition.getText()).thenReturn("Fact text");
-        when(promoter.evaluateAndPromote(eq("ctx-1"), eq(List.of(proposition)))).thenReturn(1);
+        when(promoter.batchEvaluateAndPromote(eq("ctx-1"), eq(List.of(proposition)))).thenReturn(1);
         when(namedEntityRepositoryProvider.getIfAvailable()).thenReturn(namedEntityRepository);
         org.mockito.Mockito.doThrow(new RuntimeException("persist failed"))
                 .when(propositionResults).persist(propositionRepository, namedEntityRepository);
@@ -115,7 +115,7 @@ class SimulationExtractionServiceTest {
         verify(propositionResults).persist(propositionRepository, namedEntityRepository);
         verify(propositionRepository).saveAll(List.of(proposition));
         verify(anchorRepository).assignContextIds(List.of("p1"), "ctx-1");
-        verify(promoter).evaluateAndPromote("ctx-1", List.of(proposition));
+        verify(promoter).batchEvaluateAndPromote("ctx-1", List.of(proposition));
         assertThat(result.extractedCount()).isEqualTo(1);
         assertThat(result.promotedCount()).isEqualTo(1);
     }

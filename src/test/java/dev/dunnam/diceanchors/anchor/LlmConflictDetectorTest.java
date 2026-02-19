@@ -31,8 +31,11 @@ class LlmConflictDetectorTest {
     @Mock
     private Generation generation;
 
+    @Mock
+    private dev.dunnam.diceanchors.sim.engine.LlmCallService llmCallService;
+
     private LlmConflictDetector detector() {
-        return new LlmConflictDetector(chatModel, "test-model");
+        return new LlmConflictDetector(chatModel, "test-model", llmCallService);
     }
 
     private void mockLlmResponse(String text) {

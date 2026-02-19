@@ -8,7 +8,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("ThresholdReinforcementPolicy")
 class ThresholdReinforcementPolicyTest {
 
-    private final ThresholdReinforcementPolicy policy = new ThresholdReinforcementPolicy();
+    private final ReinforcementPolicy policy = ReinforcementPolicy.threshold();
 
     @Test
     @DisplayName("rank boost is constant")

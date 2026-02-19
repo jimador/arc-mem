@@ -14,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
@@ -41,7 +42,7 @@ class AnchorToolsTest {
             var node = anchorNode("a1", "The king is dead", 500, "RELIABLE", false);
             var scored = new AnchorRepository.ScoredProposition("a1", "The king is dead", 0.9, "ACTIVE", 0.85);
             when(repository.semanticSearch("king", CONTEXT_ID, 10, 0.5)).thenReturn(List.of(scored));
-            when(repository.findPropositionNodeById("a1")).thenReturn(node);
+            when(repository.findPropositionNodeById("a1")).thenReturn(Optional.of(node));
 
             var tools = new AnchorTools(engine, repository, CONTEXT_ID);
             var results = tools.queryFacts("king");
@@ -70,7 +71,7 @@ class AnchorToolsTest {
             var node = plainPropositionNode("p1", "Some fact");
             var scored = new AnchorRepository.ScoredProposition("p1", "Some fact", 0.9, "ACTIVE", 0.75);
             when(repository.semanticSearch("fact", CONTEXT_ID, 10, 0.5)).thenReturn(List.of(scored));
-            when(repository.findPropositionNodeById("p1")).thenReturn(node);
+            when(repository.findPropositionNodeById("p1")).thenReturn(Optional.of(node));
 
             var tools = new AnchorTools(engine, repository, CONTEXT_ID);
             var results = tools.queryFacts("fact");
@@ -122,7 +123,7 @@ class AnchorToolsTest {
         @DisplayName("succeeds on active anchor")
         void succeedsOnActiveAnchor() {
             var node = anchorNode("a1", "Important fact", 500, "PROVISIONAL", false);
-            when(repository.findPropositionNodeById("a1")).thenReturn(node);
+            when(repository.findPropositionNodeById("a1")).thenReturn(Optional.of(node));
 
             var tools = new AnchorTools(engine, repository, CONTEXT_ID);
             var result = tools.pinFact("a1");
@@ -135,7 +136,7 @@ class AnchorToolsTest {
         @Test
         @DisplayName("fails on non-existent anchor")
         void failsOnNonExistentAnchor() {
-            when(repository.findPropositionNodeById("missing")).thenReturn(null);
+            when(repository.findPropositionNodeById("missing")).thenReturn(Optional.empty());
 
             var tools = new AnchorTools(engine, repository, CONTEXT_ID);
             var result = tools.pinFact("missing");
@@ -149,7 +150,7 @@ class AnchorToolsTest {
         void failsOnArchivedAnchor() {
             var node = anchorNode("a1", "Old fact", 500, "PROVISIONAL", false);
             node.setStatus(PropositionStatus.SUPERSEDED);
-            when(repository.findPropositionNodeById("a1")).thenReturn(node);
+            when(repository.findPropositionNodeById("a1")).thenReturn(Optional.of(node));
 
             var tools = new AnchorTools(engine, repository, CONTEXT_ID);
             var result = tools.pinFact("a1");
@@ -162,7 +163,7 @@ class AnchorToolsTest {
         @DisplayName("fails on non-anchor proposition")
         void failsOnNonAnchor() {
             var node = plainPropositionNode("p1", "Not an anchor");
-            when(repository.findPropositionNodeById("p1")).thenReturn(node);
+            when(repository.findPropositionNodeById("p1")).thenReturn(Optional.of(node));
 
             var tools = new AnchorTools(engine, repository, CONTEXT_ID);
             var result = tools.pinFact("p1");
@@ -180,7 +181,7 @@ class AnchorToolsTest {
         @DisplayName("succeeds on pinned anchor")
         void succeedsOnPinnedAnchor() {
             var node = anchorNode("a1", "Pinned fact", 600, "RELIABLE", true);
-            when(repository.findPropositionNodeById("a1")).thenReturn(node);
+            when(repository.findPropositionNodeById("a1")).thenReturn(Optional.of(node));
 
             var tools = new AnchorTools(engine, repository, CONTEXT_ID);
             var result = tools.unpinFact("a1");
@@ -193,7 +194,7 @@ class AnchorToolsTest {
         @Test
         @DisplayName("fails on non-existent anchor")
         void failsOnNonExistentAnchor() {
-            when(repository.findPropositionNodeById("missing")).thenReturn(null);
+            when(repository.findPropositionNodeById("missing")).thenReturn(Optional.empty());
 
             var tools = new AnchorTools(engine, repository, CONTEXT_ID);
             var result = tools.unpinFact("missing");
@@ -206,7 +207,7 @@ class AnchorToolsTest {
         @DisplayName("fails on unpinned anchor")
         void failsOnUnpinnedAnchor() {
             var node = anchorNode("a1", "Not pinned", 500, "PROVISIONAL", false);
-            when(repository.findPropositionNodeById("a1")).thenReturn(node);
+            when(repository.findPropositionNodeById("a1")).thenReturn(Optional.of(node));
 
             var tools = new AnchorTools(engine, repository, CONTEXT_ID);
             var result = tools.unpinFact("a1");
@@ -219,13 +220,59 @@ class AnchorToolsTest {
         @DisplayName("fails on CANON anchor")
         void failsOnCanonAnchor() {
             var node = anchorNode("a1", "Canon fact", 800, "CANON", true);
-            when(repository.findPropositionNodeById("a1")).thenReturn(node);
+            when(repository.findPropositionNodeById("a1")).thenReturn(Optional.of(node));
 
             var tools = new AnchorTools(engine, repository, CONTEXT_ID);
             var result = tools.unpinFact("a1");
 
             assertThat(result.success()).isFalse();
             assertThat(result.message()).contains("CANON");
+        }
+    }
+
+    @Nested
+    @DisplayName("demoteAnchor")
+    class DemoteAnchor {
+
+        @Test
+        @DisplayName("demotes RELIABLE anchor and returns non-empty result string")
+        void demotesReliableAnchor() {
+            var node = anchorNode("a1", "Reliable fact", 700, "RELIABLE", false);
+            when(repository.findPropositionNodeById("a1")).thenReturn(Optional.of(node));
+
+            var tools = new AnchorTools(engine, repository, CONTEXT_ID);
+            var result = tools.demoteAnchor("a1");
+
+            verify(engine).demote("a1", dev.dunnam.diceanchors.anchor.DemotionReason.MANUAL);
+            assertThat(result).isNotEmpty();
+        }
+
+        @Test
+        @DisplayName("non-existent anchor returns message containing 'not found'")
+        void nonExistentAnchorReturnsNotFound() {
+            when(repository.findPropositionNodeById("missing")).thenReturn(Optional.empty());
+
+            var tools = new AnchorTools(engine, repository, CONTEXT_ID);
+            var result = tools.demoteAnchor("missing");
+
+            assertThat(result).containsIgnoringCase("not found");
+            verify(engine, org.mockito.Mockito.never()).demote(
+                    org.mockito.ArgumentMatchers.anyString(),
+                    org.mockito.ArgumentMatchers.any());
+        }
+
+        @Test
+        @DisplayName("CANON anchor triggers demote through engine (gate handled by engine)")
+        void canonAnchorDemotedViaEngine() {
+            var node = anchorNode("a2", "Canon fact", 850, "CANON", true);
+            when(repository.findPropositionNodeById("a2")).thenReturn(Optional.of(node));
+
+            var tools = new AnchorTools(engine, repository, CONTEXT_ID);
+            var result = tools.demoteAnchor("a2");
+
+            // Engine handles gate routing; tool just calls demote and returns informative message
+            verify(engine).demote("a2", dev.dunnam.diceanchors.anchor.DemotionReason.MANUAL);
+            assertThat(result).isNotEmpty();
         }
     }
 
@@ -237,7 +284,7 @@ class AnchorToolsTest {
         return new PropositionNode(
                 id, CONTEXT_ID, text, 0.9, 0.0, null, List.of(),
                 java.time.Instant.now(), java.time.Instant.now(), PropositionStatus.ACTIVE,
-                null, List.of(), rank, authority, pinned, null, null, 0
+                null, List.of(), rank, authority, pinned, null, null, 0, 0.0
         );
     }
 

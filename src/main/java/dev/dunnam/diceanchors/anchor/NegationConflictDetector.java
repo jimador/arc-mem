@@ -3,7 +3,9 @@ package dev.dunnam.diceanchors.anchor;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Detects conflicts between an incoming statement and existing anchors by identifying
@@ -41,6 +43,14 @@ public class NegationConflictDetector implements ConflictDetector {
             }
         }
         return conflicts;
+    }
+
+    @Override
+    public Map<String, List<Conflict>> batchDetect(List<String> candidateTexts, List<Anchor> existingAnchors) {
+        return candidateTexts.parallelStream()
+                .collect(Collectors.toMap(
+                        c -> c,
+                        c -> detect(c, existingAnchors)));
     }
 
     private boolean containsNegation(String text) {

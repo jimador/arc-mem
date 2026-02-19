@@ -26,7 +26,12 @@ public record DiceAnchorsProperties(
             @DefaultValue("0.65") double autoActivateThreshold,
             @DefaultValue("FAST_THEN_LLM") String dedupStrategy,
             @DefaultValue("TIERED") String compliancePolicy,
-            @DefaultValue("true") boolean lifecycleEventsEnabled
+            @DefaultValue("true") boolean lifecycleEventsEnabled,
+            @DefaultValue("true") boolean canonizationGateEnabled,
+            @DefaultValue("true") boolean autoApproveInSimulation,
+            @DefaultValue("0.6") double demoteThreshold,
+            @DefaultValue("400") int reliableRankThreshold,
+            @DefaultValue("200") int unreliableRankThreshold
     ) {}
 
     public record AssemblyConfig(
@@ -55,7 +60,10 @@ public record DiceAnchorsProperties(
 
     public record SimConfig(
             @DefaultValue("gpt-4.1-mini") String evaluatorModel,
-            @DefaultValue("30") int adversaryBudget
+            @DefaultValue("30") int adversaryBudget,
+            @DefaultValue("30") int llmCallTimeoutSeconds,
+            @DefaultValue("10") int batchMaxSize,
+            @DefaultValue("true") boolean parallelPostResponse
     ) {}
 
     public record ConflictDetectionConfig(

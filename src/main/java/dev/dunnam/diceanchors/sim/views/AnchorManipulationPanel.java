@@ -361,7 +361,8 @@ public class AnchorManipulationPanel extends VerticalLayout {
                     false,
                     null,
                     null,
-                    0
+                    0,
+                    0.0
             );
 
             // Save then promote

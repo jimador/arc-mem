@@ -85,6 +85,7 @@ public class PropositionView {
                 diceMentions,
                 proposition.getConfidence(),
                 proposition.getDecay(),
+                0.0,
                 proposition.getReasoning(),
                 proposition.getGrounding(),
                 proposition.getCreated(),

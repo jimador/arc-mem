@@ -125,7 +125,7 @@ public class SimulationExtractionService {
             logger.debug("Tagged {} propositions with 'dm' source for context {}", tagged, contextId);
 
             // Evaluate for anchor promotion
-            var promoted = promoter.evaluateAndPromote(contextId, propositions);
+            var promoted = promoter.batchEvaluateAndPromote(contextId, propositions);
 
             var extractedTexts = propositions.stream()
                     .map(Proposition::getText)

@@ -1,6 +1,7 @@
 package dev.dunnam.diceanchors.persistence;
 
 import com.embabel.agent.rag.service.RetrievableIdentifier;
+import dev.dunnam.diceanchors.anchor.EvictedAnchorInfo;
 import com.embabel.common.ai.model.EmbeddingService;
 import com.embabel.common.core.types.SimilarityResult;
 import com.embabel.common.core.types.SimpleSimilaritySearchResult;
@@ -18,7 +19,6 @@ import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -39,7 +40,7 @@ import java.util.Set;
  * <p>
  * Invariant A1: rank is always clamped to [100, 900] on write when non-zero.
  * Invariant A2: pinned anchors are never evicted by {@link #evictLowestRanked}.
- * Invariant A3: authority is only upgraded, never downgraded, via {@link #upgradeAuthority}.
+ * Authority transitions (both promotion and demotion) are applied via setAuthority(). Business rules live in AnchorEngine.
  */
 @Service
 public class AnchorRepository implements PropositionRepository {
@@ -83,7 +84,7 @@ public class AnchorRepository implements PropositionRepository {
                     `vector.dimensions`: %d,
                     `vector.similarity_function`: 'cosine'
                 }}
-                """.formatted(name, label, ((EmbeddingModel) embeddingService.getModel()).dimensions());
+                """.formatted(name, label, embeddingService.getDimensions());
         try {
             persistenceManager.execute(QuerySpecification.withStatement(statement));
             logger.info("Created vector index {} on {}", name, label);
@@ -166,10 +167,23 @@ public class AnchorRepository implements PropositionRepository {
      */
     @Transactional(readOnly = true)
     public @NonNull List<Proposition> findByMinLevelAndContext(int minLevel, @NonNull String contextId) {
-        var whereClause = "proposition.level >= " + minLevel + " AND proposition.contextId = '" + contextId + "'";
-        return graphObjectManager.loadAll(PropositionView.class, whereClause).stream()
-                                 .map(PropositionView::toDice)
-                                 .toList();
+        var cypher = """
+                MATCH (p:Proposition)
+                WHERE p.level >= $minLevel AND p.contextId = $contextId
+                RETURN p.id AS id
+                """;
+        var params = Map.of("minLevel", minLevel, "contextId", contextId);
+        try {
+            var ids = persistenceManager.query(
+                    QuerySpecification.withStatement(cypher).bind(params).transform(String.class));
+            return ids.stream()
+                      .map(this::findById)
+                      .filter(p -> p != null)
+                      .toList();
+        } catch (Exception e) {
+            logger.warn("findByMinLevelAndContext query failed for context {}: {}", contextId, e.getMessage());
+            return List.of();
+        }
     }
 
     @Override
@@ -185,13 +199,12 @@ public class AnchorRepository implements PropositionRepository {
      * Prefer this over {@link #findById} when anchor-specific fields are needed.
      *
      * @param id the proposition node ID
-     *
-     * @return the PropositionNode, or null if not found
+     * @return an Optional containing the PropositionNode, or empty if not found
      */
     @Transactional(readOnly = true)
-    public @Nullable PropositionNode findPropositionNodeById(@NonNull String id) {
+    public Optional<PropositionNode> findPropositionNodeById(@NonNull String id) {
         var view = graphObjectManager.load(id, PropositionView.class);
-        return view != null ? view.getProposition() : null;
+        return Optional.ofNullable(view != null ? view.getProposition() : null);
     }
 
     @Override
@@ -545,10 +558,23 @@ public class AnchorRepository implements PropositionRepository {
     @Override
     @Transactional(readOnly = true)
     public @NonNull List<Proposition> findByContextIdValue(@NonNull String contextIdValue) {
-        var whereClause = "proposition.contextId = '" + contextIdValue + "'";
-        return graphObjectManager.loadAll(PropositionView.class, whereClause).stream()
-                                 .map(PropositionView::toDice)
-                                 .toList();
+        var cypher = """
+                MATCH (p:Proposition)
+                WHERE p.contextId = $contextId
+                RETURN p.id AS id
+                """;
+        var params = Map.of("contextId", contextIdValue);
+        try {
+            var ids = persistenceManager.query(
+                    QuerySpecification.withStatement(cypher).bind(params).transform(String.class));
+            return ids.stream()
+                      .map(this::findById)
+                      .filter(p -> p != null)
+                      .toList();
+        } catch (Exception e) {
+            logger.warn("findByContextIdValue query failed for context {}: {}", contextIdValue, e.getMessage());
+            return List.of();
+        }
     }
 
     /**
@@ -1228,10 +1254,10 @@ public class AnchorRepository implements PropositionRepository {
      * @param contextId the conversation or session context
      * @param budget    the maximum number of active anchors allowed
      *
-     * @return the number of anchors evicted, or 0 if within budget
+     * @return list of evicted anchors (ID and previous rank), empty if within budget
      */
     @Transactional
-    public int evictLowestRanked(@NonNull String contextId, int budget) {
+    public List<EvictedAnchorInfo> evictLowestRanked(@NonNull String contextId, int budget) {
         var countCypher = """
                 MATCH (p:Proposition {contextId: $contextId})
                 WHERE p.rank > 0 AND coalesce(p.status, 'ACTIVE') IN ['ACTIVE', 'PROMOTED']
@@ -1249,20 +1275,21 @@ public class AnchorRepository implements PropositionRepository {
             current = result != null ? result : 0L;
         } catch (Exception e) {
             logger.error("Failed to count active anchors for eviction in context {}: {}", contextId, e.getMessage(), e);
-            return 0;
+            return List.of();
         }
 
         if (current <= budget) {
-            return 0;
+            return List.of();
         }
 
         int evictCount = (int) (current - budget);
+        // Capture id and rank BEFORE setting rank to 0, then evict
         var evictCypher = """
                 MATCH (p:Proposition {contextId: $contextId})
                 WHERE p.rank > 0 AND coalesce(p.status, 'ACTIVE') IN ['ACTIVE', 'PROMOTED'] AND p.pinned = false
-                WITH p ORDER BY p.rank ASC LIMIT $evictCount
+                WITH p, p.rank AS previousRank ORDER BY p.rank ASC LIMIT $evictCount
                 SET p.status = 'SUPERSEDED', p.rank = 0
-                RETURN count(p) AS evicted
+                RETURN {anchorId: p.id, rank: previousRank} AS result
                 """;
         var evictParams = Map.of("contextId", contextId, "evictCount", evictCount);
 
@@ -1270,14 +1297,22 @@ public class AnchorRepository implements PropositionRepository {
             var evictSpec = QuerySpecification
                     .withStatement(evictCypher)
                     .bind(evictParams)
-                    .transform(Long.class);
-            Long evicted = persistenceManager.getOne(evictSpec);
-            int evictedCount = evicted != null ? evicted.intValue() : 0;
-            logger.info("Evicted {} anchors from context {} (budget={}, was={})", evictedCount, contextId, budget, current);
-            return evictedCount;
+                    .transform(Map.class);
+            var rows = persistenceManager.query(evictSpec);
+            var evicted = rows.stream()
+                    .filter(row -> row != null)
+                    .map(row -> {
+                        var m = (java.util.Map<?, ?>) row;
+                        var anchorId = (String) m.get("anchorId");
+                        var rank = ((Number) m.get("rank")).intValue();
+                        return new EvictedAnchorInfo(anchorId, rank);
+                    })
+                    .toList();
+            logger.info("Evicted {} anchors from context {} (budget={}, was={})", evicted.size(), contextId, budget, current);
+            return evicted;
         } catch (Exception e) {
             logger.error("Failed to evict anchors for context {}: {}", contextId, e.getMessage(), e);
-            return 0;
+            return List.of();
         }
     }
 
@@ -1311,39 +1346,25 @@ public class AnchorRepository implements PropositionRepository {
     }
 
     /**
-     * Upgrade the authority of an anchor.
-     * Authority levels (ascending): PROVISIONAL < UNRELIABLE < RELIABLE < CANON.
-     * Only upgrades; downgrades are silently ignored, preserving invariant A3.
+     * Set the authority of an anchor to any level — supports both promotion and demotion.
+     * Business rules for transition validation live in {@link dev.dunnam.diceanchors.anchor.AnchorEngine},
+     * not here. The repository applies the change unconditionally.
      *
      * @param id           the proposition ID
-     * @param newAuthority the desired authority level
+     * @param newAuthority the target authority level (PROVISIONAL, UNRELIABLE, RELIABLE, or CANON)
      */
     @Transactional
-    public void upgradeAuthority(@NonNull String id, @NonNull String newAuthority) {
+    public void setAuthority(@NonNull String id, @NonNull String newAuthority) {
         var cypher = """
                 MATCH (p:Proposition {id: $id})
-                WITH p,
-                     CASE p.authority
-                       WHEN 'CANON' THEN 3
-                       WHEN 'RELIABLE' THEN 2
-                       WHEN 'UNRELIABLE' THEN 1
-                       ELSE 0
-                     END AS currentLevel,
-                     CASE $newAuthority
-                       WHEN 'CANON' THEN 3
-                       WHEN 'RELIABLE' THEN 2
-                       WHEN 'UNRELIABLE' THEN 1
-                       ELSE 0
-                     END AS newLevel
-                WHERE newLevel > currentLevel
                 SET p.authority = $newAuthority
                 """;
         var params = Map.of("id", id, "newAuthority", newAuthority);
         try {
             persistenceManager.execute(QuerySpecification.withStatement(cypher).bind(params));
-            logger.debug("Upgraded authority for proposition {} to {}", id, newAuthority);
+            logger.debug("Set authority for proposition {} to {}", id, newAuthority);
         } catch (Exception e) {
-            logger.error("Failed to upgrade authority for proposition {}: {}", id, e.getMessage(), e);
+            logger.error("Failed to set authority for proposition {}: {}", id, e.getMessage(), e);
         }
     }
 

@@ -1,0 +1,17 @@
+You are a world consistency judge. Given candidate statements and existing established facts (anchors), identify which candidates semantically contradict any existing fact.
+
+Two statements contradict if they cannot both be true simultaneously.
+Narrative progression is NOT contradiction (e.g., "the king is alive" and "the king died in the siege" are progression if the siege happened after).
+
+Existing anchors:
+{% for anchor in anchors %}- {{ anchor }}
+{% endfor %}
+
+Candidate statements:
+{% for candidate in candidates %}- {{ candidate }}
+{% endfor %}
+
+For each candidate, list the exact text of any anchors it contradicts (empty list if no contradiction).
+
+Respond with ONLY valid JSON, no markdown, no explanation:
+{"results": [{"candidate": "<exact candidate text>", "contradictingAnchors": ["<anchor text>", ...]}, ...]}

@@ -593,7 +593,7 @@ public class ChatView extends VerticalLayout {
         authorityCombo.setValue(anchor.authority().name());
         authorityCombo.addValueChangeListener(e -> {
             if (e.getValue() != null && !e.getValue().equals(anchor.authority().name())) {
-                anchorRepository.upgradeAuthority(anchor.id(), e.getValue());
+                anchorRepository.setAuthority(anchor.id(), e.getValue());
                 refreshSidebar();
             }
         });

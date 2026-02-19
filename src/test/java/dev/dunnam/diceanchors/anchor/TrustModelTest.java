@@ -10,7 +10,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
-import java.util.Map;
 import java.util.OptionalDouble;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -384,7 +383,7 @@ class TrustModelTest {
     @DisplayName("SourceAuthoritySignal")
     class SourceAuthoritySignalTests {
 
-        private final SourceAuthoritySignal signal = new SourceAuthoritySignal();
+        private final TrustSignal signal = TrustSignal.sourceAuthority();
 
         @Test
         @DisplayName("DM source scores 0.9")
@@ -491,7 +490,7 @@ class TrustModelTest {
     @DisplayName("ExtractionConfidenceSignal")
     class ExtractionConfidenceSignalTests {
 
-        private final ExtractionConfidenceSignal signal = new ExtractionConfidenceSignal();
+        private final TrustSignal signal = TrustSignal.extractionConfidence();
 
         @Test
         @DisplayName("passes through proposition confidence value")
@@ -633,7 +632,7 @@ class TrustModelTest {
     @DisplayName("CorroborationSignal")
     class CorroborationSignalTests {
 
-        private final CorroborationSignal signal = new CorroborationSignal();
+        private final TrustSignal signal = TrustSignal.corroboration();
 
         @Test
         @DisplayName("single source scores 0.3")

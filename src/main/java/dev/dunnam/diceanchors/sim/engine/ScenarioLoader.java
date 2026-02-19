@@ -40,8 +40,12 @@ public class ScenarioLoader {
             for (var resource : resources) {
                 try {
                     var scenario = yamlMapper.readValue(resource.getInputStream(), SimulationScenario.class);
-                    scenarios.add(scenario);
-                    logger.debug("Loaded scenario: {}", scenario.id());
+                    if (scenario.id() == null || scenario.id().isBlank()) {
+                        logger.debug("Skipping non-scenario file: {}", resource.getFilename());
+                    } else {
+                        scenarios.add(scenario);
+                        logger.debug("Loaded scenario: {}", scenario.id());
+                    }
                 } catch (Exception e) {
                     logger.warn("Failed to load scenario {}: {}", resource.getFilename(), e.getMessage());
                 }

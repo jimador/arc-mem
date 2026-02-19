@@ -18,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -43,7 +44,7 @@ class AnchorPromoterTest {
 
     @BeforeEach
     void setUp() {
-        var anchorConfig = new DiceAnchorsProperties.AnchorConfig(20, INITIAL_RANK, 100, 900, true, THRESHOLD, "FAST_THEN_LLM", "TIERED", true);
+        var anchorConfig = new DiceAnchorsProperties.AnchorConfig(20, INITIAL_RANK, 100, 900, true, THRESHOLD, "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200);
         var properties = new DiceAnchorsProperties(
                 anchorConfig, null, null, null, null, null, null, new DiceAnchorsProperties.AssemblyConfig(0)
         );
@@ -72,7 +73,7 @@ class AnchorPromoterTest {
         when(duplicateDetector.isDuplicate(eq(CONTEXT_ID), anyString())).thenReturn(false);
         when(engine.detectConflicts(eq(CONTEXT_ID), anyString())).thenReturn(List.of());
         var node = mockNode();
-        when(repository.findPropositionNodeById(propId)).thenReturn(node);
+        when(repository.findPropositionNodeById(propId)).thenReturn(Optional.of(node));
         when(trustPipeline.evaluate(eq(node), eq(CONTEXT_ID))).thenReturn(autoPromoteScore());
     }
 
@@ -167,14 +168,14 @@ class AnchorPromoterTest {
             when(engine.detectConflicts(CONTEXT_ID, "incoming text")).thenReturn(List.of(conflict));
             when(engine.resolveConflict(conflict)).thenReturn(ConflictResolver.Resolution.REPLACE);
             var node = mockNode();
-            when(repository.findPropositionNodeById("p1")).thenReturn(node);
+            when(repository.findPropositionNodeById("p1")).thenReturn(Optional.of(node));
             when(trustPipeline.evaluate(eq(node), eq(CONTEXT_ID))).thenReturn(autoPromoteScore());
 
             var result = promoter.evaluateAndPromote(CONTEXT_ID, List.of(prop));
 
             assertThat(result).isEqualTo(1);
             verify(engine).archive("a1", ArchiveReason.CONFLICT_REPLACEMENT);
-            verify(engine).promote("p1", INITIAL_RANK);
+            verify(engine).promote("p1", INITIAL_RANK, Authority.RELIABLE);
         }
 
         @Test
@@ -186,7 +187,7 @@ class AnchorPromoterTest {
             when(engine.detectConflicts(CONTEXT_ID, "incoming text")).thenReturn(List.of(conflict));
             when(engine.resolveConflict(conflict)).thenReturn(ConflictResolver.Resolution.COEXIST);
             var node = mockNode();
-            when(repository.findPropositionNodeById("p1")).thenReturn(node);
+            when(repository.findPropositionNodeById("p1")).thenReturn(Optional.of(node));
             when(trustPipeline.evaluate(eq(node), eq(CONTEXT_ID))).thenReturn(autoPromoteScore());
 
             var result = promoter.evaluateAndPromote(CONTEXT_ID, List.of(prop));
@@ -248,6 +249,79 @@ class AnchorPromoterTest {
     }
 
     @Nested
+    @DisplayName("trust ceiling enforcement")
+    class TrustCeilingEnforcement {
+
+        @Test
+        @DisplayName("ceiling=PROVISIONAL limits initial authority passed to engine.promote()")
+        void ceilingLimitsInitialAuthority() {
+            var prop = activeProposition("p1", "Valid fact", 0.9);
+            when(duplicateDetector.isDuplicate(CONTEXT_ID, "Valid fact")).thenReturn(false);
+            when(engine.detectConflicts(CONTEXT_ID, "Valid fact")).thenReturn(List.of());
+            var node = mockNode();
+            when(repository.findPropositionNodeById("p1")).thenReturn(Optional.of(node));
+            var ceiledScore = new TrustScore(0.8, Authority.PROVISIONAL, PromotionZone.AUTO_PROMOTE,
+                    Map.of(), java.time.Instant.now());
+            when(trustPipeline.evaluate(eq(node), eq(CONTEXT_ID))).thenReturn(ceiledScore);
+
+            promoter.evaluateAndPromote(CONTEXT_ID, List.of(prop));
+
+            verify(engine).promote("p1", INITIAL_RANK, Authority.PROVISIONAL);
+        }
+
+        @Test
+        @DisplayName("ceiling=RELIABLE passes RELIABLE authority ceiling to engine.promote()")
+        void ceilingAboveAssignedHasNoEffect() {
+            var prop = activeProposition("p1", "Valid fact", 0.9);
+            when(duplicateDetector.isDuplicate(CONTEXT_ID, "Valid fact")).thenReturn(false);
+            when(engine.detectConflicts(CONTEXT_ID, "Valid fact")).thenReturn(List.of());
+            var node = mockNode();
+            when(repository.findPropositionNodeById("p1")).thenReturn(Optional.of(node));
+            var reliableScore = new TrustScore(0.8, Authority.RELIABLE, PromotionZone.AUTO_PROMOTE,
+                    Map.of(), java.time.Instant.now());
+            when(trustPipeline.evaluate(eq(node), eq(CONTEXT_ID))).thenReturn(reliableScore);
+
+            promoter.evaluateAndPromote(CONTEXT_ID, List.of(prop));
+
+            verify(engine).promote("p1", INITIAL_RANK, Authority.RELIABLE);
+        }
+
+        @Test
+        @DisplayName("no trust score (node not found) uses two-arg promote()")
+        void noTrustScoreUsesTwoArgPromote() {
+            var prop = activeProposition("p1", "Valid fact", 0.9);
+            when(duplicateDetector.isDuplicate(CONTEXT_ID, "Valid fact")).thenReturn(false);
+            when(engine.detectConflicts(CONTEXT_ID, "Valid fact")).thenReturn(List.of());
+            when(repository.findPropositionNodeById("p1")).thenReturn(Optional.empty());
+
+            promoter.evaluateAndPromote(CONTEXT_ID, List.of(prop));
+
+            verify(engine).promote("p1", INITIAL_RANK);
+            verify(engine, never()).promote(eq("p1"), anyInt(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("Trust re-evaluation triggers")
+    class TrustReEvaluationTriggers {
+
+        @Test
+        @DisplayName("KEEP_EXISTING resolution triggers trust re-evaluation on kept anchor")
+        void keepExistingResolutionTriggersTrustReEvaluation() {
+            var prop = activeProposition("p1", "incoming text", 0.9);
+            when(duplicateDetector.isDuplicate(CONTEXT_ID, "incoming text")).thenReturn(false);
+            var existingAnchor = Anchor.withoutTrust("a1", "existing text", 700, Authority.PROVISIONAL, false, 0.8, 0);
+            var conflict = new ConflictDetector.Conflict(existingAnchor, "incoming text", 0.9, "negation");
+            when(engine.detectConflicts(CONTEXT_ID, "incoming text")).thenReturn(List.of(conflict));
+            when(engine.resolveConflict(conflict)).thenReturn(ConflictResolver.Resolution.KEEP_EXISTING);
+
+            promoter.evaluateAndPromote(CONTEXT_ID, List.of(prop));
+
+            verify(engine).reEvaluateTrust("a1");
+        }
+    }
+
+    @Nested
     @DisplayName("full pipeline")
     class FullPipeline {
 
@@ -260,7 +334,7 @@ class AnchorPromoterTest {
             var result = promoter.evaluateAndPromote(CONTEXT_ID, List.of(prop));
 
             assertThat(result).isEqualTo(1);
-            verify(engine).promote("p1", INITIAL_RANK);
+            verify(engine).promote("p1", INITIAL_RANK, Authority.RELIABLE);
         }
 
         @Test
@@ -284,7 +358,7 @@ class AnchorPromoterTest {
             var result = promoter.evaluateAndPromote(CONTEXT_ID, List.of(prop));
 
             assertThat(result).isEqualTo(1);
-            verify(engine).promote("p1", INITIAL_RANK);
+            verify(engine).promote("p1", INITIAL_RANK, Authority.RELIABLE);
         }
 
         @Test
@@ -297,14 +371,14 @@ class AnchorPromoterTest {
             when(duplicateDetector.isDuplicate(CONTEXT_ID, "Dup fact")).thenReturn(true);
             when(engine.detectConflicts(CONTEXT_ID, "Good fact")).thenReturn(List.of());
             var node = mockNode();
-            when(repository.findPropositionNodeById("p1")).thenReturn(node);
+            when(repository.findPropositionNodeById("p1")).thenReturn(Optional.of(node));
             when(trustPipeline.evaluate(eq(node), eq(CONTEXT_ID))).thenReturn(autoPromoteScore());
 
             var result = promoter.evaluateAndPromote(CONTEXT_ID, List.of(good, dup));
 
             assertThat(result).isEqualTo(1);
-            verify(engine).promote("p1", INITIAL_RANK);
-            verify(engine, never()).promote(eq("p2"), anyInt());
+            verify(engine).promote("p1", INITIAL_RANK, Authority.RELIABLE);
+            verify(engine, never()).promote(eq("p2"), anyInt(), any());
         }
     }
 }

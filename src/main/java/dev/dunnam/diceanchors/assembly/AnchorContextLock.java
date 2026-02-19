@@ -1,36 +1,32 @@
 package dev.dunnam.diceanchors.assembly;
 
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Thread-safe lock that prevents anchor mutations during context assembly.
  * Acquired before assembling the system prompt, released after the LLM response.
+ * <p>
+ * Uses a single {@link AtomicReference} to store the current lock holder, eliminating
+ * the TOCTOU race between the old {@code AtomicBoolean locked} + {@code volatile lockedBy}
+ * pair. All operations are a single compare-and-set.
  */
 public class AnchorContextLock {
 
-    private final AtomicBoolean locked = new AtomicBoolean(false);
-    private volatile String lockedBy;
+    private final AtomicReference<String> lockedBy = new AtomicReference<>();
 
     public boolean tryLock(String turnId) {
-        if (locked.compareAndSet(false, true)) {
-            lockedBy = turnId;
-            return true;
-        }
-        return false;
+        return lockedBy.compareAndSet(null, turnId);
     }
 
     public void unlock(String turnId) {
-        if (turnId.equals(lockedBy)) {
-            lockedBy = null;
-            locked.set(false);
-        }
+        lockedBy.compareAndSet(turnId, null);
     }
 
     public boolean isLocked() {
-        return locked.get();
+        return lockedBy.get() != null;
     }
 
     public String getLockedBy() {
-        return lockedBy;
+        return lockedBy.get();
     }
 }

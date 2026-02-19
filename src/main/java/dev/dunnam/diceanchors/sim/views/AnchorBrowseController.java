@@ -52,11 +52,11 @@ public class AnchorBrowseController {
     public ResponseEntity<AnchorDto> getAnchor(
             @PathVariable String contextId,
             @PathVariable String id) {
-        var node = anchorRepository.findPropositionNodeById(id);
-        if (node == null || !node.isAnchor() || !contextId.equals(node.getContextId())) {
+        var nodeOpt = anchorRepository.findPropositionNodeById(id);
+        if (nodeOpt.isEmpty() || !nodeOpt.get().isAnchor() || !contextId.equals(nodeOpt.get().getContextId())) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(toDto(node));
+        return ResponseEntity.ok(toDto(nodeOpt.get()));
     }
 
     /**
@@ -81,10 +81,11 @@ public class AnchorBrowseController {
     public ResponseEntity<AnchorHistoryDto> getHistory(
             @PathVariable String contextId,
             @PathVariable String id) {
-        var node = anchorRepository.findPropositionNodeById(id);
-        if (node == null || !node.isAnchor() || !contextId.equals(node.getContextId())) {
+        var nodeOpt = anchorRepository.findPropositionNodeById(id);
+        if (nodeOpt.isEmpty() || !nodeOpt.get().isAnchor() || !contextId.equals(nodeOpt.get().getContextId())) {
             return ResponseEntity.notFound().build();
         }
+        var node = nodeOpt.get();
         var history = new AnchorHistoryDto(
                 node.getId(),
                 node.getText(),

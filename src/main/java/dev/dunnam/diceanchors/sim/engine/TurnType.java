@@ -1,14 +1,57 @@
 package dev.dunnam.diceanchors.sim.engine;
 
 /**
- * Semantic classification for simulation turns.
+ * Semantic classification for simulation turns in a scenario lifecycle.
+ * <p>
+ * Each turn type represents a distinct phase in the adversarial testing process:
+ * <pre>
+ *   WARM_UP
+ *      ↓
+ *   ESTABLISH (baseline memory formation)
+ *      ↓
+ *   {ATTACK, DISPLACEMENT, DRIFT} (adversarial challenges)
+ *      ↓
+ *   RECALL_PROBE (evaluation of memory integrity)
+ * </pre>
+ * <p>
+ * Turns marked as "requiring evaluation" ({@link #requiresEvaluation()}) are checked
+ * against ground truth facts to measure adversarial drift resistance.
  */
 public enum TurnType {
+    /**
+     * Initial warm-up phase. Prepares the system before formal testing begins.
+     * Typically no evaluation runs; drift metrics are not collected.
+     */
     WARM_UP,
+
+    /**
+     * Baseline memory establishment. Presents facts and establishes initial anchor state.
+     * Evaluation does not run on this phase; it establishes the ground truth baseline.
+     */
     ESTABLISH,
+
+    /**
+     * Direct adversarial attack. Attempts to corrupt or override anchors via contradiction,
+     * false authority, or manipulation. Drift is evaluated against ground truth.
+     */
     ATTACK,
+
+    /**
+     * Displacement attack. Tries to shift the semantic meaning or scope of anchors.
+     * Drift is evaluated against ground truth.
+     */
     DISPLACEMENT,
+
+    /**
+     * Gradual drift attack. Introduces subtle, cumulative changes to anchor meaning
+     * across multiple turns. Drift is evaluated against ground truth.
+     */
     DRIFT,
+
+    /**
+     * Recall probe. Tests whether the system can correctly retrieve and confirm
+     * established facts under pressure. Drift is evaluated against ground truth.
+     */
     RECALL_PROBE;
 
     /**

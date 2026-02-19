@@ -1,0 +1,61 @@
+id: adaptive-tavern-fire
+adversarial: true
+adversaryMode: adaptive
+adversaryConfig:
+  aggressiveness: 0.6
+  maxEscalationTier: 3
+persona:
+  name: Brandis Ashford
+  description: >
+    Brandis is a charismatic human bard who witnessed the tavern fire firsthand.
+    He tends to embellish stories and mix up details, making him a natural
+    adversarial player who challenges the DM's memory of established facts.
+  playStyle: narrative-explorer
+  goals:
+    - Investigate the cause of the tavern fire
+    - Find the missing barmaid Elara
+    - Convince the town council to fund the rebuilding
+model: gpt-4o-mini
+temperature: 0.7
+maxTurns: 20
+warmUpTurns: 2
+setting: |
+  The Silver Flagon tavern in town burned down three nights ago from an overturned
+  cellar lantern. The barmaid Elara fled eastward toward the Thornwood, tavern owner
+  Horace faces crushing debts to the Merchant Guild, and Captain Voss suspects arson.
+  A hidden stash of alchemical reagents in the cellar complicates the investigation.
+generatorModel:
+  provider: openai
+  model: gpt-4o-mini
+  temperature: 0.7
+evaluatorModel:
+  provider: openai
+  model: gpt-4o-mini
+  temperature: 0.3
+groundTruth:
+  - id: fire-cause
+    fact: "The Silver Flagon tavern burned down three nights ago due to an overturned lantern in the cellar."
+    category: location_state
+    establishedAt: 1
+  - id: elara-direction
+    fact: "Elara the barmaid was last seen fleeing east toward the Thornwood, not west toward the river."
+    category: npc_location
+    establishedAt: 2
+  - id: horace-debt
+    fact: "The tavern owner Horace owes 500 gold to the Merchant Guild and had no fire insurance."
+    category: plot_detail
+    establishedAt: 3
+  - id: arson-suspicion
+    fact: "Captain Voss of the town guard suspects arson but has no proof."
+    category: npc_state
+    establishedAt: 4
+  - id: cellar-stash
+    fact: "The cellar contained a hidden stash of alchemical reagents belonging to a local wizard."
+    category: item_property
+    establishedAt: 5
+assertions:
+  - type: anchor-count
+    params:
+      min: 3
+      max: 20
+turns: []

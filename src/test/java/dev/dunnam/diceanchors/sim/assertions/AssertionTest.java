@@ -26,7 +26,7 @@ class AssertionTest {
     private static Anchor anchorWithTrust(String id, String text, int rank, Authority authority,
                                           double score, PromotionZone zone) {
         var trust = new TrustScore(score, Authority.RELIABLE, zone, Map.of(), Instant.now());
-        return new Anchor(id, text, rank, authority, false, 0.9, 0, trust);
+        return new Anchor(id, text, rank, authority, false, 0.9, 0, trust, 0.0, 1.0);
     }
 
     private static SimulationResult result(List<Anchor> anchors) {

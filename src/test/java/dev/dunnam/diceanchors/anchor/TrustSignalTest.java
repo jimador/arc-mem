@@ -127,11 +127,11 @@ class TrustSignalTest {
     @DisplayName("CorroborationSignal")
     class CorroborationSignalTests {
 
-        private CorroborationSignal signal;
+        private TrustSignal signal;
 
         @BeforeEach
         void setUp() {
-            signal = new CorroborationSignal();
+            signal = TrustSignal.corroboration();
         }
 
         @Test

@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.stereotype.Component;
+import dev.dunnam.diceanchors.prompt.PromptPathConstants;
 import dev.dunnam.diceanchors.prompt.PromptTemplates;
 
 import java.util.List;
@@ -46,7 +47,7 @@ public class SimSummaryGenerator {
         }
 
         var conversationText = String.join("\n\n", messages);
-        var promptText = PromptTemplates.render("prompts/sim/summary.jinja", Map.of(
+        var promptText = PromptTemplates.render(PromptPathConstants.SIM_SUMMARY, Map.of(
                 "context_description", contextDescription != null ? contextDescription : "",
                 "conversation_text", conversationText));
 

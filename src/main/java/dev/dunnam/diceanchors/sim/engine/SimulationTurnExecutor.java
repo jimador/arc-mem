@@ -12,6 +12,7 @@ import dev.dunnam.diceanchors.assembly.CompactionResult;
 import dev.dunnam.diceanchors.assembly.PropositionsLlmReference;
 import dev.dunnam.diceanchors.assembly.TokenCounter;
 import dev.dunnam.diceanchors.persistence.AnchorRepository;
+import dev.dunnam.diceanchors.prompt.PromptPathConstants;
 import dev.dunnam.diceanchors.prompt.PromptTemplates;
 import io.micrometer.observation.annotation.Observed;
 import io.opentelemetry.api.trace.Span;
@@ -22,12 +23,15 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.StructuredTaskScope;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
 /**
@@ -36,6 +40,12 @@ import java.util.regex.Pattern;
  * <p>
  * Drift evaluation is performed only on adversarial ATTACK turns where ground
  * truth is provided. Warm-up and establish turns are not evaluated.
+ * <p>
+ * When {@code parallelPostResponse} is enabled, drift evaluation (Branch A) and
+ * proposition extraction (Branch B) are forked concurrently after the DM response
+ * using {@link StructuredTaskScope} with a {@code awaitAllSuccessfulOrThrow} joiner.
+ * If either branch fails the sibling is cancelled and the exception is propagated.
+ * When the flag is false, the existing sequential execution path is used unchanged.
  */
 @Component
 public class SimulationTurnExecutor {
@@ -43,6 +53,10 @@ public class SimulationTurnExecutor {
     private static final Logger logger = LoggerFactory.getLogger(SimulationTurnExecutor.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final Pattern CODE_FENCE = Pattern.compile("^```(?:json)?\\s*|\\s*```$");
+
+    // 5-minute ceiling for the combined post-response parallel block; long enough
+    // for real LLM evaluation + DICE extraction pipeline calls.
+    private static final Duration PARALLEL_BRANCH_TIMEOUT = Duration.ofMinutes(5);
 
     private final ChatModelHolder chatModel;
     private final AnchorEngine anchorEngine;
@@ -68,7 +82,7 @@ public class SimulationTurnExecutor {
         this.compliancePolicy = compliancePolicy;
         this.tokenCounter = tokenCounter;
         this.extractionService = extractionService;
-        this.driftEvalSystemPrompt = PromptTemplates.load("prompts/drift-evaluation-system.jinja");
+        this.driftEvalSystemPrompt = PromptTemplates.load(PromptPathConstants.DRIFT_EVALUATION_SYSTEM);
     }
 
     /**
@@ -160,6 +174,14 @@ public class SimulationTurnExecutor {
      * Execute a full turn with anchor state diffing and optional compaction.
      * Returns a {@link TurnExecutionResult} containing the turn, current anchor state,
      * and any compaction result.
+     * <p>
+     * When {@code parallelPostResponse} is true, drift evaluation (Branch A) and
+     * proposition extraction + promotion (Branch B) run concurrently after the DM
+     * response using {@link StructuredTaskScope}. Sequential operations (reinforce,
+     * dormancy, state diff, compaction) follow the join point.
+     * <p>
+     * When {@code parallelPostResponse} is false, the original sequential execution
+     * path is preserved for debugging and test reproducibility.
      *
      * @param contextId           simulation-scoped context ID
      * @param turnNumber          1-based turn counter
@@ -197,14 +219,203 @@ public class SimulationTurnExecutor {
             SimulationScenario.DormancyConfig dormancyConfig,
             Map<String, Integer> dormancyState) {
 
+        if (properties.sim() != null && properties.sim().parallelPostResponse()) {
+            return executeTurnFullParallel(
+                    contextId, turnNumber, playerMessage, turnType, attackStrategy,
+                    setting, injectionEnabled, tokenBudget, groundTruth, conversationHistory,
+                    previousAnchorState, compactionProvider, compactionConfig,
+                    extractionEnabled, dormancyConfig, dormancyState);
+        }
+        return executeTurnFullSequential(
+                contextId, turnNumber, playerMessage, turnType, attackStrategy,
+                setting, injectionEnabled, tokenBudget, groundTruth, conversationHistory,
+                previousAnchorState, compactionProvider, compactionConfig,
+                extractionEnabled, dormancyConfig, dormancyState);
+    }
+
+    // -------------------------------------------------------------------------
+    // Parallel execution path (parallelPostResponse=true)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Parallel execution: DM response is generated first (sequential), then
+     * Branch A (drift evaluation) and Branch B (extraction + promotion) run
+     * concurrently inside a {@link StructuredTaskScope}.
+     */
+    private TurnExecutionResult executeTurnFullParallel(
+            String contextId,
+            int turnNumber,
+            String playerMessage,
+            TurnType turnType,
+            AttackStrategy attackStrategy,
+            String setting,
+            boolean injectionEnabled,
+            int tokenBudget,
+            List<SimulationScenario.GroundTruth> groundTruth,
+            List<String> conversationHistory,
+            Map<String, Anchor> previousAnchorState,
+            CompactedContextProvider compactionProvider,
+            SimulationScenario.CompactionConfig compactionConfig,
+            boolean extractionEnabled,
+            SimulationScenario.DormancyConfig dormancyConfig,
+            Map<String, Integer> dormancyState) {
+
         var mutableDormancyState = dormancyState != null ? dormancyState : new HashMap<String, Integer>();
 
-        // Execute the core turn
+        // OTEL span enrichment
+        var currentSpan = Span.current();
+        currentSpan.setAttribute("sim.turn", turnNumber);
+        currentSpan.setAttribute("sim.turn_type", turnType.name());
+        if (attackStrategy != null) {
+            currentSpan.setAttribute("sim.strategy", attackStrategy.name());
+        }
+
+        // 1. Assemble prompt context blocks (sequential — needed before DM call)
+        var anchorRef = new AnchorsLlmReference(
+                anchorEngine,
+                contextId,
+                properties.anchor().budget(),
+                compliancePolicy,
+                tokenBudget,
+                tokenCounter);
+        var propositionRef = new PropositionsLlmReference(
+                anchorRepository,
+                contextId,
+                properties.anchor().budget());
+        List<Anchor> anchors = anchorRef.getAnchors();
+        var anchorBlock = injectionEnabled ? anchorRef.getContent() : "";
+        var propositionBlock = injectionEnabled ? propositionRef.getContent() : "";
+        var injectedContextBlock = combineInjectedBlocks(anchorBlock, propositionBlock);
+
+        // 2. Build prompts
+        var systemPrompt = buildSystemPrompt(setting, anchorBlock, propositionBlock);
+        var userPrompt = buildUserPrompt(playerMessage, conversationHistory);
+
+        // 3. Generate DM response (sequential — must complete before forking)
+        var dmResponse = callLlm(systemPrompt, userPrompt);
+
+        // 4. Build initial context trace
+        var anchorTokens = injectedContextBlock.length() / 4;
+        var totalTokens = (systemPrompt.length() + userPrompt.length() + dmResponse.length()) / 4;
+        var initialTrace = new ContextTrace(
+                turnNumber, anchorTokens, totalTokens,
+                anchors, injectionEnabled, injectedContextBlock,
+                systemPrompt, userPrompt,
+                tokenBudget > 0,
+                anchorRef.getLastBudgetResult().excluded().size());
+
+        // Capture final values for use inside lambdas (effectively-final requirement)
+        final var finalDmResponse = dmResponse;
+        final var finalGroundTruth = groundTruth;
+
+        // 5. Fork Branch A (drift eval) and Branch B (extraction) concurrently.
+        // AtomicReferences hold each branch's result; lambdas return Void so the
+        // scope can use a single homogeneous Joiner<Void, Void>.
+        // Parallel execution: Branch A performs drift evaluation against ground truth;
+        // Branch B runs DICE extraction and anchor promotion. Both execute concurrently
+        // via StructuredTaskScope; if either fails, the sibling is cancelled and the exception propagates.
+        final List<EvalVerdict> verdicts;
+        final ExtractionResult extractionResult;
+
+        var verdictsRef = new AtomicReference<List<EvalVerdict>>(List.of());
+        var extractionRef = new AtomicReference<>(ExtractionResult.empty());
+
+        try (var scope = StructuredTaskScope.open(
+                StructuredTaskScope.Joiner.<Void>awaitAllSuccessfulOrThrow(),
+                cfg -> cfg.withTimeout(PARALLEL_BRANCH_TIMEOUT))) {
+
+            // Branch A: drift evaluation — only on turns that require it
+            scope.fork(() -> {
+                if (shouldEvaluate(turnType, finalGroundTruth)) {
+                    verdictsRef.set(evaluateDrift(finalDmResponse, finalGroundTruth));
+                }
+                return null;
+            });
+
+            // Branch B: DICE extraction + promotion — only when enabled.
+            // SimulationExtractionService is stateless (no shared mutable fields);
+            // all state is passed as parameters or created locally per call.
+            scope.fork(() -> {
+                if (extractionEnabled) {
+                    extractionRef.set(extractionService.extract(contextId, finalDmResponse));
+                }
+                return null;
+            });
+
+            scope.join();
+
+            verdicts = verdictsRef.get();
+            extractionResult = extractionRef.get();
+
+        } catch (StructuredTaskScope.FailedException e) {
+            var cause = e.getCause();
+            if (cause instanceof RuntimeException re) throw re;
+            throw new RuntimeException("Post-response parallel branch failed", cause != null ? cause : e);
+        } catch (StructuredTaskScope.TimeoutException e) {
+            throw new RuntimeException("Post-response parallel branches timed out after "
+                    + PARALLEL_BRANCH_TIMEOUT.toMinutes() + " minutes", e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Turn executor interrupted during parallel branches", e);
+        }
+
+        // Log branch results
+        if (extractionEnabled) {
+            currentSpan.setAttribute("sim.propositions_extracted", extractionResult.extractedCount());
+            currentSpan.setAttribute("sim.propositions_promoted", extractionResult.promotedCount());
+            logger.info("Turn {} extraction: {} extracted, {} promoted",
+                    turnNumber, extractionResult.extractedCount(), extractionResult.promotedCount());
+        }
+        logger.info("Turn {} [{}]: player='{}', dm='{}', anchors={}, verdicts={}",
+                turnNumber, turnType,
+                truncate(playerMessage, 50), truncate(dmResponse, 50),
+                anchors.size(), verdicts.size());
+
+        // Build initial turn with verdicts from Branch A
+        var turn = new SimulationTurn(
+                turnNumber, playerMessage, dmResponse,
+                turnType, attackStrategy, initialTrace, verdicts, List.of());
+
+        // 6. Post-join sequential operations: reinforce, dormancy, state diff, compaction
+        return buildResult(
+                contextId, turnNumber, playerMessage, turn, extractionResult,
+                injectionEnabled, previousAnchorState, compactionProvider,
+                compactionConfig, dormancyConfig, mutableDormancyState);
+    }
+
+    // -------------------------------------------------------------------------
+    // Sequential execution path (parallelPostResponse=false)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Original sequential execution path, preserved for testing and debugging.
+     * Calls {@link #executeTurn} (which includes drift eval inline), then runs
+     * extraction, reinforce, dormancy, diff, and compaction in order.
+     */
+    private TurnExecutionResult executeTurnFullSequential(
+            String contextId,
+            int turnNumber,
+            String playerMessage,
+            TurnType turnType,
+            AttackStrategy attackStrategy,
+            String setting,
+            boolean injectionEnabled,
+            int tokenBudget,
+            List<SimulationScenario.GroundTruth> groundTruth,
+            List<String> conversationHistory,
+            Map<String, Anchor> previousAnchorState,
+            CompactedContextProvider compactionProvider,
+            SimulationScenario.CompactionConfig compactionConfig,
+            boolean extractionEnabled,
+            SimulationScenario.DormancyConfig dormancyConfig,
+            Map<String, Integer> dormancyState) {
+
+        var mutableDormancyState = dormancyState != null ? dormancyState : new HashMap<String, Integer>();
+
         var turn = executeTurn(
                 contextId, turnNumber, playerMessage, turnType, attackStrategy,
                 setting, injectionEnabled, tokenBudget, groundTruth, conversationHistory);
 
-        // DICE extraction — extract propositions from DM response before drift eval
         var extractionResult = ExtractionResult.empty();
         if (extractionEnabled) {
             extractionResult = extractionService.extract(contextId, turn.dmResponse());
@@ -214,6 +425,37 @@ public class SimulationTurnExecutor {
             logger.info("Turn {} extraction: {} extracted, {} promoted",
                     turnNumber, extractionResult.extractedCount(), extractionResult.promotedCount());
         }
+
+        return buildResult(
+                contextId, turnNumber, playerMessage, turn, extractionResult,
+                injectionEnabled, previousAnchorState, compactionProvider,
+                compactionConfig, dormancyConfig, mutableDormancyState);
+    }
+
+    // -------------------------------------------------------------------------
+    // Shared post-response sequential operations
+    // -------------------------------------------------------------------------
+
+    /**
+     * Applies reinforce, dormancy lifecycle, state diff, and optional compaction
+     * after both parallel branches (or sequential extraction) have completed.
+     * This method is shared by both the parallel and sequential execution paths.
+     *
+     * @param turn             the turn record produced by the DM call (verdicts already set)
+     * @param extractionResult proposition extraction result (empty if extraction was disabled)
+     */
+    private TurnExecutionResult buildResult(
+            String contextId,
+            int turnNumber,
+            String playerMessage,
+            SimulationTurn turn,
+            ExtractionResult extractionResult,
+            boolean injectionEnabled,
+            Map<String, Anchor> previousAnchorState,
+            CompactedContextProvider compactionProvider,
+            SimulationScenario.CompactionConfig compactionConfig,
+            SimulationScenario.DormancyConfig dormancyConfig,
+            Map<String, Integer> mutableDormancyState) {
 
         // Reinforce anchors that were actually injected for this turn.
         var reinforcedAnchorIds = new HashSet<String>();
@@ -241,7 +483,7 @@ public class SimulationTurnExecutor {
         }
         pruneDormancyState(mutableDormancyState, currentAnchors);
 
-        // Update context trace with extraction metadata
+        // Update context trace with extraction metadata (8.7: merge both branch results)
         var originalTrace = turn.contextTrace();
         var enrichedTrace = new ContextTrace(
                 originalTrace.turnNumber(), originalTrace.anchorTokens(), originalTrace.totalTokens(),
@@ -259,7 +501,6 @@ public class SimulationTurnExecutor {
         // Diff anchor state to produce events
         var anchorEvents = diffAnchorState(previousAnchorState, currentAnchors, turnNumber, dormancyArchivedAnchorIds);
 
-        // Replace the empty anchorEvents in the turn with the diffed events
         var enrichedTurn = new SimulationTurn(
                 turn.turnNumber(), turn.playerMessage(), turn.dmResponse(),
                 turn.turnType(), turn.attackStrategy(), turn.contextTrace(),
@@ -442,7 +683,7 @@ public class SimulationTurnExecutor {
     }
 
     private String buildSystemPrompt(String setting, String anchorBlock, String propositionBlock) {
-        return PromptTemplates.render("prompts/sim/system.jinja", Map.of(
+        return PromptTemplates.render(PromptPathConstants.SIM_SYSTEM, Map.of(
                 "setting", setting != null ? setting : "",
                 "anchor_block", anchorBlock != null ? anchorBlock : "",
                 "proposition_block", propositionBlock != null ? propositionBlock : ""));
@@ -454,7 +695,7 @@ public class SimulationTurnExecutor {
             int start = Math.max(0, history.size() - 10);
             recentHistory = history.subList(start, history.size());
         }
-        return PromptTemplates.render("prompts/sim/user.jinja", Map.of(
+        return PromptTemplates.render(PromptPathConstants.SIM_USER, Map.of(
                 "history", recentHistory,
                 "player_message", playerMessage != null ? playerMessage : ""));
     }
@@ -483,9 +724,10 @@ public class SimulationTurnExecutor {
             String dmResponse,
             List<SimulationScenario.GroundTruth> groundTruth) {
         var serializedGroundTruth = groundTruth.stream()
+                .filter(fact -> fact.text() != null && !fact.text().isBlank())
                 .map(fact -> Map.of("id", fact.id(), "text", fact.text()))
                 .toList();
-        var userPrompt = PromptTemplates.render("prompts/sim/drift-evaluation-user.jinja", Map.of(
+        var userPrompt = PromptTemplates.render(PromptPathConstants.SIM_DRIFT_EVALUATION_USER, Map.of(
                 "ground_truth", serializedGroundTruth,
                 "dm_response", dmResponse != null ? dmResponse : ""));
 
@@ -580,7 +822,7 @@ public class SimulationTurnExecutor {
     }
 
     static String formatConversationLine(String role, String text) {
-        return PromptTemplates.render("prompts/sim/conversation-line.jinja", Map.of(
+        return PromptTemplates.render(PromptPathConstants.SIM_CONVERSATION_LINE, Map.of(
                 "role", role != null ? role : "",
                 "text", text != null ? text : "")).stripTrailing();
     }

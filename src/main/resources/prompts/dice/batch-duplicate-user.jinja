@@ -1,0 +1,9 @@
+Existing facts:
+{% for fact in existing_facts %}- {{ fact }}
+{% endfor %}
+
+Candidates to evaluate:
+{% for candidate in candidates %}- {{ candidate }}
+{% endfor %}
+
+Return JSON with isDuplicate verdict for each candidate.

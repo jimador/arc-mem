@@ -2,11 +2,10 @@ package dev.dunnam.diceanchors.sim.engine;
 
 import dev.dunnam.diceanchors.anchor.Anchor;
 import dev.dunnam.diceanchors.anchor.Authority;
-import dev.dunnam.diceanchors.anchor.AuthorityConflictResolver;
 import dev.dunnam.diceanchors.anchor.ConflictDetector;
 import dev.dunnam.diceanchors.anchor.ConflictResolver;
 import dev.dunnam.diceanchors.anchor.NegationConflictDetector;
-import dev.dunnam.diceanchors.anchor.ThresholdReinforcementPolicy;
+import dev.dunnam.diceanchors.anchor.ReinforcementPolicy;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -28,8 +27,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DeterministicSimulationTest {
 
     private final NegationConflictDetector conflictDetector = new NegationConflictDetector();
-    private final AuthorityConflictResolver conflictResolver = new AuthorityConflictResolver();
-    private final ThresholdReinforcementPolicy reinforcementPolicy = new ThresholdReinforcementPolicy();
+    private final ConflictResolver conflictResolver = ConflictResolver.byAuthority();
+    private final ReinforcementPolicy reinforcementPolicy = ReinforcementPolicy.threshold();
     private final ScoringService scoringService = new ScoringService();
 
     // ========================================================================
