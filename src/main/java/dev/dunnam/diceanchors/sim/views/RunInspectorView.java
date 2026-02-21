@@ -17,7 +17,6 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import dev.dunnam.diceanchors.anchor.Anchor;
-import dev.dunnam.diceanchors.anchor.Authority;
 import dev.dunnam.diceanchors.sim.engine.EvalVerdict;
 import dev.dunnam.diceanchors.sim.engine.RunHistoryStore;
 import dev.dunnam.diceanchors.sim.engine.SimulationRunRecord;
@@ -117,12 +116,9 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
         errorContent.setVisible(true);
         errorContent.removeAll();
         var icon = new Span("Error");
-        icon.getStyle()
-            .set("color", "var(--lumo-error-text-color)")
-            .set("font-weight", "bold")
-            .set("font-size", "var(--lumo-font-size-l)");
+        icon.addClassName("ar-error-icon");
         var msg = new Paragraph(message);
-        msg.getStyle().set("color", "var(--lumo-secondary-text-color)");
+        msg.addClassName("ar-error-message");
         errorContent.add(icon, msg);
     }
 
@@ -140,17 +136,13 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
                 ? "Comparing: %s vs %s".formatted(primaryRun.scenarioId(), compareRun.scenarioId())
                 : "Run Inspector: %s".formatted(primaryRun.scenarioId());
         var header = new H2(title);
-        header.getStyle().set("margin", "0 0 8px 0");
+        header.addClassName("ar-run-header");
 
         var subtitle = new Span("Started: %s | Turns: %d | Resilience: %.0f%%".formatted(
                 DATE_FORMAT.format(primaryRun.startedAt()),
                 primaryRun.turnSnapshots().size(),
                 primaryRun.resilienceRate() * 100));
-        subtitle.getStyle()
-                .set("font-size", "var(--lumo-font-size-s)")
-                .set("color", "var(--lumo-secondary-text-color)")
-                .set("display", "block")
-                .set("margin-bottom", "12px");
+        subtitle.addClassName("ar-run-subtitle");
 
         // Sidebar: turn list with verdict indicator
         var turnListBox = new ListBox<TurnSnapshot>();
@@ -159,25 +151,20 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
             var row = new HorizontalLayout();
             row.setSpacing(true);
             row.setAlignItems(Alignment.CENTER);
-            row.getStyle().set("padding", "2px 0");
+            row.addClassName("ar-run-turn-row");
 
             // Verdict indicator dot
             var dot = new Span();
-            dot.getStyle()
-               .set("width", "8px")
-               .set("height", "8px")
-               .set("border-radius", "50%")
-               .set("display", "inline-block")
-               .set("flex-shrink", "0");
+            dot.addClassName("ar-turn-dot");
             var worst = snap.worstVerdict();
             if (worst == null) {
-                dot.getStyle().set("background", "var(--lumo-contrast-30pct)");
+                dot.getElement().setAttribute("data-verdict", "neutral");
             } else {
-                dot.getStyle().set("background", verdictColor(worst.verdict()));
+                dot.getElement().setAttribute("data-verdict", verdictDataValue(worst.verdict()));
             }
 
             var label = new Span("Turn %d — %s".formatted(snap.turnNumber(), snap.turnType().name()));
-            label.getStyle().set("font-size", "var(--lumo-font-size-s)");
+            label.addClassName("ar-run-turn-label");
 
             row.add(dot, label);
             return row;
@@ -245,7 +232,7 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
         conversationContent.setPadding(true);
         conversationContent.setSpacing(true);
         conversationContent.setSizeFull();
-        conversationContent.getStyle().set("overflow-y", "auto");
+        conversationContent.addClassName("ar-scrollable");
         return conversationContent;
     }
 
@@ -256,7 +243,7 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
         anchorsTabContent.setPadding(true);
         anchorsTabContent.setSpacing(true);
         anchorsTabContent.setSizeFull();
-        anchorsTabContent.getStyle().set("overflow-y", "auto");
+        anchorsTabContent.addClassName("ar-scrollable");
         return anchorsTabContent;
     }
 
@@ -267,7 +254,7 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
         driftTabContent.setPadding(true);
         driftTabContent.setSpacing(true);
         driftTabContent.setSizeFull();
-        driftTabContent.getStyle().set("overflow-y", "auto");
+        driftTabContent.addClassName("ar-scrollable");
         return driftTabContent;
     }
 
@@ -278,7 +265,7 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
         diffTabContent.setPadding(true);
         diffTabContent.setSpacing(true);
         diffTabContent.setSizeFull();
-        diffTabContent.getStyle().set("overflow-y", "auto");
+        diffTabContent.addClassName("ar-scrollable");
         showPlaceholder(diffTabContent,
                         "Select a turn after turn 1 to see anchor changes from the previous turn.");
         return diffTabContent;
@@ -291,7 +278,7 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
         comparisonTabContent.setPadding(true);
         comparisonTabContent.setSpacing(true);
         comparisonTabContent.setSizeFull();
-        comparisonTabContent.getStyle().set("overflow-y", "auto");
+        comparisonTabContent.addClassName("ar-scrollable");
         return comparisonTabContent;
     }
 
@@ -321,24 +308,18 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
         conversationContent.removeAll();
 
         var turnHeader = new Span("Turn %d — %s".formatted(snap.turnNumber(), snap.turnType().name()));
-        turnHeader.getStyle()
-                  .set("font-weight", "bold")
-                  .set("font-size", "var(--lumo-font-size-m)")
-                  .set("margin-bottom", "8px")
-                  .set("display", "block");
+        turnHeader.addClassName("ar-run-turn-header");
         conversationContent.add(turnHeader);
 
         // Player message
         if (snap.playerMessage() != null) {
-            var playerBubble = messageBubble("Player", snap.playerMessage(),
-                                             "var(--anchor-accent-amber)", "var(--lumo-contrast-5pct)");
+            var playerBubble = messageBubble("Player", snap.playerMessage(), "player");
             conversationContent.add(playerBubble);
         }
 
         // DM response
         if (snap.dmResponse() != null) {
-            var dmBubble = messageBubble("DM", snap.dmResponse(),
-                                         "var(--anchor-accent-cyan)", "var(--lumo-contrast-5pct)");
+            var dmBubble = messageBubble("DM", snap.dmResponse(), "dm");
             conversationContent.add(dmBubble);
         }
 
@@ -349,9 +330,7 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
             verdictRow.setSpacing(true);
             verdictRow.setAlignItems(Alignment.CENTER);
             var verdictLabel = new Span("Verdict: ");
-            verdictLabel.getStyle()
-                        .set("font-size", "var(--lumo-font-size-s)")
-                        .set("color", "var(--lumo-secondary-text-color)");
+            verdictLabel.addClassName("ar-run-verdict-label");
             verdictRow.add(verdictLabel);
             for (var v : snap.verdicts()) {
                 verdictRow.add(verdictBadge(v.verdict()));
@@ -362,19 +341,14 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
         // Context up to this turn
         conversationContent.add(new Span(""));
         var historyHeader = new Span("Conversation up to turn %d:".formatted(snap.turnNumber()));
-        historyHeader.getStyle()
-                     .set("font-weight", "bold")
-                     .set("font-size", "var(--lumo-font-size-s)")
-                     .set("color", "var(--lumo-secondary-text-color)")
-                     .set("display", "block");
+        historyHeader.addClassName("ar-run-history-header");
         conversationContent.add(historyHeader);
 
         for (int i = 0; i < selectedTurnIndex; i++) {
             var prev = primaryRun.turnSnapshots().get(i);
             if (prev.playerMessage() != null) {
-                var bubble = messageBubble("P", prev.playerMessage(),
-                                           "var(--anchor-accent-amber)", "transparent");
-                bubble.getStyle().set("opacity", "0.6");
+                var bubble = messageBubble("P", prev.playerMessage(), "player-faded");
+                bubble.addClassName("ar-run-bubble--faded");
                 conversationContent.add(bubble);
             }
             if (prev.dmResponse() != null) {
@@ -383,16 +357,16 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
                 dmRow.setAlignItems(Alignment.CENTER);
                 dmRow.setWidthFull();
 
-                var bubble = messageBubble("DM", prev.dmResponse(),
-                                           "var(--anchor-accent-cyan)", "transparent");
-                bubble.getStyle().set("opacity", "0.6").set("flex-grow", "1");
+                var bubble = messageBubble("DM", prev.dmResponse(), "dm-faded");
+                bubble.addClassName("ar-run-bubble--faded");
+                bubble.addClassName("ar-run-bubble--flex-grow");
                 dmRow.add(bubble);
 
                 // Worst verdict badge for this historical turn
                 var prevWorst = prev.worstVerdict();
                 if (prevWorst != null) {
                     var badge = verdictBadge(prevWorst.verdict());
-                    badge.getStyle().set("opacity", "0.6");
+                    badge.addClassName("ar-run-bubble--faded");
                     dmRow.add(badge);
                 }
 
@@ -405,10 +379,7 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
         anchorsTabContent.removeAll();
 
         var turnHeader = new Span("Active anchors at turn %d".formatted(snap.turnNumber()));
-        turnHeader.getStyle()
-                  .set("font-weight", "bold")
-                  .set("display", "block")
-                  .set("margin-bottom", "8px");
+        turnHeader.addClassName("ar-block-header");
         anchorsTabContent.add(turnHeader);
 
         if (snap.activeAnchors() == null || snap.activeAnchors().isEmpty()) {
@@ -425,10 +396,7 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
         driftTabContent.removeAll();
 
         var turnHeader = new Span("Drift verdicts at turn %d".formatted(snap.turnNumber()));
-        turnHeader.getStyle()
-                  .set("font-weight", "bold")
-                  .set("display", "block")
-                  .set("margin-bottom", "8px");
+        turnHeader.addClassName("ar-block-header");
         driftTabContent.add(turnHeader);
 
         if (snap.verdicts() == null || snap.verdicts().isEmpty()) {
@@ -443,10 +411,7 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
         // Overall drift summary
         driftTabContent.add(new Span(""));
         var summaryHeader = new Span("Overall Drift Summary:");
-        summaryHeader.getStyle()
-                     .set("font-weight", "bold")
-                     .set("display", "block")
-                     .set("margin-top", "16px");
+        summaryHeader.addClassName("ar-run-summary-header");
         driftTabContent.add(summaryHeader);
 
         long contradictions = primaryRun.turnSnapshots().stream()
@@ -462,11 +427,11 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
                                       .filter(v -> v.verdict() == EvalVerdict.Verdict.NOT_MENTIONED)
                                       .count();
 
-        driftTabContent.add(metricRow("Contradictions", String.valueOf(contradictions), "var(--lumo-error-color)"));
-        driftTabContent.add(metricRow("Confirmed", String.valueOf(confirmed), "var(--lumo-success-color)"));
-        driftTabContent.add(metricRow("Not Mentioned", String.valueOf(notMentioned), "var(--lumo-secondary-text-color)"));
+        driftTabContent.add(metricRow("Contradictions", String.valueOf(contradictions), "error"));
+        driftTabContent.add(metricRow("Confirmed", String.valueOf(confirmed), "success"));
+        driftTabContent.add(metricRow("Not Mentioned", String.valueOf(notMentioned), "secondary"));
         driftTabContent.add(metricRow("Resilience Rate", "%.0f%%".formatted(primaryRun.resilienceRate() * 100),
-                                      primaryRun.resilienceRate() >= 0.8 ? "var(--lumo-success-color)" : "var(--lumo-error-color)"));
+                                      primaryRun.resilienceRate() >= 0.8 ? "success" : "error"));
     }
 
     private void updateDiffTab(TurnSnapshot currentSnap) {
@@ -514,7 +479,7 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
         leftPanel.setPadding(true);
         leftPanel.setSpacing(true);
         leftPanel.add(new Span("Run: %s".formatted(primaryRun.scenarioId())));
-        leftPanel.getStyle().set("border-right", "1px solid var(--lumo-contrast-20pct)");
+        leftPanel.addClassName("ar-run-left-panel");
 
         var rightPanel = new VerticalLayout();
         rightPanel.setPadding(true);
@@ -523,29 +488,25 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
 
         // Player messages
         if (primarySnap.playerMessage() != null) {
-            leftPanel.add(messageBubble("Player", primarySnap.playerMessage(),
-                                        "var(--anchor-accent-amber)", "var(--lumo-contrast-5pct)"));
+            leftPanel.add(messageBubble("Player", primarySnap.playerMessage(), "player"));
         }
         if (compareSnap.playerMessage() != null) {
-            rightPanel.add(messageBubble("Player", compareSnap.playerMessage(),
-                                         "var(--anchor-accent-amber)", "var(--lumo-contrast-5pct)"));
+            rightPanel.add(messageBubble("Player", compareSnap.playerMessage(), "player"));
         }
 
         // DM responses
         if (primarySnap.dmResponse() != null) {
-            leftPanel.add(messageBubble("DM", primarySnap.dmResponse(),
-                                        "var(--anchor-accent-cyan)", "var(--lumo-contrast-5pct)"));
+            leftPanel.add(messageBubble("DM", primarySnap.dmResponse(), "dm"));
         }
         if (compareSnap.dmResponse() != null) {
-            rightPanel.add(messageBubble("DM", compareSnap.dmResponse(),
-                                         "var(--anchor-accent-cyan)", "var(--lumo-contrast-5pct)"));
+            rightPanel.add(messageBubble("DM", compareSnap.dmResponse(), "dm"));
         }
 
         // Verdicts for primary
         if (primarySnap.verdicts() != null && !primarySnap.verdicts().isEmpty()) {
             var primaryVerdictHeader = styledLabel("Verdicts (worst: %s)".formatted(
                                                            primarySnap.worstVerdict() != null ? primarySnap.worstVerdict().verdict().name() : "none"),
-                                                   "var(--lumo-secondary-text-color)");
+                                                   "secondary");
             leftPanel.add(primaryVerdictHeader);
             for (var v : primarySnap.verdicts()) {
                 leftPanel.add(verdictCard(v));
@@ -556,7 +517,7 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
         if (compareSnap.verdicts() != null && !compareSnap.verdicts().isEmpty()) {
             var compareVerdictHeader = styledLabel("Verdicts (worst: %s)".formatted(
                                                            compareSnap.worstVerdict() != null ? compareSnap.worstVerdict().verdict().name() : "none"),
-                                                   "var(--lumo-secondary-text-color)");
+                                                   "secondary");
             rightPanel.add(compareVerdictHeader);
             for (var v : compareSnap.verdicts()) {
                 rightPanel.add(verdictCard(v));
@@ -606,23 +567,21 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
 
         // Added
         if (!added.isEmpty()) {
-            var addedHeader = styledLabel("+ Added (%d)".formatted(added.size()), "var(--lumo-success-color)");
+            var addedHeader = styledLabel("+ Added (%d)".formatted(added.size()), "success");
             container.add(addedHeader);
             for (var key : added) {
                 var a = toMap.get(key);
-                container.add(diffRow("[%s] %s (rank: %d)".formatted(a.authority(), a.text(), a.rank()),
-                                      "var(--lumo-success-color-10pct)", "var(--lumo-success-color)"));
+                container.add(diffRow("[%s] %s (rank: %d)".formatted(a.authority(), a.text(), a.rank()), "added"));
             }
         }
 
         // Removed
         if (!removed.isEmpty()) {
-            var removedHeader = styledLabel("- Removed (%d)".formatted(removed.size()), "var(--lumo-error-color)");
+            var removedHeader = styledLabel("- Removed (%d)".formatted(removed.size()), "error");
             container.add(removedHeader);
             for (var key : removed) {
                 var a = fromMap.get(key);
-                container.add(diffRow("[%s] %s (rank: %d)".formatted(a.authority(), a.text(), a.rank()),
-                                      "var(--lumo-error-color-10pct)", "var(--lumo-error-color)"));
+                container.add(diffRow("[%s] %s (rank: %d)".formatted(a.authority(), a.text(), a.rank()), "removed"));
             }
         }
 
@@ -636,7 +595,7 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
             }
         }
         if (!changed.isEmpty()) {
-            var changedHeader = styledLabel("~ Changed (%d)".formatted(changed.size()), "var(--anchor-accent-amber)");
+            var changedHeader = styledLabel("~ Changed (%d)".formatted(changed.size()), "amber");
             container.add(changedHeader);
             for (var key : changed) {
                 var fa = fromMap.get(key);
@@ -644,15 +603,10 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
                 var row = new VerticalLayout();
                 row.setPadding(false);
                 row.setSpacing(false);
-                row.add(diffRow("%s: [%s] rank %d".formatted(fromLabel, fa.authority(), fa.rank()),
-                                "var(--lumo-error-color-10pct)", "var(--lumo-secondary-text-color)"));
-                row.add(diffRow("%s: [%s] rank %d".formatted(toLabel, ta.authority(), ta.rank()),
-                                "var(--lumo-success-color-10pct)", "var(--lumo-secondary-text-color)"));
+                row.add(diffRow("%s: [%s] rank %d".formatted(fromLabel, fa.authority(), fa.rank()), "changed-from"));
+                row.add(diffRow("%s: [%s] rank %d".formatted(toLabel, ta.authority(), ta.rank()), "changed-to"));
                 var textLabel = new Span(fa.text());
-                textLabel.getStyle()
-                         .set("font-size", "var(--lumo-font-size-xs)")
-                         .set("color", "var(--lumo-secondary-text-color)")
-                         .set("padding-left", "12px");
+                textLabel.addClassName("ar-diff-text");
                 row.add(textLabel);
                 container.add(row);
             }
@@ -678,20 +632,14 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
     // UI helper methods
     // -------------------------------------------------------------------------
 
-    private Div messageBubble(String role, String text, String borderColor, String bgColor) {
+    private Div messageBubble(String role, String text, String dataRole) {
         var bubble = new Div();
-        bubble.getStyle()
-              .set("border-left", "3px solid " + borderColor)
-              .set("background", bgColor)
-              .set("border-radius", "var(--lumo-border-radius-m)")
-              .set("padding", "6px 10px")
-              .set("margin-bottom", "4px")
-              .set("font-size", "var(--lumo-font-size-s)");
+        bubble.addClassName("ar-run-bubble");
+        bubble.getElement().setAttribute("data-role", dataRole);
 
         var roleSpan = new Span(role + ": ");
-        roleSpan.getStyle()
-                .set("font-weight", "bold")
-                .set("color", borderColor);
+        roleSpan.addClassName("ar-run-role");
+        roleSpan.getElement().setAttribute("data-role", dataRole);
         bubble.add(roleSpan);
         bubble.add(new Span(text));
         return bubble;
@@ -703,11 +651,7 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
      */
     private Div anchorCard(Anchor anchor) {
         var card = new Div();
-        card.getStyle()
-            .set("border", "1px solid var(--lumo-contrast-20pct)")
-            .set("border-radius", "var(--lumo-border-radius-m)")
-            .set("padding", "8px 12px")
-            .set("margin-bottom", "6px");
+        card.addClassName("ar-card");
 
         // Top row: authority badge + text + pinned indicator
         var topRow = new HorizontalLayout();
@@ -716,30 +660,17 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
         topRow.setWidthFull();
 
         var authorityBadge = new Span(anchor.authority().name());
-        authorityBadge.getStyle()
-                      .set("font-size", "var(--lumo-font-size-xs)")
-                      .set("font-weight", "bold")
-                      .set("padding", "1px 6px")
-                      .set("border-radius", "var(--lumo-border-radius-s)")
-                      .set("color", "white")
-                      .set("background", authorityColor(anchor.authority()));
+        authorityBadge.addClassName("ar-badge");
+        authorityBadge.getElement().setAttribute("data-authority", anchor.authority().name().toLowerCase());
 
         var anchorText = new Span(anchor.text());
-        anchorText.getStyle()
-                  .set("font-size", "var(--lumo-font-size-s)")
-                  .set("flex-grow", "1");
+        anchorText.addClassName("ar-run-anchor-text");
 
         topRow.add(authorityBadge, anchorText);
 
         if (anchor.pinned()) {
             var pinned = new Span("PINNED");
-            pinned.getStyle()
-                  .set("font-size", "var(--lumo-font-size-xs)")
-                  .set("font-weight", "bold")
-                  .set("color", "var(--lumo-primary-color)")
-                  .set("border", "1px solid var(--lumo-primary-color)")
-                  .set("border-radius", "var(--lumo-border-radius-s)")
-                  .set("padding", "0 4px");
+            pinned.addClassName("ar-pinned-badge");
             topRow.add(pinned);
         }
 
@@ -750,22 +681,17 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
         rankRow.setSpacing(true);
         rankRow.setAlignItems(Alignment.CENTER);
         rankRow.setWidthFull();
-        rankRow.getStyle().set("margin-top", "4px");
+        rankRow.addClassName("ar-run-rank-row");
 
         var rankLabel = new Span("Rank: %d".formatted(anchor.rank()));
-        rankLabel.getStyle()
-                 .set("font-size", "var(--lumo-font-size-xs)")
-                 .set("min-width", "60px");
+        rankLabel.addClassName("ar-rank-label");
+        rankLabel.addClassName("ar-rank-label--narrow");
 
         var barOuter = new Div();
-        barOuter.getStyle()
-                .set("flex-grow", "1")
-                .set("height", "6px")
-                .set("background", "var(--lumo-contrast-10pct)")
-                .set("border-radius", "3px")
-                .set("overflow", "hidden");
+        barOuter.addClassName("ar-rank-bar-outer");
 
         var barInner = new Div();
+        barInner.addClassName("ar-rank-bar-inner");
         var pct = Math.min(100, (int) (anchor.rank() / 9.0));
         String barColor;
         if (anchor.rank() >= 700) {
@@ -777,9 +703,7 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
         }
         barInner.getStyle()
                 .set("width", pct + "%")
-                .set("height", "100%")
-                .set("background", barColor)
-                .set("border-radius", "3px");
+                .set("background", barColor);
         barOuter.add(barInner);
 
         rankRow.add(rankLabel, barOuter);
@@ -788,19 +712,15 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
         // Bottom row: reinforcement count + trust score
         var bottomRow = new HorizontalLayout();
         bottomRow.setSpacing(true);
-        bottomRow.getStyle().set("margin-top", "2px");
+        bottomRow.addClassName("ar-run-bottom-row");
 
         var reinforcement = new Span("Reinforced: %dx".formatted(anchor.reinforcementCount()));
-        reinforcement.getStyle()
-                     .set("font-size", "var(--lumo-font-size-xs)")
-                     .set("color", "var(--lumo-secondary-text-color)");
+        reinforcement.addClassName("ar-run-meta-text");
         bottomRow.add(reinforcement);
 
         if (anchor.trustScore() != null) {
             var trust = new Span("Trust: %.2f".formatted(anchor.trustScore().score()));
-            trust.getStyle()
-                 .set("font-size", "var(--lumo-font-size-xs)")
-                 .set("color", "var(--lumo-secondary-text-color)");
+            trust.addClassName("ar-run-meta-text");
             bottomRow.add(trust);
         }
 
@@ -810,31 +730,24 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
 
     private Div verdictCard(EvalVerdict verdict) {
         var card = new Div();
-        var borderColor = verdictColor(verdict.verdict());
-        card.getStyle()
-            .set("border-left", "3px solid " + borderColor)
-            .set("padding", "6px 10px")
-            .set("margin-bottom", "4px")
-            .set("font-size", "var(--lumo-font-size-s)");
+        card.addClassName("ar-verdict-card");
+        card.getElement().setAttribute("data-verdict", verdictDataValue(verdict.verdict()));
 
         var badge = new Span(verdict.verdict().name());
-        badge.getStyle()
-             .set("font-weight", "bold")
-             .set("color", borderColor);
+        badge.addClassName("ar-run-verdict-badge-text");
+        badge.addClassName("ar-badge");
+        badge.getElement().setAttribute("data-verdict", verdictDataValue(verdict.verdict()));
         card.add(badge);
 
         if (verdict.factId() != null) {
             var factSpan = new Span(" [%s]".formatted(verdict.factId()));
-            factSpan.getStyle().set("color", "var(--lumo-secondary-text-color)");
+            factSpan.addClassName("ar-run-fact-span");
             card.add(factSpan);
         }
 
         if (verdict.explanation() != null && !verdict.explanation().isBlank()) {
             var explanation = new Paragraph(verdict.explanation());
-            explanation.getStyle()
-                       .set("font-size", "var(--lumo-font-size-xs)")
-                       .set("color", "var(--lumo-secondary-text-color)")
-                       .set("margin", "4px 0 0 0");
+            explanation.addClassName("ar-run-verdict-explanation");
             card.add(explanation);
         }
         return card;
@@ -845,80 +758,49 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
      */
     private Span verdictBadge(EvalVerdict.Verdict verdict) {
         var badge = new Span(verdict.name());
-        badge.getStyle()
-             .set("font-size", "var(--lumo-font-size-xs)")
-             .set("font-weight", "bold")
-             .set("padding", "1px 6px")
-             .set("border-radius", "var(--lumo-border-radius-s)")
-             .set("color", "white")
-             .set("background", verdictColor(verdict));
+        badge.addClassName("ar-badge");
+        badge.getElement().setAttribute("data-verdict", verdictDataValue(verdict));
         return badge;
     }
 
-    private String verdictColor(EvalVerdict.Verdict verdict) {
+    private String verdictDataValue(EvalVerdict.Verdict verdict) {
         return switch (verdict) {
-            case CONTRADICTED -> "var(--lumo-error-color)";
-            case CONFIRMED -> "var(--lumo-success-color)";
-            case NOT_MENTIONED -> "var(--lumo-contrast-30pct)";
+            case CONTRADICTED -> "contradicted";
+            case CONFIRMED -> "confirmed";
+            case NOT_MENTIONED -> "not-mentioned";
         };
     }
 
-    private String authorityColor(Authority authority) {
-        return switch (authority) {
-            case CANON -> "var(--lumo-error-color)";
-            case RELIABLE -> "var(--lumo-success-color)";
-            case UNRELIABLE -> "#e67e22";
-            case PROVISIONAL -> "var(--lumo-contrast-50pct)";
-        };
-    }
-
-    private HorizontalLayout metricRow(String label, String value, String color) {
+    private HorizontalLayout metricRow(String label, String value, String colorKey) {
         var row = new HorizontalLayout();
         row.setSpacing(true);
         var labelSpan = new Span(label + ":");
-        labelSpan.getStyle()
-                 .set("font-size", "var(--lumo-font-size-s)")
-                 .set("min-width", "140px");
+        labelSpan.addClassName("ar-run-metric-label");
         var valueSpan = new Span(value);
-        valueSpan.getStyle()
-                 .set("font-size", "var(--lumo-font-size-s)")
-                 .set("font-weight", "bold")
-                 .set("color", color);
+        valueSpan.addClassName("ar-run-metric-value");
+        valueSpan.getElement().setAttribute("data-color", colorKey);
         row.add(labelSpan, valueSpan);
         return row;
     }
 
-    private Div diffRow(String text, String bgColor, String borderColor) {
+    private Div diffRow(String text, String diffType) {
         var row = new Div();
-        row.getStyle()
-           .set("background", bgColor)
-           .set("border-left", "3px solid " + borderColor)
-           .set("padding", "4px 8px")
-           .set("margin-bottom", "2px")
-           .set("font-size", "var(--lumo-font-size-xs)")
-           .set("border-radius", "var(--lumo-border-radius-s)");
+        row.addClassName("ar-diff-row");
+        row.getElement().setAttribute("data-diff", diffType);
         row.setText(text);
         return row;
     }
 
-    private Span styledLabel(String text, String color) {
+    private Span styledLabel(String text, String colorKey) {
         var label = new Span(text);
-        label.getStyle()
-             .set("font-weight", "bold")
-             .set("font-size", "var(--lumo-font-size-s)")
-             .set("color", color)
-             .set("display", "block")
-             .set("margin-top", "12px")
-             .set("margin-bottom", "4px");
+        label.addClassName("ar-styled-label");
+        label.getElement().setAttribute("data-color", colorKey);
         return label;
     }
 
     private void showPlaceholder(VerticalLayout container, String message) {
         var placeholder = new Paragraph(message);
-        placeholder.getStyle()
-                   .set("color", "var(--lumo-secondary-text-color)")
-                   .set("font-style", "italic")
-                   .set("text-align", "center");
+        placeholder.addClassName("ar-placeholder");
         container.add(placeholder);
     }
 }

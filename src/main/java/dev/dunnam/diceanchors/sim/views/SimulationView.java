@@ -6,8 +6,8 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.textfield.IntegerField;
-import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Paragraph;
@@ -22,7 +22,6 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import dev.dunnam.diceanchors.anchor.AnchorEngine;
 import dev.dunnam.diceanchors.persistence.AnchorRepository;
-import dev.dunnam.diceanchors.sim.engine.EvalVerdict;
 import dev.dunnam.diceanchors.sim.engine.ScenarioLoader;
 import dev.dunnam.diceanchors.sim.engine.SimControlState;
 import dev.dunnam.diceanchors.sim.engine.SimulationProgress;
@@ -30,7 +29,6 @@ import dev.dunnam.diceanchors.sim.engine.SimulationScenario;
 import dev.dunnam.diceanchors.sim.engine.SimulationService;
 import org.jspecify.annotations.Nullable;
 
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -75,7 +73,7 @@ public class SimulationView extends VerticalLayout {
     private final Button resumeButton;
     private final Button stopButton;
     private final Button runHistoryButton;
-    private final VerticalLayout scenarioBriefPanel;
+    private final Details scenarioBriefPanel;
     private final Span scenarioBriefTitle;
     private final Paragraph scenarioBriefObjective;
     private final Paragraph scenarioBriefFocus;
@@ -100,15 +98,7 @@ public class SimulationView extends VerticalLayout {
     private final Tab manipulationTab;
     private final Tab knowledgeBrowserTab;
     private final RunHistoryDialog runHistoryDialog;
-
-    // Thinking indicator (shown between player message and DM response)
-    private final Div thinkingIndicator;
-    private final Span thinkingLabel;
-    private static final String[] THINKING_MESSAGES = {
-            "Generating response\u2026",
-            "Evaluating drift\u2026",
-            "Extracting propositions\u2026"
-    };
+    private final ProgressDispatcher dispatcher;
 
     // Theme toggle
     private final Button themeToggleButton;
@@ -134,7 +124,7 @@ public class SimulationView extends VerticalLayout {
 
         // --- Header ---
         var title = new H2("Anchor Drift Simulator");
-        title.getStyle().set("margin", "0");
+        title.addClassName("ar-sim-title");
 
         themeToggleButton = new Button("\u2600 LIGHT");
         themeToggleButton.addClickListener(e -> toggleTheme());
@@ -143,7 +133,7 @@ public class SimulationView extends VerticalLayout {
         headerRow.setWidthFull();
         headerRow.setAlignItems(HorizontalLayout.Alignment.CENTER);
         headerRow.setJustifyContentMode(HorizontalLayout.JustifyContentMode.BETWEEN);
-        headerRow.getStyle().set("margin-bottom", "12px");
+        headerRow.addClassName("ar-header-row");
 
         scenarioCombo = new ComboBox<>("Scenario");
         scenarioCombo.setItemLabelGenerator(s -> {
@@ -157,7 +147,7 @@ public class SimulationView extends VerticalLayout {
         scenarioCombo.setPlaceholder("Select a scenario...");
 
         injectionToggle = new Checkbox("Anchor Injection", true);
-        injectionToggle.getStyle().set("align-self", "flex-end");
+        injectionToggle.addClassName("ar-inject-toggle");
 
         tokenBudgetField = new IntegerField("Token Budget (0=off)");
         tokenBudgetField.setMin(0);
@@ -186,12 +176,6 @@ public class SimulationView extends VerticalLayout {
         stopButton = new Button("Stop");
         stopButton.setEnabled(false);
 
-        thinkingLabel = new Span(THINKING_MESSAGES[0]);
-        var thinkingBar = new ProgressBar();
-        thinkingBar.setIndeterminate(true);
-        thinkingIndicator = new Div(thinkingBar, thinkingLabel);
-        thinkingIndicator.addClassName("thinking-indicator");
-
         runHistoryDialog = new RunHistoryDialog(simulationService.getRunStore());
 
         runHistoryButton = new Button("Run History");
@@ -209,44 +193,33 @@ public class SimulationView extends VerticalLayout {
 
         // --- Scenario brief ---
         scenarioBriefTitle = new Span("Scenario Brief");
-        scenarioBriefTitle.getStyle()
-                          .set("font-size", "var(--lumo-font-size-m)")
-                          .set("font-weight", "700");
+        scenarioBriefTitle.addClassName("ar-scenario-brief-title");
 
         scenarioBriefObjective = new Paragraph("Select a scenario to view what it tests.");
-        scenarioBriefObjective.getStyle().set("margin", "0");
+        scenarioBriefObjective.addClassName("ar-no-margin");
 
         scenarioBriefFocus = new Paragraph("");
-        scenarioBriefFocus.getStyle()
-                          .set("margin", "0")
-                          .set("font-size", "var(--lumo-font-size-s)")
-                          .set("color", "var(--lumo-secondary-text-color)");
+        scenarioBriefFocus.addClassName("ar-scenario-brief-focus");
 
         scenarioBriefHighlights = new VerticalLayout();
         scenarioBriefHighlights.setPadding(false);
         scenarioBriefHighlights.setSpacing(false);
-        scenarioBriefHighlights.getStyle()
-                              .set("margin", "0")
-                              .set("gap", "2px");
+        scenarioBriefHighlights.addClassName("ar-brief-highlights");
 
         scenarioBriefSetting = new Paragraph("");
-        scenarioBriefSetting.getStyle()
-                            .set("margin", "0")
-                            .set("font-size", "var(--lumo-font-size-s)");
+        scenarioBriefSetting.addClassName("ar-scenario-brief-setting");
 
-        scenarioBriefPanel = new VerticalLayout(
-                scenarioBriefTitle,
+        var briefContent = new VerticalLayout(
                 scenarioBriefObjective,
                 scenarioBriefFocus,
                 scenarioBriefHighlights,
                 scenarioBriefSetting);
-        scenarioBriefPanel.setPadding(true);
-        scenarioBriefPanel.setSpacing(false);
-        scenarioBriefPanel.getStyle()
-                          .set("border", "1px solid var(--lumo-contrast-10pct)")
-                          .set("border-radius", "8px")
-                          .set("background", "var(--lumo-base-color)")
-                          .set("margin", "8px 0");
+        briefContent.setPadding(false);
+        briefContent.setSpacing(false);
+
+        scenarioBriefPanel = new Details(scenarioBriefTitle, briefContent);
+        scenarioBriefPanel.setOpened(true);
+        scenarioBriefPanel.addClassName("ar-scenario-brief");
 
         // --- Intervention impact banner ---
         interventionBanner = new InterventionImpactBanner();
@@ -272,6 +245,14 @@ public class SimulationView extends VerticalLayout {
 
         // Wire cross-panel turn selection (10.7)
         timelinePanel.setTurnSelectionListener(this::onTurnSelected);
+
+        // Wire progress dispatcher
+        dispatcher = new ProgressDispatcher();
+        dispatcher.addListener(conversationPanel);
+        dispatcher.addListener(driftSummaryPanel);
+        dispatcher.addListener(inspectorPanel);
+        dispatcher.addListener(timelinePanel);
+        dispatcher.addListener(knowledgeBrowserPanel);
 
         rightTabSheet = new TabSheet();
         rightTabSheet.setSizeFull();
@@ -307,9 +288,7 @@ public class SimulationView extends VerticalLayout {
 
         // --- Status bar ---
         statusLabel = new Span("Select a scenario and click Run.");
-        statusLabel.getStyle()
-                   .set("font-size", "var(--lumo-font-size-s)")
-                   .set("color", "var(--lumo-secondary-text-color)");
+        statusLabel.addClassName("ar-status-label");
 
         progressBar = new ProgressBar(0, 1, 0);
         progressBar.setWidthFull();
@@ -319,7 +298,7 @@ public class SimulationView extends VerticalLayout {
         statusBar.setPadding(false);
         statusBar.setSpacing(false);
         statusBar.setWidthFull();
-        statusBar.getStyle().set("margin-top", "8px");
+        statusBar.addClassName("ar-status-bar");
 
         // --- Assembly ---
         add(headerRow, controls, scenarioBriefPanel, interventionBanner, splitLayout, statusBar);
@@ -487,7 +466,6 @@ public class SimulationView extends VerticalLayout {
     private void startSimulation(SimulationScenario scenario) {
         var maxTurns = maxTurnsField.getValue() != null ? Math.max(1, maxTurnsField.getValue()) : scenario.maxTurns();
         transitionTo(SimControlState.RUNNING);
-        conversationPanel.remove(thinkingIndicator);
         conversationPanel.reset();
         conversationPanel.appendSystemMessage(buildScenarioRunIntro(scenario));
         inspectorPanel.reset();
@@ -519,85 +497,23 @@ public class SimulationView extends VerticalLayout {
         });
     }
 
-    /**
-     * Dispatch progress updates to all sub-panels via direct method calls.
-     */
     private void applyProgress(SimulationProgress progress, SimulationScenario scenario) {
-        // Update progress bar
         if (scenario.maxTurns() > 0) {
             progressBar.setValue((double) progress.turnNumber() / scenario.maxTurns());
         }
-
-        // Update status label
         statusLabel.setText(progress.statusMessage());
-
-        // Dismiss intervention banner on next turn
         interventionBanner.dismiss();
 
-        // Dispatch to ConversationPanel with thinking indicator lifecycle
-        if (progress.lastPlayerMessage() != null && progress.lastDmResponse() == null) {
-            // Pre-turn event: player message ready, DM still thinking
-            conversationPanel.appendTurn(progress);
-            thinkingLabel.setText(THINKING_MESSAGES[progress.turnNumber() % 3]);
-            conversationPanel.add(thinkingIndicator);
-        } else if (progress.lastDmResponse() != null) {
-            // Post-turn event: DM response arrived — remove indicator, show DM bubble
-            conversationPanel.remove(thinkingIndicator);
-            conversationPanel.appendDmBubble(progress);
-        }
-
+        // Lazy contextId init for KnowledgeBrowserPanel
         if (knowledgeBrowserPanel.getContextId() == null) {
             knowledgeBrowserPanel.setContextId(simulationService.getCurrentContextId());
-        } else if (progress.contextTrace() != null) {
-            knowledgeBrowserPanel.refresh();
         }
 
-        // Track verdicts for DriftSummaryPanel
-        if (progress.verdicts() != null && !progress.verdicts().isEmpty()) {
-            driftSummaryPanel.recordTurnVerdicts(progress.turnNumber(), progress.verdicts());
-        }
+        dispatcher.dispatch(progress);
 
-        // Update ContextInspectorPanel
-        if (progress.contextTrace() != null) {
-            var verdicts = progress.verdicts() != null ? progress.verdicts() : List.<EvalVerdict> of();
-            inspectorPanel.update(progress.contextTrace(), verdicts);
-        }
-
-        // Update AnchorTimelinePanel progressively
-        timelinePanel.appendTurn(progress);
-
-        // Feed anchor lifecycle events to timeline
-        if (progress.anchorEvents() != null && !progress.anchorEvents().isEmpty()) {
-            timelinePanel.appendAnchorEvents(progress.turnNumber(), progress.anchorEvents());
-        }
-
-        // Wire compaction data to ContextInspectorPanel
-        if (progress.compactionResult() != null) {
-            var cr = progress.compactionResult();
-            inspectorPanel.updateCompaction(
-                    cr.triggerReason(),
-                    cr.tokensBefore() - cr.tokensAfter(),
-                    cr.protectedContentIds(),
-                    cr.summary(),
-                    cr.durationMs(),
-                    cr.lossEvents());
-        }
-
-        // Handle terminal states
         if (progress.complete()) {
             progressBar.setValue(1.0);
-
-            if (progress.phase() == SimulationProgress.SimulationPhase.CANCELLED) {
-                conversationPanel.appendSystemMessage("Simulation cancelled.");
-                transitionTo(SimControlState.COMPLETED);
-            } else {
-                conversationPanel.appendSystemMessage("Simulation complete! Final anchor count: "
-                                                      + progress.activeAnchors().size());
-
-                // Show drift summary with final results
-                driftSummaryPanel.showResults(progress);
-                transitionTo(SimControlState.COMPLETED);
-            }
+            transitionTo(SimControlState.COMPLETED);
         }
     }
 
@@ -646,7 +562,7 @@ public class SimulationView extends VerticalLayout {
 
         for (var highlight : scenario.displayHighlights()) {
             var line = new Span("- " + highlight);
-            line.getStyle().set("font-size", "var(--lumo-font-size-s)");
+            line.addClassName("ar-scenario-highlight");
             scenarioBriefHighlights.add(line);
         }
 

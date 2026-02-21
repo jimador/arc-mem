@@ -16,6 +16,7 @@ import dev.dunnam.diceanchors.anchor.TrustScore;
 import dev.dunnam.diceanchors.assembly.CompactionLossEvent;
 import dev.dunnam.diceanchors.sim.engine.ContextTrace;
 import dev.dunnam.diceanchors.sim.engine.EvalVerdict;
+import dev.dunnam.diceanchors.sim.engine.SimulationProgress;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
@@ -32,7 +33,7 @@ import java.util.function.Consumer;
  *   <li><b>Compaction</b> -- compaction trigger info, token savings, protected content</li>
  * </ul>
  */
-public class ContextInspectorPanel extends VerticalLayout {
+public class ContextInspectorPanel extends VerticalLayout implements SimulationProgressListener {
 
     private static final int MAX_RANK = 900;
 
@@ -68,9 +69,9 @@ public class ContextInspectorPanel extends VerticalLayout {
         tabs.setWidthFull();
 
         // Badge labels inside tab headers
-        anchorCountBadge = styledBadge("0", "var(--lumo-primary-color)");
-        verdictCountBadge = styledBadge("0", "var(--lumo-error-color)");
-        extractionCountBadge = styledBadge("", "#009688"); // teal
+        anchorCountBadge = tabBadge("0", "data-injection", "on");       // cyan / primary
+        verdictCountBadge = tabBadge("0", "data-verdict", "contradicted"); // error (overridden per-render)
+        extractionCountBadge = tabBadge("", "data-event-type", "extracted"); // teal
         extractionCountBadge.setVisible(false);
         anchorsTab.add(anchorCountBadge, extractionCountBadge);
         verdictsTab.add(verdictCountBadge);
@@ -80,27 +81,27 @@ public class ContextInspectorPanel extends VerticalLayout {
         anchorsContent.setPadding(true);
         anchorsContent.setSpacing(true);
         anchorsContent.setSizeFull();
-        anchorsContent.getStyle().set("overflow-y", "auto");
+        anchorsContent.addClassName("ar-scrollable");
 
         verdictsContent = new VerticalLayout();
         verdictsContent.setPadding(true);
         verdictsContent.setSpacing(true);
         verdictsContent.setSizeFull();
-        verdictsContent.getStyle().set("overflow-y", "auto");
+        verdictsContent.addClassName("ar-scrollable");
         verdictsContent.setVisible(false);
 
         promptContent = new VerticalLayout();
         promptContent.setPadding(true);
         promptContent.setSpacing(true);
         promptContent.setSizeFull();
-        promptContent.getStyle().set("overflow-y", "auto");
+        promptContent.addClassName("ar-scrollable");
         promptContent.setVisible(false);
 
         compactionContent = new VerticalLayout();
         compactionContent.setPadding(true);
         compactionContent.setSpacing(true);
         compactionContent.setSizeFull();
-        compactionContent.getStyle().set("overflow-y", "auto");
+        compactionContent.addClassName("ar-scrollable");
         compactionContent.setVisible(false);
 
         tabs.addSelectedChangeListener(event -> {
@@ -121,6 +122,20 @@ public class ContextInspectorPanel extends VerticalLayout {
         setFlexGrow(1, verdictsContent);
         setFlexGrow(1, promptContent);
         setFlexGrow(1, compactionContent);
+    }
+
+    @Override
+    public void onTurnCompleted(SimulationProgress progress) {
+        if (progress.contextTrace() != null) {
+            List<EvalVerdict> verdicts = progress.verdicts() != null ? progress.verdicts() : List.of();
+            update(progress.contextTrace(), verdicts);
+        }
+        if (progress.compactionResult() != null) {
+            var cr = progress.compactionResult();
+            updateCompaction(
+                    cr.triggerReason(), cr.tokensBefore() - cr.tokensAfter(),
+                    cr.protectedContentIds(), cr.summary(), cr.durationMs(), cr.lossEvents());
+        }
     }
 
     /**
@@ -187,34 +202,18 @@ public class ContextInspectorPanel extends VerticalLayout {
             lossSection.setSpacing(false);
 
             var lossLabel = new Span("Lost Facts (%d)".formatted(lossEvents.size()));
-            lossLabel.getStyle()
-                     .set("font-weight", "bold")
-                     .set("font-size", "var(--lumo-font-size-s)")
-                     .set("margin-top", "8px")
-                     .set("display", "block")
-                     .set("color", "var(--lumo-error-text-color)");
+            lossLabel.addClassName("ar-loss-label");
             lossSection.add(lossLabel);
 
             for (var loss : lossEvents) {
                 var lossCard = new Div();
-                lossCard.getStyle()
-                        .set("border-left", "3px solid var(--lumo-error-color)")
-                        .set("background", "var(--lumo-error-color-10pct)")
-                        .set("border-radius", "var(--lumo-border-radius-s)")
-                        .set("padding", "6px 10px")
-                        .set("margin", "4px 0");
+                lossCard.addClassName("ar-loss-card");
 
                 var textSpan = new Span(loss.anchorText());
-                textSpan.getStyle()
-                        .set("font-size", "var(--lumo-font-size-xs)")
-                        .set("display", "block");
+                textSpan.addClassName("ar-loss-text");
 
                 var metaSpan = new Span("[%s] rank=%d".formatted(loss.authority().name(), loss.rank()));
-                metaSpan.getStyle()
-                        .set("font-size", "var(--lumo-font-size-xxs)")
-                        .set("color", "var(--lumo-secondary-text-color)")
-                        .set("display", "block")
-                        .set("margin-top", "2px");
+                metaSpan.addClassName("ar-loss-meta");
 
                 lossCard.add(textSpan, metaSpan);
                 lossSection.add(lossCard);
@@ -229,23 +228,12 @@ public class ContextInspectorPanel extends VerticalLayout {
             protectedSection.setSpacing(false);
 
             var protectedLabel = new Span("Protected Content (%d)".formatted(protectedItems.size()));
-            protectedLabel.getStyle()
-                          .set("font-weight", "bold")
-                          .set("font-size", "var(--lumo-font-size-s)")
-                          .set("margin-top", "8px")
-                          .set("display", "block");
+            protectedLabel.addClassName("ar-protected-label");
             protectedSection.add(protectedLabel);
 
             for (var item : protectedItems) {
                 var itemSpan = new Span(item);
-                itemSpan.getStyle()
-                        .set("font-size", "var(--lumo-font-size-xs)")
-                        .set("color", "var(--lumo-secondary-text-color)")
-                        .set("padding", "2px 0")
-                        .set("display", "block")
-                        .set("border-left", "2px solid var(--lumo-primary-color)")
-                        .set("padding-left", "8px")
-                        .set("margin", "2px 0");
+                itemSpan.addClassName("ar-protected-item");
                 protectedSection.add(itemSpan);
             }
             compactionContent.add(protectedSection);
@@ -255,17 +243,9 @@ public class ContextInspectorPanel extends VerticalLayout {
         if (summaryPreview != null && !summaryPreview.isBlank()) {
             var preview = truncate(summaryPreview, 200);
             var summaryLabel = new Span("Summary Preview");
-            summaryLabel.getStyle()
-                        .set("font-weight", "bold")
-                        .set("font-size", "var(--lumo-font-size-s)")
-                        .set("margin-top", "8px")
-                        .set("display", "block");
+            summaryLabel.addClassName("ar-compaction-summary-label");
             var summaryText = new Paragraph(preview);
-            summaryText.getStyle()
-                       .set("font-size", "var(--lumo-font-size-xs)")
-                       .set("color", "var(--lumo-secondary-text-color)")
-                       .set("font-style", "italic")
-                       .set("margin", "2px 0 0 0");
+            summaryText.addClassName("ar-compaction-summary-text");
             compactionContent.add(summaryLabel, summaryText);
         }
     }
@@ -312,23 +292,15 @@ public class ContextInspectorPanel extends VerticalLayout {
     private void renderPrompt(ContextTrace trace) {
         if (trace.fullSystemPrompt() != null && !trace.fullSystemPrompt().isBlank()) {
             var systemLabel = new Span("System Prompt");
-            systemLabel.getStyle()
-                       .set("font-weight", "bold")
-                       .set("font-size", "var(--lumo-font-size-s)")
-                       .set("display", "block")
-                       .set("margin-bottom", "4px");
+            systemLabel.addClassName("ar-prompt-label");
             promptContent.add(systemLabel);
             promptContent.add(promptBlock(trace.fullSystemPrompt()));
         }
 
         if (trace.fullUserPrompt() != null && !trace.fullUserPrompt().isBlank()) {
             var userLabel = new Span("User Prompt");
-            userLabel.getStyle()
-                     .set("font-weight", "bold")
-                     .set("font-size", "var(--lumo-font-size-s)")
-                     .set("display", "block")
-                     .set("margin-top", "12px")
-                     .set("margin-bottom", "4px");
+            userLabel.addClassName("ar-prompt-label");
+            userLabel.addClassName("ar-prompt-label--user");
             promptContent.add(userLabel);
             promptContent.add(promptBlock(trace.fullUserPrompt()));
         }
@@ -345,16 +317,7 @@ public class ContextInspectorPanel extends VerticalLayout {
                 : text;
         var block = new Div();
         block.setText(truncated);
-        block.getStyle()
-             .set("white-space", "pre-wrap")
-             .set("font-family", "monospace")
-             .set("font-size", "var(--lumo-font-size-xs)")
-             .set("background", "var(--lumo-contrast-5pct)")
-             .set("border-radius", "var(--lumo-border-radius-s)")
-             .set("padding", "8px")
-             .set("max-height", "300px")
-             .set("overflow-y", "auto")
-             .set("border", "1px solid var(--lumo-contrast-10pct)");
+        block.addClassName("ar-code-block");
         return block;
     }
 
@@ -378,10 +341,7 @@ public class ContextInspectorPanel extends VerticalLayout {
             tokenSummaryText += " (excluded anchors: %d)".formatted(trace.anchorsExcluded());
         }
         var tokenSummary = new Paragraph(tokenSummaryText);
-        tokenSummary.getStyle()
-                    .set("color", "var(--lumo-secondary-text-color)")
-                    .set("font-size", "var(--lumo-font-size-s)")
-                    .set("margin-bottom", "8px");
+        tokenSummary.addClassName("ar-token-summary");
         anchorsContent.add(tokenSummary);
 
         // Extraction summary when propositions were extracted this turn
@@ -392,23 +352,12 @@ public class ContextInspectorPanel extends VerticalLayout {
 
             var extractionLabel = new Span("Extraction (%d extracted, %d promoted)".formatted(
                     trace.propositionsExtracted(), trace.propositionsPromoted()));
-            extractionLabel.getStyle()
-                           .set("font-weight", "bold")
-                           .set("font-size", "var(--lumo-font-size-s)")
-                           .set("color", "#009688")
-                           .set("display", "block")
-                           .set("margin-bottom", "4px");
+            extractionLabel.addClassName("ar-extraction-label");
             extractionSection.add(extractionLabel);
 
             for (var text : trace.extractedTexts()) {
                 var textSpan = new Span(text);
-                textSpan.getStyle()
-                        .set("font-size", "var(--lumo-font-size-xs)")
-                        .set("color", "var(--lumo-secondary-text-color)")
-                        .set("display", "block")
-                        .set("border-left", "2px solid #009688")
-                        .set("padding-left", "8px")
-                        .set("margin", "2px 0");
+                textSpan.addClassName("ar-extraction-item");
                 extractionSection.add(textSpan);
             }
             anchorsContent.add(extractionSection);
@@ -421,12 +370,7 @@ public class ContextInspectorPanel extends VerticalLayout {
 
     private Div anchorCard(Anchor anchor) {
         var card = new Div();
-        card.getStyle()
-            .set("border", "1px solid var(--lumo-contrast-20pct)")
-            .set("border-radius", "var(--lumo-border-radius-m)")
-            .set("padding", "8px 12px")
-            .set("margin-bottom", "6px")
-            .set("background", "var(--lumo-base-color)");
+        card.addClassName("ar-anchor-card");
 
         // Header row: authority badge + anchor text
         var header = new HorizontalLayout();
@@ -436,21 +380,15 @@ public class ContextInspectorPanel extends VerticalLayout {
 
         var authorityBadge = authorityBadge(anchor.authority().name());
         var textSpan = new Span(anchor.text());
-        textSpan.getStyle()
-                .set("font-size", "var(--lumo-font-size-s)")
-                .set("flex", "1");
 
         if (anchor.pinned()) {
             var pinnedIcon = new Span("pinned");
-            pinnedIcon.getStyle()
-                      .set("margin-left", "4px")
-                      .set("font-size", "var(--lumo-font-size-xxs)")
-                      .set("color", "var(--lumo-secondary-text-color)")
-                      .set("font-style", "italic");
+            pinnedIcon.addClassName("ar-pinned-icon");
             header.add(authorityBadge, textSpan, pinnedIcon);
         } else {
             header.add(authorityBadge, textSpan);
         }
+        header.expand(textSpan);
 
         if (browseCallback != null) {
             var browseButton = new Button("Browse");
@@ -474,23 +412,17 @@ public class ContextInspectorPanel extends VerticalLayout {
         rankRow.setAlignItems(HorizontalLayout.Alignment.CENTER);
         rankRow.setSpacing(true);
         rankRow.setWidthFull();
-        rankRow.getStyle().set("margin-top", "4px");
+        rankRow.addClassName("ar-rank-row");
 
         var rankLabel = new Span("Rank: " + anchor.rank());
-        rankLabel.getStyle()
-                 .set("font-size", "var(--lumo-font-size-xs)")
-                 .set("color", "var(--lumo-secondary-text-color)")
-                 .set("min-width", "70px");
+        rankLabel.addClassName("ar-rank-label");
 
         var bar = new ProgressBar(0, MAX_RANK, anchor.rank());
         bar.setWidthFull();
         styleRankBar(bar, anchor.rank());
 
         var reinforceLabel = new Span("x" + anchor.reinforcementCount());
-        reinforceLabel.getStyle()
-                      .set("font-size", "var(--lumo-font-size-xs)")
-                      .set("color", "var(--lumo-secondary-text-color)")
-                      .set("min-width", "28px");
+        reinforceLabel.addClassName("ar-reinforcement-label");
 
         rankRow.add(rankLabel, bar, reinforceLabel);
         card.add(rankRow);
@@ -508,7 +440,7 @@ public class ContextInspectorPanel extends VerticalLayout {
      */
     private Div trustScoreSection(TrustScore trust) {
         var section = new Div();
-        section.getStyle().set("margin-top", "6px");
+        section.addClassName("ar-trust-section");
 
         // Score + zone row
         var scoreRow = new HorizontalLayout();
@@ -516,10 +448,8 @@ public class ContextInspectorPanel extends VerticalLayout {
         scoreRow.setSpacing(true);
 
         var scoreLabel = new Span("Trust: %.0f%%".formatted(trust.score() * 100));
-        scoreLabel.getStyle()
-                  .set("font-size", "var(--lumo-font-size-xs)")
-                  .set("font-weight", "bold")
-                  .set("color", trustScoreColor(trust.score()));
+        scoreLabel.addClassName("ar-trust-score");
+        scoreLabel.getElement().setAttribute("data-health", trustScoreHealth(trust.score()));
 
         var zoneBadge = promotionZoneBadge(trust.promotionZone().name());
         scoreRow.add(scoreLabel, zoneBadge);
@@ -537,15 +467,10 @@ public class ContextInspectorPanel extends VerticalLayout {
                 signalRow.setAlignItems(HorizontalLayout.Alignment.CENTER);
 
                 var signalName = new Span(entry.getKey());
-                signalName.getStyle()
-                          .set("font-size", "var(--lumo-font-size-xxs)")
-                          .set("color", "var(--lumo-secondary-text-color)")
-                          .set("min-width", "140px");
+                signalName.addClassName("ar-signal-name");
 
                 var signalValue = new Span("%.2f".formatted(entry.getValue()));
-                signalValue.getStyle()
-                           .set("font-size", "var(--lumo-font-size-xxs)")
-                           .set("font-weight", "bold");
+                signalValue.addClassName("ar-signal-value");
 
                 signalRow.add(signalName, signalValue);
                 auditContent.add(signalRow);
@@ -553,42 +478,32 @@ public class ContextInspectorPanel extends VerticalLayout {
 
             var details = new Details("Signal Audit", auditContent);
             details.setOpened(false);
-            details.getStyle().set("font-size", "var(--lumo-font-size-xs)");
+            details.addClassName("ar-details-small");
             section.add(details);
         }
 
         return section;
     }
 
-    private String trustScoreColor(double score) {
-        if (score >= 0.8) {
-            return "var(--lumo-success-color)";
+    private String trustScoreHealth(double score) {
+        if (score >= 0.7) {
+            return "good";
         }
-        if (score >= 0.5) {
-            return "var(--lumo-warning-color)";
+        if (score >= 0.4) {
+            return "warn";
         }
-        return "var(--lumo-error-color)";
+        return "bad";
     }
 
     private Span promotionZoneBadge(String zone) {
         var badge = new Span(zone);
-        badge.getStyle()
-             .set("font-size", "var(--lumo-font-size-xxs)")
-             .set("font-weight", "bold")
-             .set("padding", "1px 5px")
-             .set("border-radius", "var(--lumo-border-radius-s)")
-             .set("white-space", "nowrap");
-        switch (zone) {
-            case "AUTO_PROMOTE" -> badge.getStyle()
-                                        .set("background", "var(--lumo-success-color-10pct)")
-                                        .set("color", "var(--lumo-success-text-color)");
-            case "REVIEW" -> badge.getStyle()
-                                  .set("background", "var(--lumo-warning-color-10pct)")
-                                  .set("color", "var(--lumo-warning-text-color)");
-            default -> badge.getStyle() // ARCHIVE
-                            .set("background", "var(--lumo-contrast-5pct)")
-                            .set("color", "var(--lumo-secondary-text-color)");
-        }
+        badge.addClassName("ar-badge");
+        var dataZone = switch (zone) {
+            case "AUTO_PROMOTE" -> "auto-promote";
+            case "REVIEW" -> "review";
+            default -> "archive";
+        };
+        badge.getElement().setAttribute("data-zone", dataZone);
         return badge;
     }
 
@@ -606,26 +521,8 @@ public class ContextInspectorPanel extends VerticalLayout {
 
     private Span authorityBadge(String authority) {
         var badge = new Span(authority);
-        badge.getStyle()
-             .set("font-size", "var(--lumo-font-size-xs)")
-             .set("font-weight", "bold")
-             .set("padding", "2px 6px")
-             .set("border-radius", "var(--lumo-border-radius-s)")
-             .set("white-space", "nowrap");
-        switch (authority) {
-            case "CANON" -> badge.getStyle()
-                                 .set("background", "var(--lumo-error-color-10pct)")
-                                 .set("color", "var(--lumo-error-text-color)");
-            case "RELIABLE" -> badge.getStyle()
-                                    .set("background", "var(--lumo-success-color-10pct)")
-                                    .set("color", "var(--lumo-success-text-color)");
-            case "UNRELIABLE" -> badge.getStyle()
-                                      .set("background", "var(--lumo-warning-color-10pct)")
-                                      .set("color", "var(--lumo-warning-text-color)");
-            default -> badge.getStyle() // PROVISIONAL
-                            .set("background", "var(--lumo-contrast-5pct)")
-                            .set("color", "var(--lumo-secondary-text-color)");
-        }
+        badge.addClassName("ar-badge");
+        badge.getElement().setAttribute("data-authority", authority.toLowerCase());
         return badge;
     }
 
@@ -634,10 +531,12 @@ public class ContextInspectorPanel extends VerticalLayout {
                                    .filter(v -> v.verdict() == EvalVerdict.Verdict.CONTRADICTED)
                                    .count();
         verdictCountBadge.setText(String.valueOf(contradicted));
+        verdictCountBadge.removeClassName("ar-verdict-count-badge--error");
+        verdictCountBadge.removeClassName("ar-verdict-count-badge--success");
         if (contradicted > 0) {
-            verdictCountBadge.getStyle().set("background", "var(--lumo-error-color)");
+            verdictCountBadge.addClassName("ar-verdict-count-badge--error");
         } else {
-            verdictCountBadge.getStyle().set("background", "var(--lumo-success-color)");
+            verdictCountBadge.addClassName("ar-verdict-count-badge--success");
         }
 
         for (var verdict : verdicts) {
@@ -647,59 +546,38 @@ public class ContextInspectorPanel extends VerticalLayout {
 
     private Div verdictCard(EvalVerdict verdict) {
         var card = new Div();
+        card.addClassName("ar-verdict-card");
 
-        String borderColor;
-        String bgColor;
-        String verdictText;
-        switch (verdict.verdict()) {
-            case CONTRADICTED -> {
-                borderColor = "var(--lumo-error-color)";
-                bgColor = "var(--lumo-error-color-10pct)";
-                verdictText = "CONTRADICTED";
-            }
-            case CONFIRMED -> {
-                borderColor = "var(--lumo-success-color)";
-                bgColor = "var(--lumo-success-color-10pct)";
-                verdictText = "CONFIRMED";
-            }
-            default -> {
-                borderColor = "var(--lumo-contrast-20pct)";
-                bgColor = "var(--lumo-contrast-5pct)";
-                verdictText = "NOT MENTIONED";
-            }
-        }
+        var verdictText = switch (verdict.verdict()) {
+            case CONTRADICTED -> "CONTRADICTED";
+            case CONFIRMED -> "CONFIRMED";
+            default -> "NOT MENTIONED";
+        };
 
-        card.getStyle()
-            .set("border-left", "3px solid " + borderColor)
-            .set("background", bgColor)
-            .set("border-radius", "var(--lumo-border-radius-s)")
-            .set("padding", "8px 12px")
-            .set("margin-bottom", "6px");
+        var dataVerdict = switch (verdict.verdict()) {
+            case CONTRADICTED -> "contradicted";
+            case CONFIRMED -> "confirmed";
+            default -> "not-mentioned";
+        };
+        card.getElement().setAttribute("data-verdict", dataVerdict);
 
         var header = new HorizontalLayout();
         header.setAlignItems(HorizontalLayout.Alignment.CENTER);
         header.setSpacing(true);
 
         var factId = new Span(verdict.factId());
-        factId.getStyle()
-              .set("font-weight", "bold")
-              .set("font-size", "var(--lumo-font-size-s)");
+        factId.addClassName("ar-fact-id");
 
         var verdictBadge = new Span(verdictText);
-        verdictBadge.getStyle()
-                    .set("font-size", "var(--lumo-font-size-xs)")
-                    .set("color", borderColor)
-                    .set("font-weight", "bold");
+        verdictBadge.addClassName("ar-badge");
+        verdictBadge.getElement().setAttribute("data-verdict", dataVerdict);
 
         header.add(factId, verdictBadge);
         card.add(header);
 
         if (verdict.explanation() != null && !verdict.explanation().isBlank()) {
             var explanation = new Paragraph(verdict.explanation());
-            explanation.getStyle()
-                       .set("font-size", "var(--lumo-font-size-s)")
-                       .set("color", "var(--lumo-secondary-text-color)")
-                       .set("margin", "4px 0 0 0");
+            explanation.addClassName("ar-verdict-explanation");
             card.add(explanation);
         }
 
@@ -712,15 +590,10 @@ public class ContextInspectorPanel extends VerticalLayout {
         row.setAlignItems(HorizontalLayout.Alignment.CENTER);
 
         var labelSpan = new Span(label + ":");
-        labelSpan.getStyle()
-                 .set("font-size", "var(--lumo-font-size-xs)")
-                 .set("font-weight", "bold")
-                 .set("min-width", "100px");
+        labelSpan.addClassName("ar-verdict-detail-label");
 
         var valueSpan = new Span(value);
-        valueSpan.getStyle()
-                 .set("font-size", "var(--lumo-font-size-xs)")
-                 .set("color", "var(--lumo-secondary-text-color)");
+        valueSpan.addClassName("ar-verdict-detail-value");
 
         row.add(labelSpan, valueSpan);
         return row;
@@ -728,24 +601,14 @@ public class ContextInspectorPanel extends VerticalLayout {
 
     private void showPlaceholder(VerticalLayout container, String message) {
         var placeholder = new Paragraph(message);
-        placeholder.getStyle()
-                   .set("color", "var(--lumo-secondary-text-color)")
-                   .set("font-style", "italic")
-                   .set("text-align", "center");
+        placeholder.addClassName("ar-placeholder");
         container.add(placeholder);
     }
 
-    private Span styledBadge(String text, String bgColor) {
+    private Span tabBadge(String text, String dataAttribute, String dataValue) {
         var badge = new Span(text);
-        badge.getStyle()
-             .set("background", bgColor)
-             .set("color", "white")
-             .set("border-radius", "10px")
-             .set("padding", "1px 6px")
-             .set("font-size", "var(--lumo-font-size-xxs)")
-             .set("font-weight", "bold")
-             .set("margin-left", "6px")
-             .set("vertical-align", "middle");
+        badge.addClassName("ar-badge");
+        badge.getElement().setAttribute(dataAttribute, dataValue);
         return badge;
     }
 

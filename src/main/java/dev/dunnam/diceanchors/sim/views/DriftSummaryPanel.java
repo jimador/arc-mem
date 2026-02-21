@@ -31,7 +31,7 @@ import java.util.Map;
  * breakdown section is rendered below the grid.
  * Below that, assertion results are shown with pass/fail badges.
  */
-public class DriftSummaryPanel extends VerticalLayout {
+public class DriftSummaryPanel extends VerticalLayout implements SimulationProgressListener {
 
     private final Div metricsGrid;
     private final VerticalLayout strategySection;
@@ -51,14 +51,10 @@ public class DriftSummaryPanel extends VerticalLayout {
         setWidthFull();
 
         var title = new H4("Drift Summary");
-        title.getStyle().set("margin", "0 0 8px 0");
+        title.addClassName("ar-section-title");
 
         metricsGrid = new Div();
-        metricsGrid.getStyle()
-                   .set("display", "grid")
-                   .set("grid-template-columns", "repeat(3, 1fr)")
-                   .set("gap", "12px")
-                   .set("width", "100%");
+        metricsGrid.addClassName("ar-metrics-grid");
 
         strategySection = new VerticalLayout();
         strategySection.setPadding(false);
@@ -69,6 +65,20 @@ public class DriftSummaryPanel extends VerticalLayout {
         assertionSection.setSpacing(true);
 
         add(title, metricsGrid, strategySection, assertionSection);
+    }
+
+    @Override
+    public void onTurnCompleted(SimulationProgress progress) {
+        if (progress.verdicts() != null && !progress.verdicts().isEmpty()) {
+            recordTurnVerdicts(progress.turnNumber(), progress.verdicts());
+        }
+    }
+
+    @Override
+    public void onSimulationCompleted(SimulationProgress progress) {
+        if (progress.phase() != SimulationProgress.SimulationPhase.CANCELLED) {
+            showResults(progress);
+        }
     }
 
     /**
@@ -151,20 +161,20 @@ public class DriftSummaryPanel extends VerticalLayout {
         // Render metrics grid
         metricsGrid.add(
                 metricCard("Survival Rate", "%.0f%%".formatted(survivalRate),
-                           survivalRate >= 80 ? "#4caf50" : survivalRate >= 50 ? "#ff9800" : "#f44336"),
+                           survivalRate >= 80 ? "good" : survivalRate >= 50 ? "warn" : "bad"),
                 metricCard("Contradictions", String.valueOf(contradictionCount),
-                           contradictionCount == 0 ? "#4caf50" : contradictionCount <= 2 ? "#ff9800" : "#f44336"),
+                           contradictionCount == 0 ? "good" : contradictionCount <= 2 ? "warn" : "bad"),
                 metricCard("Major Contradictions", String.valueOf(majorContradictionCount),
-                           majorContradictionCount == 0 ? "#4caf50" : "#f44336"),
+                           majorContradictionCount == 0 ? "good" : "bad"),
                 metricCard("Mean First Drift", meanFirstDrift,
-                           "N/A".equals(meanFirstDrift) ? "#4caf50" : "#ff9800"),
+                           "N/A".equals(meanFirstDrift) ? "good" : "warn"),
                 metricCard("Attribution", attributionLabel,
                            scoring != null
-                                   ? (scoring.anchorAttributionCount() > 0 ? "#4caf50" : "#ff9800")
+                                   ? (scoring.anchorAttributionCount() > 0 ? "good" : "warn")
                                    : (allVerdicts.isEmpty() || confirmedCount > allVerdicts.size() / 2
-                                   ? "#4caf50" : "#ff9800")),
+                                   ? "good" : "warn")),
                 metricCard("Absorption Rate", "%.0f%%".formatted(absorptionRate),
-                           absorptionRate >= 80 ? "#4caf50" : absorptionRate >= 50 ? "#ff9800" : "#f44336")
+                           absorptionRate >= 80 ? "good" : absorptionRate >= 50 ? "warn" : "bad")
         );
 
         // Strategy effectiveness breakdown (8.3)
@@ -176,7 +186,7 @@ public class DriftSummaryPanel extends VerticalLayout {
         // Render assertion results
         if (progress.assertionResults() != null && !progress.assertionResults().isEmpty()) {
             var assertionTitle = new H4("Assertion Results");
-            assertionTitle.getStyle().set("margin", "12px 0 4px 0");
+            assertionTitle.addClassName("ar-section-title--inner");
             assertionSection.add(assertionTitle);
 
             for (var result : progress.assertionResults()) {
@@ -220,13 +230,14 @@ public class DriftSummaryPanel extends VerticalLayout {
      */
     private void renderStrategyBreakdown(Map<String, Double> strategyEffectiveness) {
         var title = new H4("Strategy Effectiveness");
-        title.getStyle().set("margin", "12px 0 4px 0");
+        title.addClassName("ar-section-title--inner");
         strategySection.add(title);
 
         for (var entry : strategyEffectiveness.entrySet()) {
             var strategy = entry.getKey();
             var rate = entry.getValue();
             var pct = rate * 100.0;
+            var health = pct == 0 ? "good" : pct <= 30 ? "warn" : "bad";
 
             var row = new HorizontalLayout();
             row.setWidthFull();
@@ -234,100 +245,59 @@ public class DriftSummaryPanel extends VerticalLayout {
             row.setAlignItems(HorizontalLayout.Alignment.CENTER);
 
             var nameSpan = new Span(strategy);
-            nameSpan.getStyle()
-                    .set("font-size", "var(--lumo-font-size-s)")
-                    .set("min-width", "180px");
+            nameSpan.addClassName("ar-strategy-name");
 
             var barOuter = new Div();
-            barOuter.getStyle()
-                    .set("flex-grow", "1")
-                    .set("height", "8px")
-                    .set("background", "var(--lumo-contrast-10pct)")
-                    .set("border-radius", "4px")
-                    .set("overflow", "hidden");
+            barOuter.addClassName("ar-bar-outer");
 
-            var barColor = pct == 0 ? "#4caf50" : pct <= 30 ? "#ff9800" : "#f44336";
             var barInner = new Div();
-            barInner.getStyle()
-                    .set("width", "%.0f%%".formatted(Math.min(100, pct)))
-                    .set("height", "100%")
-                    .set("background", barColor)
-                    .set("border-radius", "4px");
+            barInner.addClassName("ar-bar-inner");
+            barInner.getElement().setAttribute("data-health", health);
+            barInner.getElement().setAttribute("style", "width: %.0f%%".formatted(Math.min(100, pct)));
             barOuter.add(barInner);
 
             var rateSpan = new Span("%.0f%%".formatted(pct));
-            rateSpan.getStyle()
-                    .set("font-size", "var(--lumo-font-size-xs)")
-                    .set("font-weight", "bold")
-                    .set("color", barColor)
-                    .set("min-width", "40px")
-                    .set("text-align", "right");
+            rateSpan.addClassName("ar-strategy-rate");
+            rateSpan.getElement().setAttribute("data-health", health);
 
             row.add(nameSpan, barOuter, rateSpan);
             strategySection.add(row);
         }
     }
 
-    private Div metricCard(String label, String value, String accentColor) {
+    private Div metricCard(String label, String value, String health) {
         var card = new Div();
-        card.getStyle()
-            .set("border", "1px solid var(--lumo-contrast-20pct)")
-            .set("border-radius", "var(--lumo-border-radius-m)")
-            .set("padding", "12px")
-            .set("text-align", "center")
-            .set("background", "var(--lumo-base-color)")
-            .set("border-top", "3px solid " + accentColor);
+        card.addClassName("ar-metric-card");
+        card.getElement().setAttribute("data-health", health);
 
         var valueSpan = new Span(value);
-        valueSpan.getStyle()
-                 .set("font-size", "var(--lumo-font-size-xl)")
-                 .set("font-weight", "bold")
-                 .set("color", accentColor)
-                 .set("display", "block");
+        valueSpan.addClassName("ar-metric-value");
+        valueSpan.getElement().setAttribute("data-health", health);
 
         var labelSpan = new Span(label);
-        labelSpan.getStyle()
-                 .set("font-size", "var(--lumo-font-size-xs)")
-                 .set("color", "var(--lumo-secondary-text-color)")
-                 .set("display", "block")
-                 .set("margin-top", "4px");
+        labelSpan.addClassName("ar-metric-label");
 
         card.add(valueSpan, labelSpan);
         return card;
     }
 
     private Div assertionResultCard(AssertionResult result) {
+        var assertion = result.passed() ? "pass" : "fail";
+
         var card = new Div();
-        var color = result.passed() ? "#4caf50" : "#f44336";
-        card.getStyle()
-            .set("border-left", "3px solid " + color)
-            .set("padding", "6px 12px")
-            .set("margin-bottom", "4px")
-            .set("border-radius", "var(--lumo-border-radius-s)")
-            .set("background", result.passed()
-                    ? "var(--lumo-success-color-10pct)"
-                    : "var(--lumo-error-color-10pct)");
+        card.addClassName("ar-assertion-card");
+        card.getElement().setAttribute("data-assertion", assertion);
 
         var badge = new Span(result.passed() ? "PASS" : "FAIL");
-        badge.getStyle()
-             .set("font-size", "var(--lumo-font-size-xxs)")
-             .set("font-weight", "bold")
-             .set("padding", "1px 5px")
-             .set("border-radius", "var(--lumo-border-radius-s)")
-             .set("color", "white")
-             .set("background", color)
-             .set("margin-right", "8px");
+        badge.addClassName("ar-badge");
+        badge.getElement().setAttribute("data-assertion", assertion);
+        badge.getElement().setAttribute("style", "margin-right: 8px");
 
         var name = new Span(result.name());
-        name.getStyle()
-            .set("font-size", "var(--lumo-font-size-s)")
-            .set("font-weight", "bold");
+        name.addClassName("ar-assertion-name");
 
         var details = new Paragraph(result.details());
-        details.getStyle()
-               .set("font-size", "var(--lumo-font-size-xs)")
-               .set("color", "var(--lumo-secondary-text-color)")
-               .set("margin", "2px 0 0 0");
+        details.addClassName("ar-assertion-details");
 
         card.add(badge, name, details);
         return card;

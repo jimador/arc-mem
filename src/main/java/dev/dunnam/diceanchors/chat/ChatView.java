@@ -112,9 +112,7 @@ public class ChatView extends VerticalLayout {
 
     private void buildUI() {
         var header = new H2("Bigby — Your D&D Dungeon Master");
-        header.getStyle()
-              .set("margin", "0")
-              .set("padding", "var(--lumo-space-m)");
+        header.addClassName("ar-chat-header");
 
         messagesLayout = new VerticalLayout();
         messagesLayout.setWidthFull();
@@ -173,8 +171,7 @@ public class ChatView extends VerticalLayout {
         sidebar.setSizeFull();
         sidebar.setPadding(false);
         sidebar.setSpacing(false);
-        sidebar.getStyle()
-               .set("border-left", "1px solid var(--lumo-contrast-20pct)");
+        sidebar.addClassName("ar-chat-sidebar");
 
         anchorsTabContent = new VerticalLayout();
         anchorsTabContent.setPadding(true);
@@ -245,12 +242,8 @@ public class ChatView extends VerticalLayout {
             var anchors = anchorEngine.inject(DEFAULT_CONTEXT);
             if (!anchors.isEmpty()) {
                 var anchorsHeader = new Span("Active Anchors (%d)".formatted(anchors.size()));
-                anchorsHeader.getStyle()
-                             .set("font-weight", "bold")
-                             .set("font-size", "var(--lumo-font-size-s)")
-                             .set("color", "var(--anchor-accent-cyan)")
-                             .set("display", "block")
-                             .set("margin-bottom", "4px");
+                anchorsHeader.addClassName("ar-chat-section-header");
+                anchorsHeader.addClassName("ar-chat-section-header--cyan");
                 anchorsTabContent.add(anchorsHeader);
 
                 for (var anchor : anchors) {
@@ -258,10 +251,7 @@ public class ChatView extends VerticalLayout {
                 }
             } else {
                 var placeholder = new Paragraph("No active anchors yet. Create one below or chat to generate propositions.");
-                placeholder.getStyle()
-                           .set("color", "var(--lumo-secondary-text-color)")
-                           .set("font-style", "italic")
-                           .set("font-size", "var(--lumo-font-size-s)");
+                placeholder.addClassName("ar-empty-message");
                 anchorsTabContent.add(placeholder);
             }
         } catch (Exception e) {
@@ -286,32 +276,20 @@ public class ChatView extends VerticalLayout {
 
             if (!nonAnchors.isEmpty()) {
                 var propsHeader = new Span("Propositions (%d)".formatted(nonAnchors.size()));
-                propsHeader.getStyle()
-                           .set("font-weight", "bold")
-                           .set("font-size", "var(--lumo-font-size-s)")
-                           .set("color", "var(--anchor-accent-amber)")
-                           .set("display", "block")
-                           .set("margin-bottom", "4px");
+                propsHeader.addClassName("ar-chat-section-header");
+                propsHeader.addClassName("ar-chat-section-header--amber");
                 propositionsTabContent.add(propsHeader);
 
                 for (var prop : nonAnchors) {
                     var card = new Div();
-                    card.getStyle()
-                        .set("border", "1px solid var(--lumo-contrast-10pct)")
-                        .set("border-radius", "var(--lumo-border-radius-s)")
-                        .set("padding", "4px 8px")
-                        .set("margin-bottom", "4px")
-                        .set("font-size", "var(--lumo-font-size-xs)");
+                    card.addClassName("ar-chat-card");
 
                     var text = new Span(truncateText(prop.getText(), 100));
-                    text.getStyle().set("display", "block");
+                    text.addClassName("ar-chat-text");
 
                     var meta = new Span("conf: %.0f%% | %s".formatted(
                             prop.getConfidence() * 100, prop.getStatus().name()));
-                    meta.getStyle()
-                        .set("font-size", "var(--lumo-font-size-xxs)")
-                        .set("color", "var(--lumo-secondary-text-color)")
-                        .set("display", "block");
+                    meta.addClassName("ar-chat-meta");
 
                     var promoteButton = new Button("Promote", e -> {
                         anchorEngine.promote(prop.getId(), 500);
@@ -324,10 +302,7 @@ public class ChatView extends VerticalLayout {
                 }
             } else {
                 var placeholder = new Paragraph("Extracted propositions will appear here after each conversation turn.");
-                placeholder.getStyle()
-                           .set("color", "var(--lumo-secondary-text-color)")
-                           .set("font-style", "italic")
-                           .set("font-size", "var(--lumo-font-size-s)");
+                placeholder.addClassName("ar-empty-message");
                 propositionsTabContent.add(placeholder);
             }
         } catch (Exception e) {
@@ -349,31 +324,19 @@ public class ChatView extends VerticalLayout {
 
             if (!knowledge.isEmpty()) {
                 var header = new Span("Knowledge Entries (%d)".formatted(knowledge.size()));
-                header.getStyle()
-                      .set("font-weight", "bold")
-                      .set("font-size", "var(--lumo-font-size-s)")
-                      .set("color", "var(--lumo-primary-text-color)")
-                      .set("display", "block")
-                      .set("margin-bottom", "4px");
+                header.addClassName("ar-chat-section-header");
+                header.addClassName("ar-chat-section-header--primary");
                 knowledgeTabContent.add(header);
 
                 for (var prop : knowledge) {
                     var card = new Div();
-                    card.getStyle()
-                        .set("border", "1px solid var(--lumo-contrast-10pct)")
-                        .set("border-radius", "var(--lumo-border-radius-s)")
-                        .set("padding", "4px 8px")
-                        .set("margin-bottom", "4px")
-                        .set("font-size", "var(--lumo-font-size-xs)");
+                    card.addClassName("ar-chat-card");
 
                     var text = new Span(truncateText(prop.getText(), 100));
-                    text.getStyle().set("display", "block");
+                    text.addClassName("ar-chat-text");
 
                     var meta = new Span("conf: %.0f%%".formatted(prop.getConfidence() * 100));
-                    meta.getStyle()
-                        .set("font-size", "var(--lumo-font-size-xxs)")
-                        .set("color", "var(--lumo-secondary-text-color)")
-                        .set("display", "block");
+                    meta.addClassName("ar-chat-meta");
 
                     var promoteButton = new Button("Promote to Anchor", e -> {
                         anchorEngine.promote(prop.getId(), 500);
@@ -386,10 +349,7 @@ public class ChatView extends VerticalLayout {
                 }
             } else {
                 var placeholder = new Paragraph("No knowledge entries yet. Add one below or chat to generate propositions.");
-                placeholder.getStyle()
-                           .set("color", "var(--lumo-secondary-text-color)")
-                           .set("font-style", "italic")
-                           .set("font-size", "var(--lumo-font-size-s)");
+                placeholder.addClassName("ar-empty-message");
                 knowledgeTabContent.add(placeholder);
             }
         } catch (Exception e) {
@@ -401,18 +361,10 @@ public class ChatView extends VerticalLayout {
 
     private Div buildAddKnowledgeForm() {
         var form = new Div();
-        form.getStyle()
-            .set("border", "1px solid var(--lumo-contrast-20pct)")
-            .set("border-radius", "var(--lumo-border-radius-s)")
-            .set("padding", "8px")
-            .set("margin-top", "12px");
+        form.addClassName("ar-chat-form");
 
         var formTitle = new Span("Add Knowledge");
-        formTitle.getStyle()
-                 .set("font-weight", "bold")
-                 .set("font-size", "var(--lumo-font-size-s)")
-                 .set("display", "block")
-                 .set("margin-bottom", "4px");
+        formTitle.addClassName("ar-chat-form-title");
 
         var textField = new TextField("Knowledge Text");
         textField.setWidthFull();
@@ -459,7 +411,7 @@ public class ChatView extends VerticalLayout {
         sessionInfoTabContent.removeAll();
 
         var title = new H4("Session Info");
-        title.getStyle().set("margin", "0 0 8px 0");
+        title.addClassName("ar-section-title");
         sessionInfoTabContent.add(title);
 
         sessionInfoTabContent.add(infoRow("Context ID", DEFAULT_CONTEXT));
@@ -483,17 +435,10 @@ public class ChatView extends VerticalLayout {
 
     private Div infoRow(String label, String value) {
         var row = new Div();
-        row.getStyle()
-           .set("display", "flex")
-           .set("justify-content", "space-between")
-           .set("padding", "4px 0")
-           .set("border-bottom", "1px solid var(--lumo-contrast-10pct)")
-           .set("font-size", "var(--lumo-font-size-s)");
+        row.addClassName("ar-chat-session-row");
 
         var labelSpan = new Span(label);
-        labelSpan.getStyle()
-                 .set("font-weight", "bold")
-                 .set("color", "var(--lumo-secondary-text-color)");
+        labelSpan.addClassName("ar-chat-session-label");
 
         var valueSpan = new Span(value);
 
@@ -507,58 +452,27 @@ public class ChatView extends VerticalLayout {
 
     private Div anchorCard(Anchor anchor) {
         var card = new Div();
-        card.getStyle()
-            .set("border", "1px solid var(--lumo-contrast-20pct)")
-            .set("border-radius", "var(--lumo-border-radius-s)")
-            .set("padding", "6px 8px")
-            .set("margin-bottom", "4px");
+        card.addClassName("ar-chat-anchor-card");
 
         var authorityBadge = new Span(anchor.authority().name());
-        authorityBadge.getStyle()
-                      .set("font-size", "var(--lumo-font-size-xxs)")
-                      .set("font-weight", "bold")
-                      .set("padding", "1px 4px")
-                      .set("border-radius", "var(--lumo-border-radius-s)")
-                      .set("margin-right", "4px");
-        switch (anchor.authority()) {
-            case CANON -> authorityBadge.getStyle()
-                                        .set("background", "var(--lumo-error-color-10pct)")
-                                        .set("color", "var(--lumo-error-text-color)");
-            case RELIABLE -> authorityBadge.getStyle()
-                                           .set("background", "var(--lumo-success-color-10pct)")
-                                           .set("color", "var(--lumo-success-text-color)");
-            case UNRELIABLE -> authorityBadge.getStyle()
-                                             .set("background", "var(--lumo-warning-color-10pct)")
-                                             .set("color", "var(--lumo-warning-text-color)");
-            default -> authorityBadge.getStyle()
-                                     .set("background", "var(--lumo-contrast-5pct)")
-                                     .set("color", "var(--lumo-secondary-text-color)");
-        }
+        authorityBadge.addClassName("ar-chat-authority-badge");
+        authorityBadge.getElement().setAttribute("data-authority", anchor.authority().name().toLowerCase());
 
         var text = new Span(truncateText(anchor.text(), 80));
-        text.getStyle()
-            .set("font-size", "var(--lumo-font-size-xs)")
-            .set("display", "block");
+        text.addClassName("ar-chat-text");
 
         var rankBar = new ProgressBar(0, 900, anchor.rank());
         rankBar.setWidthFull();
-        rankBar.getStyle().set("margin-top", "2px");
+        rankBar.addClassName("ar-chat-rank-bar");
 
         var meta = new Span("rank: %d | x%d".formatted(anchor.rank(), anchor.reinforcementCount()));
-        meta.getStyle()
-            .set("font-size", "var(--lumo-font-size-xxs)")
-            .set("color", "var(--lumo-secondary-text-color)")
-            .set("display", "block");
+        meta.addClassName("ar-chat-meta");
 
         card.add(authorityBadge, text, rankBar, meta);
 
         if (anchor.pinned()) {
             var pinnedBadge = new Span("pinned");
-            pinnedBadge.getStyle()
-                       .set("font-size", "var(--lumo-font-size-xxs)")
-                       .set("color", "var(--lumo-secondary-text-color)")
-                       .set("font-style", "italic")
-                       .set("margin-left", "4px");
+            pinnedBadge.addClassName("ar-pinned-icon");
             card.add(pinnedBadge);
         }
 
@@ -570,7 +484,7 @@ public class ChatView extends VerticalLayout {
         rankField.setValue(anchor.rank());
         rankField.setWidthFull();
         rankField.setStepButtonsVisible(true);
-        rankField.getStyle().set("font-size", "var(--lumo-font-size-xxs)");
+        rankField.addClassName("ar-chat-form-field");
         rankField.addValueChangeListener(e -> {
             if (e.getValue() != null) {
                 anchorRepository.updateRank(anchor.id(), e.getValue());
@@ -581,7 +495,7 @@ public class ChatView extends VerticalLayout {
         // Authority dropdown (current level and higher, no CANON)
         var authorityCombo = new ComboBox<String>("Authority");
         authorityCombo.setWidthFull();
-        authorityCombo.getStyle().set("font-size", "var(--lumo-font-size-xxs)");
+        authorityCombo.addClassName("ar-chat-form-field");
         var authorityOptions = new ArrayList<String>();
         int currentLevel = anchor.authority().level();
         for (var auth : Authority.values()) {
@@ -622,18 +536,10 @@ public class ChatView extends VerticalLayout {
 
     private Div buildCreateAnchorForm() {
         var form = new Div();
-        form.getStyle()
-            .set("border", "1px solid var(--lumo-contrast-20pct)")
-            .set("border-radius", "var(--lumo-border-radius-s)")
-            .set("padding", "8px")
-            .set("margin-top", "12px");
+        form.addClassName("ar-chat-form");
 
         var formTitle = new Span("Create Anchor");
-        formTitle.getStyle()
-                 .set("font-weight", "bold")
-                 .set("font-size", "var(--lumo-font-size-s)")
-                 .set("display", "block")
-                 .set("margin-bottom", "4px");
+        formTitle.addClassName("ar-chat-form-title");
 
         var anchorTextField = new TextField("Anchor Text");
         anchorTextField.setWidthFull();
@@ -715,12 +621,8 @@ public class ChatView extends VerticalLayout {
         addUserBubble(text);
 
         thinkingIndicator = new Div();
-        thinkingIndicator.addClassName("chat-thinking");
+        thinkingIndicator.addClassName("ar-chat-thinking");
         thinkingIndicator.setText("Bigby is thinking...");
-        thinkingIndicator.getStyle()
-                         .set("color", "var(--lumo-secondary-text-color)")
-                         .set("font-style", "italic")
-                         .set("padding", "var(--lumo-space-s) var(--lumo-space-m)");
         messagesLayout.add(thinkingIndicator);
         scrollToBottom();
 
@@ -824,13 +726,8 @@ public class ChatView extends VerticalLayout {
 
     private void addUserBubble(String text) {
         var bubble = new Div(new Paragraph(text));
-        bubble.getStyle()
-              .set("background", "var(--lumo-primary-color-10pct)")
-              .set("padding", "var(--lumo-space-s) var(--lumo-space-m)")
-              .set("border-radius", "var(--lumo-border-radius-m)")
-              .set("margin-bottom", "var(--lumo-space-s)")
-              .set("max-width", "80%")
-              .set("margin-left", "auto");
+        bubble.addClassName("ar-chat-bubble");
+        bubble.addClassName("ar-chat-bubble--user");
         messagesLayout.add(bubble);
         scrollToBottom();
     }
@@ -838,12 +735,8 @@ public class ChatView extends VerticalLayout {
     private void addBotBubble(String markdown) {
         var html = htmlRenderer.render(markdownParser.parse(markdown));
         var bubble = new Div();
-        bubble.getStyle()
-              .set("background", "var(--lumo-contrast-5pct)")
-              .set("padding", "var(--lumo-space-s) var(--lumo-space-m)")
-              .set("border-radius", "var(--lumo-border-radius-m)")
-              .set("margin-bottom", "var(--lumo-space-s)")
-              .set("max-width", "80%");
+        bubble.addClassName("ar-chat-bubble");
+        bubble.addClassName("ar-chat-bubble--bot");
         bubble.getElement().setProperty("innerHTML", html);
         messagesLayout.add(bubble);
         scrollToBottom();
@@ -851,13 +744,8 @@ public class ChatView extends VerticalLayout {
 
     private void addErrorBubble(String message) {
         var bubble = new Div(new Paragraph(message));
-        bubble.getStyle()
-              .set("background", "var(--lumo-error-color-10pct)")
-              .set("color", "var(--lumo-error-text-color)")
-              .set("padding", "var(--lumo-space-s) var(--lumo-space-m)")
-              .set("border-radius", "var(--lumo-border-radius-m)")
-              .set("margin-bottom", "var(--lumo-space-s)")
-              .set("max-width", "80%");
+        bubble.addClassName("ar-chat-bubble");
+        bubble.addClassName("ar-chat-bubble--error");
         messagesLayout.add(bubble);
         scrollToBottom();
     }
@@ -916,12 +804,8 @@ public class ChatView extends VerticalLayout {
                 ui.access(() -> {
                     removeProgressIndicator();
                     currentProgressIndicator = new Div();
-                    currentProgressIndicator.addClassName("tool-call-indicator");
+                    currentProgressIndicator.addClassName("ar-chat-progress");
                     currentProgressIndicator.setText(message != null ? message : "Processing...");
-                    currentProgressIndicator.getStyle()
-                                            .set("color", "var(--lumo-secondary-text-color)")
-                                            .set("font-style", "italic")
-                                            .set("padding", "var(--lumo-space-xs) var(--lumo-space-m)");
                     messagesLayout.add(currentProgressIndicator);
                 });
             }

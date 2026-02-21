@@ -29,21 +29,7 @@ import java.util.function.Consumer;
  * Public API is unchanged: {@link #appendTurn}, {@link #appendAnchorEvents},
  * {@link #selectTurn}, {@link #reset}.
  */
-public class AnchorTimelinePanel extends VerticalLayout {
-
-    // CSS variable references (resolved by retro theme)
-    private static final String COLOR_INJECTION_ON = "var(--anchor-accent-cyan)";
-    private static final String COLOR_INJECTION_OFF = "var(--anchor-accent-amber)";
-
-    // Badge background colors (fixed, not theme-variable so they stay readable)
-    private static final String BADGE_CREATED = "#4caf50";
-    private static final String BADGE_EXTRACTED = "#009688";
-    private static final String BADGE_REINFORCED = "#00bcd4";
-    private static final String BADGE_DECAYED = "#ffb020";
-    private static final String BADGE_ARCHIVED = "#e91e63";
-    private static final String BADGE_RANK = "#2196f3";
-    private static final String BADGE_EVICTED = "#f44336";
-    private static final String BADGE_AUTHORITY = "#9c27b0";
+public class AnchorTimelinePanel extends VerticalLayout implements SimulationProgressListener {
 
     // ── Strip/track components ────────────────────────────────────────────────
 
@@ -109,15 +95,13 @@ public class AnchorTimelinePanel extends VerticalLayout {
         injectionStrip = new HorizontalLayout();
         injectionStrip.setSpacing(false);
         injectionStrip.setPadding(false);
-        injectionStrip.getStyle()
-                      .set("min-height", "4px")
-                      .set("flex-shrink", "0");
+        injectionStrip.addClassName("ar-injection-strip");
 
         // Drift-marker track
         driftTrack = new HorizontalLayout();
         driftTrack.setSpacing(false);
         driftTrack.setPadding(false);
-        driftTrack.getStyle().set("flex-shrink", "0");
+        driftTrack.addClassName("ar-drift-track");
 
         // Anchor event rows
         anchorRowsContainer = new VerticalLayout();
@@ -126,21 +110,26 @@ public class AnchorTimelinePanel extends VerticalLayout {
 
         // Shared scroll container
         scrollContainer = new Div();
-        scrollContainer.getStyle()
-                       .set("overflow-x", "auto")
-                       .set("overflow-y", "auto");
+        scrollContainer.addClassName("ar-timeline-scroll");
         scrollContainer.add(injectionStrip, driftTrack, anchorRowsContainer);
 
         var bandLabel = new Span("Injection + Drift");
-        bandLabel.getStyle()
-                 .set("font-size", "var(--lumo-font-size-xs)")
-                 .set("font-weight", "bold")
-                 .set("color", "var(--lumo-secondary-text-color)");
+        bandLabel.addClassName("ar-band-label");
 
         add(bandLabel, scrollContainer);
         setFlexGrow(1, scrollContainer);
 
         showPlaceholder("Run a simulation to see the anchor timeline.");
+    }
+
+    // ── SimulationProgressListener ──────────────────────────────────────────
+
+    @Override
+    public void onTurnCompleted(SimulationProgress progress) {
+        appendTurn(progress);
+        if (progress.anchorEvents() != null && !progress.anchorEvents().isEmpty()) {
+            appendAnchorEvents(progress.turnNumber(), progress.anchorEvents());
+        }
     }
 
     // ── Public API (unchanged) ────────────────────────────────────────────────
@@ -236,11 +225,10 @@ public class AnchorTimelinePanel extends VerticalLayout {
     private Div buildInjectionCell(TurnData data) {
         var cell = new Div();
         cell.addClassName("injection-strip-cell");
-        cell.getStyle()
-            .set("background", data.injectionEnabled() ? COLOR_INJECTION_ON : COLOR_INJECTION_OFF);
+        cell.getElement().setAttribute("data-injection", data.injectionEnabled() ? "on" : "off");
 
         if (data.turnNumber() == selectedTurn) {
-            cell.getStyle().set("outline", "2px solid var(--lumo-primary-color)");
+            cell.addClassName("ar-turn-selected");
         }
 
         cell.getElement().setAttribute("title",
@@ -276,7 +264,7 @@ public class AnchorTimelinePanel extends VerticalLayout {
         marker.addClassName(driftCssClass(data.worstVerdict()));
 
         if (data.turnNumber() == selectedTurn) {
-            marker.getStyle().set("outline", "2px solid var(--lumo-primary-color)");
+            marker.addClassName("ar-turn-selected");
         }
 
         var durationLabel = data.turnDurationMs() > 0
@@ -379,25 +367,20 @@ public class AnchorTimelinePanel extends VerticalLayout {
             row.setSpacing(false);
             row.setPadding(false);
             row.setAlignItems(HorizontalLayout.Alignment.CENTER);
-            row.getStyle().set("flex-wrap", "nowrap").set("min-height", "20px");
+            row.addClassName("ar-anchor-row");
 
             // Header: authority badge + truncated anchor text
             var header = new Span();
             header.addClassName("anchor-row-header");
             if (meta != null) {
                 var authorityBadge = new Span(authorityAbbrev(meta.authority()));
-                authorityBadge.getStyle()
-                              .set("font-size", "0.6em")
-                              .set("font-weight", "700")
-                              .set("background", authorityBadgeColor(meta.authority()))
-                              .set("color", "white")
-                              .set("padding", "0 3px")
-                              .set("border-radius", "2px")
-                              .set("margin-right", "3px");
+                authorityBadge.addClassName("ar-authority-badge");
+                authorityBadge.getElement().setAttribute("data-authority",
+                        meta.authority() != null ? meta.authority().toLowerCase() : "provisional");
                 header.add(authorityBadge);
 
                 var textSpan = new Span(truncate(meta.text(), 20));
-                textSpan.getStyle().set("overflow", "hidden").set("text-overflow", "ellipsis");
+                textSpan.addClassName("ar-anchor-text-truncated");
                 header.add(textSpan);
             } else {
                 header.add(new Span(truncateId(anchorId)));
@@ -406,7 +389,7 @@ public class AnchorTimelinePanel extends VerticalLayout {
 
             // Event badges: flex-wrap
             var badges = new FlexLayout();
-            badges.getStyle().set("flex-wrap", "wrap").set("gap", "2px").set("align-items", "center");
+            badges.addClassName("ar-anchor-badges");
 
             for (var event : events) {
                 badges.add(buildEventBadge(event));
@@ -420,9 +403,7 @@ public class AnchorTimelinePanel extends VerticalLayout {
     private Span buildEventBadge(AnchorEvent event) {
         var badge = new Span(eventLetter(event.eventType()) + event.turnNumber());
         badge.addClassName("event-badge");
-        badge.getStyle()
-             .set("background", eventBadgeColor(event.eventType()))
-             .set("color", "white");
+        badge.getElement().setAttribute("data-event-type", eventDataType(event.eventType()));
 
         badge.getElement().setAttribute("title",
                 "%s T%d%s".formatted(
@@ -462,16 +443,16 @@ public class AnchorTimelinePanel extends VerticalLayout {
         };
     }
 
-    private String eventBadgeColor(AnchorEventType type) {
+    private String eventDataType(AnchorEventType type) {
         return switch (type) {
-            case CREATED -> BADGE_CREATED;
-            case CREATED_EXTRACTED -> BADGE_EXTRACTED;
-            case REINFORCED -> BADGE_REINFORCED;
-            case DECAYED -> BADGE_DECAYED;
-            case ARCHIVED -> BADGE_ARCHIVED;
-            case RANK_CHANGED -> BADGE_RANK;
-            case EVICTED -> BADGE_EVICTED;
-            case AUTHORITY_CHANGED -> BADGE_AUTHORITY;
+            case CREATED -> "created";
+            case CREATED_EXTRACTED -> "extracted";
+            case REINFORCED -> "reinforced";
+            case DECAYED -> "decayed";
+            case ARCHIVED -> "archived";
+            case RANK_CHANGED -> "rank";
+            case EVICTED -> "evicted";
+            case AUTHORITY_CHANGED -> "authority";
         };
     }
 
@@ -488,17 +469,6 @@ public class AnchorTimelinePanel extends VerticalLayout {
         };
     }
 
-    private String authorityBadgeColor(String authority) {
-        if (authority == null) return "#607d8b";
-        return switch (authority.toUpperCase()) {
-            case "PROVISIONAL" -> "#607d8b";
-            case "UNRELIABLE" -> "#ff9800";
-            case "RELIABLE" -> "#2196f3";
-            case "CANON" -> "#9c27b0";
-            default -> "#607d8b";
-        };
-    }
-
     // ── Misc helpers ──────────────────────────────────────────────────────────
 
     private String truncate(String s, int maxLen) {
@@ -512,10 +482,7 @@ public class AnchorTimelinePanel extends VerticalLayout {
 
     private void showPlaceholder(String message) {
         var placeholder = new Paragraph(message);
-        placeholder.getStyle()
-                   .set("color", "var(--lumo-secondary-text-color)")
-                   .set("font-style", "italic")
-                   .set("text-align", "center");
+        placeholder.addClassName("ar-placeholder");
         anchorRowsContainer.add(placeholder);
     }
 

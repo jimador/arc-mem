@@ -83,7 +83,7 @@ public class AnchorManipulationPanel extends VerticalLayout {
         setSizeFull();
         setPadding(true);
         setSpacing(true);
-        getStyle().set("overflow-y", "auto");
+        addClassName("ar-manipulation-scroll");
 
         // --- Active anchors section ---
         anchorsListContainer = new VerticalLayout();
@@ -176,43 +176,25 @@ public class AnchorManipulationPanel extends VerticalLayout {
 
     private Div buildAnchorEditCard(PropositionNode node) {
         var card = new Div();
-        card.getStyle()
-            .set("border", "1px solid var(--lumo-contrast-20pct)")
-            .set("border-radius", "var(--lumo-border-radius-m)")
-            .set("padding", "12px")
-            .set("margin-bottom", "8px")
-            .set("background", "var(--lumo-base-color)");
+        card.addClassName("ar-card");
+        card.addClassName("ar-card--padded");
 
         // Text
         var textSpan = new Span(node.getText());
-        textSpan.getStyle()
-                .set("font-size", "var(--lumo-font-size-s)")
-                .set("display", "block")
-                .set("margin-bottom", "8px");
+        textSpan.addClassName("ar-text-block");
         card.add(textSpan);
 
         // Authority + status badges
-        var authorityBadge = new Span(node.getAuthority() != null ? node.getAuthority() : "PROVISIONAL");
-        authorityBadge.getStyle()
-                      .set("font-size", "var(--lumo-font-size-xs)")
-                      .set("font-weight", "bold")
-                      .set("padding", "2px 6px")
-                      .set("border-radius", "var(--lumo-border-radius-s)")
-                      .set("background", "var(--lumo-contrast-5pct)")
-                      .set("margin-bottom", "8px")
-                      .set("display", "inline-block");
+        var authorityValue = node.getAuthority() != null ? node.getAuthority() : "PROVISIONAL";
+        var authorityBadge = new Span(authorityValue);
+        authorityBadge.addClassName("ar-badge");
+        authorityBadge.getElement().setAttribute("data-authority", authorityValue.toLowerCase());
 
         var status = node.getStatus() != null ? node.getStatus().name() : "UNKNOWN";
         var statusBadge = new Span(status);
-        statusBadge.getStyle()
-                   .set("font-size", "var(--lumo-font-size-xxs)")
-                   .set("font-weight", "bold")
-                   .set("padding", "2px 6px")
-                   .set("border-radius", "var(--lumo-border-radius-s)")
-                   .set("background", status.equals("ACTIVE")
-                           ? "var(--lumo-success-color-10pct)"
-                           : "var(--lumo-contrast-10pct)")
-                   .set("display", "inline-block");
+        statusBadge.addClassName("ar-status-badge");
+        statusBadge.getElement().setAttribute("data-status",
+                status.equals("ACTIVE") ? "active" : "other");
 
         // Rank slider
         var rankField = new IntegerField("Rank");
@@ -421,33 +403,17 @@ public class AnchorManipulationPanel extends VerticalLayout {
 
     private Div buildConflictCard(ConflictDetector.Conflict conflict) {
         var card = new Div();
-        card.getStyle()
-            .set("border", "1px solid var(--lumo-error-color)")
-            .set("border-radius", "var(--lumo-border-radius-m)")
-            .set("padding", "10px")
-            .set("margin-bottom", "6px")
-            .set("background", "var(--lumo-error-color-10pct)");
+        card.addClassName("ar-card--conflict");
 
         var existingLabel = new Span("Existing: " + conflict.existing().text());
-        existingLabel.getStyle()
-                     .set("font-size", "var(--lumo-font-size-s)")
-                     .set("display", "block")
-                     .set("margin-bottom", "4px");
+        existingLabel.addClassName("ar-text-block--tight");
 
         var incomingLabel = new Span("Incoming: " + conflict.incomingText());
-        incomingLabel.getStyle()
-                     .set("font-size", "var(--lumo-font-size-s)")
-                     .set("display", "block")
-                     .set("margin-bottom", "4px");
+        incomingLabel.addClassName("ar-text-block--tight");
 
         var resolution = anchorEngine.resolveConflict(conflict);
         var recommendationLabel = new Span("Recommendation: " + resolution.name());
-        recommendationLabel.getStyle()
-                           .set("font-size", "var(--lumo-font-size-xs)")
-                           .set("font-weight", "bold")
-                           .set("color", "var(--lumo-secondary-text-color)")
-                           .set("display", "block")
-                           .set("margin-bottom", "6px");
+        recommendationLabel.addClassName("ar-recommendation");
 
         var acceptButton = new Button("Accept");
         acceptButton.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_SUCCESS);
@@ -502,10 +468,7 @@ public class AnchorManipulationPanel extends VerticalLayout {
         for (int i = interventionLog.size() - 1; i >= 0; i--) {
             var entry = interventionLog.get(i);
             var row = new Div();
-            row.getStyle()
-               .set("font-size", "var(--lumo-font-size-xs)")
-               .set("padding", "4px 8px")
-               .set("border-bottom", "1px solid var(--lumo-contrast-10pct)");
+            row.addClassName("ar-log-row");
 
             var time = LocalDateTime.ofInstant(entry.timestamp(), ZoneId.systemDefault())
                                     .format(TIME_FORMAT);
@@ -516,7 +479,7 @@ public class AnchorManipulationPanel extends VerticalLayout {
                     truncateId(entry.targetAnchorId()),
                     entry.beforeValue(),
                     entry.afterValue()));
-            text.getStyle().set("font-family", "monospace");
+            text.addClassName("ar-log-monospace");
 
             row.add(text);
             interventionLogContainer.add(row);
@@ -529,10 +492,7 @@ public class AnchorManipulationPanel extends VerticalLayout {
 
     private void showPlaceholder(VerticalLayout container, String message) {
         var placeholder = new Paragraph(message);
-        placeholder.getStyle()
-                   .set("color", "var(--lumo-secondary-text-color)")
-                   .set("font-style", "italic")
-                   .set("text-align", "center");
+        placeholder.addClassName("ar-placeholder");
         container.add(placeholder);
     }
 }

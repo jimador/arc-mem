@@ -18,10 +18,12 @@ import dev.dunnam.diceanchors.anchor.AnchorEngine;
 import dev.dunnam.diceanchors.persistence.AnchorRepository;
 import dev.dunnam.diceanchors.persistence.EntityMentionGraph;
 import dev.dunnam.diceanchors.persistence.EntityMentionGraphFilter;
+import dev.dunnam.diceanchors.sim.engine.SimulationProgress;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -30,7 +32,7 @@ import java.util.Locale;
  * Vaadin panel for browsing propositions, anchors, and entity mention networks
  * within a simulation context.
  */
-public class KnowledgeBrowserPanel extends VerticalLayout {
+public class KnowledgeBrowserPanel extends VerticalLayout implements SimulationProgressListener {
 
     private static final Logger logger = LoggerFactory.getLogger(KnowledgeBrowserPanel.class);
     private static final int SEARCH_MIN_LENGTH = 3;
@@ -98,7 +100,7 @@ public class KnowledgeBrowserPanel extends VerticalLayout {
         searchResultsContent.setPadding(true);
         searchResultsContent.setSpacing(true);
         searchResultsContent.setVisible(false);
-        searchResultsContent.getStyle().set("overflow-y", "auto");
+        searchResultsContent.addClassName("ar-scrollable");
 
         // --- Tab headers ---
         propositionsTab = new Tab("Propositions");
@@ -138,7 +140,8 @@ public class KnowledgeBrowserPanel extends VerticalLayout {
         propositionsContent.setPadding(true);
         propositionsContent.setSpacing(true);
         propositionsContent.setSizeFull();
-        propositionsContent.getStyle().set("overflow-y", "auto");
+        propositionsContent.setFlexGrow(1, propositionGrid);
+        propositionsContent.addClassName("ar-scrollable");
 
         // --- Anchors content ---
         authorityFilter = new Select<>();
@@ -180,7 +183,8 @@ public class KnowledgeBrowserPanel extends VerticalLayout {
         anchorsContent.setPadding(true);
         anchorsContent.setSpacing(true);
         anchorsContent.setSizeFull();
-        anchorsContent.getStyle().set("overflow-y", "auto");
+        anchorsContent.setFlexGrow(1, anchorGrid);
+        anchorsContent.addClassName("ar-scrollable");
         anchorsContent.setVisible(false);
 
         // --- Graph content ---
@@ -224,7 +228,8 @@ public class KnowledgeBrowserPanel extends VerticalLayout {
         graphContent.setPadding(true);
         graphContent.setSpacing(true);
         graphContent.setSizeFull();
-        graphContent.getStyle().set("overflow", "hidden");
+        graphContent.setFlexGrow(1, entityMentionNetworkView);
+        graphContent.addClassName("ar-graph-content");
         graphContent.setVisible(false);
 
         // --- Tab switching ---
@@ -245,6 +250,13 @@ public class KnowledgeBrowserPanel extends VerticalLayout {
         setFlexGrow(1, graphContent);
 
         showEmptyState();
+    }
+
+    @Override
+    public void onTurnCompleted(SimulationProgress progress) {
+        if (progress.contextTrace() != null) {
+            refresh();
+        }
     }
 
     /**
@@ -396,7 +408,7 @@ public class KnowledgeBrowserPanel extends VerticalLayout {
                                  .distinct()
                                  .sorted(Comparator.naturalOrder())
                                  .toList();
-        var allOptions = new java.util.ArrayList<String>();
+        var allOptions = new ArrayList<String>();
         allOptions.add("ALL");
         allOptions.addAll(options);
 
@@ -452,26 +464,17 @@ public class KnowledgeBrowserPanel extends VerticalLayout {
             return;
         }
         var header = new Span("%d results".formatted(results.size()));
-        header.getStyle()
-              .set("font-size", "var(--lumo-font-size-s)")
-              .set("color", "var(--lumo-secondary-text-color)")
-              .set("font-weight", "bold");
+        header.addClassName("ar-search-header");
         searchResultsContent.add(header);
         for (var result : results) {
             var row = new HorizontalLayout();
             row.setWidthFull();
             row.setSpacing(true);
-            row.getStyle()
-               .set("padding", "4px 8px")
-               .set("border-bottom", "1px solid var(--lumo-contrast-10pct)");
+            row.addClassName("ar-search-row");
             var scoreBadge = new Span("%.0f%%".formatted(result.score() * 100));
-            scoreBadge.getStyle()
-                      .set("font-size", "var(--lumo-font-size-xs)")
-                      .set("font-weight", "bold")
-                      .set("color", "var(--lumo-primary-color)")
-                      .set("min-width", "40px");
+            scoreBadge.addClassName("ar-search-score");
             var text = new Span(result.text());
-            text.getStyle().set("font-size", "var(--lumo-font-size-s)");
+            text.addClassName("ar-search-text");
             row.add(scoreBadge, text);
             searchResultsContent.add(row);
         }
@@ -486,10 +489,7 @@ public class KnowledgeBrowserPanel extends VerticalLayout {
         searchResultsContent.removeAll();
         searchResultsContent.setVisible(true);
         var msg = new Paragraph(message);
-        msg.getStyle()
-           .set("color", "var(--lumo-secondary-text-color)")
-           .set("font-style", "italic")
-           .set("font-size", "var(--lumo-font-size-s)");
+        msg.addClassName("ar-empty-message");
         searchResultsContent.add(msg);
     }
 

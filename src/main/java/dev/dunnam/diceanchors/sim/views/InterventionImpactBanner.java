@@ -17,18 +17,13 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
  */
 public class InterventionImpactBanner extends HorizontalLayout {
 
-    private static final String COLOR_POSITIVE = "#4caf50";  // green
-    private static final String COLOR_NEGATIVE = "#e91e63";  // magenta
-
     public InterventionImpactBanner() {
+        addClassName("ar-banner");
         setWidthFull();
         setVisible(false);
         setPadding(true);
         setSpacing(true);
         setAlignItems(Alignment.CENTER);
-        getStyle()
-                .set("border-radius", "var(--lumo-border-radius-m)")
-                .set("margin-bottom", "8px");
     }
 
     /**
@@ -40,26 +35,19 @@ public class InterventionImpactBanner extends HorizontalLayout {
     public void show(int interventionCount, int anchorDelta) {
         removeAll();
 
-        var isPositive = anchorDelta >= 0;
-        var accentColor = isPositive ? COLOR_POSITIVE : COLOR_NEGATIVE;
+        var deltaAttr = anchorDelta > 0 ? "positive" : anchorDelta < 0 ? "negative" : "neutral";
+        getElement().setAttribute("data-delta", deltaAttr);
 
-        getStyle().set("background", accentColor + "20")
-                  .set("border", "1px solid " + accentColor);
-
-        var icon = new Span(isPositive ? "\u2191" : "\u2193");
-        icon.getStyle()
-            .set("font-size", "var(--lumo-font-size-l)")
-            .set("color", accentColor);
+        var icon = new Span(anchorDelta > 0 ? "\u2191" : anchorDelta < 0 ? "\u2193" : "\u2194");
+        icon.addClassName("ar-banner-icon");
+        icon.getElement().setAttribute("data-delta", deltaAttr);
 
         var message = new Span("%d intervention%s | Anchor delta: %s%d".formatted(
                 interventionCount,
                 interventionCount == 1 ? "" : "s",
                 anchorDelta >= 0 ? "+" : "",
                 anchorDelta));
-        message.getStyle()
-               .set("font-size", "var(--lumo-font-size-s)")
-               .set("font-weight", "bold")
-               .set("flex", "1");
+        message.addClassName("ar-banner-message");
 
         var closeButton = new Button("\u2715");
         closeButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_SMALL);

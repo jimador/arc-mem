@@ -22,11 +22,19 @@ import java.util.function.Consumer;
  * left borders), system messages, injection state tags, and turn type badges.
  * Supports click-to-select turn highlighting.
  */
-public class ConversationPanel extends VerticalLayout {
+public class ConversationPanel extends VerticalLayout implements SimulationProgressListener {
 
     private static final StrategyCatalog STRATEGY_CATALOG =
             StrategyCatalog.loadFromClasspath("simulations/strategy-catalog.yml");
 
+    private static final String[] THINKING_MESSAGES = {
+            "DM is considering the situation...",
+            "The DM ponders your words...",
+            "Rolling behind the screen..."
+    };
+
+    private final Div thinkingIndicator;
+    private final Span thinkingLabel;
     private Div selectedBubble;
     private Consumer<Integer> turnSelectionCallback;
 
@@ -34,12 +42,37 @@ public class ConversationPanel extends VerticalLayout {
         setPadding(true);
         setSpacing(false);
         setSizeFull();
-        getStyle()
-                .set("overflow-y", "auto")
-                .set("background", "var(--lumo-contrast-5pct)")
-                .set("border-radius", "var(--lumo-border-radius-m)");
+        addClassName("ar-conversation");
+
+        thinkingLabel = new Span(THINKING_MESSAGES[0]);
+        thinkingLabel.addClassName("ar-thinking-label");
+        thinkingIndicator = new Div(thinkingLabel);
+        thinkingIndicator.addClassName("ar-thinking-indicator");
 
         showPlaceholder();
+    }
+
+    @Override
+    public void onTurnStarted(SimulationProgress progress) {
+        appendTurn(progress);
+        thinkingLabel.setText(THINKING_MESSAGES[progress.turnNumber() % THINKING_MESSAGES.length]);
+        add(thinkingIndicator);
+    }
+
+    @Override
+    public void onTurnCompleted(SimulationProgress progress) {
+        remove(thinkingIndicator);
+        appendDmBubble(progress);
+    }
+
+    @Override
+    public void onSimulationCompleted(SimulationProgress progress) {
+        remove(thinkingIndicator);
+        if (progress.phase() == SimulationProgress.SimulationPhase.CANCELLED) {
+            appendSystemMessage("Simulation cancelled.");
+        } else {
+            appendSystemMessage("Simulation complete! Review the Drift Summary and Context Inspector tabs.");
+        }
     }
 
     /**
@@ -107,14 +140,7 @@ public class ConversationPanel extends VerticalLayout {
      */
     public void appendSystemMessage(String message) {
         var div = new Div(new Span(message));
-        div.getStyle()
-           .set("text-align", "center")
-           .set("color", "var(--lumo-secondary-text-color)")
-           .set("font-style", "italic")
-           .set("font-size", "var(--lumo-font-size-s)")
-           .set("margin", "12px 0")
-           .set("padding", "8px")
-           .set("border-top", "1px solid var(--lumo-contrast-20pct)");
+        div.addClassName("ar-system-message");
         add(div);
     }
 
@@ -142,24 +168,15 @@ public class ConversationPanel extends VerticalLayout {
                                    boolean injectionEnabled, TurnType turnType,
                                    @Nullable AttackStrategy attackStrategy) {
         var bubble = new Div();
-        bubble.getStyle()
-              .set("margin", "4px 0")
-              .set("padding", "8px 12px")
-              .set("border-radius", "var(--lumo-border-radius-m)")
-              .set("max-width", "90%")
-              .set("cursor", "pointer")
-              .set("transition", "outline 0.15s ease")
-              .set("background", isAttack
-                      ? "var(--lumo-error-color-10pct)"
-                      : "var(--lumo-primary-color-10pct)")
-              .set("border-left", isAttack
-                      ? "3px solid var(--lumo-error-color)"
-                      : "3px solid var(--lumo-primary-color)")
-              .set("align-self", "flex-start");
+        bubble.addClassName("ar-bubble");
+        bubble.addClassName("ar-bubble--player");
+        if (isAttack) {
+            bubble.addClassName("ar-bubble--attack");
+        }
 
         var header = turnHeader(turnNumber, "Player", injectionEnabled, turnType, attackStrategy, null, null, false);
         var content = new Span(text);
-        content.getStyle().set("font-size", "var(--lumo-font-size-s)");
+        content.addClassName("ar-bubble-content");
 
         bubble.add(header, content);
         wireClickToSelect(bubble, turnNumber);
@@ -172,24 +189,18 @@ public class ConversationPanel extends VerticalLayout {
                                EvalVerdict verdict, int tokenCount,
                                boolean compacted, long turnDurationMs) {
         var bubble = new Div();
-        var borderColor = verdictBorderColor(verdict);
-
-        bubble.getStyle()
-              .set("margin", "4px 0 12px 16px")
-              .set("padding", "8px 12px")
-              .set("border-radius", "var(--lumo-border-radius-m)")
-              .set("max-width", "90%")
-              .set("cursor", "pointer")
-              .set("transition", "outline 0.15s ease")
-              .set("background", isAttack
-                      ? "var(--lumo-contrast-5pct)"
-                      : "var(--lumo-success-color-10pct)")
-              .set("border-left", "3px solid " + borderColor);
+        bubble.addClassName("ar-bubble");
+        bubble.addClassName("ar-bubble--dm");
+        if (isAttack) {
+            bubble.addClassName("ar-bubble--attack");
+        }
+        var verdictName = verdict == null ? "neutral" : verdict.verdict().name().toLowerCase().replace('_', '-');
+        bubble.getElement().setAttribute("data-verdict", verdictName);
 
         var header = turnHeader(turnNumber, "DM", injectionEnabled, turnType, attackStrategy, verdict,
                                 tokenCount > 0 ? tokenCount : null, compacted, turnDurationMs);
         var content = new Span(text);
-        content.getStyle().set("font-size", "var(--lumo-font-size-s)");
+        content.addClassName("ar-bubble-content");
 
         bubble.add(header, content);
         wireClickToSelect(bubble, turnNumber);
@@ -220,15 +231,10 @@ public class ConversationPanel extends VerticalLayout {
         var layout = new HorizontalLayout();
         layout.setSpacing(true);
         layout.setAlignItems(HorizontalLayout.Alignment.CENTER);
-        layout.getStyle()
-              .set("margin-bottom", "2px")
-              .set("flex-wrap", "wrap");
+        layout.addClassName("ar-bubble-header");
 
         var turnLabel = new Span("[T%d] %s".formatted(turnNumber, speaker));
-        turnLabel.getStyle()
-                 .set("font-weight", "bold")
-                 .set("font-size", "var(--lumo-font-size-xs)")
-                 .set("color", "var(--lumo-secondary-text-color)");
+        turnLabel.addClassName("ar-turn-label");
 
         var injTag = injectionStateTag(injectionEnabled);
         layout.add(turnLabel, injTag);
@@ -260,14 +266,8 @@ public class ConversationPanel extends VerticalLayout {
 
     private Span injectionStateTag(boolean enabled) {
         var tag = new Span(enabled ? "INJ ON" : "INJ OFF");
-        tag.getStyle()
-           .set("font-size", "var(--lumo-font-size-xxs)")
-           .set("font-weight", "bold")
-           .set("padding", "1px 5px")
-           .set("border-radius", "var(--lumo-border-radius-s)")
-           .set("white-space", "nowrap")
-           .set("color", "white")
-           .set("background", enabled ? "#00bcd4" : "#ff9800");
+        tag.addClassName("ar-badge");
+        tag.getElement().setAttribute("data-injection", enabled ? "on" : "off");
         return tag;
     }
 
@@ -281,14 +281,8 @@ public class ConversationPanel extends VerticalLayout {
                 ? turnType.name() + " · " + strategyLabel
                 : turnType.name();
         var badge = new Span(text);
-        badge.getStyle()
-             .set("font-size", "var(--lumo-font-size-xxs)")
-             .set("font-weight", "bold")
-             .set("padding", "1px 5px")
-             .set("border-radius", "var(--lumo-border-radius-s)")
-             .set("white-space", "nowrap")
-             .set("color", "white")
-             .set("background", turnTypeColor(turnType));
+        badge.addClassName("ar-badge");
+        badge.getElement().setAttribute("data-turn-type", turnType.name().toLowerCase().replace('_', '-'));
         return badge;
     }
 
@@ -299,53 +293,33 @@ public class ConversationPanel extends VerticalLayout {
             case NOT_MENTIONED -> "NOT EVALUATED";
         };
         var badge = new Span(text);
-        badge.getStyle()
-             .set("font-size", "var(--lumo-font-size-xxs)")
-             .set("font-weight", "bold")
-             .set("padding", "1px 5px")
-             .set("border-radius", "var(--lumo-border-radius-s)")
-             .set("white-space", "nowrap")
-             .set("color", "white")
-             .set("background", verdictColor(verdict));
+        badge.addClassName("ar-badge");
+        badge.getElement().setAttribute("data-verdict", verdict.verdict().name().toLowerCase().replace('_', '-'));
         return badge;
     }
 
     private Span tokenCountBadge(int tokens) {
         var badge = new Span("~%d tok".formatted(tokens));
-        badge.getStyle()
-             .set("font-size", "var(--lumo-font-size-xxs)")
-             .set("font-weight", "bold")
-             .set("padding", "1px 5px")
-             .set("border-radius", "var(--lumo-border-radius-s)")
-             .set("white-space", "nowrap")
-             .set("color", "var(--lumo-secondary-text-color)")
-             .set("background", "var(--lumo-contrast-10pct)");
+        badge.addClassName("ar-badge");
+        badge.addClassName("ar-badge--muted");
         return badge;
     }
 
     private Span compactionBadge() {
         var badge = new Span("COMPACTED");
-        badge.getStyle()
-             .set("font-size", "var(--lumo-font-size-xxs)")
-             .set("font-weight", "bold")
-             .set("padding", "1px 5px")
-             .set("border-radius", "var(--lumo-border-radius-s)")
-             .set("white-space", "nowrap")
-             .set("color", "white")
-             .set("background", "#ffb300");
+        badge.addClassName("ar-badge");
+        badge.addClassName("ar-badge--compaction");
         return badge;
     }
 
     private Span timingBadge(long durationMs) {
         var badge = new Span(SimulationView.formatDuration(durationMs));
-        badge.getStyle()
-             .set("font-size", "var(--lumo-font-size-xxs)")
-             .set("font-weight", "bold")
-             .set("padding", "1px 5px")
-             .set("border-radius", "var(--lumo-border-radius-s)")
-             .set("white-space", "nowrap")
-             .set("color", durationMs > 30_000L ? "white" : "var(--lumo-secondary-text-color)")
-             .set("background", durationMs > 30_000L ? "#ffb020" : "var(--lumo-contrast-10pct)");
+        badge.addClassName("ar-badge");
+        if (durationMs > 30_000L) {
+            badge.addClassName("ar-badge--timing-warn");
+        } else {
+            badge.addClassName("ar-badge--muted");
+        }
         return badge;
     }
 
@@ -372,40 +346,6 @@ public class ConversationPanel extends VerticalLayout {
         };
     }
 
-    private String verdictColor(EvalVerdict verdict) {
-        return switch (verdict.verdict()) {
-            case CONFIRMED -> "#4caf50";
-            case NOT_MENTIONED -> "#ff9800";
-            case CONTRADICTED -> "#e91e63";
-        };
-    }
-
-    private String turnTypeColor(TurnType turnType) {
-        return switch (turnType) {
-            case WARM_UP -> "#607d8b";
-            case ESTABLISH -> "#4caf50";
-            case ATTACK -> "#f44336";
-            case DISPLACEMENT -> "#e91e63";
-            case DRIFT -> "#ff5722";
-            case RECALL_PROBE -> "#9c27b0";
-        };
-    }
-
-    // -------------------------------------------------------------------------
-    // Verdict-colored left borders for DM bubbles
-    // -------------------------------------------------------------------------
-
-    private String verdictBorderColor(EvalVerdict verdict) {
-        if (verdict == null) {
-            return "#9e9e9e"; // neutral gray
-        }
-        return switch (verdict.verdict()) {
-            case CONFIRMED -> "#4caf50";      // green
-            case NOT_MENTIONED -> "#ff9800";   // amber
-            case CONTRADICTED -> "#e91e63";    // magenta
-        };
-    }
-
     // -------------------------------------------------------------------------
     // Click-to-select
     // -------------------------------------------------------------------------
@@ -413,9 +353,9 @@ public class ConversationPanel extends VerticalLayout {
     private void wireClickToSelect(Div bubble, int turnNumber) {
         bubble.addClickListener(e -> {
             if (selectedBubble != null) {
-                selectedBubble.getStyle().remove("outline");
+                selectedBubble.removeClassName("ar-bubble--selected");
             }
-            bubble.getStyle().set("outline", "2px solid var(--lumo-primary-color)");
+            bubble.addClassName("ar-bubble--selected");
             selectedBubble = bubble;
 
             if (turnSelectionCallback != null) {
@@ -440,11 +380,7 @@ public class ConversationPanel extends VerticalLayout {
 
     private void showPlaceholder() {
         var placeholder = new Paragraph("Select a scenario and click Run to start the simulation.");
-        placeholder.getStyle()
-                   .set("color", "var(--lumo-secondary-text-color)")
-                   .set("font-style", "italic")
-                   .set("text-align", "center")
-                   .set("margin", "32px auto");
+        placeholder.addClassName("ar-placeholder");
         add(placeholder);
     }
 }
