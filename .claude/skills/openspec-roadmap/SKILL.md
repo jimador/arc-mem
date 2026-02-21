@@ -12,13 +12,11 @@ Build a roadmap package from a high-level idea and, when requested, automate hig
 Before performing any work, the agent MUST explicitly confirm it is operating under project guidelines.
 
 1. Read project guidance documents (`AGENTS.md`, `CLAUDE.md`, and `openspec/constitution.md` when present).
-2. Resolve `INSTRUCTIONS_VERSION` from project guidance.
-   - Expected format: `INSTRUCTIONS_VERSION: <value>`.
-3. Report exactly one of:
-   - `INSTRUCTIONS_VERSION: <value>` then `SELF-CHECK: PASS`
-   - `INSTRUCTIONS_VERSION: UNKNOWN` then `SELF-CHECK: FAIL`
+2. Report exactly one of:
+   - `SELF-CHECK: PASS`
+   - `SELF-CHECK: FAIL`
 
-If the agent cannot confirm the version, it MUST respond with `SELF-CHECK: FAIL` and MUST NOT perform further actions.
+If the agent cannot confirm, it MUST respond with `SELF-CHECK: FAIL` and MUST NOT perform further actions.
 
 ## RFC 2119 Requirement
 
@@ -72,7 +70,7 @@ Capture these when provided:
 ## Workflow
 
 1. **Run hard-gate self-check first**
-   - Emit `INSTRUCTIONS_VERSION` and `SELF-CHECK` result.
+   - Emit `SELF-CHECK` result.
    - Continue only if `SELF-CHECK: PASS`.
 
 2. **Clarify initiative and automation level**
