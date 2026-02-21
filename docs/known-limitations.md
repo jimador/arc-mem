@@ -1,61 +1,165 @@
 # Known Limitations
 
-This document is an honest accounting of gaps, known issues, and areas needing further work. dice-anchors is an early-stage exploration — several components work well enough to demonstrate the approach but are not production-ready.
+This document is an explicit list of current gaps and deferred work. `dice-anchors` is an exploration-quality demo, not a production-hardened memory system.
 
 ## Trust Evaluation
 
 ### Profile Tuning
 
-The three predefined domain profiles (BALANCED, SECURE, NARRATIVE) have reasonable-looking thresholds but have not been empirically tuned against a ground truth dataset. The threshold values were chosen by inspection, not optimization.
+The three predefined domain profiles (`BALANCED`, `SECURE`, `NARRATIVE`) are still manually tuned by inspection.
+
+Issue:
+
+1. thresholds are not calibrated against a labeled ground-truth dataset,
+2. profile behavior may be brittle across model versions and domains.
+
+Improvement ideas:
+
+1. build a labeled calibration set for promotion/conflict decisions,
+2. run grid-search or Bayesian threshold tuning by profile,
+3. publish confidence intervals for each profile's false-promote and false-reject rates.
 
 ## Compaction
 
-### Summary Quality
+### Summary Quality and Recovery
 
-`CompactionValidator` detects when protected facts are lost during LLM-generated compaction, but does not automatically retry or regenerate. The quality of summaries depends on the model and prompt. The validator catches losses; recovery is left to the operator.
+`CompactionValidator` detects loss of protected facts but does not automatically recover.
+
+Issue:
+
+1. detection without retry/fallback can still leave degraded context quality,
+2. operator intervention is required for failures.
+
+Improvement ideas:
+
+1. add retry with stricter regeneration constraints,
+2. add extractive fallback mode that preserves protected facts,
+3. never replace existing context with a lower-validity compaction output.
 
 ### Token Estimation
 
-Token counts are estimated at ~4 characters per token. This is a rough heuristic that varies by model, language, and content type. Actual token counts could differ significantly.
+Some paths still rely on coarse token heuristics.
+
+Issue:
+
+1. estimated token counts can diverge from model reality,
+2. strict budget guarantees are weaker with heuristic counts.
+
+Improvement ideas:
+
+1. use model-specific tokenizer/provider count endpoints for strict paths,
+2. record estimate-vs-actual deltas during runs.
 
 ## Simulation Harness
 
 ### Single-Threaded UI
 
-The simulation harness runs one scenario at a time. There is no support for parallel scenario execution or batch runs from the UI. This is acceptable for the current exploration phase.
+The UI currently runs one scenario at a time.
 
-### No Statistical Analysis
+Issue:
 
-Individual runs are not statistically meaningful — LLM outputs are non-deterministic. Drawing conclusions requires multiple runs of the same scenario, which the harness supports (via Run History and comparison) but doesn't automate.
+1. limited throughput for larger experiment sets.
+
+Improvement ideas:
+
+1. add headless batch runner for parallel scenario execution,
+2. keep UI single-run but consume batch outputs for analysis views.
+
+### Statistical Rigor
+
+Single runs are non-deterministic and not statistically meaningful.
+
+Issue:
+
+1. comparisons can be overfit to one run,
+2. claim confidence is weak without repeated trials.
+
+Improvement ideas:
+
+1. add repeated-run benchmark protocol with confidence intervals,
+2. add baseline-vs-candidate effect-size reporting,
+3. persist experiment manifests (model/version/prompt/scenario hashes).
 
 ### Auto-Generated Adversarial Messages
 
-When scripted turns are exhausted, `generateAdversarialMessage()` picks a random ground truth fact and random attack strategy. The quality of auto-generated attacks is inconsistent and may not match the sophistication of hand-crafted scripted turns.
+Fallback adversarial generation is still simplistic.
+
+Issue:
+
+1. random strategy/fact selection can produce weak or incoherent attacks.
+
+Improvement ideas:
+
+1. add curated attack templates by tactic class,
+2. add red-team quality filters before accepting generated attack turns.
 
 ## Persistence
 
 ### Neo4j Dependency
 
-The application requires a running Neo4j instance. There is no embedded or in-memory database option for quick local testing without Docker.
+A running Neo4j instance is required for normal operation.
 
-### No Cross-Session Persistence
+Issue:
 
-Anchors are scoped to a single session (chat or simulation run). There is no mechanism for persisting anchors across application restarts in the chat flow, though simulation records are stored via the `RunHistoryStore` interface.
+1. local quick-start friction for users without Docker.
 
-## Cross-Model Generalization
+Improvement ideas:
 
-Testing has been primarily with OpenAI models (gpt-4.1-mini). The anchor injection approach — formatting facts in the system prompt with authoritative framing — relies on the model's instruction-following behavior. Models with weaker instruction following may be less responsive to the "MUST NOT contradict" directives.
+1. offer a lightweight local mode for exploration,
+2. provide a fixture-backed testing profile for non-Neo4j environments.
 
-## Open Research Questions
+### Cross-Session Persistence Scope
 
-These are questions we don't have answers to yet:
+Anchors are scoped to per-session contexts in current chat flow.
 
-1. **Optimal budget size:** The default of 20 active anchors was chosen by inspection. How does performance vary with different budgets? At what point does adding more anchors dilute the effectiveness of each individual anchor?
+Issue:
 
-2. **Decay calibration:** The exponential decay half-life is configurable but has not been empirically tuned. What half-life provides the best balance between fact persistence and context freshness?
+1. no user-facing long-term continuity across app restarts by default.
 
-3. **Authority upgrade thresholds:** Are 3 and 7 reinforcements the right thresholds for UNRELIABLE and RELIABLE upgrades? These values were chosen by inspection.
+Improvement ideas:
 
-4. **Adversarial robustness under pressure:** The current scenarios test direct contradiction and reframing. More sophisticated attacks (multi-turn coordination, gradual semantic drift, exploitation of model-specific behaviors) have not been tested.
+1. add optional cross-session memory profile,
+2. add retention policy and archive/restore controls.
 
-5. **Diminishing returns:** At what conversation length does system prompt injection become insufficient? Very long conversations may dilute system prompt attention regardless of how authoritatively the facts are framed.
+## Deferred Research Tracks (Not Currently Prioritized for Implementation)
+
+These are important but not selected as immediate research docs in the current cycle.
+
+### Calibration and Policy Tuning
+
+Issue:
+
+1. budget, decay, authority thresholds, and profile cutoffs are still hand-tuned,
+2. decision policy may not be stable across models and domains.
+
+Improvement ideas:
+
+1. design a calibration workflow with labeled data,
+2. add profile-specific threshold recommendation reports,
+3. add periodic re-calibration as model versions change.
+
+### Adversarial Methodology and Red-Team Coverage
+
+Issue:
+
+1. current scenarios emphasize direct contradiction and reframing,
+2. coordinated multi-turn and gradual drift attacks are underrepresented.
+
+Improvement ideas:
+
+1. build an explicit adversarial taxonomy (`setup`, `build`, `payoff`, `drift`),
+2. add automated red-team generation with quality gates,
+3. track attack efficacy distributions, not only per-run outcomes.
+
+### Cross-Model Generalization
+
+Issue:
+
+1. most testing has centered on OpenAI model behavior,
+2. anchor compliance may vary with instruction-following strength by model family.
+
+Improvement ideas:
+
+1. create a model matrix benchmark (at least 3 model families),
+2. maintain per-model policy/prompt compatibility notes,
+3. run compatibility checks before claiming generalized robustness.

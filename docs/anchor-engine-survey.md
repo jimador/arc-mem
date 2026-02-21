@@ -99,7 +99,7 @@ Focus here is "best demo signal per complexity", not production completeness.
 - What to adopt:
   - Add minimal prompt variant support (e.g., baseline vs concise/no-verification) for simulation runs.
   - Start with hardcoded variants in test/config before full YAML variant framework.
-  - Demo value: direct side-by-side evidence for DICE team on framing effectiveness.
+  - Demo value: direct side-by-side evidence on framing effectiveness.
 
 ## Already covered in dice-anchors (no extra adoption needed now)
 
