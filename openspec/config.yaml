@@ -6,6 +6,9 @@ context: |
   Storage: Neo4j 5.x (Drivine ORM), no PostgreSQL
   Build: Single-module Maven project
   RFC 2119 keywords are REQUIRED in all specs per project constitution.
+  
+  SELF-CHECK REQUIRED (HARD GATE): Before performing any work, the agent MUST explicitly confirm that it has read and is operating under `_openspec_starter/OPENSPEC_STARTER_AGENT_INSTRUCTIONS.md` by reporting the INSTRUCTIONS_VERSION and stating either "SELF-CHECK: PASS" or "SELF-CHECK: FAIL".
+  If the agent cannot make this confirmation, it MUST respond with "SELF-CHECK: FAIL" and MUST NOT perform any further actions.
 
 rules:
   specs:
