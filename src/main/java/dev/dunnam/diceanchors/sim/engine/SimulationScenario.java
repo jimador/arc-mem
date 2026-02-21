@@ -69,7 +69,8 @@ public record SimulationScenario(
     public record AdversaryConfig(
             double aggressiveness,
             int maxEscalationTier,
-            List<String> preferredStrategies
+            List<String> preferredStrategies,
+            @Nullable Integer attackCooldown
     ) {
         public AdversaryConfig {
             aggressiveness = Math.max(0.0, Math.min(1.0, aggressiveness));
@@ -77,8 +78,13 @@ public record SimulationScenario(
             preferredStrategies = preferredStrategies != null ? List.copyOf(preferredStrategies) : List.of();
         }
 
+        /** Min turns that must pass between attacks. Defaults to 2 if not configured. */
+        public int effectiveAttackCooldown() {
+            return attackCooldown != null ? Math.max(0, attackCooldown) : 2;
+        }
+
         public static AdversaryConfig defaults() {
-            return new AdversaryConfig(0.5, 3, List.of());
+            return new AdversaryConfig(0.5, 3, List.of(), null);
         }
     }
 

@@ -90,6 +90,7 @@ public class PropositionView {
                 proposition.getGrounding(),
                 proposition.getCreated(),
                 proposition.getRevised(),
+                proposition.getRevised(),
                 proposition.getStatus(),
                 0,
                 proposition.getSourceIds()

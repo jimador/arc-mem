@@ -4,6 +4,7 @@ adversaryMode: adaptive
 adversaryConfig:
   aggressiveness: 0.6
   maxEscalationTier: 3
+  attackCooldown: 2
 persona:
   name: Brandis Ashford
   description: >

@@ -173,18 +173,33 @@ public class SimulationService {
                             : (i < scenario.warmUpTurns() ? TurnType.WARM_UP : TurnType.ESTABLISH);
                     attackStrategy = AttackStrategy.fromString(scripted.strategy());
                 } else if (i < scenario.warmUpTurns()) {
-                    playerMessage = generateWarmUpMessage(scenario);
+                    playerMessage = isAdaptive
+                            ? adaptivePrompter.generateConversation(
+                                    scenario.persona(), scenario.setting(), conversationHistory)
+                            : generateWarmUpMessage(scenario);
                     turnType = TurnType.WARM_UP;
                 } else if (isAdaptive) {
-                    // Turn generation branches on adversary mode: scripted (predefined playerMessage from scenario)
-                    // vs. adaptive (TieredEscalationStrategy selects attack based on anchor state and history).
-                    var activeAnchors = currentAnchors(contextId);
-                    var conflictedAnchors = detectConflictedAnchors(contextId, conversationHistory);
-                    currentPlan = tieredStrategy.selectAttack(activeAnchors, conflictedAnchors, attackHistory);
-                    playerMessage = adaptivePrompter.generateMessage(
-                            currentPlan, scenario.persona(), conversationHistory);
-                    turnType = TurnType.ATTACK;
-                    attackStrategy = currentPlan.strategies().isEmpty() ? null : currentPlan.strategies().get(0);
+                    var cooldown = scenario.effectiveAdversaryConfig().effectiveAttackCooldown();
+                    var lastAttackTurn = attackHistory.lastAttackTurn();
+
+                    if (turnNumber <= lastAttackTurn + cooldown) {
+                        // Rest turn — continue organic roleplay without a direct factual attack
+                        playerMessage = adaptivePrompter.generateConversation(
+                                scenario.persona(), scenario.setting(), conversationHistory);
+                        turnType = TurnType.ESTABLISH;
+                        // currentPlan stays null; outcome recording guard at line ~227 handles this
+                    } else {
+                        // Attack turn — LLM selects strategies from the full catalog guided by tier hint
+                        var activeAnchors = currentAnchors(contextId);
+                        var conflictedAnchors = detectConflictedAnchors(contextId, conversationHistory);
+                        var planHint = tieredStrategy.selectAttack(activeAnchors, conflictedAnchors, attackHistory);
+                        var generated = adaptivePrompter.generateAttack(
+                                planHint, scenario.persona(), conversationHistory, attackHistory);
+                        currentPlan = generated.plan();
+                        playerMessage = generated.message();
+                        turnType = TurnType.ATTACK;
+                        attackStrategy = currentPlan.strategies().isEmpty() ? null : currentPlan.strategies().get(0);
+                    }
                 } else {
                     playerMessage = generateAdversarialMessage(scenario, conversationHistory);
                     turnType = scenario.adversarial() ? TurnType.ATTACK : TurnType.ESTABLISH;
