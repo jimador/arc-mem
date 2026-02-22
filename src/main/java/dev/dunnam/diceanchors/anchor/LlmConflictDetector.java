@@ -27,16 +27,20 @@ public class LlmConflictDetector implements ConflictDetector {
     private static final Logger logger = LoggerFactory.getLogger(LlmConflictDetector.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final Pattern CODE_FENCE = Pattern.compile("^```(?:json)?\\s*|\\s*```$");
-    private static final double LLM_CONFLICT_CONFIDENCE = 0.9;
-
+    private final double llmConfidence;
     private final ChatModel chatModel;
     private final String modelName;
     private final LlmCallService llmCallService;
 
-    public LlmConflictDetector(ChatModel chatModel, String modelName, LlmCallService llmCallService) {
+    public LlmConflictDetector(double llmConfidence, ChatModel chatModel, String modelName, LlmCallService llmCallService) {
+        this.llmConfidence = llmConfidence;
         this.chatModel = chatModel;
         this.modelName = modelName;
         this.llmCallService = llmCallService;
+    }
+
+    public LlmConflictDetector(ChatModel chatModel, String modelName, LlmCallService llmCallService) {
+        this(0.9, chatModel, modelName, llmCallService);
     }
 
     @Override
@@ -101,7 +105,7 @@ public class LlmConflictDetector implements ConflictDetector {
                 var conflicts = entry.contradictingAnchors().stream()
                         .map(anchorByText::get)
                         .filter(Objects::nonNull)
-                        .map(anchor -> new Conflict(anchor, entry.candidate(), LLM_CONFLICT_CONFIDENCE,
+                        .map(anchor -> new Conflict(anchor, entry.candidate(), llmConfidence,
                                 "batch LLM conflict"))
                         .toList();
                 result.put(entry.candidate(), conflicts);
@@ -135,7 +139,7 @@ public class LlmConflictDetector implements ConflictDetector {
             var contradicts = node.path("contradicts").asBoolean(false);
             var explanation = node.path("explanation").asText("LLM-detected contradiction");
             if (contradicts) {
-                return new Conflict(anchor, incomingText, LLM_CONFLICT_CONFIDENCE, explanation);
+                return new Conflict(anchor, incomingText, llmConfidence, explanation);
             }
             return null;
         } catch (Exception e) {
@@ -144,7 +148,7 @@ public class LlmConflictDetector implements ConflictDetector {
                     raw != null ? raw.substring(0, Math.min(200, raw.length())) : "<null>",
                     e.getMessage());
             if (raw != null && raw.toLowerCase().contains("true")) {
-                return new Conflict(anchor, incomingText, LLM_CONFLICT_CONFIDENCE,
+                return new Conflict(anchor, incomingText, llmConfidence,
                                     "LLM indicated contradiction (fallback parse)");
             }
             return null;

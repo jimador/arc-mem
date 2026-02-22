@@ -48,7 +48,7 @@ class SimulationTurnExecutorParallelTest {
                 null, null, null,
                 new DiceAnchorsProperties.SimConfig("gpt-4.1-mini", 30, 30, 10, parallelPostResponse),
                 null, null,
-                new DiceAnchorsProperties.AssemblyConfig(0));
+                new DiceAnchorsProperties.AssemblyConfig(0), null);
         return new SimulationTurnExecutor(
                 chatModel,
                 anchorEngine,

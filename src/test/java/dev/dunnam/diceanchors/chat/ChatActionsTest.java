@@ -177,7 +177,8 @@ class ChatActionsTest {
                 new DiceAnchorsProperties.SimConfig("gpt-4.1-mini", 30, 30, 10, true),
                 new DiceAnchorsProperties.ConflictDetectionConfig("llm", "gpt-4o-nano"),
                 new DiceAnchorsProperties.RunHistoryConfig("memory"),
-                new DiceAnchorsProperties.AssemblyConfig(0)
+                new DiceAnchorsProperties.AssemblyConfig(0),
+                null
         );
     }
 }

@@ -20,6 +20,16 @@ public class NegationConflictDetector implements ConflictDetector {
             "didn't", "don't", "neither", "nor", "false"
     );
 
+    private final double overlapThreshold;
+
+    public NegationConflictDetector(double overlapThreshold) {
+        this.overlapThreshold = overlapThreshold;
+    }
+
+    public NegationConflictDetector() {
+        this(0.5);
+    }
+
     @Override
     public List<Conflict> detect(String incomingText, List<Anchor> existingAnchors) {
         var conflicts = new ArrayList<Conflict>();
@@ -32,7 +42,7 @@ public class NegationConflictDetector implements ConflictDetector {
 
             if (incomingHasNegation != anchorHasNegation) {
                 var overlap = calculateOverlap(incomingLower, anchorLower);
-                if (overlap > 0.5) {
+                if (overlap > this.overlapThreshold) {
                     conflicts.add(new Conflict(
                             anchor,
                             incomingText,

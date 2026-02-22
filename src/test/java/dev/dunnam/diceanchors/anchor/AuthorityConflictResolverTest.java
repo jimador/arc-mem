@@ -1,5 +1,6 @@
 package dev.dunnam.diceanchors.anchor;
 
+import dev.dunnam.diceanchors.DiceAnchorsProperties.TierModifierConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -141,6 +142,80 @@ class AuthorityConflictResolverTest {
                     "Any counter", 0.3, "negation"
             );
             assertThat(resolver.resolve(conflict)).isEqualTo(ConflictResolver.Resolution.REPLACE);
+        }
+    }
+
+    @Nested
+    @DisplayName("Tier-aware resolution")
+    class TierAwareResolution {
+
+        private final TierModifierConfig tierModifiers = new TierModifierConfig(0.1, 0.0, -0.1);
+        private final AuthorityConflictResolver tierResolver = new AuthorityConflictResolver(0.8, 0.6, tierModifiers);
+
+        @Test
+        @DisplayName("HOT anchor raises effective threshold making 0.85 insufficient for REPLACE")
+        void hotAnchorHarderToReplace() {
+            var anchor = new Anchor("1", "Hot reliable fact", 700, Authority.RELIABLE, false, 0.9, 3,
+                    null, 0.0, 1.0, MemoryTier.HOT);
+            var conflict = new ConflictDetector.Conflict(anchor, "High-confidence counter", 0.85, "negation");
+
+            // effective replace = 0.8 + 0.1 = 0.9; 0.85 < 0.9 -> DEMOTE_EXISTING
+            assertThat(tierResolver.resolve(conflict)).isEqualTo(ConflictResolver.Resolution.DEMOTE_EXISTING);
+        }
+
+        @Test
+        @DisplayName("COLD anchor lowers effective threshold making 0.75 sufficient for REPLACE")
+        void coldAnchorEasierToReplace() {
+            var anchor = new Anchor("1", "Cold reliable fact", 700, Authority.RELIABLE, false, 0.9, 3,
+                    null, 0.0, 1.0, MemoryTier.COLD);
+            var conflict = new ConflictDetector.Conflict(anchor, "Moderate counter", 0.75, "negation");
+
+            // effective replace = 0.8 + (-0.1) = 0.7; 0.75 >= 0.7 -> REPLACE
+            assertThat(tierResolver.resolve(conflict)).isEqualTo(ConflictResolver.Resolution.REPLACE);
+        }
+
+        @Test
+        @DisplayName("WARM anchor at baseline threshold behaves like default resolver")
+        void warmAnchorAtBaseline() {
+            var anchor = new Anchor("1", "Warm reliable fact", 700, Authority.RELIABLE, false, 0.9, 3,
+                    null, 0.0, 1.0, MemoryTier.WARM);
+            var conflict = new ConflictDetector.Conflict(anchor, "High-confidence counter", 0.85, "negation");
+
+            // effective replace = 0.8 + 0.0 = 0.8; 0.85 >= 0.8 -> REPLACE
+            assertThat(tierResolver.resolve(conflict)).isEqualTo(ConflictResolver.Resolution.REPLACE);
+        }
+
+        @Test
+        @DisplayName("CANON anchor is immune regardless of tier")
+        void canonImmuneRegardlessOfTier() {
+            var anchor = new Anchor("1", "Canon cold fact", 850, Authority.CANON, true, 0.99, 5,
+                    null, 0.0, 1.0, MemoryTier.COLD);
+            var conflict = new ConflictDetector.Conflict(anchor, "Very high counter", 0.95, "negation");
+
+            assertThat(tierResolver.resolve(conflict)).isEqualTo(ConflictResolver.Resolution.KEEP_EXISTING);
+        }
+    }
+
+    @Nested
+    @DisplayName("confidenceBand")
+    class ConfidenceBand {
+
+        @Test
+        @DisplayName("returns LOW for confidence below 0.4")
+        void lowBand() {
+            assertThat(AuthorityConflictResolver.confidenceBand(0.3)).isEqualTo("LOW");
+        }
+
+        @Test
+        @DisplayName("returns MEDIUM for confidence in [0.4, 0.8]")
+        void mediumBand() {
+            assertThat(AuthorityConflictResolver.confidenceBand(0.6)).isEqualTo("MEDIUM");
+        }
+
+        @Test
+        @DisplayName("returns HIGH for confidence above 0.8")
+        void highBand() {
+            assertThat(AuthorityConflictResolver.confidenceBand(0.9)).isEqualTo("HIGH");
         }
     }
 }

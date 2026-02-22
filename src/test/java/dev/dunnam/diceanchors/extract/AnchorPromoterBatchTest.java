@@ -61,7 +61,7 @@ class AnchorPromoterBatchTest {
                 "gpt-4.1-mini", 30, 30, BATCH_MAX_SIZE, true);
         var properties = new DiceAnchorsProperties(
                 anchorConfig, null, null, null, simConfig, null, null,
-                new DiceAnchorsProperties.AssemblyConfig(0));
+                new DiceAnchorsProperties.AssemblyConfig(0), null);
         promoter = new AnchorPromoter(engine, properties, trustPipeline, repository, duplicateDetector);
     }
 

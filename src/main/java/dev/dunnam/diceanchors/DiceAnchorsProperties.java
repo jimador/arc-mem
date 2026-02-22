@@ -14,7 +14,8 @@ public record DiceAnchorsProperties(
         @NestedConfigurationProperty SimConfig sim,
         @NestedConfigurationProperty ConflictDetectionConfig conflictDetection,
         @NestedConfigurationProperty RunHistoryConfig runHistory,
-        @NestedConfigurationProperty AssemblyConfig assembly
+        @NestedConfigurationProperty AssemblyConfig assembly,
+        @NestedConfigurationProperty ConflictConfig conflict
 ) {
 
     public record AnchorConfig(
@@ -82,5 +83,19 @@ public record DiceAnchorsProperties(
 
     public record RunHistoryConfig(
             @DefaultValue("memory") String store
+    ) {}
+
+    public record ConflictConfig(
+            @DefaultValue("0.5") double negationOverlapThreshold,
+            @DefaultValue("0.9") double llmConfidence,
+            @DefaultValue("0.8") double replaceThreshold,
+            @DefaultValue("0.6") double demoteThreshold,
+            @NestedConfigurationProperty TierModifierConfig tier
+    ) {}
+
+    public record TierModifierConfig(
+            @DefaultValue("0.1") double hotDefenseModifier,
+            @DefaultValue("0.0") double warmDefenseModifier,
+            @DefaultValue("-0.1") double coldDefenseModifier
     ) {}
 }

@@ -12,6 +12,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class AnchorConfigurationValidationTest {
 
     private AnchorConfiguration configuration(DiceAnchorsProperties.AnchorConfig anchorConfig) {
+        return configurationWithConflict(anchorConfig, null);
+    }
+
+    private AnchorConfiguration configurationWithConflict(DiceAnchorsProperties.AnchorConfig anchorConfig,
+                                                          DiceAnchorsProperties.ConflictConfig conflictConfig) {
         var properties = new DiceAnchorsProperties(
                 anchorConfig,
                 new DiceAnchorsProperties.ChatConfig("dm", 200, null),
@@ -20,7 +25,8 @@ class AnchorConfigurationValidationTest {
                 new DiceAnchorsProperties.SimConfig("gpt-4.1-mini", 30, 30, 10, true),
                 new DiceAnchorsProperties.ConflictDetectionConfig("llm", "gpt-4o-nano"),
                 new DiceAnchorsProperties.RunHistoryConfig("memory"),
-                new DiceAnchorsProperties.AssemblyConfig(0));
+                new DiceAnchorsProperties.AssemblyConfig(0),
+                conflictConfig);
         return new AnchorConfiguration(properties);
     }
 
@@ -100,6 +106,55 @@ class AnchorConfigurationValidationTest {
         @DisplayName("valid configuration passes without exception")
         void validConfigPasses() {
             var anchorConfiguration = configuration(validConfig());
+
+            assertThatNoException().isThrownBy(anchorConfiguration::validateConfiguration);
+        }
+    }
+
+    @Nested
+    @DisplayName("conflict config validation")
+    class ConflictConfigValidation {
+
+        @Test
+        @DisplayName("negation overlap threshold of 0.0 rejects startup")
+        void invalidNegationThresholdRejectsStartup() {
+            var conflictConfig = new DiceAnchorsProperties.ConflictConfig(0.0, 0.9, 0.8, 0.6, null);
+            var anchorConfiguration = configurationWithConflict(validConfig(), conflictConfig);
+
+            assertThatThrownBy(anchorConfiguration::validateConfiguration)
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("negation-overlap-threshold");
+        }
+
+        @Test
+        @DisplayName("replace threshold <= demote threshold rejects startup")
+        void invertedReplaceAndDemoteThresholdsRejected() {
+            var conflictConfig = new DiceAnchorsProperties.ConflictConfig(0.5, 0.9, 0.5, 0.7, null);
+            var anchorConfiguration = configurationWithConflict(validConfig(), conflictConfig);
+
+            assertThatThrownBy(anchorConfiguration::validateConfiguration)
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("replace-threshold");
+        }
+
+        @Test
+        @DisplayName("tier modifier outside [-0.5, 0.5] rejects startup")
+        void invalidTierModifierRejected() {
+            var tierMod = new DiceAnchorsProperties.TierModifierConfig(0.6, 0.0, -0.1);
+            var conflictConfig = new DiceAnchorsProperties.ConflictConfig(0.5, 0.9, 0.8, 0.6, tierMod);
+            var anchorConfiguration = configurationWithConflict(validConfig(), conflictConfig);
+
+            assertThatThrownBy(anchorConfiguration::validateConfiguration)
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("hot-defense-modifier");
+        }
+
+        @Test
+        @DisplayName("valid conflict config passes validation")
+        void validConflictConfigPassesValidation() {
+            var tierMod = new DiceAnchorsProperties.TierModifierConfig(0.1, 0.0, -0.1);
+            var conflictConfig = new DiceAnchorsProperties.ConflictConfig(0.5, 0.9, 0.8, 0.6, tierMod);
+            var anchorConfiguration = configurationWithConflict(validConfig(), conflictConfig);
 
             assertThatNoException().isThrownBy(anchorConfiguration::validateConfiguration);
         }

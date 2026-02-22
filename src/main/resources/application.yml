@@ -73,6 +73,16 @@ dice-anchors:
   run-history:
     store: memory
 
+  conflict:
+    negation-overlap-threshold: 0.5
+    llm-confidence: 0.9
+    replace-threshold: 0.8
+    demote-threshold: 0.6
+    tier:
+      hot-defense-modifier: 0.1
+      warm-defense-modifier: 0.0
+      cold-defense-modifier: -0.1
+
 spring:
   ai:
     openai:

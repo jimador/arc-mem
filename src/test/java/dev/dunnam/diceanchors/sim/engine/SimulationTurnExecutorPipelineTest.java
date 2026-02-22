@@ -42,7 +42,7 @@ class SimulationTurnExecutorPipelineTest {
         var properties = new DiceAnchorsProperties(
                 new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200, null),
                 null, null, null, null, null, null,
-                new DiceAnchorsProperties.AssemblyConfig(0));
+                new DiceAnchorsProperties.AssemblyConfig(0), null);
         var executor = new SimulationTurnExecutor(
                 chatModel,
                 anchorEngine,
@@ -103,7 +103,7 @@ class SimulationTurnExecutorPipelineTest {
         var properties = new DiceAnchorsProperties(
                 new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200, null),
                 null, null, null, null, null, null,
-                new DiceAnchorsProperties.AssemblyConfig(0));
+                new DiceAnchorsProperties.AssemblyConfig(0), null);
         var executor = new SimulationTurnExecutor(
                 chatModel,
                 anchorEngine,
@@ -163,7 +163,7 @@ class SimulationTurnExecutorPipelineTest {
         var properties = new DiceAnchorsProperties(
                 new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200, null),
                 null, null, null, null, null, null,
-                new DiceAnchorsProperties.AssemblyConfig(0));
+                new DiceAnchorsProperties.AssemblyConfig(0), null);
         var executor = new SimulationTurnExecutor(
                 chatModel,
                 anchorEngine,
@@ -214,7 +214,7 @@ class SimulationTurnExecutorPipelineTest {
         var properties = new DiceAnchorsProperties(
                 new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200, null),
                 null, null, null, null, null, null,
-                new DiceAnchorsProperties.AssemblyConfig(0));
+                new DiceAnchorsProperties.AssemblyConfig(0), null);
         var executor = new SimulationTurnExecutor(
                 chatModel,
                 anchorEngine,

@@ -61,29 +61,55 @@ public class AnchorConfiguration {
             if (tier.coldDecayMultiplier() <= 0)
                 throw new IllegalStateException("dice-anchors.anchor.tier.coldDecayMultiplier must be > 0, got: " + tier.coldDecayMultiplier());
         }
+
+        var conflict = properties.conflict();
+        if (conflict != null) {
+            if (conflict.negationOverlapThreshold() <= 0.0 || conflict.negationOverlapThreshold() > 1.0)
+                throw new IllegalStateException("dice-anchors.conflict.negation-overlap-threshold must be in (0.0, 1.0], got: " + conflict.negationOverlapThreshold());
+            if (conflict.llmConfidence() <= 0.0 || conflict.llmConfidence() > 1.0)
+                throw new IllegalStateException("dice-anchors.conflict.llm-confidence must be in (0.0, 1.0], got: " + conflict.llmConfidence());
+            if (conflict.replaceThreshold() <= 0.0 || conflict.replaceThreshold() > 1.0)
+                throw new IllegalStateException("dice-anchors.conflict.replace-threshold must be in (0.0, 1.0], got: " + conflict.replaceThreshold());
+            if (conflict.demoteThreshold() <= 0.0 || conflict.demoteThreshold() > 1.0)
+                throw new IllegalStateException("dice-anchors.conflict.demote-threshold must be in (0.0, 1.0], got: " + conflict.demoteThreshold());
+            if (conflict.replaceThreshold() <= conflict.demoteThreshold())
+                throw new IllegalStateException("dice-anchors.conflict.replace-threshold must be > demote-threshold, got replace=" + conflict.replaceThreshold() + " demote=" + conflict.demoteThreshold());
+            var tierMod = conflict.tier();
+            if (tierMod != null) {
+                if (tierMod.hotDefenseModifier() < -0.5 || tierMod.hotDefenseModifier() > 0.5)
+                    throw new IllegalStateException("dice-anchors.conflict.tier.hot-defense-modifier must be in [-0.5, 0.5], got: " + tierMod.hotDefenseModifier());
+                if (tierMod.warmDefenseModifier() < -0.5 || tierMod.warmDefenseModifier() > 0.5)
+                    throw new IllegalStateException("dice-anchors.conflict.tier.warm-defense-modifier must be in [-0.5, 0.5], got: " + tierMod.warmDefenseModifier());
+                if (tierMod.coldDefenseModifier() < -0.5 || tierMod.coldDefenseModifier() > 0.5)
+                    throw new IllegalStateException("dice-anchors.conflict.tier.cold-defense-modifier must be in [-0.5, 0.5], got: " + tierMod.coldDefenseModifier());
+            }
+        }
     }
 
     @Bean
     ConflictDetector conflictDetector(ChatModel chatModel, LlmCallService llmCallService) {
         var strategyName = properties.conflictDetection().strategy();
+        var conflict = properties.conflict();
+        var overlapThreshold = conflict != null ? conflict.negationOverlapThreshold() : 0.5;
+        var llmConfidence = conflict != null ? conflict.llmConfidence() : 0.9;
         return switch (strategyName.toLowerCase()) {
             case "lexical" -> {
-                logger.info("Using lexical-only conflict detection");
-                yield new NegationConflictDetector();
+                logger.info("Using lexical-only conflict detection (overlap threshold: {})", overlapThreshold);
+                yield new NegationConflictDetector(overlapThreshold);
             }
             case "hybrid" -> {
                 logger.info("Using hybrid conflict detection (lexical + semantic with subject filter)");
                 yield new CompositeConflictDetector(
-                        new NegationConflictDetector(),
-                        new LlmConflictDetector(chatModel, properties.conflictDetection().model(),
+                        new NegationConflictDetector(overlapThreshold),
+                        new LlmConflictDetector(llmConfidence, chatModel, properties.conflictDetection().model(),
                                 llmCallService),
                         new SubjectFilter(),
                         ConflictDetectionStrategy.LEXICAL_THEN_SEMANTIC
                 );
             }
             default -> {
-                logger.info("Using LLM-based conflict detection");
-                yield new LlmConflictDetector(chatModel, properties.conflictDetection().model(),
+                logger.info("Using LLM-based conflict detection (confidence: {})", llmConfidence);
+                yield new LlmConflictDetector(llmConfidence, chatModel, properties.conflictDetection().model(),
                         llmCallService);
             }
         };
@@ -92,7 +118,15 @@ public class AnchorConfiguration {
     @Bean
     @ConditionalOnMissingBean
     ConflictResolver conflictResolver() {
-        return ConflictResolver.byAuthority();
+        var conflict = properties.conflict();
+        if (conflict != null) {
+            return new AuthorityConflictResolver(
+                    conflict.replaceThreshold(),
+                    conflict.demoteThreshold(),
+                    conflict.tier()
+            );
+        }
+        return new AuthorityConflictResolver();
     }
 
     @Bean

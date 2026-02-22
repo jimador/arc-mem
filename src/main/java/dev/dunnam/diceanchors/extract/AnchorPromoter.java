@@ -14,6 +14,7 @@ import dev.dunnam.diceanchors.anchor.TrustPipeline;
 import dev.dunnam.diceanchors.anchor.TrustScore;
 import dev.dunnam.diceanchors.anchor.event.ArchiveReason;
 import dev.dunnam.diceanchors.persistence.AnchorRepository;
+import io.opentelemetry.api.trace.Span;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -338,8 +339,14 @@ public class AnchorPromoter {
      * @return true if the incoming proposition should proceed to trust evaluation
      */
     private boolean resolveConflicts(Proposition prop, List<ConflictDetector.Conflict> conflicts) {
+        int resolvedCount = 0;
+        var outcomes = new ArrayList<String>();
+        boolean rejected = false;
+
         for (var conflict : conflicts) {
             var resolution = engine.resolveConflict(conflict);
+            resolvedCount++;
+            outcomes.add(resolution.name());
             logger.info("Conflict resolution for proposition {} vs anchor {}: {}",
                     prop.getId(), conflict.existing().id(), resolution);
 
@@ -349,7 +356,7 @@ public class AnchorPromoter {
                             conflict.existing().id(), prop.getId());
                     // Task 5.2: re-evaluate trust for surviving existing anchor
                     engine.reEvaluateTrust(conflict.existing().id());
-                    return false;
+                    rejected = true;
                 }
                 case REPLACE -> {
                     logger.info("Replacing anchor {} with proposition {}",
@@ -371,7 +378,18 @@ public class AnchorPromoter {
                     engine.reEvaluateTrust(conflict.existing().id());
                 }
             }
+
+            if (rejected) {
+                break;
+            }
         }
-        return true;
+
+        // Task 4.1: OTEL conflict span attributes
+        var span = Span.current();
+        span.setAttribute("conflict.detected_count", conflicts.size());
+        span.setAttribute("conflict.resolved_count", resolvedCount);
+        span.setAttribute("conflict.resolution_outcomes", String.join(",", outcomes));
+
+        return !rejected;
     }
 }
