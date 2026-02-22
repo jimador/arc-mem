@@ -91,7 +91,8 @@ public class PromptBudgetEnforcer {
             }
             var candidates = included.stream()
                     .filter(anchor -> anchor.authority() == authority)
-                    .sorted(Comparator.comparingDouble(Anchor::diceImportance)
+                    .sorted(Comparator.comparingInt((Anchor a) -> a.memoryTier().ordinal())
+                            .thenComparingDouble(Anchor::diceImportance)
                             .thenComparingInt(Anchor::rank))
                     .toList();
             for (var candidate : candidates) {

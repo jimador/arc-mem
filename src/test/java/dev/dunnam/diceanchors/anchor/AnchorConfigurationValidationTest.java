@@ -29,7 +29,7 @@ class AnchorConfigurationValidationTest {
                 20, 500, 100, 900, true, 0.65,
                 "FAST_THEN_LLM", "TIERED",
                 true, true, true,
-                0.6, 400, 200);
+                0.6, 400, 200, null);
     }
 
     @Nested
@@ -43,7 +43,7 @@ class AnchorConfigurationValidationTest {
                     0, 500, 100, 900, true, 0.65,
                     "FAST_THEN_LLM", "TIERED",
                     true, true, true,
-                    0.6, 400, 200);
+                    0.6, 400, 200, null);
             var anchorConfiguration = configuration(config);
 
             assertThatThrownBy(anchorConfiguration::validateConfiguration)
@@ -63,7 +63,7 @@ class AnchorConfigurationValidationTest {
                     20, 500, 900, 100, true, 0.65,
                     "FAST_THEN_LLM", "TIERED",
                     true, true, true,
-                    0.6, 400, 200);
+                    0.6, 400, 200, null);
             var anchorConfiguration = configuration(config);
 
             assertThatThrownBy(anchorConfiguration::validateConfiguration)
@@ -83,7 +83,7 @@ class AnchorConfigurationValidationTest {
                     20, 500, 100, 900, true, 1.5,
                     "FAST_THEN_LLM", "TIERED",
                     true, true, true,
-                    0.6, 400, 200);
+                    0.6, 400, 200, null);
             var anchorConfiguration = configuration(config);
 
             assertThatThrownBy(anchorConfiguration::validateConfiguration)

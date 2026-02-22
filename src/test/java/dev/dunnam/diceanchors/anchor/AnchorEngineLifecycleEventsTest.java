@@ -328,7 +328,8 @@ class AnchorEngineLifecycleEventsTest {
                 true,
                 0.6,
                 400,
-                200);
+                200,
+                null);
         return new DiceAnchorsProperties(
                 anchorConfig,
                 new DiceAnchorsProperties.ChatConfig("dm", 200, null),

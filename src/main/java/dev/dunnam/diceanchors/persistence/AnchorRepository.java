@@ -72,6 +72,9 @@ public class AnchorRepository implements PropositionRepository {
             clearAll();
         }
         normalizeLegacyAnchorStatuses();
+        migrateMemoryTiers(
+                properties.anchor().tier() != null ? properties.anchor().tier().hotThreshold() : 600,
+                properties.anchor().tier() != null ? properties.anchor().tier().warmThreshold() : 350);
         logger.info("Provisioning proposition vector index");
         createVectorIndex(PROPOSITION_VECTOR_INDEX, "Proposition");
     }
@@ -1137,23 +1140,30 @@ public class AnchorRepository implements PropositionRepository {
      */
     @Transactional
     public void promoteToAnchor(@NonNull String propositionId, int rank, @NonNull String authority) {
+        promoteToAnchor(propositionId, rank, authority, null);
+    }
+
+    @Transactional
+    public void promoteToAnchor(@NonNull String propositionId, int rank, @NonNull String authority,
+                                @Nullable String memoryTier) {
         int clamped = Math.max(100, Math.min(900, rank));
         var cypher = """
                 MATCH (p:Proposition {id: $id})
                 SET p.rank = $rank,
                     p.authority = $authority,
                     p.status = 'ACTIVE',
-                    p.lastReinforced = $now
+                    p.lastReinforced = $now,
+                    p.memoryTier = $memoryTier
                 """;
-        var params = Map.of(
-                "id", propositionId,
-                "rank", clamped,
-                "authority", authority,
-                "now", Instant.now().toString()
-        );
+        var params = new HashMap<String, Object>();
+        params.put("id", propositionId);
+        params.put("rank", clamped);
+        params.put("authority", authority);
+        params.put("now", Instant.now().toString());
+        params.put("memoryTier", memoryTier);
         try {
             persistenceManager.execute(QuerySpecification.withStatement(cypher).bind(params));
-            logger.debug("Promoted proposition {} to anchor with rank={} authority={}", propositionId, clamped, authority);
+            logger.debug("Promoted proposition {} to anchor with rank={} authority={} tier={}", propositionId, clamped, authority, memoryTier);
         } catch (Exception e) {
             logger.error("Failed to promote proposition {} to anchor: {}", propositionId, e.getMessage(), e);
         }
@@ -1448,6 +1458,64 @@ public class AnchorRepository implements PropositionRepository {
      * A proposition with its similarity score from a semantic search.
      */
     public record ScoredProposition(String id, String text, double confidence, String status, double score) {}
+
+    /**
+     * Update the memory tier of an anchor.
+     *
+     * @param id         the proposition ID
+     * @param memoryTier the tier name (HOT, WARM, COLD)
+     */
+    @Transactional
+    public void updateMemoryTier(@NonNull String id, @NonNull String memoryTier) {
+        var cypher = """
+                MATCH (p:Proposition {id: $id})
+                SET p.memoryTier = $memoryTier
+                """;
+        var params = Map.of("id", id, "memoryTier", memoryTier);
+        try {
+            persistenceManager.execute(QuerySpecification.withStatement(cypher).bind(params));
+            logger.debug("Updated memory tier for proposition {} to {}", id, memoryTier);
+        } catch (Exception e) {
+            logger.error("Failed to update memory tier for proposition {}: {}", id, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Migrate legacy anchors that lack a memoryTier property.
+     * Computes tier from rank using the given thresholds.
+     *
+     * @param hotThreshold  rank >= this → HOT
+     * @param warmThreshold rank >= this (and < hotThreshold) → WARM; below → COLD
+     * @return number of anchors migrated
+     */
+    @Transactional
+    public int migrateMemoryTiers(int hotThreshold, int warmThreshold) {
+        var cypher = """
+                MATCH (p:Proposition)
+                WHERE p.rank > 0
+                  AND coalesce(p.status, 'ACTIVE') IN ['ACTIVE', 'PROMOTED']
+                  AND p.memoryTier IS NULL
+                SET p.memoryTier = CASE
+                    WHEN p.rank >= $hotThreshold THEN 'HOT'
+                    WHEN p.rank >= $warmThreshold THEN 'WARM'
+                    ELSE 'COLD'
+                END
+                RETURN count(p) AS migrated
+                """;
+        var params = Map.of("hotThreshold", hotThreshold, "warmThreshold", warmThreshold);
+        try {
+            var spec = QuerySpecification.withStatement(cypher).bind(params).transform(Long.class);
+            var migrated = persistenceManager.getOne(spec);
+            var count = migrated != null ? migrated.intValue() : 0;
+            if (count > 0) {
+                logger.info("Migrated memoryTier for {} legacy anchors", count);
+            }
+            return count;
+        } catch (Exception e) {
+            logger.warn("Failed to migrate memory tiers: {}", e.getMessage());
+            return 0;
+        }
+    }
 
     /**
      * Update the pinned status of an anchor.

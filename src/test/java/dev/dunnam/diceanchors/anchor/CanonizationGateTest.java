@@ -201,7 +201,7 @@ class CanonizationGateTest {
                 20, 500, 100, 900, true, 0.65,
                 "FAST_THEN_LLM", "TIERED",
                 true, gateEnabled, autoApproveInSim,
-                0.6, 400, 200);
+                0.6, 400, 200, null);
         return new DiceAnchorsProperties(
                 anchorConfig,
                 new DiceAnchorsProperties.ChatConfig("dm", 200, null),

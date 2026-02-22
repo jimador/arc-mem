@@ -53,9 +53,9 @@ class ExponentialDecayPolicyTest {
             // diceDecay=1.0 standard: effectiveHalfLife = 24h
             // At 48h: standard loses 75%, permanent loses a tiny fraction
             var permanentAnchor = new Anchor("1", "test", 500, Authority.RELIABLE, false, 0.9, 0,
-                    null, 0.0, 0.0);
+                    null, 0.0, 0.0, MemoryTier.WARM);
             var standardAnchor = new Anchor("2", "test", 500, Authority.RELIABLE, false, 0.9, 0,
-                    null, 0.0, 1.0);
+                    null, 0.0, 1.0, MemoryTier.WARM);
             var standardPolicy = DecayPolicy.exponential(24.0);
             var permanentDecayed = standardPolicy.applyDecay(permanentAnchor, 48);
             var standardDecayed = standardPolicy.applyDecay(standardAnchor, 48);
@@ -69,7 +69,7 @@ class ExponentialDecayPolicyTest {
         @DisplayName("diceDecay=1.0 (standard) applies normal half-life at 24h")
         void standardDecayHalfLifeAt24h() {
             var standardAnchor = new Anchor("1", "test", 500, Authority.RELIABLE, false, 0.9, 0,
-                    null, 0.0, 1.0);
+                    null, 0.0, 1.0, MemoryTier.WARM);
             var standardPolicy = DecayPolicy.exponential(24.0);
             var decayed = standardPolicy.applyDecay(standardAnchor, 24);
             // 500 * 0.5^(24/24) = 500 * 0.5 = 250
@@ -80,9 +80,9 @@ class ExponentialDecayPolicyTest {
         @DisplayName("diceDecay=2.0 (ephemeral) decays faster than diceDecay=1.0 in same elapsed time")
         void ephemeralDecayFasterThanStandard() {
             var standardAnchor = new Anchor("1", "test", 500, Authority.RELIABLE, false, 0.9, 0,
-                    null, 0.0, 1.0);
+                    null, 0.0, 1.0, MemoryTier.WARM);
             var ephemeralAnchor = new Anchor("2", "test", 500, Authority.RELIABLE, false, 0.9, 0,
-                    null, 0.0, 2.0);
+                    null, 0.0, 2.0, MemoryTier.WARM);
             var standardPolicy = DecayPolicy.exponential(24.0);
 
             var standardDecayed = standardPolicy.applyDecay(standardAnchor, 12);
@@ -101,7 +101,7 @@ class ExponentialDecayPolicyTest {
                         20, 500, 100, 900, true, 0.65,
                         "FAST_THEN_LLM", "TIERED",
                         true, true, true,
-                        0.6, 400, 200); // reliableRankThreshold=400, unreliableRankThreshold=200
+                        0.6, 400, 200, null);
 
         private final DecayPolicy policyWithThresholds = DecayPolicy.exponential(24.0, anchorConfig);
 

@@ -83,7 +83,8 @@ public record Anchor(
         int reinforcementCount,
         @Nullable TrustScore trustScore,
         double diceImportance,
-        double diceDecay
+        double diceDecay,
+        MemoryTier memoryTier
 ) {
     public static final int MIN_RANK = 100;
     public static final int MAX_RANK = 900;
@@ -93,17 +94,18 @@ public record Anchor(
     }
 
     /**
-     * Creates an Anchor without a trust score, using default DICE field values.
+     * Creates an Anchor without a trust score, using default DICE field values and WARM tier.
      * <p>
      * {@code diceImportance} defaults to 0.0 (no priority effect).
      * {@code diceDecay} defaults to 1.0 (standard decay rate, backward-compatible).
+     * {@code memoryTier} defaults to {@link MemoryTier#WARM} (baseline tier).
      * <p>
      * Use this factory to minimize churn in code that does not participate
-     * in trust evaluation or DICE field population.
+     * in trust evaluation, DICE field population, or tier management.
      */
     public static Anchor withoutTrust(String id, String text, int rank, Authority authority,
                                       boolean pinned, double confidence, int reinforcementCount) {
         return new Anchor(id, text, rank, authority, pinned, confidence, reinforcementCount,
-                null, 0.0, 1.0);
+                null, 0.0, 1.0, MemoryTier.WARM);
     }
 }

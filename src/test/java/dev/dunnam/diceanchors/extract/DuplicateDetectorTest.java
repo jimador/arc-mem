@@ -34,7 +34,7 @@ class DuplicateDetectorTest {
     private final NormalizedStringDuplicateDetector fastDetector = new NormalizedStringDuplicateDetector();
 
     private DuplicateDetector detectorWithStrategy(String strategy) {
-        var anchorConfig = new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, strategy, "TIERED", true, true, true, 0.6, 400, 200);
+        var anchorConfig = new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, strategy, "TIERED", true, true, true, 0.6, 400, 200, null);
         var properties = new DiceAnchorsProperties(anchorConfig, null, null, null, null, null, null, new DiceAnchorsProperties.AssemblyConfig(0));
         return new DuplicateDetector(chatModel, engine, fastDetector, properties, llmCallService);
     }

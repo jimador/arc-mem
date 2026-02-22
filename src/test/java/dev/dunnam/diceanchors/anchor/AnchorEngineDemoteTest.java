@@ -178,7 +178,7 @@ class AnchorEngineDemoteTest {
                 lifecycleEventsEnabled,
                 canonizationGateEnabled,
                 true,
-                0.6, 400, 200);
+                0.6, 400, 200, null);
         return new DiceAnchorsProperties(
                 anchorConfig,
                 new DiceAnchorsProperties.ChatConfig("dm", 200, null),

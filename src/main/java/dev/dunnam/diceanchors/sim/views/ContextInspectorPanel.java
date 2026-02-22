@@ -12,6 +12,7 @@ import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
 import dev.dunnam.diceanchors.anchor.Anchor;
+import dev.dunnam.diceanchors.anchor.MemoryTier;
 import dev.dunnam.diceanchors.anchor.TrustScore;
 import dev.dunnam.diceanchors.assembly.CompactionLossEvent;
 import dev.dunnam.diceanchors.sim.engine.ContextTrace;
@@ -379,14 +380,15 @@ public class ContextInspectorPanel extends VerticalLayout implements SimulationP
         header.setWidthFull();
 
         var authorityBadge = authorityBadge(anchor.authority().name());
+        var tierBadge = tierBadge(anchor.memoryTier());
         var textSpan = new Span(anchor.text());
 
         if (anchor.pinned()) {
             var pinnedIcon = new Span("pinned");
             pinnedIcon.addClassName("ar-pinned-icon");
-            header.add(authorityBadge, textSpan, pinnedIcon);
+            header.add(authorityBadge, tierBadge, textSpan, pinnedIcon);
         } else {
-            header.add(authorityBadge, textSpan);
+            header.add(authorityBadge, tierBadge, textSpan);
         }
         header.expand(textSpan);
 
@@ -523,6 +525,18 @@ public class ContextInspectorPanel extends VerticalLayout implements SimulationP
         var badge = new Span(authority);
         badge.addClassName("ar-badge");
         badge.getElement().setAttribute("data-authority", authority.toLowerCase());
+        return badge;
+    }
+
+    private Span tierBadge(MemoryTier tier) {
+        var badge = new Span(tier.name());
+        badge.getElement().getThemeList().add("badge");
+        badge.getElement().getThemeList().add("small");
+        switch (tier) {
+            case HOT -> badge.getElement().getThemeList().add("error");
+            case WARM -> badge.getElement().getThemeList().add("contrast");
+            case COLD -> badge.getElement().getThemeList().add("primary");
+        }
         return badge;
     }
 

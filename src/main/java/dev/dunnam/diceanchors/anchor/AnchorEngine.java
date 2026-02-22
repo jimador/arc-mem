@@ -4,6 +4,7 @@ import dev.dunnam.diceanchors.DiceAnchorsProperties;
 import dev.dunnam.diceanchors.anchor.event.AnchorLifecycleEvent;
 import dev.dunnam.diceanchors.anchor.event.ArchiveReason;
 import dev.dunnam.diceanchors.persistence.AnchorRepository;
+import io.opentelemetry.api.trace.Span;
 import dev.dunnam.diceanchors.persistence.PropositionNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -170,7 +171,8 @@ public class AnchorEngine {
      */
     public void promote(String propositionId, int initialRank, Authority authorityCeiling) {
         int rank = Anchor.clampRank(initialRank);
-        repository.promoteToAnchor(propositionId, rank, Authority.PROVISIONAL.name());
+        var tier = computeTier(rank);
+        repository.promoteToAnchor(propositionId, rank, Authority.PROVISIONAL.name(), tier.name());
 
         if (authorityCeiling != null && authorityCeiling != Authority.CANON) {
             logger.debug("Promoting proposition {} with authority ceiling {}", propositionId, authorityCeiling);
@@ -219,8 +221,10 @@ public class AnchorEngine {
         }
         var node = nodeOpt.get();
         var current = toAnchor(node);
+        var previousTier = current.memoryTier();
         int boost = reinforcementPolicy.calculateRankBoost(current);
         int newRank = Anchor.clampRank(current.rank() + boost);
+        var newTier = computeTier(newRank);
 
         if (reinforcementPolicy.shouldUpgradeAuthority(current)) {
             // Task 5.2: re-evaluate trust before authority upgrade at milestone
@@ -236,6 +240,7 @@ public class AnchorEngine {
             var upgraded = nextAuthority(postTrustCurrent.authority());
             repository.setAuthority(anchorId, upgraded.name());
             repository.updateRank(anchorId, newRank);
+            updateTierIfChanged(anchorId, previousTier, newTier, postTrustNode.getContextId());
             publish(AnchorLifecycleEvent.authorityChanged(
                     this, postTrustNode.getContextId(),
                     anchorId, postTrustCurrent.authority(), upgraded,
@@ -248,6 +253,7 @@ public class AnchorEngine {
                     anchorId, current.rank(), newRank, postTrustCurrent.authority(), upgraded);
         } else {
             repository.updateRank(anchorId, newRank);
+            updateTierIfChanged(anchorId, previousTier, newTier, node.getContextId());
             publish(AnchorLifecycleEvent.reinforced(
                     this, node.getContextId(),
                     anchorId, current.rank(), newRank,
@@ -344,7 +350,10 @@ public class AnchorEngine {
         if (clampedRank >= currentRank) {
             return;
         }
+        var previousTier = computeTier(currentRank);
+        var newTier = computeTier(clampedRank);
         repository.updateRank(anchorId, clampedRank);
+        updateTierIfChanged(anchorId, previousTier, newTier, node.getContextId());
         logger.debug("Decayed anchor {} rank {} -> {}", anchorId, currentRank, clampedRank);
 
         // Task 5.4: authority demotion when rank drops below authority threshold
@@ -557,11 +566,12 @@ public class AnchorEngine {
 
     /**
      * Convert a {@link PropositionNode} to the {@link Anchor} view record.
-     * Populates DICE fields ({@code diceImportance}, {@code diceDecay}) from the node.
+     * Populates DICE fields ({@code diceImportance}, {@code diceDecay}) and memory tier from the node.
      */
     Anchor toAnchor(PropositionNode node) {
         var authority = Authority.valueOf(
                 node.getAuthority() != null ? node.getAuthority() : Authority.PROVISIONAL.name());
+        var tier = computeTier(node.getRank());
         return new Anchor(
                 node.getId(),
                 node.getText(),
@@ -572,8 +582,41 @@ public class AnchorEngine {
                 node.getReinforcementCount(),
                 null,                   // trustScore: populated by TrustPipeline on demand
                 node.getImportance(),   // diceImportance from DICE proposition
-                node.getDecay()         // diceDecay from DICE proposition (default 1.0 = standard rate)
+                node.getDecay(),        // diceDecay from DICE proposition (default 1.0 = standard rate)
+                tier
         );
+    }
+
+    /**
+     * Compute the memory tier for a given rank using configured thresholds.
+     * Falls back to WARM if tier config is not set.
+     */
+    MemoryTier computeTier(int rank) {
+        var tierConfig = config.tier();
+        if (tierConfig == null) {
+            return MemoryTier.WARM;
+        }
+        return MemoryTier.fromRank(rank, tierConfig.hotThreshold(), tierConfig.warmThreshold());
+    }
+
+    /**
+     * Persist the tier change and publish a {@link AnchorLifecycleEvent.TierChanged} event
+     * if the tier actually changed. No-op when previousTier == newTier.
+     */
+    private void updateTierIfChanged(String anchorId, MemoryTier previousTier,
+                                      MemoryTier newTier, String contextId) {
+        if (previousTier == newTier) {
+            return;
+        }
+        repository.updateMemoryTier(anchorId, newTier.name());
+        publish(AnchorLifecycleEvent.tierChanged(this, contextId, anchorId, previousTier, newTier));
+
+        var span = Span.current();
+        span.setAttribute("anchor.id", anchorId);
+        span.setAttribute("anchor.tier", newTier.name());
+        span.setAttribute("anchor.tier.previous", previousTier.name());
+
+        logger.info("Anchor {} tier changed {} -> {}", anchorId, previousTier, newTier);
     }
 
     /**

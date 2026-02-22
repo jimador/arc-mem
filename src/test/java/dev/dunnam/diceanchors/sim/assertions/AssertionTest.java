@@ -2,6 +2,7 @@ package dev.dunnam.diceanchors.sim.assertions;
 
 import dev.dunnam.diceanchors.anchor.Anchor;
 import dev.dunnam.diceanchors.anchor.Authority;
+import dev.dunnam.diceanchors.anchor.MemoryTier;
 import dev.dunnam.diceanchors.anchor.PromotionZone;
 import dev.dunnam.diceanchors.anchor.TrustScore;
 import dev.dunnam.diceanchors.sim.engine.SimulationResult;
@@ -26,7 +27,7 @@ class AssertionTest {
     private static Anchor anchorWithTrust(String id, String text, int rank, Authority authority,
                                           double score, PromotionZone zone) {
         var trust = new TrustScore(score, Authority.RELIABLE, zone, Map.of(), Instant.now());
-        return new Anchor(id, text, rank, authority, false, 0.9, 0, trust, 0.0, 1.0);
+        return new Anchor(id, text, rank, authority, false, 0.9, 0, trust, 0.0, 1.0, MemoryTier.WARM);
     }
 
     private static SimulationResult result(List<Anchor> anchors) {

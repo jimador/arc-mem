@@ -34,6 +34,21 @@ public interface DecayPolicy {
     int applyDecay(Anchor anchor, long hoursSinceReinforcement);
 
     /**
+     * Calculate the new rank after applying tier-modulated decay.
+     * <p>
+     * The {@code tierMultiplier} scales the effective half-life: values &gt; 1.0 slow decay,
+     * values &lt; 1.0 accelerate it. Clamped to a minimum of 0.01 to prevent division by zero.
+     *
+     * @param anchor                  the anchor to decay; never null
+     * @param hoursSinceReinforcement hours elapsed since last reinforcement
+     * @param tierMultiplier          multiplier from the anchor's memory tier
+     * @return the new rank, clamped to [{@link Anchor#MIN_RANK}, {@link Anchor#MAX_RANK}]
+     */
+    default int applyDecay(Anchor anchor, long hoursSinceReinforcement, double tierMultiplier) {
+        return applyDecay(anchor, hoursSinceReinforcement);
+    }
+
+    /**
      * Returns {@code true} when the anchor's decayed rank should trigger an authority demotion.
      * CANON anchors are exempt from automatic decay-based demotion (invariant A3b).
      * PROVISIONAL has no lower threshold.
@@ -84,10 +99,15 @@ public interface DecayPolicy {
 
         @Override
         public int applyDecay(Anchor anchor, long hoursSinceReinforcement) {
+            return applyDecay(anchor, hoursSinceReinforcement, 1.0);
+        }
+
+        @Override
+        public int applyDecay(Anchor anchor, long hoursSinceReinforcement, double tierMultiplier) {
             if (anchor.pinned()) {
                 return anchor.rank();
             }
-            var effectiveHalfLife = halfLifeHours / Math.max(anchor.diceDecay(), 0.01);
+            var effectiveHalfLife = halfLifeHours / Math.max(anchor.diceDecay(), 0.01) * Math.max(tierMultiplier, 0.01);
             var decayFactor = Math.pow(0.5, hoursSinceReinforcement / effectiveHalfLife);
             return Anchor.clampRank((int) (anchor.rank() * decayFactor));
         }

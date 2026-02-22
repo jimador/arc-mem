@@ -45,6 +45,22 @@ public class AnchorConfiguration {
             throw new IllegalStateException("dice-anchors.anchor.demoteThreshold must be in [0.0, 1.0], got: " + anchor.demoteThreshold());
         if (assembly.promptTokenBudget() < 0)
             throw new IllegalStateException("dice-anchors.assembly.promptTokenBudget must be >= 0, got: " + assembly.promptTokenBudget());
+
+        var tier = anchor.tier();
+        if (tier != null) {
+            if (tier.hotThreshold() <= tier.warmThreshold())
+                throw new IllegalStateException("dice-anchors.anchor.tier.hotThreshold must be > warmThreshold, got hotThreshold=" + tier.hotThreshold() + " warmThreshold=" + tier.warmThreshold());
+            if (tier.warmThreshold() < 100 || tier.warmThreshold() > 900)
+                throw new IllegalStateException("dice-anchors.anchor.tier.warmThreshold must be in [100, 900], got: " + tier.warmThreshold());
+            if (tier.hotThreshold() < 100 || tier.hotThreshold() > 900)
+                throw new IllegalStateException("dice-anchors.anchor.tier.hotThreshold must be in [100, 900], got: " + tier.hotThreshold());
+            if (tier.hotDecayMultiplier() <= 0)
+                throw new IllegalStateException("dice-anchors.anchor.tier.hotDecayMultiplier must be > 0, got: " + tier.hotDecayMultiplier());
+            if (tier.warmDecayMultiplier() <= 0)
+                throw new IllegalStateException("dice-anchors.anchor.tier.warmDecayMultiplier must be > 0, got: " + tier.warmDecayMultiplier());
+            if (tier.coldDecayMultiplier() <= 0)
+                throw new IllegalStateException("dice-anchors.anchor.tier.coldDecayMultiplier must be > 0, got: " + tier.coldDecayMultiplier());
+        }
     }
 
     @Bean

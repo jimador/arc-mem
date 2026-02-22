@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.dunnam.diceanchors.DiceAnchorsProperties;
 import dev.dunnam.diceanchors.anchor.Anchor;
 import dev.dunnam.diceanchors.anchor.AnchorEngine;
+import dev.dunnam.diceanchors.anchor.MemoryTier;
 import dev.dunnam.diceanchors.anchor.event.ArchiveReason;
 import dev.dunnam.diceanchors.anchor.CompliancePolicy;
 import dev.dunnam.diceanchors.assembly.AnchorsLlmReference;
@@ -65,6 +66,7 @@ public class SimulationTurnExecutor {
     private final CompliancePolicy compliancePolicy;
     private final TokenCounter tokenCounter;
     private final SimulationExtractionService extractionService;
+    private final DiceAnchorsProperties.AnchorConfig anchorConfig;
     private final String driftEvalSystemPrompt;
 
     public SimulationTurnExecutor(
@@ -82,6 +84,7 @@ public class SimulationTurnExecutor {
         this.compliancePolicy = compliancePolicy;
         this.tokenCounter = tokenCounter;
         this.extractionService = extractionService;
+        this.anchorConfig = properties != null ? properties.anchor() : null;
         this.driftEvalSystemPrompt = PromptTemplates.load(PromptPathConstants.DRIFT_EVALUATION_SYSTEM);
     }
 
@@ -134,6 +137,15 @@ public class SimulationTurnExecutor {
                 contextId,
                 properties.anchor().budget());
         List<Anchor> anchors = anchorRef.getAnchors();
+
+        // Tier distribution
+        var hotCount = (int) anchors.stream().filter(a -> a.memoryTier() == MemoryTier.HOT).count();
+        var warmCount = (int) anchors.stream().filter(a -> a.memoryTier() == MemoryTier.WARM).count();
+        var coldCount = (int) anchors.stream().filter(a -> a.memoryTier() == MemoryTier.COLD).count();
+        currentSpan.setAttribute("anchor.tier.hot_count", hotCount);
+        currentSpan.setAttribute("anchor.tier.warm_count", warmCount);
+        currentSpan.setAttribute("anchor.tier.cold_count", coldCount);
+
         var anchorBlock = injectionEnabled ? anchorRef.getContent() : "";
         var propositionBlock = injectionEnabled ? propositionRef.getContent() : "";
         var injectedContextBlock = combineInjectedBlocks(anchorBlock, propositionBlock);
@@ -283,6 +295,15 @@ public class SimulationTurnExecutor {
                 contextId,
                 properties.anchor().budget());
         List<Anchor> anchors = anchorRef.getAnchors();
+
+        // Tier distribution
+        var hotCount = (int) anchors.stream().filter(a -> a.memoryTier() == MemoryTier.HOT).count();
+        var warmCount = (int) anchors.stream().filter(a -> a.memoryTier() == MemoryTier.WARM).count();
+        var coldCount = (int) anchors.stream().filter(a -> a.memoryTier() == MemoryTier.COLD).count();
+        currentSpan.setAttribute("anchor.tier.hot_count", hotCount);
+        currentSpan.setAttribute("anchor.tier.warm_count", warmCount);
+        currentSpan.setAttribute("anchor.tier.cold_count", coldCount);
+
         var anchorBlock = injectionEnabled ? anchorRef.getContent() : "";
         var propositionBlock = injectionEnabled ? propositionRef.getContent() : "";
         var injectedContextBlock = combineInjectedBlocks(anchorBlock, propositionBlock);
@@ -492,7 +513,8 @@ public class SimulationTurnExecutor {
                 originalTrace.fullUserPrompt(),
                 originalTrace.budgetApplied(), originalTrace.anchorsExcluded(),
                 extractionResult.extractedCount(), extractionResult.promotedCount(),
-                extractionResult.extractedTexts());
+                extractionResult.extractedTexts(),
+                originalTrace.hotCount(), originalTrace.warmCount(), originalTrace.coldCount());
         turn = new SimulationTurn(
                 turn.turnNumber(), turn.playerMessage(), turn.dmResponse(),
                 turn.turnType(), turn.attackStrategy(), enrichedTrace,
@@ -636,7 +658,8 @@ public class SimulationTurnExecutor {
                 continue;
             }
 
-            var decayedRank = decayedRank(anchor.rank(), decayRate);
+            var tierMultiplier = tierMultiplierFor(anchor.memoryTier());
+            var decayedRank = decayedRank(anchor.rank(), decayRate, tierMultiplier);
             if (decayedRank <= archiveThreshold) {
                 anchorEngine.archive(anchor.id(), ArchiveReason.DORMANCY_DECAY);
                 archivedIds.add(anchor.id());
@@ -656,9 +679,22 @@ public class SimulationTurnExecutor {
         dormancyState.keySet().removeIf(id -> !activeIds.contains(id));
     }
 
-    private int decayedRank(int currentRank, double decayRate) {
-        var reduction = Math.max(1, (int) Math.round(currentRank * decayRate));
+    private int decayedRank(int currentRank, double decayRate, double tierMultiplier) {
+        var effectiveRate = decayRate / Math.max(tierMultiplier, 0.01);
+        var reduction = Math.max(1, (int) Math.round(currentRank * effectiveRate));
         return Anchor.clampRank(currentRank - reduction);
+    }
+
+    private double tierMultiplierFor(MemoryTier tier) {
+        var tierConfig = anchorConfig.tier();
+        if (tierConfig == null) {
+            return 1.0;
+        }
+        return switch (tier) {
+            case HOT -> tierConfig.hotDecayMultiplier();
+            case WARM -> tierConfig.warmDecayMultiplier();
+            case COLD -> tierConfig.coldDecayMultiplier();
+        };
     }
 
     private int archiveThreshold(double revivalThreshold) {

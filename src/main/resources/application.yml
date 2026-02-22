@@ -26,6 +26,12 @@ dice-anchors:
     dedup-strategy: FAST_THEN_LLM
     compliance-policy: TIERED
     lifecycle-events-enabled: true
+    tier:
+      hot-threshold: 600
+      warm-threshold: 350
+      hot-decay-multiplier: 1.5
+      warm-decay-multiplier: 1.0
+      cold-decay-multiplier: 0.6
 
   assembly:
     prompt-token-budget: 0

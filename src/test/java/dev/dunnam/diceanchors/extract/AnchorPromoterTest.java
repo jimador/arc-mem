@@ -44,7 +44,7 @@ class AnchorPromoterTest {
 
     @BeforeEach
     void setUp() {
-        var anchorConfig = new DiceAnchorsProperties.AnchorConfig(20, INITIAL_RANK, 100, 900, true, THRESHOLD, "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200);
+        var anchorConfig = new DiceAnchorsProperties.AnchorConfig(20, INITIAL_RANK, 100, 900, true, THRESHOLD, "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200, null);
         var properties = new DiceAnchorsProperties(
                 anchorConfig, null, null, null, null, null, null, new DiceAnchorsProperties.AssemblyConfig(0)
         );

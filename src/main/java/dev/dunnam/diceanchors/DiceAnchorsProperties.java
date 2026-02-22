@@ -31,7 +31,16 @@ public record DiceAnchorsProperties(
             @DefaultValue("true") boolean autoApproveInSimulation,
             @DefaultValue("0.6") double demoteThreshold,
             @DefaultValue("400") int reliableRankThreshold,
-            @DefaultValue("200") int unreliableRankThreshold
+            @DefaultValue("200") int unreliableRankThreshold,
+            @NestedConfigurationProperty TierConfig tier
+    ) {}
+
+    public record TierConfig(
+            @DefaultValue("600") int hotThreshold,
+            @DefaultValue("350") int warmThreshold,
+            @DefaultValue("1.5") double hotDecayMultiplier,
+            @DefaultValue("1.0") double warmDecayMultiplier,
+            @DefaultValue("0.6") double coldDecayMultiplier
     ) {}
 
     public record AssemblyConfig(

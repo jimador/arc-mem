@@ -130,6 +130,12 @@ public class PropositionNode {
      */
     private double importance;
 
+    /**
+     * Memory tier classification: HOT, WARM, or COLD. Derived from rank using
+     * configurable thresholds. Default WARM for backward compatibility.
+     */
+    private @Nullable String memoryTier;
+
     @JsonCreator
     public PropositionNode(
             @JsonProperty("id") String id,
@@ -150,7 +156,8 @@ public class PropositionNode {
             @JsonProperty("decayType") @Nullable String decayType,
             @JsonProperty("lastReinforced") @Nullable Instant lastReinforced,
             @JsonProperty("reinforcementCount") int reinforcementCount,
-            @JsonProperty("importance") double importance) {
+            @JsonProperty("importance") double importance,
+            @JsonProperty("memoryTier") @Nullable String memoryTier) {
         this.id = id != null ? id : UUID.randomUUID().toString();
         this.contextId = contextId != null ? contextId : "default";
         this.text = text;
@@ -170,6 +177,7 @@ public class PropositionNode {
         this.lastReinforced = lastReinforced;
         this.reinforcementCount = reinforcementCount;
         this.importance = importance;
+        this.memoryTier = memoryTier;
     }
 
     /**
@@ -179,13 +187,13 @@ public class PropositionNode {
                            @Nullable String reasoning, List<String> grounding, Instant created, Instant revised,
                            PropositionStatus status, @Nullable String uri, List<String> sourceIds) {
         this(id, contextId, text, confidence, decay, reasoning, grounding, created, revised,
-             status, uri, sourceIds, 0, null, false, null, null, 0, 0.0);
+             status, uri, sourceIds, 0, null, false, null, null, 0, 0.0, null);
     }
 
     public PropositionNode(String text, double confidence) {
         this(UUID.randomUUID().toString(), "default", text, confidence, 0.0, null, List.of(),
              Instant.now(), Instant.now(), PropositionStatus.ACTIVE, null, List.of(),
-             0, null, false, null, null, 0, 0.0);
+             0, null, false, null, null, 0, 0.0, null);
     }
 
     // --- Standard proposition getters and setters ---
@@ -350,6 +358,14 @@ public class PropositionNode {
 
     public void setImportance(double importance) {
         this.importance = importance;
+    }
+
+    public @Nullable String getMemoryTier() {
+        return memoryTier;
+    }
+
+    public void setMemoryTier(@Nullable String memoryTier) {
+        this.memoryTier = memoryTier;
     }
 
     /**

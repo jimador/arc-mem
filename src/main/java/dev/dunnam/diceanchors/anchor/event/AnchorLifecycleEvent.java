@@ -3,6 +3,7 @@ package dev.dunnam.diceanchors.anchor.event;
 import dev.dunnam.diceanchors.anchor.Authority;
 import dev.dunnam.diceanchors.anchor.AuthorityChangeDirection;
 import dev.dunnam.diceanchors.anchor.ConflictResolver;
+import dev.dunnam.diceanchors.anchor.MemoryTier;
 import org.springframework.context.ApplicationEvent;
 
 import java.time.Instant;
@@ -24,6 +25,7 @@ import java.util.List;
  *   <li>{@link ConflictDetected} — incoming text conflicts with active anchors</li>
  *   <li>{@link ConflictResolved} — a conflict was resolved</li>
  *   <li>{@link AuthorityChanged} — an anchor's authority was promoted or demoted</li>
+ *   <li>{@link TierChanged} — an anchor's memory tier changed due to rank modification</li>
  * </ul>
  */
 public abstract sealed class AnchorLifecycleEvent extends ApplicationEvent
@@ -33,7 +35,8 @@ public abstract sealed class AnchorLifecycleEvent extends ApplicationEvent
                 AnchorLifecycleEvent.Evicted,
                 AnchorLifecycleEvent.ConflictDetected,
                 AnchorLifecycleEvent.ConflictResolved,
-                AnchorLifecycleEvent.AuthorityChanged {
+                AnchorLifecycleEvent.AuthorityChanged,
+                AnchorLifecycleEvent.TierChanged {
 
     private final String contextId;
     private final Instant occurredAt;
@@ -80,6 +83,12 @@ public abstract sealed class AnchorLifecycleEvent extends ApplicationEvent
                                                     String existingAnchorId,
                                                     ConflictResolver.Resolution resolution) {
         return new ConflictResolved(source, contextId, existingAnchorId, resolution);
+    }
+
+    public static TierChanged tierChanged(Object source, String contextId,
+                                           String anchorId, MemoryTier previousTier,
+                                           MemoryTier newTier) {
+        return new TierChanged(source, contextId, anchorId, previousTier, newTier);
     }
 
     /**
@@ -247,5 +256,28 @@ public abstract sealed class AnchorLifecycleEvent extends ApplicationEvent
         public Authority getNewAuthority() { return newAuthority; }
         public AuthorityChangeDirection getDirection() { return direction; }
         public String getReason() { return reason; }
+    }
+
+    /**
+     * Published when an anchor's memory tier changes as a result of a rank-modifying
+     * operation (reinforce, decay). Not published on initial promotion (initial assignment
+     * is not a transition).
+     */
+    public static final class TierChanged extends AnchorLifecycleEvent {
+        private final String anchorId;
+        private final MemoryTier previousTier;
+        private final MemoryTier newTier;
+
+        private TierChanged(Object source, String contextId,
+                            String anchorId, MemoryTier previousTier, MemoryTier newTier) {
+            super(source, contextId);
+            this.anchorId = anchorId;
+            this.previousTier = previousTier;
+            this.newTier = newTier;
+        }
+
+        public String getAnchorId() { return anchorId; }
+        public MemoryTier getPreviousTier() { return previousTier; }
+        public MemoryTier getNewTier() { return newTier; }
     }
 }
