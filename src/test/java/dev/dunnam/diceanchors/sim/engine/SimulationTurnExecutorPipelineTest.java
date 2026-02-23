@@ -42,7 +42,7 @@ class SimulationTurnExecutorPipelineTest {
         var properties = new DiceAnchorsProperties(
                 new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200, null),
                 null, null, null, null, null, null,
-                new DiceAnchorsProperties.AssemblyConfig(0), null);
+                new DiceAnchorsProperties.AssemblyConfig(0), null, null);
         var executor = new SimulationTurnExecutor(
                 chatModel,
                 anchorEngine,
@@ -50,7 +50,8 @@ class SimulationTurnExecutorPipelineTest {
                 properties,
                 CompliancePolicy.flat(),
                 text -> Math.max(1, text.length() / 4),
-                extractionService);
+                extractionService,
+                null);
 
         var dmResponse = new ChatResponse(List.of(new Generation(new AssistantMessage("DM response text"))));
         when(chatModel.call(any(Prompt.class))).thenReturn(dmResponse);
@@ -103,7 +104,7 @@ class SimulationTurnExecutorPipelineTest {
         var properties = new DiceAnchorsProperties(
                 new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200, null),
                 null, null, null, null, null, null,
-                new DiceAnchorsProperties.AssemblyConfig(0), null);
+                new DiceAnchorsProperties.AssemblyConfig(0), null, null);
         var executor = new SimulationTurnExecutor(
                 chatModel,
                 anchorEngine,
@@ -111,7 +112,8 @@ class SimulationTurnExecutorPipelineTest {
                 properties,
                 CompliancePolicy.flat(),
                 text -> Math.max(1, text.length() / 4),
-                extractionService);
+                extractionService,
+                null);
 
         var dmResponse = new ChatResponse(List.of(new Generation(new AssistantMessage("DM response text"))));
         when(chatModel.call(any(Prompt.class))).thenReturn(dmResponse);
@@ -163,7 +165,7 @@ class SimulationTurnExecutorPipelineTest {
         var properties = new DiceAnchorsProperties(
                 new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200, null),
                 null, null, null, null, null, null,
-                new DiceAnchorsProperties.AssemblyConfig(0), null);
+                new DiceAnchorsProperties.AssemblyConfig(0), null, null);
         var executor = new SimulationTurnExecutor(
                 chatModel,
                 anchorEngine,
@@ -171,7 +173,8 @@ class SimulationTurnExecutorPipelineTest {
                 properties,
                 CompliancePolicy.flat(),
                 text -> Math.max(1, text.length() / 4),
-                extractionService);
+                extractionService,
+                null);
 
         var dmResponse = new ChatResponse(List.of(new Generation(new AssistantMessage("DM response text"))));
         when(chatModel.call(any(Prompt.class))).thenReturn(dmResponse);
@@ -214,7 +217,7 @@ class SimulationTurnExecutorPipelineTest {
         var properties = new DiceAnchorsProperties(
                 new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200, null),
                 null, null, null, null, null, null,
-                new DiceAnchorsProperties.AssemblyConfig(0), null);
+                new DiceAnchorsProperties.AssemblyConfig(0), null, null);
         var executor = new SimulationTurnExecutor(
                 chatModel,
                 anchorEngine,
@@ -222,7 +225,8 @@ class SimulationTurnExecutorPipelineTest {
                 properties,
                 CompliancePolicy.flat(),
                 text -> Math.max(1, text.length() / 4),
-                extractionService);
+                extractionService,
+                null);
 
         var dmResponse = new ChatResponse(List.of(new Generation(new AssistantMessage("DM response text"))));
         when(chatModel.call(any(Prompt.class))).thenReturn(dmResponse);

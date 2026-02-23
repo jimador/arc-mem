@@ -1,6 +1,7 @@
 package dev.dunnam.diceanchors.anchor;
 
 import dev.dunnam.diceanchors.DiceAnchorsProperties;
+import dev.dunnam.diceanchors.assembly.RelevanceScorer;
 import dev.dunnam.diceanchors.sim.engine.LlmCallService;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
@@ -84,6 +85,28 @@ public class AnchorConfiguration {
                     throw new IllegalStateException("dice-anchors.conflict.tier.cold-defense-modifier must be in [-0.5, 0.5], got: " + tierMod.coldDefenseModifier());
             }
         }
+
+        var retrieval = properties.retrieval();
+        if (retrieval != null) {
+            if (retrieval.minRelevance() < 0.0 || retrieval.minRelevance() > 1.0)
+                throw new IllegalStateException("dice-anchors.retrieval.min-relevance must be in [0.0, 1.0], got: " + retrieval.minRelevance());
+            if (retrieval.baselineTopK() <= 0)
+                throw new IllegalStateException("dice-anchors.retrieval.baseline-top-k must be > 0, got: " + retrieval.baselineTopK());
+            if (retrieval.toolTopK() <= 0)
+                throw new IllegalStateException("dice-anchors.retrieval.tool-top-k must be > 0, got: " + retrieval.toolTopK());
+            var scoring = retrieval.scoring();
+            if (scoring != null) {
+                var weightSum = scoring.authorityWeight() + scoring.tierWeight() + scoring.confidenceWeight();
+                if (Math.abs(weightSum - 1.0) > 0.001)
+                    throw new IllegalStateException("dice-anchors.retrieval.scoring weights must sum to 1.0, got: " + weightSum);
+                if (scoring.authorityWeight() < 0.0 || scoring.authorityWeight() > 1.0)
+                    throw new IllegalStateException("dice-anchors.retrieval.scoring.authority-weight must be in [0.0, 1.0], got: " + scoring.authorityWeight());
+                if (scoring.tierWeight() < 0.0 || scoring.tierWeight() > 1.0)
+                    throw new IllegalStateException("dice-anchors.retrieval.scoring.tier-weight must be in [0.0, 1.0], got: " + scoring.tierWeight());
+                if (scoring.confidenceWeight() < 0.0 || scoring.confidenceWeight() > 1.0)
+                    throw new IllegalStateException("dice-anchors.retrieval.scoring.confidence-weight must be in [0.0, 1.0], got: " + scoring.confidenceWeight());
+            }
+        }
     }
 
     @Bean
@@ -139,5 +162,11 @@ public class AnchorConfiguration {
     @ConditionalOnMissingBean
     DecayPolicy decayPolicy() {
         return DecayPolicy.exponential(24.0);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    RelevanceScorer relevanceScorer(ChatModel chatModel, LlmCallService llmCallService) {
+        return new RelevanceScorer(chatModel, properties.conflictDetection().model(), llmCallService);
     }
 }

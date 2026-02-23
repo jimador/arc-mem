@@ -12,6 +12,8 @@ import dev.dunnam.diceanchors.anchor.Authority;
 import dev.dunnam.diceanchors.anchor.CompliancePolicy;
 import dev.dunnam.diceanchors.assembly.AnchorsLlmReference;
 import dev.dunnam.diceanchors.assembly.PropositionsLlmReference;
+import dev.dunnam.diceanchors.assembly.RelevanceScorer;
+import dev.dunnam.diceanchors.assembly.RetrievalMode;
 import dev.dunnam.diceanchors.assembly.TokenCounter;
 import dev.dunnam.diceanchors.persistence.AnchorRepository;
 import org.jspecify.annotations.NonNull;
@@ -19,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +48,8 @@ public record ChatActions(
         ApplicationEventPublisher eventPublisher,
         DiceAnchorsProperties properties,
         CompliancePolicy compliancePolicy,
-        TokenCounter tokenCounter
+        TokenCounter tokenCounter,
+        RelevanceScorer relevanceScorer
 ) {
 
     private static final Logger logger = LoggerFactory.getLogger(ChatActions.class);
@@ -70,7 +74,10 @@ public record ChatActions(
                 properties.anchor().budget(),
                 compliancePolicy,
                 properties.assembly().promptTokenBudget(),
-                tokenCounter);
+                tokenCounter,
+                null,
+                properties.retrieval(),
+                relevanceScorer);
         var propositionRef = new PropositionsLlmReference(
                 anchorRepository,
                 contextId,
@@ -116,10 +123,21 @@ public record ChatActions(
                 anchors.size(), propositionRef.getPropositions().size(), contextId, tiered);
 
         var tools = new AnchorTools(anchorEngine, anchorRepository, contextId);
+        var retrievalConfig = properties.retrieval();
+        var retrievalMode = retrievalConfig != null ? retrievalConfig.mode() : RetrievalMode.BULK;
+
+        var toolObjects = new ArrayList<Object>();
+        toolObjects.add(tools);
+
+        if (retrievalMode == RetrievalMode.HYBRID || retrievalMode == RetrievalMode.TOOL) {
+            var retrievalTools = new AnchorRetrievalTools(anchorEngine, relevanceScorer, contextId, retrievalConfig);
+            toolObjects.add(retrievalTools);
+        }
+
         var assistantMessage = context.ai()
                 .withDefaultLlm()
                 .withId("dice_anchors_response")
-                .withToolObjects(tools)
+                .withToolObjects(toolObjects.toArray())
                 .rendering("dice-anchors")
                 .respondWithSystemPrompt(
                         conversation.last(window),

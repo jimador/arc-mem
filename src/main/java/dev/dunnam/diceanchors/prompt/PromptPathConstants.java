@@ -25,6 +25,9 @@ public final class PromptPathConstants {
     public static final String DRIFT_EVALUATION_SYSTEM =
             "prompts/drift-evaluation-system.jinja";
 
+    public static final String RELEVANCE_SCORING =
+            "prompts/relevance-scoring.jinja";
+
     // --- DICE extraction/dedup/conflict templates ---
 
     public static final String DICE_BATCH_CONFLICT_DETECTION =

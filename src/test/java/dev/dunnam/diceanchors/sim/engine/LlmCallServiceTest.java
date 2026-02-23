@@ -179,6 +179,6 @@ class LlmCallServiceTest {
                 new DiceAnchorsProperties.ConflictDetectionConfig("llm", "gpt-4o-nano"),
                 new DiceAnchorsProperties.RunHistoryConfig("memory"),
                 new DiceAnchorsProperties.AssemblyConfig(0),
-                null);
+                null, null);
     }
 }

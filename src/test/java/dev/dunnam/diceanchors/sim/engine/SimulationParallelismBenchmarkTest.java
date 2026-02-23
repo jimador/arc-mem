@@ -142,7 +142,7 @@ class SimulationParallelismBenchmarkTest {
                 null, null, null,
                 new DiceAnchorsProperties.SimConfig("gpt-4.1-mini", 30, 30, 10, parallel),
                 null, null,
-                new DiceAnchorsProperties.AssemblyConfig(0), null);
+                new DiceAnchorsProperties.AssemblyConfig(0), null, null);
         return new SimulationTurnExecutor(
                 chatModel,
                 anchorEngine,
@@ -150,7 +150,8 @@ class SimulationParallelismBenchmarkTest {
                 properties,
                 CompliancePolicy.flat(),
                 text -> Math.max(1, text.length() / 4),
-                extractionService);
+                extractionService,
+                null);
     }
 
     private static long measureMs(ThrowingRunnable action) throws Exception {

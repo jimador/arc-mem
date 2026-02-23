@@ -48,7 +48,7 @@ class SimulationTurnExecutorParallelTest {
                 null, null, null,
                 new DiceAnchorsProperties.SimConfig("gpt-4.1-mini", 30, 30, 10, parallelPostResponse),
                 null, null,
-                new DiceAnchorsProperties.AssemblyConfig(0), null);
+                new DiceAnchorsProperties.AssemblyConfig(0), null, null);
         return new SimulationTurnExecutor(
                 chatModel,
                 anchorEngine,
@@ -56,7 +56,8 @@ class SimulationTurnExecutorParallelTest {
                 properties,
                 CompliancePolicy.flat(),
                 text -> Math.max(1, text.length() / 4),
-                extractionService);
+                extractionService,
+                null);
     }
 
     private static Anchor anchor(String id, String text) {

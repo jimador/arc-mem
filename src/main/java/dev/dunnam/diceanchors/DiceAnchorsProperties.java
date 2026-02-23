@@ -1,6 +1,7 @@
 package dev.dunnam.diceanchors;
 
 import com.embabel.common.ai.model.LlmOptions;
+import dev.dunnam.diceanchors.assembly.RetrievalMode;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 import org.springframework.boot.context.properties.bind.DefaultValue;
@@ -15,7 +16,8 @@ public record DiceAnchorsProperties(
         @NestedConfigurationProperty ConflictDetectionConfig conflictDetection,
         @NestedConfigurationProperty RunHistoryConfig runHistory,
         @NestedConfigurationProperty AssemblyConfig assembly,
-        @NestedConfigurationProperty ConflictConfig conflict
+        @NestedConfigurationProperty ConflictConfig conflict,
+        @NestedConfigurationProperty RetrievalConfig retrieval
 ) {
 
     public record AnchorConfig(
@@ -97,5 +99,19 @@ public record DiceAnchorsProperties(
             @DefaultValue("0.1") double hotDefenseModifier,
             @DefaultValue("0.0") double warmDefenseModifier,
             @DefaultValue("-0.1") double coldDefenseModifier
+    ) {}
+
+    public record RetrievalConfig(
+            @DefaultValue("HYBRID") RetrievalMode mode,
+            @DefaultValue("0.0") double minRelevance,
+            @DefaultValue("5") int baselineTopK,
+            @DefaultValue("5") int toolTopK,
+            @NestedConfigurationProperty ScoringConfig scoring
+    ) {}
+
+    public record ScoringConfig(
+            @DefaultValue("0.4") double authorityWeight,
+            @DefaultValue("0.3") double tierWeight,
+            @DefaultValue("0.3") double confidenceWeight
     ) {}
 }

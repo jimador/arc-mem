@@ -39,7 +39,7 @@ class DuplicateDetectorBatchTest {
                 20, 500, 100, 900, true, 0.65, strategy, "TIERED", true, true, true, 0.6, 400, 200, null);
         var properties = new DiceAnchorsProperties(
                 anchorConfig, null, null, null, null, null, null,
-                new DiceAnchorsProperties.AssemblyConfig(0), null);
+                new DiceAnchorsProperties.AssemblyConfig(0), null, null);
         return new DuplicateDetector(chatModel, engine, fastDetector, properties, llmCallService);
     }
 

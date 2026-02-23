@@ -73,6 +73,16 @@ dice-anchors:
   run-history:
     store: memory
 
+  retrieval:
+    mode: HYBRID
+    min-relevance: 0.0
+    baseline-top-k: 5
+    tool-top-k: 5
+    scoring:
+      authority-weight: 0.4
+      tier-weight: 0.3
+      confidence-weight: 0.3
+
   conflict:
     negation-overlap-threshold: 0.5
     llm-confidence: 0.9

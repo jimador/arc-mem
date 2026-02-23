@@ -41,7 +41,7 @@ class AnchorRepositoryEntityMentionGraphTest {
                 null,
                 null,
                 new DiceAnchorsProperties.AssemblyConfig(0),
-                null);
+                null, null);
         repository = new AnchorRepository(graphObjectManager, persistenceManager, embeddingService, properties);
     }
 

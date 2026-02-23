@@ -1,0 +1,13 @@
+Given the following query and a set of anchors (established facts), rate how relevant each anchor is to the query on a scale of 0.0 to 1.0.
+
+A score of 1.0 means the anchor is directly relevant to answering or contextualizing the query.
+A score of 0.0 means the anchor is completely irrelevant to the query.
+
+Query: {{ query }}
+
+Anchors:
+{% for anchor in anchors %}- ID: {{ anchor.id }} | Text: {{ anchor.text }}
+{% endfor %}
+
+Respond with ONLY valid JSON, no markdown, no explanation:
+{"scores": {"<anchor_id>": <relevance_score>, ...}}

@@ -11,6 +11,7 @@ import dev.dunnam.diceanchors.assembly.AnchorsLlmReference;
 import dev.dunnam.diceanchors.assembly.CompactedContextProvider;
 import dev.dunnam.diceanchors.assembly.CompactionResult;
 import dev.dunnam.diceanchors.assembly.PropositionsLlmReference;
+import dev.dunnam.diceanchors.assembly.RelevanceScorer;
 import dev.dunnam.diceanchors.assembly.TokenCounter;
 import dev.dunnam.diceanchors.persistence.AnchorRepository;
 import dev.dunnam.diceanchors.prompt.PromptPathConstants;
@@ -66,6 +67,7 @@ public class SimulationTurnExecutor {
     private final CompliancePolicy compliancePolicy;
     private final TokenCounter tokenCounter;
     private final SimulationExtractionService extractionService;
+    private final RelevanceScorer relevanceScorer;
     private final DiceAnchorsProperties.AnchorConfig anchorConfig;
     private final String driftEvalSystemPrompt;
 
@@ -76,7 +78,8 @@ public class SimulationTurnExecutor {
             DiceAnchorsProperties properties,
             CompliancePolicy compliancePolicy,
             TokenCounter tokenCounter,
-            SimulationExtractionService extractionService) {
+            SimulationExtractionService extractionService,
+            RelevanceScorer relevanceScorer) {
         this.chatModel = chatModel;
         this.anchorEngine = anchorEngine;
         this.anchorRepository = anchorRepository;
@@ -84,6 +87,7 @@ public class SimulationTurnExecutor {
         this.compliancePolicy = compliancePolicy;
         this.tokenCounter = tokenCounter;
         this.extractionService = extractionService;
+        this.relevanceScorer = relevanceScorer;
         this.anchorConfig = properties != null ? properties.anchor() : null;
         this.driftEvalSystemPrompt = PromptTemplates.load(PromptPathConstants.DRIFT_EVALUATION_SYSTEM);
     }
@@ -131,7 +135,10 @@ public class SimulationTurnExecutor {
                 properties.anchor().budget(),
                 compliancePolicy,
                 tokenBudget,
-                tokenCounter);
+                tokenCounter,
+                null,
+                properties.retrieval(),
+                relevanceScorer);
         var propositionRef = new PropositionsLlmReference(
                 anchorRepository,
                 contextId,
@@ -289,7 +296,10 @@ public class SimulationTurnExecutor {
                 properties.anchor().budget(),
                 compliancePolicy,
                 tokenBudget,
-                tokenCounter);
+                tokenCounter,
+                null,
+                properties.retrieval(),
+                relevanceScorer);
         var propositionRef = new PropositionsLlmReference(
                 anchorRepository,
                 contextId,

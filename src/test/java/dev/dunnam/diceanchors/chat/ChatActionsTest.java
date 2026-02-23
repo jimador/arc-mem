@@ -73,7 +73,7 @@ class ChatActionsTest {
         var properties = properties();
         var assistantMessage = new AssistantMessage("ok");
         var actions = new ChatActions(anchorEngine, anchorRepository, eventPublisher, properties,
-                dev.dunnam.diceanchors.anchor.CompliancePolicy.tiered(), new CharHeuristicTokenCounter());
+                dev.dunnam.diceanchors.anchor.CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null);
 
         when(anchorEngine.inject("chat")).thenReturn(List.of());
         when(actionContext.ai()).thenReturn(ai);
@@ -100,7 +100,7 @@ class ChatActionsTest {
         var properties = properties();
         var assistantMessage = new AssistantMessage("ok");
         var actions = new ChatActions(anchorEngine, anchorRepository, eventPublisher, properties,
-                dev.dunnam.diceanchors.anchor.CompliancePolicy.tiered(), new CharHeuristicTokenCounter());
+                dev.dunnam.diceanchors.anchor.CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null);
 
         when(anchorEngine.inject("chat")).thenReturn(List.of());
         when(actionContext.ai()).thenReturn(ai);
@@ -128,7 +128,7 @@ class ChatActionsTest {
         var properties = properties();
         var assistantMessage = new AssistantMessage("ok");
         var actions = new ChatActions(anchorEngine, anchorRepository, eventPublisher, properties,
-                dev.dunnam.diceanchors.anchor.CompliancePolicy.tiered(), new CharHeuristicTokenCounter());
+                dev.dunnam.diceanchors.anchor.CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null);
 
         when(anchorEngine.inject("chat")).thenReturn(List.of());
         when(anchorRepository.findActiveUnanchoredPropositions("chat", properties.anchor().budget()))
@@ -178,7 +178,7 @@ class ChatActionsTest {
                 new DiceAnchorsProperties.ConflictDetectionConfig("llm", "gpt-4o-nano"),
                 new DiceAnchorsProperties.RunHistoryConfig("memory"),
                 new DiceAnchorsProperties.AssemblyConfig(0),
-                null
+                null, null
         );
     }
 }

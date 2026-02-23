@@ -26,7 +26,7 @@ class AnchorConfigurationValidationTest {
                 new DiceAnchorsProperties.ConflictDetectionConfig("llm", "gpt-4o-nano"),
                 new DiceAnchorsProperties.RunHistoryConfig("memory"),
                 new DiceAnchorsProperties.AssemblyConfig(0),
-                conflictConfig);
+                conflictConfig, null);
         return new AnchorConfiguration(properties);
     }
 
