@@ -49,6 +49,9 @@ public class BenchmarkRunner {
     /**
      * Execute a benchmark: run the scenario {@code runCount} times sequentially,
      * aggregate results, and persist the report.
+     * <p>
+     * Delegates to the condition-aware overload with {@link AblationCondition#FULL_ANCHORS}
+     * (backward compatible).
      *
      * @param scenario               the scenario to benchmark
      * @param maxTurns               max turns per run
@@ -68,12 +71,59 @@ public class BenchmarkRunner {
             Supplier<Integer> tokenBudgetSupplier,
             Consumer<BenchmarkProgress> onProgress) {
 
+        return runBenchmark(scenario, maxTurns, runCount, injectionStateSupplier,
+                tokenBudgetSupplier, onProgress, AblationCondition.FULL_ANCHORS);
+    }
+
+    /**
+     * Execute a benchmark with an ablation condition applied before each run.
+     * <p>
+     * The condition overrides seed anchor authority/rank and controls injection state.
+     * When the condition disables injection, the {@code injectionStateSupplier} is overridden.
+     *
+     * @param scenario               the scenario to benchmark
+     * @param maxTurns               max turns per run
+     * @param runCount               number of repetitions (must be >= 2)
+     * @param injectionStateSupplier evaluated per-turn to determine anchor injection
+     * @param tokenBudgetSupplier    per-turn token budget
+     * @param onProgress             callback invoked after each run completes
+     * @param condition              ablation condition to apply before each run
+     * @return the aggregated benchmark report
+     * @throws IllegalArgumentException if runCount < 2
+     */
+    public BenchmarkReport runBenchmark(
+            SimulationScenario scenario,
+            int maxTurns,
+            int runCount,
+            Supplier<Boolean> injectionStateSupplier,
+            Supplier<Integer> tokenBudgetSupplier,
+            Consumer<BenchmarkProgress> onProgress,
+            AblationCondition condition) {
+
         if (runCount < 2) {
             throw new IllegalArgumentException("Benchmark requires at least 2 runs, got " + runCount);
         }
 
         cancelRequested.set(false);
         var startTime = System.currentTimeMillis();
+
+        // Apply condition to seed anchors
+        var modifiedSeedAnchors = condition.applySeedAnchors(
+                scenario.seedAnchors() != null ? scenario.seedAnchors() : List.of());
+        var conditionedScenario = new SimulationScenario(
+                scenario.id(), scenario.persona(), scenario.model(), scenario.temperature(),
+                scenario.maxTurns(), scenario.warmUpTurns(), scenario.adversarial(), scenario.setting(),
+                scenario.groundTruth(), modifiedSeedAnchors, scenario.turns(),
+                scenario.generatorModel(), scenario.evaluatorModel(), scenario.trustConfig(),
+                scenario.compactionConfig(), scenario.assertions(), scenario.dormancyConfig(),
+                scenario.sessions(), scenario.category(), scenario.extractionEnabled(),
+                scenario.title(), scenario.objective(), scenario.testFocus(), scenario.highlights(),
+                scenario.adversaryMode(), scenario.adversaryConfig(), scenario.invariants());
+
+        // Override injection supplier if condition disables injection
+        Supplier<Boolean> effectiveInjectionSupplier = condition.injectionEnabled()
+                ? injectionStateSupplier
+                : () -> false;
 
         var scoringResults = new ArrayList<ScoringResult>();
         var runIds = new ArrayList<String>();
@@ -82,18 +132,22 @@ public class BenchmarkRunner {
         var currentSpan = Span.current();
         currentSpan.setAttribute("benchmark.scenario_id", scenario.id());
         currentSpan.setAttribute("benchmark.run_count", runCount);
+        currentSpan.setAttribute("benchmark.condition", condition.name());
 
-        logger.info("Starting benchmark: scenario='{}', runCount={}", scenario.id(), runCount);
+        logger.info("Starting benchmark: scenario='{}', runCount={}, condition='{}'",
+                scenario.id(), runCount, condition.name());
 
         for (int i = 0; i < runCount && !cancelRequested.get(); i++) {
             var runIndex = i + 1;
-            logger.info("Benchmark run {}/{} for scenario '{}'", runIndex, runCount, scenario.id());
+            logger.info("Benchmark run {}/{} for scenario '{}' [{}]",
+                    runIndex, runCount, scenario.id(), condition.name());
 
             var scoringResultRef = new AtomicReference<ScoringResult>();
             var runIdRef = new AtomicReference<String>();
 
             // Capture scoring result from the final progress callback
-            simulationService.runSimulation(scenario, maxTurns, injectionStateSupplier, tokenBudgetSupplier,
+            simulationService.runSimulation(conditionedScenario, maxTurns,
+                    effectiveInjectionSupplier, tokenBudgetSupplier,
                     progress -> {
                         if (progress.complete() && progress.scoringResult() != null) {
                             scoringResultRef.set(progress.scoringResult());
@@ -138,8 +192,8 @@ public class BenchmarkRunner {
 
         // Persist
         runHistoryStore.saveBenchmarkReport(report);
-        logger.info("Benchmark complete: scenario='{}', runs={}, duration={}ms, reportId='{}'",
-                scenario.id(), scoringResults.size(), durationMs, report.reportId());
+        logger.info("Benchmark complete: scenario='{}', runs={}, duration={}ms, condition='{}', reportId='{}'",
+                scenario.id(), scoringResults.size(), durationMs, condition.name(), report.reportId());
 
         return report;
     }

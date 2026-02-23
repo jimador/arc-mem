@@ -1,12 +1,13 @@
 package dev.dunnam.diceanchors.sim.engine;
 
 import dev.dunnam.diceanchors.sim.benchmark.BenchmarkReport;
+import dev.dunnam.diceanchors.sim.benchmark.ExperimentReport;
 
 import java.util.List;
 import java.util.Optional;
 
 /**
- * SPI for persisting simulation run records and benchmark reports.
+ * SPI for persisting simulation run records, benchmark reports, and experiment reports.
  * Implementations MUST be thread-safe.
  */
 public interface RunHistoryStore {
@@ -34,4 +35,12 @@ public interface RunHistoryStore {
     Optional<BenchmarkReport> loadBaseline(String scenarioId);
 
     void deleteBenchmarkReport(String reportId);
+
+    void saveExperimentReport(ExperimentReport report);
+
+    Optional<ExperimentReport> loadExperimentReport(String reportId);
+
+    List<ExperimentReport> listExperimentReports();
+
+    void deleteExperimentReport(String reportId);
 }

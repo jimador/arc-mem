@@ -3,6 +3,7 @@ package dev.dunnam.diceanchors.sim.engine;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.dunnam.diceanchors.sim.benchmark.BenchmarkReport;
+import dev.dunnam.diceanchors.sim.benchmark.ExperimentReport;
 import org.drivine.manager.PersistenceManager;
 import org.drivine.query.QuerySpecification;
 import org.slf4j.Logger;
@@ -60,6 +61,7 @@ public class Neo4jRunHistoryStore implements RunHistoryStore {
     private final ObjectMapper objectMapper;
     private final ConcurrentHashMap<String, BenchmarkReport> benchmarkReports = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, String> scenarioBaselines = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, ExperimentReport> experimentReports = new ConcurrentHashMap<>();
 
     public Neo4jRunHistoryStore(PersistenceManager persistenceManager, ObjectMapper objectMapper) {
         this.persistenceManager = persistenceManager;
@@ -221,5 +223,29 @@ public class Neo4jRunHistoryStore implements RunHistoryStore {
         benchmarkReports.remove(reportId);
         scenarioBaselines.values().removeIf(id -> id.equals(reportId));
         logger.debug("Deleted benchmark report {}", reportId);
+    }
+
+    @Override
+    public void saveExperimentReport(ExperimentReport report) {
+        experimentReports.put(report.reportId(), report);
+        logger.debug("Saved experiment report {}", report.reportId());
+    }
+
+    @Override
+    public Optional<ExperimentReport> loadExperimentReport(String reportId) {
+        return Optional.ofNullable(experimentReports.get(reportId));
+    }
+
+    @Override
+    public List<ExperimentReport> listExperimentReports() {
+        return experimentReports.values().stream()
+                .sorted(Comparator.comparing(ExperimentReport::createdAt).reversed())
+                .toList();
+    }
+
+    @Override
+    public void deleteExperimentReport(String reportId) {
+        experimentReports.remove(reportId);
+        logger.debug("Deleted experiment report {}", reportId);
     }
 }
