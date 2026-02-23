@@ -99,7 +99,7 @@ public class SimulationTurnExecutor {
      * @param turnNumber          1-based turn counter
      * @param playerMessage       the player's input for this turn
      * @param turnType            semantic type of this turn
-     * @param attackStrategy      attack technique when turnType is ATTACK; may be null
+     * @param attackStrategies      attack techniques when turnType is ATTACK; empty list if none
      * @param setting             campaign setting description for the system prompt
      * @param injectionEnabled    whether anchor context should be injected
      * @param groundTruth         facts to evaluate against; may be null or empty
@@ -113,7 +113,7 @@ public class SimulationTurnExecutor {
             int turnNumber,
             String playerMessage,
             TurnType turnType,
-            AttackStrategy attackStrategy,
+            List<AttackStrategy> attackStrategies,
             String setting,
             boolean injectionEnabled,
             int tokenBudget,
@@ -124,8 +124,9 @@ public class SimulationTurnExecutor {
         var currentSpan = Span.current();
         currentSpan.setAttribute("sim.turn", turnNumber);
         currentSpan.setAttribute("sim.turn_type", turnType.name());
-        if (attackStrategy != null) {
-            currentSpan.setAttribute("sim.strategy", attackStrategy.name());
+        if (attackStrategies != null && !attackStrategies.isEmpty()) {
+            currentSpan.setAttribute("sim.strategy",
+                    attackStrategies.stream().map(Enum::name).collect(java.util.stream.Collectors.joining(",")));
         }
 
         // 1. Assemble prompt context blocks
@@ -186,7 +187,7 @@ public class SimulationTurnExecutor {
 
         return new SimulationTurn(
                 turnNumber, playerMessage, dmResponse,
-                turnType, attackStrategy, trace, verdicts, List.of());
+                turnType, attackStrategies, trace, verdicts, List.of());
     }
 
     /**
@@ -206,7 +207,7 @@ public class SimulationTurnExecutor {
      * @param turnNumber          1-based turn counter
      * @param playerMessage       the player's input for this turn
      * @param turnType            semantic type of this turn
-     * @param attackStrategy      attack technique when turnType is ATTACK; may be null
+     * @param attackStrategies      attack techniques when turnType is ATTACK; empty list if none
      * @param setting             campaign setting description for the system prompt
      * @param injectionEnabled    whether anchor context should be injected
      * @param groundTruth         facts to evaluate against; may be null or empty
@@ -225,7 +226,7 @@ public class SimulationTurnExecutor {
             int turnNumber,
             String playerMessage,
             TurnType turnType,
-            AttackStrategy attackStrategy,
+            List<AttackStrategy> attackStrategies,
             String setting,
             boolean injectionEnabled,
             int tokenBudget,
@@ -240,13 +241,13 @@ public class SimulationTurnExecutor {
 
         if (properties.sim() != null && properties.sim().parallelPostResponse()) {
             return executeTurnFullParallel(
-                    contextId, turnNumber, playerMessage, turnType, attackStrategy,
+                    contextId, turnNumber, playerMessage, turnType, attackStrategies,
                     setting, injectionEnabled, tokenBudget, groundTruth, conversationHistory,
                     previousAnchorState, compactionProvider, compactionConfig,
                     extractionEnabled, dormancyConfig, dormancyState);
         }
         return executeTurnFullSequential(
-                contextId, turnNumber, playerMessage, turnType, attackStrategy,
+                contextId, turnNumber, playerMessage, turnType, attackStrategies,
                 setting, injectionEnabled, tokenBudget, groundTruth, conversationHistory,
                 previousAnchorState, compactionProvider, compactionConfig,
                 extractionEnabled, dormancyConfig, dormancyState);
@@ -266,7 +267,7 @@ public class SimulationTurnExecutor {
             int turnNumber,
             String playerMessage,
             TurnType turnType,
-            AttackStrategy attackStrategy,
+            List<AttackStrategy> attackStrategies,
             String setting,
             boolean injectionEnabled,
             int tokenBudget,
@@ -285,8 +286,9 @@ public class SimulationTurnExecutor {
         var currentSpan = Span.current();
         currentSpan.setAttribute("sim.turn", turnNumber);
         currentSpan.setAttribute("sim.turn_type", turnType.name());
-        if (attackStrategy != null) {
-            currentSpan.setAttribute("sim.strategy", attackStrategy.name());
+        if (attackStrategies != null && !attackStrategies.isEmpty()) {
+            currentSpan.setAttribute("sim.strategy",
+                    attackStrategies.stream().map(Enum::name).collect(java.util.stream.Collectors.joining(",")));
         }
 
         // 1. Assemble prompt context blocks (sequential — needed before DM call)
@@ -405,7 +407,7 @@ public class SimulationTurnExecutor {
         // Build initial turn with verdicts from Branch A
         var turn = new SimulationTurn(
                 turnNumber, playerMessage, dmResponse,
-                turnType, attackStrategy, initialTrace, verdicts, List.of());
+                turnType, attackStrategies, initialTrace, verdicts, List.of());
 
         // 6. Post-join sequential operations: reinforce, dormancy, state diff, compaction
         return buildResult(
@@ -428,7 +430,7 @@ public class SimulationTurnExecutor {
             int turnNumber,
             String playerMessage,
             TurnType turnType,
-            AttackStrategy attackStrategy,
+            List<AttackStrategy> attackStrategies,
             String setting,
             boolean injectionEnabled,
             int tokenBudget,
@@ -444,7 +446,7 @@ public class SimulationTurnExecutor {
         var mutableDormancyState = dormancyState != null ? dormancyState : new HashMap<String, Integer>();
 
         var turn = executeTurn(
-                contextId, turnNumber, playerMessage, turnType, attackStrategy,
+                contextId, turnNumber, playerMessage, turnType, attackStrategies,
                 setting, injectionEnabled, tokenBudget, groundTruth, conversationHistory);
 
         var extractionResult = ExtractionResult.empty();
@@ -527,7 +529,7 @@ public class SimulationTurnExecutor {
                 originalTrace.hotCount(), originalTrace.warmCount(), originalTrace.coldCount());
         turn = new SimulationTurn(
                 turn.turnNumber(), turn.playerMessage(), turn.dmResponse(),
-                turn.turnType(), turn.attackStrategy(), enrichedTrace,
+                turn.turnType(), turn.attackStrategies(), enrichedTrace,
                 turn.verdicts(), turn.anchorEvents());
 
         // Diff anchor state to produce events
@@ -535,7 +537,7 @@ public class SimulationTurnExecutor {
 
         var enrichedTurn = new SimulationTurn(
                 turn.turnNumber(), turn.playerMessage(), turn.dmResponse(),
-                turn.turnType(), turn.attackStrategy(), turn.contextTrace(),
+                turn.turnType(), turn.attackStrategies(), turn.contextTrace(),
                 turn.verdicts(), anchorEvents);
 
         // Build current state map for next turn

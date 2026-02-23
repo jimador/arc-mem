@@ -51,7 +51,7 @@ class DeterministicSimulationTest {
                                                               AttackStrategy strategy,
                                                               List<EvalVerdict> verdicts) {
         return new SimulationRunRecord.TurnSnapshot(
-                turnNumber, TurnType.ATTACK, strategy,
+                turnNumber, TurnType.ATTACK, strategy != null ? List.of(strategy) : List.of(),
                 "player message", "dm response",
                 List.of(), null, verdicts, true, null
         );
@@ -97,7 +97,7 @@ class DeterministicSimulationTest {
                     ))
             );
 
-            var result = scoringService.score(snapshots, groundTruth, anchors);
+            var result = scoringService.score(snapshots, groundTruth);
 
             var validation = MetricsValidator.validateAll(List.of(
                     new MetricsValidator.MetricCheck("factSurvivalRate", result.factSurvivalRate(), ">= 100.0"),
@@ -169,7 +169,7 @@ class DeterministicSimulationTest {
                     ))
             );
 
-            var result = scoringService.score(snapshots, groundTruth, anchors);
+            var result = scoringService.score(snapshots, groundTruth);
 
             var validation = MetricsValidator.validateAll(List.of(
                     new MetricsValidator.MetricCheck("factSurvivalRate", result.factSurvivalRate(), ">= 90.0"),
@@ -273,7 +273,7 @@ class DeterministicSimulationTest {
                     ))
             );
 
-            var result = scoringService.score(snapshots, groundTruth, List.of());
+            var result = scoringService.score(snapshots, groundTruth);
 
             var validation = MetricsValidator.validateAll(List.of(
                     new MetricsValidator.MetricCheck("factSurvivalRate", result.factSurvivalRate(), "== 100.0"),
@@ -378,7 +378,7 @@ class DeterministicSimulationTest {
                     ))
             );
 
-            var result = scoringService.score(snapshots, groundTruth, anchors);
+            var result = scoringService.score(snapshots, groundTruth);
 
             // f1 survived, f2 did not -> 50% survival
             var validation = MetricsValidator.validateAll(List.of(

@@ -13,7 +13,9 @@ import dev.dunnam.diceanchors.sim.engine.StrategyCatalog;
 import dev.dunnam.diceanchors.sim.engine.TurnType;
 import org.jspecify.annotations.Nullable;
 
+import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * Standalone conversation panel showing turn-by-turn messages during simulation.
@@ -86,7 +88,7 @@ public class ConversationPanel extends VerticalLayout implements SimulationProgr
                     isAttackTurn(progress),
                     progress.injectionState(),
                     progress.turnType(),
-                    progress.attackStrategy());
+                    progress.attackStrategies());
             add(bubble);
         }
         if (progress.lastDmResponse() != null) {
@@ -100,7 +102,7 @@ public class ConversationPanel extends VerticalLayout implements SimulationProgr
                     isAttackTurn(progress),
                     progress.injectionState(),
                     progress.turnType(),
-                    progress.attackStrategy(),
+                    progress.attackStrategies(),
                     progress.worstVerdict(),
                     tokenCount,
                     compacted,
@@ -127,7 +129,7 @@ public class ConversationPanel extends VerticalLayout implements SimulationProgr
                 isAttackTurn(progress),
                 progress.injectionState(),
                 progress.turnType(),
-                progress.attackStrategy(),
+                progress.attackStrategies(),
                 progress.worstVerdict(),
                 tokenCount,
                 compacted,
@@ -166,7 +168,7 @@ public class ConversationPanel extends VerticalLayout implements SimulationProgr
 
     private Div createPlayerBubble(int turnNumber, String text, boolean isAttack,
                                    boolean injectionEnabled, TurnType turnType,
-                                   @Nullable AttackStrategy attackStrategy) {
+                                   List<AttackStrategy> attackStrategies) {
         var bubble = new Div();
         bubble.addClassName("ar-bubble");
         bubble.addClassName("ar-bubble--player");
@@ -174,7 +176,7 @@ public class ConversationPanel extends VerticalLayout implements SimulationProgr
             bubble.addClassName("ar-bubble--attack");
         }
 
-        var header = turnHeader(turnNumber, "Player", injectionEnabled, turnType, attackStrategy, null, null, false);
+        var header = turnHeader(turnNumber, "Player", injectionEnabled, turnType, attackStrategies, null, null, false);
         var content = new Span(text);
         content.addClassName("ar-bubble-content");
 
@@ -185,7 +187,7 @@ public class ConversationPanel extends VerticalLayout implements SimulationProgr
 
     private Div createDmBubble(int turnNumber, String text, boolean isAttack,
                                boolean injectionEnabled, TurnType turnType,
-                               @Nullable AttackStrategy attackStrategy,
+                               List<AttackStrategy> attackStrategies,
                                EvalVerdict verdict, int tokenCount,
                                boolean compacted, long turnDurationMs) {
         var bubble = new Div();
@@ -197,7 +199,7 @@ public class ConversationPanel extends VerticalLayout implements SimulationProgr
         var verdictName = verdict == null ? "neutral" : verdict.verdict().name().toLowerCase().replace('_', '-');
         bubble.getElement().setAttribute("data-verdict", verdictName);
 
-        var header = turnHeader(turnNumber, "DM", injectionEnabled, turnType, attackStrategy, verdict,
+        var header = turnHeader(turnNumber, "DM", injectionEnabled, turnType, attackStrategies, verdict,
                                 tokenCount > 0 ? tokenCount : null, compacted, turnDurationMs);
         var content = new Span(text);
         content.addClassName("ar-bubble-content");
@@ -213,17 +215,17 @@ public class ConversationPanel extends VerticalLayout implements SimulationProgr
 
     private HorizontalLayout turnHeader(int turnNumber, String speaker,
                                         boolean injectionEnabled, TurnType turnType,
-                                        @Nullable AttackStrategy attackStrategy,
+                                        List<AttackStrategy> attackStrategies,
                                         EvalVerdict verdict,
                                         @Nullable Integer tokenCount,
                                         boolean compacted) {
-        return turnHeader(turnNumber, speaker, injectionEnabled, turnType, attackStrategy, verdict,
+        return turnHeader(turnNumber, speaker, injectionEnabled, turnType, attackStrategies, verdict,
                           tokenCount, compacted, 0L);
     }
 
     private HorizontalLayout turnHeader(int turnNumber, String speaker,
                                         boolean injectionEnabled, TurnType turnType,
-                                        @Nullable AttackStrategy attackStrategy,
+                                        List<AttackStrategy> attackStrategies,
                                         EvalVerdict verdict,
                                         @Nullable Integer tokenCount,
                                         boolean compacted,
@@ -240,7 +242,7 @@ public class ConversationPanel extends VerticalLayout implements SimulationProgr
         layout.add(turnLabel, injTag);
 
         if (turnType != null) {
-            var badge = turnTypeBadge(turnType, attackStrategy);
+            var badge = turnTypeBadge(turnType, attackStrategies);
             layout.add(badge);
         }
 
@@ -271,15 +273,15 @@ public class ConversationPanel extends VerticalLayout implements SimulationProgr
         return tag;
     }
 
-    private Span turnTypeBadge(TurnType turnType, @Nullable AttackStrategy attackStrategy) {
-        var strategyLabel = (attackStrategy != null)
-                ? STRATEGY_CATALOG.findById(attackStrategy.name())
+    private Span turnTypeBadge(TurnType turnType, List<AttackStrategy> attackStrategies) {
+        var strategyLabel = attackStrategies.stream()
+                .map(s -> STRATEGY_CATALOG.findById(s.name())
                         .map(DriftStrategyDefinition::displayName)
-                        .orElse(attackStrategy.name().replace('_', ' '))
-                : null;
-        var text = strategyLabel != null
-                ? turnType.name() + " · " + strategyLabel
-                : turnType.name();
+                        .orElse(s.name().replace('_', ' ')))
+                .collect(Collectors.joining(", "));
+        var text = strategyLabel.isEmpty()
+                ? turnType.name()
+                : turnType.name() + " · " + strategyLabel;
         var badge = new Span(text);
         badge.addClassName("ar-badge");
         badge.getElement().setAttribute("data-turn-type", turnType.name().toLowerCase().replace('_', '-'));

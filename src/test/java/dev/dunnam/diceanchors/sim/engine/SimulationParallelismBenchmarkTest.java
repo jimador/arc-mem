@@ -127,7 +127,7 @@ class SimulationParallelismBenchmarkTest {
         for (int i = 1; i <= turnCount; i++) {
             executor.executeTurnFull(
                     "bench-ctx", i,
-                    "The king is dead!", TurnType.ATTACK, AttackStrategy.CONFIDENT_ASSERTION,
+                    "The king is dead!", TurnType.ATTACK, List.of(AttackStrategy.CONFIDENT_ASSERTION),
                     "royal court", false, 0,
                     groundTruth, List.of(),
                     Map.of(), null, null,

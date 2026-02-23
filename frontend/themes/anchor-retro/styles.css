@@ -546,6 +546,82 @@ vaadin-dialog-overlay::part(overlay) {
     margin-top: 4px;
 }
 
+/* Benchmark metric card extensions */
+.ar-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.ar-bench-metric-detail {
+    font-size: var(--lumo-font-size-xs);
+    color: var(--lumo-secondary-text-color);
+    display: block;
+    margin-top: 6px;
+}
+
+.ar-bench-sample-count {
+    font-size: var(--lumo-font-size-xs);
+    color: var(--lumo-tertiary-text-color);
+    display: block;
+    margin-top: 2px;
+}
+
+.ar-bench-warning-badge {
+    font-size: var(--lumo-font-size-xxs);
+    font-weight: bold;
+    color: #ff9800;
+    background: rgba(255, 152, 0, 0.12);
+    border-radius: var(--lumo-border-radius-s);
+    padding: 2px 6px;
+    display: inline-block;
+    margin-top: 6px;
+}
+
+.ar-bench-delta-badge {
+    font-size: var(--lumo-font-size-xxs);
+    font-weight: bold;
+    border-radius: var(--lumo-border-radius-s);
+    padding: 2px 6px;
+    display: inline-block;
+    margin-top: 4px;
+}
+
+.ar-bench-delta-badge[data-health="good"] {
+    color: #4caf50;
+    background: rgba(76, 175, 80, 0.12);
+}
+
+.ar-bench-delta-badge[data-health="bad"] {
+    color: #f44336;
+    background: rgba(244, 67, 54, 0.12);
+}
+
+.ar-bench-delta-badge[data-health="neutral"] {
+    color: var(--lumo-secondary-text-color);
+    background: var(--lumo-contrast-5pct);
+}
+
+.ar-bench-confidence {
+    font-size: var(--lumo-font-size-xs);
+    color: var(--lumo-secondary-text-color);
+    min-width: 100px;
+}
+
+.ar-bench-controls {
+    margin-bottom: 12px;
+}
+
+.ar-bench-progress {
+    margin-bottom: 12px;
+}
+
+.ar-bench-progress-label {
+    font-size: var(--lumo-font-size-s);
+    white-space: nowrap;
+}
+
 /* Strategy bar (effectiveness breakdown) */
 .ar-bar-outer {
     flex-grow: 1;

@@ -6,7 +6,7 @@ import java.util.List;
  * Complete record of a single simulation turn including messages, context, and verdicts.
  * <p>
  * Created after each turn execution in {@link SimulationTurnExecutor}. Contains the player message,
- * DM response, turn type (WARM_UP/ESTABLISH/ATTACK), applied attack strategy, assembled anchor context,
+ * DM response, turn type (WARM_UP/ESTABLISH/ATTACK), applied attack strategies, assembled anchor context,
  * drift evaluation verdicts, and any anchor lifecycle events (promotion, reinforcement, eviction) triggered during the turn.
  */
 public record SimulationTurn(
@@ -14,7 +14,7 @@ public record SimulationTurn(
         String playerMessage,
         String dmResponse,
         TurnType turnType,
-        AttackStrategy attackStrategy,
+        List<AttackStrategy> attackStrategies,
         ContextTrace contextTrace,
         List<EvalVerdict> verdicts,
         List<AnchorEvent> anchorEvents

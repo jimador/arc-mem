@@ -22,6 +22,9 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import dev.dunnam.diceanchors.anchor.AnchorEngine;
 import dev.dunnam.diceanchors.persistence.AnchorRepository;
+import dev.dunnam.diceanchors.sim.benchmark.BenchmarkReport;
+import dev.dunnam.diceanchors.sim.benchmark.BenchmarkRunner;
+import dev.dunnam.diceanchors.sim.engine.RunHistoryStore;
 import dev.dunnam.diceanchors.sim.engine.ScenarioLoader;
 import dev.dunnam.diceanchors.sim.engine.SimControlState;
 import dev.dunnam.diceanchors.sim.engine.SimulationProgress;
@@ -30,6 +33,7 @@ import dev.dunnam.diceanchors.sim.engine.SimulationService;
 import org.jspecify.annotations.Nullable;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Root Vaadin view for running and inspecting anchor drift simulations.
@@ -62,6 +66,8 @@ public class SimulationView extends VerticalLayout {
     private final ScenarioLoader scenarioLoader;
     private final AnchorRepository anchorRepository;
     private final AnchorEngine anchorEngine;
+    private final BenchmarkRunner benchmarkRunner;
+    private final RunHistoryStore runHistoryStore;
 
     // Controls
     private final ComboBox<SimulationScenario> scenarioCombo;
@@ -92,11 +98,13 @@ public class SimulationView extends VerticalLayout {
     private final AnchorTimelinePanel timelinePanel;
     private final InterventionImpactBanner interventionBanner;
     private final KnowledgeBrowserPanel knowledgeBrowserPanel;
+    private final BenchmarkPanel benchmarkPanel;
 
     // TabSheet and manipulation tab reference for visibility control
     private final TabSheet rightTabSheet;
     private final Tab manipulationTab;
     private final Tab knowledgeBrowserTab;
+    private final Tab benchmarkTab;
     private final RunHistoryDialog runHistoryDialog;
     private final ProgressDispatcher dispatcher;
 
@@ -112,11 +120,15 @@ public class SimulationView extends VerticalLayout {
             SimulationService simulationService,
             ScenarioLoader scenarioLoader,
             AnchorRepository anchorRepository,
-            AnchorEngine anchorEngine) {
+            AnchorEngine anchorEngine,
+            BenchmarkRunner benchmarkRunner,
+            RunHistoryStore runHistoryStore) {
         this.simulationService = simulationService;
         this.scenarioLoader = scenarioLoader;
         this.anchorRepository = anchorRepository;
         this.anchorEngine = anchorEngine;
+        this.benchmarkRunner = benchmarkRunner;
+        this.runHistoryStore = runHistoryStore;
 
         setSizeFull();
         setPadding(true);
@@ -260,6 +272,10 @@ public class SimulationView extends VerticalLayout {
         rightTabSheet.add("Timeline", timelinePanel);
         manipulationTab = rightTabSheet.add("Manipulation", manipulationPanel);
         knowledgeBrowserTab = rightTabSheet.add("Knowledge Browser", knowledgeBrowserPanel);
+
+        benchmarkPanel = new BenchmarkPanel();
+        benchmarkTab = rightTabSheet.add("Benchmark", benchmarkPanel);
+        wireBenchmarkPanel();
 
         // Manipulation tab visible only when PAUSED
         manipulationTab.setVisible(false);
@@ -457,6 +473,87 @@ public class SimulationView extends VerticalLayout {
         } catch (Exception e) {
             statusLabel.setText("Failed to load scenarios: " + e.getMessage());
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // Benchmark wiring
+    // -------------------------------------------------------------------------
+
+    private void wireBenchmarkPanel() {
+        var lastReportRef = new AtomicReference<BenchmarkReport>();
+
+        benchmarkPanel.setRunBenchmarkCallback(runCount -> {
+            var scenario = scenarioCombo.getValue();
+            if (scenario == null) {
+                statusLabel.setText("Select a scenario before running benchmark.");
+                return;
+            }
+            var maxTurns = maxTurnsField.getValue() != null ? Math.max(1, maxTurnsField.getValue()) : scenario.maxTurns();
+            benchmarkPanel.setRunning(true);
+            benchmarkPanel.reset();
+            statusLabel.setText("Benchmark starting: %d runs of '%s'...".formatted(runCount, scenario.id()));
+
+            var ui = UI.getCurrent();
+            CompletableFuture.supplyAsync(() ->
+                    benchmarkRunner.runBenchmark(scenario, maxTurns, runCount,
+                            injectionToggle::getValue, this::resolveTokenBudget,
+                            progress -> ui.access(() -> benchmarkPanel.showProgress(progress)))
+            ).thenAccept(report -> ui.access(() -> {
+                // Check for baseline and compute deltas
+                var displayReport = report;
+                var baseline = runHistoryStore.loadBaseline(report.scenarioId()).orElse(null);
+                if (baseline != null && !baseline.reportId().equals(report.reportId())) {
+                    var agg = new dev.dunnam.diceanchors.sim.benchmark.BenchmarkAggregator();
+                    var deltas = agg.computeDeltas(report, baseline);
+                    displayReport = new BenchmarkReport(
+                            report.reportId(), report.scenarioId(), report.createdAt(),
+                            report.runCount(), report.totalDurationMs(),
+                            report.metricStatistics(), report.strategyStatistics(),
+                            report.runIds(), baseline.reportId(), deltas);
+                }
+                lastReportRef.set(displayReport);
+                benchmarkPanel.showReport(displayReport);
+                benchmarkPanel.setRunning(false);
+                statusLabel.setText("Benchmark complete: %d runs, report '%s'.".formatted(report.runCount(), report.reportId()));
+            })).exceptionally(ex -> {
+                ui.access(() -> {
+                    statusLabel.setText("Benchmark error: " + ex.getMessage());
+                    benchmarkPanel.setRunning(false);
+                });
+                return null;
+            });
+        });
+
+        benchmarkPanel.setCancelCallback(() -> {
+            benchmarkRunner.cancel();
+            benchmarkPanel.setRunning(false);
+            statusLabel.setText("Benchmark cancelled.");
+        });
+
+        benchmarkPanel.setSaveBaselineCallback(() -> {
+            var report = lastReportRef.get();
+            if (report == null) {
+                statusLabel.setText("No benchmark report to save as baseline.");
+                return;
+            }
+            runHistoryStore.saveAsBaseline(report.reportId(), report.scenarioId());
+            statusLabel.setText("Saved report '%s' as baseline for scenario '%s'.".formatted(
+                    report.reportId(), report.scenarioId()));
+
+            // Reload with baseline deltas
+            var baseline = runHistoryStore.loadBaseline(report.scenarioId()).orElse(null);
+            if (baseline != null && !baseline.reportId().equals(report.reportId())) {
+                var aggregator = new dev.dunnam.diceanchors.sim.benchmark.BenchmarkAggregator();
+                var deltas = aggregator.computeDeltas(report, baseline);
+                var updatedReport = new BenchmarkReport(
+                        report.reportId(), report.scenarioId(), report.createdAt(),
+                        report.runCount(), report.totalDurationMs(),
+                        report.metricStatistics(), report.strategyStatistics(),
+                        report.runIds(), baseline.reportId(), deltas);
+                lastReportRef.set(updatedReport);
+                benchmarkPanel.showReport(updatedReport);
+            }
+        });
     }
 
     // -------------------------------------------------------------------------

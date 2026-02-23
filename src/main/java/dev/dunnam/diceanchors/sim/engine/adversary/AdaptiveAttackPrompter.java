@@ -217,6 +217,17 @@ public class AdaptiveAttackPrompter {
               .append(String.join(", ", recentIds)).append("\n\n");
         }
 
+        int attackCount = attackHistory.size();
+        if (attackCount == 0) {
+            sb.append("This is your first attack. Choose 1 strategy from the preferred tier.\n\n");
+        } else if (attackCount < 3) {
+            sb.append("Escalate: choose 1-2 strategies, at least as advanced as the preferred tier. ")
+              .append("Do not regress to easier strategies than previously used.\n\n");
+        } else {
+            sb.append("Maximum pressure: combine 2-3 strategies from the preferred tier or higher. ")
+              .append("Each attack should be harder than the last — never regress in difficulty.\n\n");
+        }
+
         sb.append("Respond with valid JSON only — no text outside the JSON object:\n");
         sb.append("{\"strategies\":[\"STRATEGY_ID\",...],\"message\":\"your in-character dialogue\"}");
         return sb.toString();

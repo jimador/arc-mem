@@ -2,15 +2,18 @@ package dev.dunnam.diceanchors.sim.engine;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.dunnam.diceanchors.sim.benchmark.BenchmarkReport;
 import org.drivine.manager.PersistenceManager;
 import org.drivine.query.QuerySpecification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Neo4j-backed implementation of {@link RunHistoryStore}.
@@ -55,6 +58,8 @@ public class Neo4jRunHistoryStore implements RunHistoryStore {
 
     private final PersistenceManager persistenceManager;
     private final ObjectMapper objectMapper;
+    private final ConcurrentHashMap<String, BenchmarkReport> benchmarkReports = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, String> scenarioBaselines = new ConcurrentHashMap<>();
 
     public Neo4jRunHistoryStore(PersistenceManager persistenceManager, ObjectMapper objectMapper) {
         this.persistenceManager = persistenceManager;
@@ -164,5 +169,57 @@ public class Neo4jRunHistoryStore implements RunHistoryStore {
             logger.warn("Failed to deserialize simulation run payload: {}", e.getMessage());
             return Optional.empty();
         }
+    }
+
+    @Override
+    public void saveBenchmarkReport(BenchmarkReport report) {
+        benchmarkReports.put(report.reportId(), report);
+        logger.debug("Saved benchmark report {}", report.reportId());
+    }
+
+    @Override
+    public Optional<BenchmarkReport> loadBenchmarkReport(String reportId) {
+        return Optional.ofNullable(benchmarkReports.get(reportId));
+    }
+
+    @Override
+    public List<BenchmarkReport> listBenchmarkReports() {
+        return benchmarkReports.values().stream()
+                .sorted(Comparator.comparing(BenchmarkReport::createdAt).reversed())
+                .toList();
+    }
+
+    @Override
+    public List<BenchmarkReport> listBenchmarkReportsByScenario(String scenarioId) {
+        return benchmarkReports.values().stream()
+                .filter(r -> r.scenarioId().equals(scenarioId))
+                .sorted(Comparator.comparing(BenchmarkReport::createdAt).reversed())
+                .toList();
+    }
+
+    @Override
+    public void saveAsBaseline(String reportId, String scenarioId) {
+        if (!benchmarkReports.containsKey(reportId)) {
+            logger.warn("Cannot set baseline: benchmark report {} not found", reportId);
+            return;
+        }
+        scenarioBaselines.put(scenarioId, reportId);
+        logger.debug("Set baseline for scenario {} to report {}", scenarioId, reportId);
+    }
+
+    @Override
+    public Optional<BenchmarkReport> loadBaseline(String scenarioId) {
+        var reportId = scenarioBaselines.get(scenarioId);
+        if (reportId == null) {
+            return Optional.empty();
+        }
+        return loadBenchmarkReport(reportId);
+    }
+
+    @Override
+    public void deleteBenchmarkReport(String reportId) {
+        benchmarkReports.remove(reportId);
+        scenarioBaselines.values().removeIf(id -> id.equals(reportId));
+        logger.debug("Deleted benchmark report {}", reportId);
     }
 }

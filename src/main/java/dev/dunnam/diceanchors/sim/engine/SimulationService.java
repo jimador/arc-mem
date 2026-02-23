@@ -185,7 +185,7 @@ public class SimulationService {
                 // Determine player message and classification
                 String playerMessage;
                 TurnType turnType;
-                AttackStrategy attackStrategy = null;
+                List<AttackStrategy> attackStrategies = List.of();
                 AttackPlan currentPlan = null;
 
                 if (scripted != null) {
@@ -194,7 +194,8 @@ public class SimulationService {
                     turnType = scripted.type() != null
                             ? TurnType.fromString(scripted.type())
                             : (i < scenario.warmUpTurns() ? TurnType.WARM_UP : TurnType.ESTABLISH);
-                    attackStrategy = AttackStrategy.fromString(scripted.strategy());
+                    var parsed = AttackStrategy.fromString(scripted.strategy());
+                    attackStrategies = parsed != null ? List.of(parsed) : List.of();
                 } else if (i < scenario.warmUpTurns()) {
                     playerMessage = isAdaptive
                             ? adaptivePrompter.generateConversation(
@@ -221,7 +222,7 @@ public class SimulationService {
                         currentPlan = generated.plan();
                         playerMessage = generated.message();
                         turnType = TurnType.ATTACK;
-                        attackStrategy = currentPlan.strategies().isEmpty() ? null : currentPlan.strategies().get(0);
+                        attackStrategies = currentPlan.strategies();
                     }
                 } else {
                     playerMessage = generateAdversarialMessage(scenario, conversationHistory);
@@ -239,7 +240,7 @@ public class SimulationService {
 
                 // Signal turn start to UI (thinking indicator)
                 onProgress.accept(new SimulationProgress(
-                        phase, turnType, attackStrategy, turnNumber, maxTurns,
+                        phase, turnType, attackStrategies, turnNumber, maxTurns,
                         playerMessage, null,
                         List.of(), null, List.of(), false,
                         "Turn %d/%d — thinking...".formatted(turnNumber, maxTurns),
@@ -248,7 +249,7 @@ public class SimulationService {
                 // Execute the turn with state diffing, optional compaction, and optional extraction
                 long turnStart = System.currentTimeMillis();
                 var result = turnExecutor.executeTurnFull(
-                        contextId, turnNumber, playerMessage, turnType, attackStrategy,
+                        contextId, turnNumber, playerMessage, turnType, attackStrategies,
                         scenario.setting(), injectionEnabled, tokenBudget, scenario.groundTruth(),
                         conversationHistory, previousAnchorState,
                         compactedContextProvider, scenario.compactionConfig(),
@@ -284,7 +285,7 @@ public class SimulationService {
                 var activeRules = invariantRuleProvider.rulesForContext(contextId);
 
                 onProgress.accept(new SimulationProgress(
-                        phase, turnType, attackStrategy, turnNumber, maxTurns,
+                        phase, turnType, attackStrategies, turnNumber, maxTurns,
                         playerMessage, turn.dmResponse(),
                         activeAnchors, turn.contextTrace(),
                         turnVerdicts,
@@ -295,7 +296,7 @@ public class SimulationService {
                         null));
 
                 turnSnapshots.add(new SimulationRunRecord.TurnSnapshot(
-                        turnNumber, turnType, attackStrategy,
+                        turnNumber, turnType, attackStrategies,
                         playerMessage, turn.dmResponse(),
                         activeAnchors, turn.contextTrace(),
                         turnVerdicts,
@@ -314,7 +315,7 @@ public class SimulationService {
 
             // Compute aggregate scoring metrics
             var groundTruth = scenario.groundTruth() != null ? scenario.groundTruth() : List.<SimulationScenario.GroundTruth> of();
-            var scoringResult = scoringService.score(List.copyOf(turnSnapshots), groundTruth, finalAnchors);
+            var scoringResult = scoringService.score(List.copyOf(turnSnapshots), groundTruth);
 
             // Save run record to history store
             var runRecord = new SimulationRunRecord(
@@ -332,7 +333,7 @@ public class SimulationService {
                     ? SimulationProgress.SimulationPhase.CANCELLED
                     : SimulationProgress.SimulationPhase.COMPLETE;
             onProgress.accept(new SimulationProgress(
-                    finalPhase, null, null, maxTurns, maxTurns,
+                    finalPhase, null, List.of(), maxTurns, maxTurns,
                     null, null, currentAnchors(contextId), null, List.of(),
                     true,
                     cancelRequested.get() ? "Simulation cancelled." : "Simulation complete.",
@@ -529,7 +530,7 @@ public class SimulationService {
             boolean injectionState,
             List<AssertionResult> assertionResults) {
         return new SimulationProgress(
-                phase, turnType, null, turn, total, null, null, anchors, null, List.of(),
+                phase, turnType, List.of(), turn, total, null, null, anchors, null, List.of(),
                 phase == SimulationProgress.SimulationPhase.COMPLETE, status,
                 injectionState, assertionResults, null, List.of(), null, 0L, null, null);
     }

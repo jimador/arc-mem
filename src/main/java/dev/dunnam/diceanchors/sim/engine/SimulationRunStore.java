@@ -1,5 +1,9 @@
 package dev.dunnam.diceanchors.sim.engine;
 
+import dev.dunnam.diceanchors.sim.benchmark.BenchmarkReport;
+
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +17,9 @@ import java.util.Optional;
 public class SimulationRunStore implements RunHistoryStore {
 
     private static final int MAX_ENTRIES = 50;
+
+    private final Map<String, BenchmarkReport> benchmarkReports = new HashMap<>();
+    private final Map<String, String> scenarioBaselines = new HashMap<>();
 
     private final Map<String, SimulationRunRecord> store = new LinkedHashMap<>(16, 0.75f, true) {
         @Override
@@ -58,5 +65,53 @@ public class SimulationRunStore implements RunHistoryStore {
 
     public synchronized int size() {
         return store.size();
+    }
+
+    @Override
+    public synchronized void saveBenchmarkReport(BenchmarkReport report) {
+        benchmarkReports.put(report.reportId(), report);
+    }
+
+    @Override
+    public synchronized Optional<BenchmarkReport> loadBenchmarkReport(String reportId) {
+        return Optional.ofNullable(benchmarkReports.get(reportId));
+    }
+
+    @Override
+    public synchronized List<BenchmarkReport> listBenchmarkReports() {
+        return benchmarkReports.values().stream()
+                .sorted(Comparator.comparing(BenchmarkReport::createdAt).reversed())
+                .toList();
+    }
+
+    @Override
+    public synchronized List<BenchmarkReport> listBenchmarkReportsByScenario(String scenarioId) {
+        return benchmarkReports.values().stream()
+                .filter(r -> r.scenarioId().equals(scenarioId))
+                .sorted(Comparator.comparing(BenchmarkReport::createdAt).reversed())
+                .toList();
+    }
+
+    @Override
+    public synchronized void saveAsBaseline(String reportId, String scenarioId) {
+        if (!benchmarkReports.containsKey(reportId)) {
+            return;
+        }
+        scenarioBaselines.put(scenarioId, reportId);
+    }
+
+    @Override
+    public synchronized Optional<BenchmarkReport> loadBaseline(String scenarioId) {
+        var reportId = scenarioBaselines.get(scenarioId);
+        if (reportId == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(benchmarkReports.get(reportId));
+    }
+
+    @Override
+    public synchronized void deleteBenchmarkReport(String reportId) {
+        benchmarkReports.remove(reportId);
+        scenarioBaselines.values().removeIf(id -> id.equals(reportId));
     }
 }

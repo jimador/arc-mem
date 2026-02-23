@@ -142,7 +142,7 @@ class SimulationTurnExecutorParallelTest {
             var groundTruth = List.of(new SimulationScenario.GroundTruth("f1", "The king is alive"));
 
             var result = executor.executeTurnFull(
-                    "ctx", 3, "The king is dead!", TurnType.ATTACK, AttackStrategy.CONFIDENT_ASSERTION,
+                    "ctx", 3, "The king is dead!", TurnType.ATTACK, List.of(AttackStrategy.CONFIDENT_ASSERTION),
                     "royal court", false, 0, groundTruth, List.of(),
                     Map.of(), null, null, true, null, new HashMap<>());
 
@@ -232,7 +232,7 @@ class SimulationTurnExecutorParallelTest {
             var groundTruth = List.of(new SimulationScenario.GroundTruth("f1", "The bridge is intact"));
 
             var result = executor.executeTurnFull(
-                    "ctx", 4, "Destroy the bridge!", TurnType.ATTACK, AttackStrategy.SUBTLE_REFRAME,
+                    "ctx", 4, "Destroy the bridge!", TurnType.ATTACK, List.of(AttackStrategy.SUBTLE_REFRAME),
                     "bridge scenario", false, 0, groundTruth, List.of(),
                     Map.of(), null, null, false, null, new HashMap<>());
 

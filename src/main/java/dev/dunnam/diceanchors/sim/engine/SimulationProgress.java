@@ -18,7 +18,7 @@ import java.util.List;
 public record SimulationProgress(
         SimulationPhase phase,
         @Nullable TurnType turnType,
-        @Nullable AttackStrategy attackStrategy,
+        List<AttackStrategy> attackStrategies,
         int turnNumber,
         int totalTurns,
         String lastPlayerMessage,

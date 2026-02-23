@@ -1,6 +1,5 @@
 package dev.dunnam.diceanchors.sim.engine;
 
-import dev.dunnam.diceanchors.anchor.Anchor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -22,15 +21,13 @@ public class ScoringService {
     /**
      * Score a simulation run against its ground truth facts.
      *
-     * @param snapshots       turn-by-turn snapshots from the run
-     * @param groundTruth     the scenario's ground truth definitions
-     * @param injectedAnchors anchors that were active during the run
+     * @param snapshots   turn-by-turn snapshots from the run
+     * @param groundTruth the scenario's ground truth definitions
      *
      * @return aggregate scoring metrics
      */
     public ScoringResult score(List<SimulationRunRecord.TurnSnapshot> snapshots,
-                               List<SimulationScenario.GroundTruth> groundTruth,
-                               List<Anchor> injectedAnchors) {
+                               List<SimulationScenario.GroundTruth> groundTruth) {
         var contradictedFactIds = new HashSet<String>();
         var contradictionCount = 0;
         var majorContradictionCount = 0;
@@ -61,11 +58,11 @@ public class ScoringService {
             if (!turnHasContradiction) {
                 cleanTurnCount++;
             }
-            if (snapshot.attackStrategy() != null) {
-                var strategy = snapshot.attackStrategy().name();
-                strategyTotalTurns.merge(strategy, 1, Integer::sum);
+            for (var strategy : snapshot.attackStrategies()) {
+                var name = strategy.name();
+                strategyTotalTurns.merge(name, 1, Integer::sum);
                 if (turnHasContradiction) {
-                    strategyContradictions.merge(strategy, 1, Integer::sum);
+                    strategyContradictions.merge(name, 1, Integer::sum);
                 }
             }
         }
@@ -80,7 +77,7 @@ public class ScoringService {
         var meanTurnsToFirstDrift = firstDriftByFact.isEmpty()
                 ? Double.NaN
                 : firstDriftByFact.values().stream().mapToInt(Integer::intValue).average().orElse(Double.NaN);
-        var anchorAttributionCount = computeAttribution(injectedAnchors, groundTruth);
+        var anchorAttributionCount = computeAttribution(snapshots);
         var strategyEffectiveness = new HashMap<String, Double>();
         for (var entry : strategyTotalTurns.entrySet()) {
             var strategy = entry.getKey();
@@ -103,25 +100,21 @@ public class ScoringService {
     }
 
     /**
-     * Count ground truth facts that have at least one matching injected anchor.
-     * Matching uses bidirectional normalized substring containment.
+     * Count ground truth facts that received at least one CONFIRMED verdict
+     * across all turn snapshots. Uses the factId already tracked by the
+     * evaluation pipeline rather than fuzzy text matching.
      */
-    static int computeAttribution(List<Anchor> injectedAnchors, List<SimulationScenario.GroundTruth> groundTruth) {
-        var count = 0;
-        for (var fact : groundTruth) {
-            var normalizedFact = normalize(fact.text());
-            for (var anchor : injectedAnchors) {
-                var normalizedAnchor = normalize(anchor.text());
-                if (normalizedFact.contains(normalizedAnchor) || normalizedAnchor.contains(normalizedFact)) {
-                    count++;
-                    break;
+    static int computeAttribution(List<SimulationRunRecord.TurnSnapshot> snapshots) {
+        var confirmedFactIds = new HashSet<String>();
+        for (var snapshot : snapshots) {
+            var verdicts = snapshot.verdicts();
+            if (verdicts == null) continue;
+            for (var verdict : verdicts) {
+                if (verdict.verdict() == EvalVerdict.Verdict.CONFIRMED) {
+                    confirmedFactIds.add(verdict.factId());
                 }
             }
         }
-        return count;
-    }
-
-    private static String normalize(String text) {
-        return text.toLowerCase().replaceAll("[^a-z0-9 ]", "");
+        return confirmedFactIds.size();
     }
 }

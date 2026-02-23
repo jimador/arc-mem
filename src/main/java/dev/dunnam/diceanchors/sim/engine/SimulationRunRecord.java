@@ -30,7 +30,7 @@ public record SimulationRunRecord(
     public record TurnSnapshot(
             int turnNumber,
             TurnType turnType,
-            @Nullable AttackStrategy attackStrategy,
+            List<AttackStrategy> attackStrategies,
             String playerMessage,
             String dmResponse,
             List<Anchor> activeAnchors,
