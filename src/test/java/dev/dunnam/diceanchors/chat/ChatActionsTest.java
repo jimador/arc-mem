@@ -67,13 +67,16 @@ class ChatActionsTest {
     @Mock
     private Conversation persistedConversation;
 
+    @Mock
+    private ChatContextInitializer chatContextInitializer;
+
     @Test
     @DisplayName("publishes extraction event with persisted blackboard conversation")
     void publishEvent_usesPersistedConversationFromBlackboard() {
         var properties = properties();
         var assistantMessage = new AssistantMessage("ok");
         var actions = new ChatActions(anchorEngine, anchorRepository, eventPublisher, properties,
-                dev.dunnam.diceanchors.anchor.CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null);
+                dev.dunnam.diceanchors.anchor.CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null, chatContextInitializer);
 
         when(anchorEngine.inject("chat")).thenReturn(List.of());
         when(actionContext.ai()).thenReturn(ai);
@@ -100,7 +103,7 @@ class ChatActionsTest {
         var properties = properties();
         var assistantMessage = new AssistantMessage("ok");
         var actions = new ChatActions(anchorEngine, anchorRepository, eventPublisher, properties,
-                dev.dunnam.diceanchors.anchor.CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null);
+                dev.dunnam.diceanchors.anchor.CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null, chatContextInitializer);
 
         when(anchorEngine.inject("chat")).thenReturn(List.of());
         when(actionContext.ai()).thenReturn(ai);
@@ -128,7 +131,7 @@ class ChatActionsTest {
         var properties = properties();
         var assistantMessage = new AssistantMessage("ok");
         var actions = new ChatActions(anchorEngine, anchorRepository, eventPublisher, properties,
-                dev.dunnam.diceanchors.anchor.CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null);
+                dev.dunnam.diceanchors.anchor.CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null, chatContextInitializer);
 
         when(anchorEngine.inject("chat")).thenReturn(List.of());
         when(anchorRepository.findActiveUnanchoredPropositions("chat", properties.anchor().budget()))
@@ -170,7 +173,7 @@ class ChatActionsTest {
 
     private static DiceAnchorsProperties properties() {
         return new DiceAnchorsProperties(
-                new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200, null),
+                new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200, null, null, null),
                 new DiceAnchorsProperties.ChatConfig("dm", 200, null),
                 new DiceAnchorsProperties.MemoryConfig(true, null, null, "text-embedding-3-small", 20, 5, 2),
                 new DiceAnchorsProperties.PersistenceConfig(false),

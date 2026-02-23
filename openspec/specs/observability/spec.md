@@ -1,204 +1,141 @@
 ## ADDED Requirements
 
-### Requirement: @Observed annotations on simulation operations
+### Requirement: OTEL span attributes for compaction events
 
-The following methods SHALL be annotated with `@Observed` from Micrometer: `SimulationService.runSimulation()` with name `simulation.run`, `SimulationTurnExecutor.executeTurn()` with name `simulation.turn`, `SimulationTurnExecutor.evaluateDrift()` (or equivalent extraction method) with name `simulation.extraction`, and the drift evaluator call with name `simulation.drift_evaluation`. Each observed method SHALL produce a Micrometer observation that is traceable via OTEL.
-
-#### Scenario: simulation.run observation created
-- **WHEN** `SimulationService.runSimulation()` is called
-- **THEN** a Micrometer observation named `simulation.run` is started and stopped around the method execution
-
-#### Scenario: simulation.turn observation per turn
-- **WHEN** `SimulationTurnExecutor.executeTurn()` is called for turn 5
-- **THEN** a Micrometer observation named `simulation.turn` is created for that invocation
-
-### Requirement: OTEL span attributes per turn
-
-Each `simulation.turn` span SHALL include the following OTEL span attributes: `sim.scenario` (scenario ID string), `sim.turn` (turn number integer), `sim.turn_type` (turn type string, e.g., ATTACK/ESTABLISH), `sim.strategy` (attack strategy string when applicable, empty otherwise), and `sim.target_fact` (target fact ID when applicable, empty otherwise). These attributes SHALL be set via the Micrometer Observation API's low-cardinality key-value pairs.
-
-#### Scenario: Attack turn span attributes
-- **WHEN** turn 7 executes as an ATTACK turn with strategy SUBTLE_REFRAME targeting fact "the-sword-is-cursed"
-- **THEN** the span includes `sim.scenario=cursed-blade`, `sim.turn=7`, `sim.turn_type=ATTACK`, `sim.strategy=SUBTLE_REFRAME`, `sim.target_fact=the-sword-is-cursed`
-
-#### Scenario: Establish turn span attributes
-- **WHEN** turn 2 executes as an ESTABLISH turn with no strategy
-- **THEN** the span includes `sim.turn_type=ESTABLISH`, `sim.strategy=`, `sim.target_fact=`
-
-### Requirement: ChatModelHolder with ObservationRegistry
-
-A `ChatModelHolder` class SHALL wrap the `ChatModel` with `ObservationRegistry` wired in so that Spring AI observations fire automatically on each LLM call. The holder SHALL implement `ChatModel` (delegating pattern) and SHALL support `switchModel(String modelName)` for per-turn model selection when the scenario specifies different models for generator vs. evaluator. `SimulationTurnExecutor` SHALL use `ChatModelHolder` instead of the raw `ChatModel`.
-
-#### Scenario: LLM call observed
-- **WHEN** `ChatModelHolder.call()` is invoked during a simulation turn
-- **THEN** Spring AI chat observation fires and is captured by the ObservationRegistry
-
-#### Scenario: Model switching
-- **WHEN** a scenario specifies `generatorModel: gpt-4o` and `evaluatorModel: gpt-4o-mini`
-- **THEN** `ChatModelHolder.switchModel()` is called before generation and before evaluation with the respective model names
-
-### Requirement: SimulationLlmConfig
-
-A `SimulationLlmConfig` `@Configuration` class SHALL wire `ChatModelHolder` with the `ObservationRegistry` bean. The configuration SHALL create the `ChatModelHolder` bean that wraps the application's primary `ChatModel`. The holder SHALL be injected into `SimulationTurnExecutor` and `SimulationService` in place of the raw `ChatModel`.
-
-#### Scenario: ChatModelHolder bean available
-- **WHEN** the Spring context initializes
-- **THEN** a `ChatModelHolder` bean is available and wraps the primary ChatModel with observation support
-
-### Requirement: Application configuration for observability
-
-`application.yml` SHALL include the following configuration: `management.tracing.enabled=true`, `management.tracing.sampling.probability=1.0`, `spring.ai.chat.observations.include-input=true`, `spring.ai.chat.observations.include-output=true`. These settings SHALL enable full tracing with LLM input/output capture.
-
-#### Scenario: Tracing enabled
-- **WHEN** the application starts with default `application.yml`
-- **THEN** tracing is enabled with 100% sampling probability
-
-#### Scenario: LLM input/output captured
-- **WHEN** a ChatModel call is made during simulation
-- **THEN** the observation includes the input prompt and output response text
-
-### Requirement: Langfuse OTEL exporter configuration
-
-The application SHALL be configured to export OTEL traces to Langfuse via the `opentelemetry-exporter-langfuse` dependency. `application.yml` SHALL include `management.langfuse.enabled=true` with endpoint and API key configuration using environment variable defaults matching the docker-compose Langfuse stack (`pk-lf-dev-public` / `sk-lf-dev-secret`). The Maven `pom.xml` SHALL include `com.quantpulsar:opentelemetry-exporter-langfuse:0.4.0` and `embabel-agent-starter-observability` dependencies.
-
-#### Scenario: Langfuse exporter configured
-- **WHEN** the application starts with Langfuse environment variables set
-- **THEN** OTEL traces are exported to the Langfuse endpoint
-
-#### Scenario: Maven dependencies present
-- **WHEN** `pom.xml` is inspected
-- **THEN** it includes `opentelemetry-exporter-langfuse` (0.4.0), `embabel-agent-starter-observability`, and `opentelemetry-api` dependencies
-
-### Requirement: OTEL span attributes for tier transitions
-
-When a `TierChanged` lifecycle event is published, the system SHALL record OTEL span attributes on the active span (if present):
-- `anchor.tier` (String): The new tier value (`HOT`, `WARM`, `COLD`)
-- `anchor.tier.previous` (String): The previous tier value
-- `anchor.id` (String): The anchor ID
-
-These attributes SHALL be set as low-cardinality key-value pairs via the Micrometer Observation API.
-
-#### Scenario: Tier upgrade span attributes
-
-- **GIVEN** an active OTEL span during anchor reinforcement
-- **WHEN** a `TierChanged` event is published with `previousTier = WARM` and `newTier = HOT`
-- **THEN** the span SHALL include attributes `anchor.tier = "HOT"` and `anchor.tier.previous = "WARM"`
-
-#### Scenario: No active span
-
-- **GIVEN** no active OTEL span (e.g., background decay job)
-- **WHEN** a `TierChanged` event is published
-- **THEN** the event SHALL be logged at INFO level but no span attributes SHALL be set
-
-### Requirement: Tier distribution in simulation turn spans
-
-Each `simulation.turn` span SHALL include tier distribution attributes:
-- `anchor.tier.hot_count` (int): Number of HOT anchors in the assembled prompt
-- `anchor.tier.warm_count` (int): Number of WARM anchors in the assembled prompt
-- `anchor.tier.cold_count` (int): Number of COLD anchors in the assembled prompt
-
-#### Scenario: Turn span includes tier counts
-
-- **GIVEN** a simulation turn assembling a prompt with 4 HOT, 8 WARM, and 3 COLD anchors
-- **WHEN** the `simulation.turn` span is recorded
-- **THEN** the span SHALL include `anchor.tier.hot_count = 4`, `anchor.tier.warm_count = 8`, `anchor.tier.cold_count = 3`
-
-### Requirement: Conflict detection OTEL span attributes
-
-Each `simulation.turn` span SHALL include the following conflict-related OTEL span attributes:
-
-- `conflict.detected_count` (int) -- total number of conflicts detected during the turn
-- `conflict.resolved_count` (int) -- total number of conflicts that were resolved during the turn
-- `conflict.resolution_outcomes` (String) -- comma-separated list of resolution types applied during the turn (e.g., `"REPLACE,KEEP_EXISTING,DEMOTE_EXISTING"`)
-
-These attributes SHALL be set as low-cardinality key-value pairs via the Micrometer Observation API. When no conflicts are detected during a turn, `conflict.detected_count` SHALL be `0`, `conflict.resolved_count` SHALL be `0`, and `conflict.resolution_outcomes` SHALL be an empty string.
-
-#### Scenario: Attack turn with conflicts
-
-- **GIVEN** a simulation turn that detects 3 conflicts
-- **AND** resolution produces 2 REPLACE and 1 KEEP_EXISTING outcomes
-- **WHEN** the `simulation.turn` span is recorded
-- **THEN** the span SHALL include `conflict.detected_count = 3`, `conflict.resolved_count = 3`, `conflict.resolution_outcomes = "REPLACE,REPLACE,KEEP_EXISTING"`
-
-#### Scenario: Turn with no conflicts
-
-- **GIVEN** a simulation turn that detects no conflicts
-- **WHEN** the `simulation.turn` span is recorded
-- **THEN** the span SHALL include `conflict.detected_count = 0`, `conflict.resolved_count = 0`, `conflict.resolution_outcomes = ""`
-
-### Requirement: Conflict resolution observation
-
-A Micrometer observation named `conflict.resolution` SHALL be created around each `AuthorityConflictResolver.resolve()` call. The observation SHALL include the following low-cardinality key-value pairs:
-
-- `conflict.existing_authority` (String) -- the authority level of the existing anchor (e.g., `"RELIABLE"`, `"PROVISIONAL"`)
-- `conflict.incoming_confidence_band` (String) -- the confidence band of the incoming proposition: `"LOW"` (< 0.4), `"MEDIUM"` (0.4 -- 0.8), or `"HIGH"` (> 0.8)
-- `conflict.existing_tier` (String) -- the tier of the existing anchor (`"HOT"`, `"WARM"`, or `"COLD"`)
-- `conflict.resolution` (String) -- the resolution outcome (e.g., `"REPLACE"`, `"KEEP_EXISTING"`, `"DEMOTE_EXISTING"`)
-
-The observation SHALL be stopped after the resolution decision is made, regardless of whether the resolution succeeds or fails.
-
-#### Scenario: High-confidence conflict with HOT anchor observed
-
-- **GIVEN** an incoming proposition with confidence `0.85` conflicts with a HOT RELIABLE anchor
-- **WHEN** `AuthorityConflictResolver.resolve()` is called
-- **THEN** a `conflict.resolution` observation SHALL be recorded with `conflict.existing_authority = "RELIABLE"`, `conflict.incoming_confidence_band = "HIGH"`, `conflict.existing_tier = "HOT"`, `conflict.resolution = "DEMOTE_EXISTING"`
-
-#### Scenario: Low-confidence conflict observed
-
-- **GIVEN** an incoming proposition with confidence `0.3` conflicts with a WARM UNRELIABLE anchor
-- **WHEN** `AuthorityConflictResolver.resolve()` is called
-- **THEN** a `conflict.resolution` observation SHALL be recorded with `conflict.existing_authority = "UNRELIABLE"`, `conflict.incoming_confidence_band = "LOW"`, `conflict.existing_tier = "WARM"`, `conflict.resolution = "DEMOTE_EXISTING"`
-
-### Requirement: Retrieval quality gate OTEL span attributes
-
-Each assembly span/observation SHALL include the following retrieval-specific OTEL span attributes, set as low-cardinality key-value pairs via the Micrometer Observation API:
+Each `simulation.turn` span SHALL include the following compaction-related OTEL span attributes when a compaction operation occurs during that turn. These attributes SHALL be set as low-cardinality key-value pairs via the Micrometer Observation API on the `simulation.turn` span. When no compaction occurs during a turn, these attributes SHALL NOT be set.
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
-| `retrieval.mode` | String | The configured `RetrievalMode` value (`BULK`, `TOOL`, or `HYBRID`) |
-| `retrieval.baseline_count` | int | Number of anchors included in the baseline system prompt injection |
-| `retrieval.tool_call_count` | int | Number of `retrieveAnchors` tool invocations during the turn |
-| `retrieval.avg_relevance_score` | double | Mean heuristic relevance score of all anchors included in the baseline injection. SHALL be 0.0 when no anchors are injected. |
-| `retrieval.filtered_count` | int | Number of anchors excluded by the quality threshold filter (scoring below `min-relevance` and not CANON) |
+| `compaction.trigger_reason` | String | The reason compaction was triggered (e.g., `"TOKEN_LIMIT_EXCEEDED"`, `"MANUAL"`) |
+| `compaction.tokens_before` | int | Estimated token count in message history before compaction |
+| `compaction.tokens_after` | int | Estimated token count after the summary replaces history |
+| `compaction.loss_count` | int | Number of protected content items that failed post-compaction validation |
+| `compaction.retry_count` | int | Number of LLM retry attempts beyond the initial call (0 means first attempt succeeded) |
+| `compaction.fallback_used` | boolean | Whether the extractive fallback summary was used instead of an LLM-generated summary |
 
-These attributes SHALL be set on the assembly span when the anchor context is assembled for injection, regardless of the configured retrieval mode.
+Attribute values SHALL be sourced from the `CompactionCompleted` event or an equivalent in-process result record produced by `CompactedContextProvider.compact()`. The attributes SHALL reflect the final outcome of the compaction attempt, including fallback and retry resolution.
 
-#### Scenario: HYBRID mode reports baseline count and tool calls
+#### Scenario: Turn span includes compaction attributes when compaction occurs
 
-- **GIVEN** `dice-anchors.retrieval.mode` is `HYBRID`
-- **AND** baseline injection includes 7 anchors (2 CANON + 5 by relevance)
-- **AND** the LLM invokes `retrieveAnchors` twice during the turn
-- **AND** 3 anchors were excluded by the quality threshold
-- **AND** the average heuristic score of the 7 baseline anchors is 0.65
-- **WHEN** the assembly span is recorded
+- **GIVEN** a simulation turn where token count exceeds the compaction threshold
+- **AND** compaction runs with `triggerReason = "TOKEN_LIMIT_EXCEEDED"`, `tokensBefore = 3200`, `tokensAfter = 800`, `lossCount = 1`, `retryCount = 0`, `fallbackUsed = false`
+- **WHEN** the `simulation.turn` span is recorded
 - **THEN** the span SHALL include:
-  - `retrieval.mode = "HYBRID"`
-  - `retrieval.baseline_count = 7`
-  - `retrieval.tool_call_count = 2`
-  - `retrieval.avg_relevance_score = 0.65`
-  - `retrieval.filtered_count = 3`
+  - `compaction.trigger_reason = "TOKEN_LIMIT_EXCEEDED"`
+  - `compaction.tokens_before = 3200`
+  - `compaction.tokens_after = 800`
+  - `compaction.loss_count = 1`
+  - `compaction.retry_count = 0`
+  - `compaction.fallback_used = false`
 
-#### Scenario: BULK mode reports full count with no tool calls
+#### Scenario: Turn span omits compaction attributes when no compaction occurs
 
-- **GIVEN** `dice-anchors.retrieval.mode` is `BULK`
-- **AND** 12 active anchors are injected into the system prompt
-- **AND** no quality threshold filtering is applied (min-relevance = 0.0)
-- **WHEN** the assembly span is recorded
-- **THEN** the span SHALL include:
-  - `retrieval.mode = "BULK"`
-  - `retrieval.baseline_count = 12`
-  - `retrieval.tool_call_count = 0`
-  - `retrieval.avg_relevance_score = 0.0` (no heuristic scoring in BULK mode)
-  - `retrieval.filtered_count = 0`
+- **GIVEN** a simulation turn where the token count remains below the compaction threshold
+- **WHEN** the `simulation.turn` span is recorded
+- **THEN** the span SHALL NOT include any `compaction.*` attributes
 
-#### Scenario: TOOL mode reports zero baseline with tool calls
+#### Scenario: Fallback usage recorded in span
 
-- **GIVEN** `dice-anchors.retrieval.mode` is `TOOL`
-- **AND** no anchors are injected into the system prompt
-- **AND** the LLM invokes `retrieveAnchors` 3 times during the turn
-- **WHEN** the assembly span is recorded
-- **THEN** the span SHALL include:
-  - `retrieval.mode = "TOOL"`
-  - `retrieval.baseline_count = 0`
-  - `retrieval.tool_call_count = 3`
-  - `retrieval.avg_relevance_score = 0.0`
-  - `retrieval.filtered_count = 0`
+- **GIVEN** a compaction turn where all LLM retries fail and the extractive fallback is used
+- **AND** `retryCount = 2`, `fallbackUsed = true`
+- **WHEN** the `simulation.turn` span is recorded
+- **THEN** the span SHALL include `compaction.fallback_used = true` and `compaction.retry_count = 2`
+
+#### Scenario: Perfect compaction with no loss
+
+- **GIVEN** a compaction that produces a valid LLM summary covering all protected content items on the first attempt
+- **AND** `lossCount = 0`, `retryCount = 0`, `fallbackUsed = false`
+- **WHEN** the `simulation.turn` span is recorded
+- **THEN** the span SHALL include `compaction.loss_count = 0`, `compaction.retry_count = 0`, `compaction.fallback_used = false`
+
+## Operator Invariants (F07)
+
+### Requirement: Invariant evaluation OTEL span attributes
+
+Each lifecycle operation span that evaluates invariants SHALL include the following OTEL span attributes, set as low-cardinality key-value pairs via the Micrometer Observation API or direct OpenTelemetry Span API:
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `invariant.checked_count` | int | Total number of invariants evaluated during the lifecycle operation |
+| `invariant.violated_count` | int | Number of invariants that were violated (both MUST and SHOULD) |
+| `invariant.blocked_action` | boolean | Whether any MUST-strength invariant blocked the lifecycle action |
+
+These attributes SHALL be set on the active span after `InvariantEvaluator.evaluate()` returns, regardless of the evaluation outcome. When no invariants are registered, `invariant.checked_count` SHALL be `0`, `invariant.violated_count` SHALL be `0`, and `invariant.blocked_action` SHALL be `false`.
+
+#### Scenario: Lifecycle operation with invariants evaluated
+
+- **GIVEN** an active OTEL span during `AnchorEngine.demote()`
+- **AND** 3 invariants are evaluated, 1 MUST-strength is violated, and 1 SHOULD-strength is violated
+- **WHEN** the span attributes are recorded
+- **THEN** the span SHALL include `invariant.checked_count = 3`, `invariant.violated_count = 2`, `invariant.blocked_action = true`
+
+#### Scenario: Lifecycle operation with no violations
+
+- **GIVEN** an active OTEL span during `AnchorEngine.archive()`
+- **AND** 2 invariants are evaluated and none are violated
+- **WHEN** the span attributes are recorded
+- **THEN** the span SHALL include `invariant.checked_count = 2`, `invariant.violated_count = 0`, `invariant.blocked_action = false`
+
+#### Scenario: No invariants registered
+
+- **GIVEN** an active OTEL span during `AnchorEngine.promote()`
+- **AND** no invariants are registered
+- **WHEN** the span attributes are recorded
+- **THEN** the span SHALL include `invariant.checked_count = 0`, `invariant.violated_count = 0`, `invariant.blocked_action = false`
+
+#### Scenario: No active span
+
+- **GIVEN** no active OTEL span (e.g., background decay job without tracing)
+- **WHEN** invariant evaluation completes
+- **THEN** the invariant evaluation result SHALL still be returned correctly but no span attributes SHALL be set
+
+### Requirement: InvariantViolation event span attributes
+
+When the `AnchorLifecycleListener` handles an `InvariantViolation` event, it SHALL set the following OTEL span attributes on the active span (if present):
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `invariant.violation.rule_id` | String | The rule ID of the violated invariant |
+| `invariant.violation.type` | String | The invariant type (e.g., `"ANCHOR_PROTECTED"`) |
+| `invariant.violation.strength` | String | `"MUST"` or `"SHOULD"` |
+| `invariant.violation.action` | String | The attempted lifecycle action (e.g., `"EVICT"`) |
+| `invariant.violation.blocked` | boolean | Whether the action was blocked |
+
+These attributes SHALL be set as low-cardinality key-value pairs. When multiple violations occur in a single span, the attributes SHALL reflect the last violation processed (last-write-wins semantics). The aggregate counts (`invariant.checked_count`, `invariant.violated_count`, `invariant.blocked_action`) from the evaluation-level attributes provide the complete picture.
+
+#### Scenario: Blocked violation sets span attributes
+
+- **GIVEN** an active OTEL span during eviction
+- **WHEN** an `InvariantViolation` event is handled with `ruleId = "protect-A1"`, `strength = "MUST"`, `blocked = true`
+- **THEN** the span SHALL include `invariant.violation.rule_id = "protect-A1"`, `invariant.violation.type = "ANCHOR_PROTECTED"`, `invariant.violation.strength = "MUST"`, `invariant.violation.action = "EVICT"`, `invariant.violation.blocked = true`
+
+#### Scenario: No span during background operation
+
+- **GIVEN** no active OTEL span
+- **WHEN** an `InvariantViolation` event is handled
+- **THEN** the event SHALL be logged at WARN level but no span attributes SHALL be set
+
+### Requirement: Simulation turn span includes invariant summary
+
+Each `simulation.turn` span SHALL include aggregated invariant attributes for all invariant evaluations that occurred during the turn:
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `invariant.turn.total_checked` | int | Total invariants evaluated across all lifecycle operations in the turn |
+| `invariant.turn.total_violated` | int | Total invariant violations across all lifecycle operations in the turn |
+| `invariant.turn.actions_blocked` | int | Number of lifecycle actions that were blocked by MUST-strength invariants during the turn |
+
+These attributes SHALL be set on the `simulation.turn` observation span after all turn-level lifecycle operations complete.
+
+#### Scenario: Turn with invariant activity
+
+- **GIVEN** a simulation turn that evaluates invariants during 2 lifecycle operations
+- **AND** the first operation checks 3 invariants (1 violated, not blocked) and the second checks 2 invariants (1 violated, blocked)
+- **WHEN** the `simulation.turn` span is recorded
+- **THEN** the span SHALL include `invariant.turn.total_checked = 5`, `invariant.turn.total_violated = 2`, `invariant.turn.actions_blocked = 1`
+
+#### Scenario: Turn with no invariant activity
+
+- **GIVEN** a simulation turn where no lifecycle operations trigger invariant evaluation
+- **WHEN** the `simulation.turn` span is recorded
+- **THEN** the span SHALL include `invariant.turn.total_checked = 0`, `invariant.turn.total_violated = 0`, `invariant.turn.actions_blocked = 0`

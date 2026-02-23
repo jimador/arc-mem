@@ -12,6 +12,9 @@ import java.util.List;
  * @param summary             the generated summary text
  * @param durationMs          wall-clock time for the compaction cycle in milliseconds
  * @param lossEvents          anchors that were not adequately represented in the compaction summary
+ * @param compactionApplied   whether the compaction was actually applied (false on validation failure/rollback)
+ * @param retryCount          number of LLM retry attempts during summary generation
+ * @param fallbackUsed        whether the extractive fallback was used instead of LLM generation
  */
 public record CompactionResult(
         String triggerReason,
@@ -20,5 +23,8 @@ public record CompactionResult(
         List<String> protectedContentIds,
         String summary,
         long durationMs,
-        List<CompactionLossEvent> lossEvents
+        List<CompactionLossEvent> lossEvents,
+        boolean compactionApplied,
+        int retryCount,
+        boolean fallbackUsed
 ) {}

@@ -1,73 +1,133 @@
-# Anchor Lifecycle Events
+## ADDED Requirements
 
-## Overview
+### Requirement: CompactionCompleted event
 
-Spring ApplicationEvent-based lifecycle hooks for AnchorEngine operations, enabling structured telemetry, audit trails, and Langfuse/OTEL integration without mixing observability concerns into core engine logic.
+The system SHALL publish a `CompactionCompleted` event record after each completed compaction operation (whether successful or fallen-back). `CompactionCompleted` SHALL be a standalone record and SHALL NOT be added to the sealed `AnchorLifecycleEvent` hierarchy, as compaction is a context-assembly concern rather than an anchor state-machine concern.
 
-## Requirements
+`CompactionCompleted` SHALL contain the following fields:
 
-### Requirement: Event Base Class
-- The system MUST provide an abstract `AnchorLifecycleEvent` extending `ApplicationEvent`
-- All lifecycle events MUST carry `contextId` (String) and `timestamp` (Instant)
-- Events MUST be published via Spring's `ApplicationEventPublisher`
+| Field | Type | Description |
+|-------|------|-------------|
+| `contextId` | String | The simulation context for which compaction ran |
+| `triggerReason` | String | The reason compaction was triggered (e.g., `"TOKEN_LIMIT_EXCEEDED"`, `"MANUAL"`) |
+| `tokensBefore` | int | Estimated token count in the message history before compaction |
+| `tokensAfter` | int | Estimated token count after the summary replaces history |
+| `lossCount` | int | Number of protected content items that failed validation (CompactionLossEvents count) |
+| `retryCount` | int | Number of LLM retry attempts made (0 means first attempt succeeded) |
+| `fallbackUsed` | boolean | Whether the extractive fallback summary was used instead of an LLM-generated summary |
+| `occurredAt` | Instant | The instant at which compaction completed |
 
-### Requirement: Core Lifecycle Events
-The system MUST publish events for these operations:
+`CompactionCompleted` SHALL be published via Spring's `ApplicationEventPublisher` after the compaction outcome is fully determined (summary stored or rollback completed). The event SHALL be published regardless of whether the compaction succeeded or fell back, but SHALL NOT be published when compaction is rolled back without producing any summary (i.e., full failure with rollback and no stored result).
 
-1. **AnchorPromotedEvent** — after `AnchorEngine.promote()` completes
-   - MUST include: propositionId, anchorId, initialRank, contextId
-2. **AnchorReinforcedEvent** — after `AnchorEngine.reinforce()` completes
-   - MUST include: anchorId, previousRank, newRank, reinforcementCount, contextId
-3. **AnchorArchivedEvent** — after anchor archival completes
-   - MUST include: anchorId, reason (enum: CONFLICT_REPLACEMENT, BUDGET_EVICTION, MANUAL), contextId
-4. **ConflictDetectedEvent** — after `AnchorEngine.detectConflicts()` finds conflicts
-   - MUST include: incomingText, conflictCount, contextId
-   - SHOULD include: list of conflicting anchor IDs
-5. **ConflictResolvedEvent** — after `AnchorEngine.resolveConflict()` returns
-   - MUST include: existingAnchorId, resolution (KEEP_EXISTING/REPLACE/COEXIST), contextId
-6. **AuthorityUpgradedEvent** — after authority upgrade in `reinforce()`
-   - MUST include: anchorId, previousAuthority, newAuthority, reinforcementCount, contextId
+Event publishing SHALL be gated by `dice-anchors.compaction.events-enabled` (default `true`). When disabled, no `CompactionCompleted` events SHALL be published.
 
-### Requirement: Event Publishing
-- Events MUST be published after state changes complete (not before)
-- Event publishing MUST NOT throw exceptions that break the calling operation
-- Event publishing SHOULD be configurable via `dice-anchors.anchor.lifecycle-events-enabled` property
-- When disabled, no events MUST be published and no publisher calls MUST be made
+#### Scenario: Successful compaction publishes event
 
-### Requirement: Default Listener
-- The system MUST provide a default `AnchorLifecycleListener` with `@EventListener` methods
-- The listener MUST log each event at INFO level using structured SLF4J placeholders
-- The listener SHOULD add OTEL span attributes when tracing is active
-- The listener MUST be a Spring `@Component` that can be excluded or replaced
+- **GIVEN** a compaction that succeeds with an LLM-generated summary on the first attempt
+- **WHEN** the summary is stored and message history is cleared
+- **THEN** a `CompactionCompleted` event SHALL be published with `retryCount = 0`, `fallbackUsed = false`, `lossCount` equal to the number of failed protected content items, and `tokensBefore > tokensAfter`
 
-### Requirement: No Mandatory Consumers
-- The system MUST NOT require any event consumer to be registered
-- Events with no listeners MUST be silently discarded by Spring's event infrastructure
-- No event MUST block the publishing thread (default synchronous delivery is acceptable for demo scope)
+#### Scenario: Fallback compaction publishes event with fallbackUsed = true
 
-## Scenarios
+- **GIVEN** all LLM retries are exhausted and the extractive fallback summary is used
+- **WHEN** the fallback summary passes validation and is stored
+- **THEN** a `CompactionCompleted` event SHALL be published with `fallbackUsed = true` and `retryCount` equal to `CompactionConfig.retryCount`
 
-#### Scenario: Anchor promoted successfully
-- Given a proposition passes all promotion gates
-- When `AnchorEngine.promote()` completes
-- Then an `AnchorPromotedEvent` is published with the new anchor's ID and rank
+#### Scenario: Rolled-back compaction does NOT publish event
 
-#### Scenario: Conflict detected and resolved as REPLACE
-- Given incoming text conflicts with an existing anchor
-- When conflict is resolved as REPLACE
-- Then both `ConflictDetectedEvent` and `ConflictResolvedEvent` are published
-- And an `AnchorArchivedEvent` is published for the replaced anchor with reason CONFLICT_REPLACEMENT
+- **GIVEN** a compaction where even the fallback summary fails validation and rollback occurs
+- **WHEN** message history is restored from the pre-compaction snapshot
+- **THEN** no `CompactionCompleted` event SHALL be published
 
-#### Scenario: Authority upgraded during reinforcement
-- Given an anchor reaches the reinforcement threshold for upgrade
-- When `reinforce()` upgrades authority from PROVISIONAL to UNRELIABLE
-- Then both `AnchorReinforcedEvent` and `AuthorityUpgradedEvent` are published
+#### Scenario: Event includes accurate retry count
 
-#### Scenario: Events disabled via configuration
-- Given `dice-anchors.anchor.lifecycle-events-enabled` is false
-- When any anchor lifecycle operation completes
-- Then no events are published
+- **GIVEN** `CompactionConfig.retryCount` is 2
+- **AND** the first LLM call fails, the second fails, and the third (second retry) succeeds
+- **WHEN** the `CompactionCompleted` event is published
+- **THEN** `retryCount` SHALL be 2
 
-## Constitutional Alignment
+#### Scenario: Events disabled suppresses publishing
 
-This capability follows the project's policy-based architecture pattern. Events are additive-only with no breaking changes to existing APIs. All events use constructor injection and immutable data carriers per CLAUDE.md coding style.
+- **GIVEN** `dice-anchors.compaction.events-enabled` is `false`
+- **WHEN** a compaction completes successfully
+- **THEN** no `CompactionCompleted` event SHALL be published via `ApplicationEventPublisher`
+
+## Operator Invariants (F07)
+
+### Requirement: InvariantViolation lifecycle event
+
+The system SHALL add an `InvariantViolation` event type to the `AnchorLifecycleEvent` sealed hierarchy. The event SHALL be published when an invariant is evaluated and found to be violated, regardless of whether the violation blocked the action or only produced a warning.
+
+The `InvariantViolation` event SHALL include:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `ruleId` | String | The ID of the invariant rule that was violated |
+| `invariantType` | String | The type of invariant (e.g., `"ANCHOR_PROTECTED"`, `"AUTHORITY_FLOOR"`) |
+| `constraintDescription` | String | Human-readable description of the violated constraint |
+| `attemptedAction` | String | The lifecycle action that triggered the violation (e.g., `"EVICT"`, `"DEMOTE"`) |
+| `targetAnchorId` | String | The anchor ID that was the target of the attempted action |
+| `blocked` | boolean | Whether the action was blocked (`true` for MUST-strength) or only warned (`false` for SHOULD-strength) |
+| `strength` | String | The invariant strength (`"MUST"` or `"SHOULD"`) |
+| `contextId` | String | Inherited from `AnchorLifecycleEvent` |
+| `occurredAt` | Instant | Inherited from `AnchorLifecycleEvent` |
+
+The `AnchorLifecycleEvent` sealed interface `permits` clause SHALL be updated to include `InvariantViolation`.
+
+A static factory method `AnchorLifecycleEvent.invariantViolation(...)` SHALL be provided, consistent with the existing factory methods (`promoted(...)`, `reinforced(...)`, etc.).
+
+#### Scenario: MUST-strength violation publishes blocked event
+
+- **GIVEN** a MUST-strength `ANCHOR_PROTECTED` invariant with `ruleId = "protect-A1"` for anchor "A1"
+- **WHEN** budget enforcement attempts to evict anchor "A1"
+- **THEN** an `InvariantViolation` event SHALL be published with:
+  - `ruleId = "protect-A1"`
+  - `invariantType = "ANCHOR_PROTECTED"`
+  - `constraintDescription = "Anchor A1 is protected from eviction"`
+  - `attemptedAction = "EVICT"`
+  - `targetAnchorId = "A1"`
+  - `blocked = true`
+  - `strength = "MUST"`
+
+#### Scenario: SHOULD-strength violation publishes warned event
+
+- **GIVEN** a SHOULD-strength `MINIMUM_COUNT` invariant with `ruleId = "min-reliable"` requiring 3 RELIABLE anchors
+- **WHEN** an eviction would drop the RELIABLE anchor count to 2
+- **THEN** an `InvariantViolation` event SHALL be published with:
+  - `ruleId = "min-reliable"`
+  - `invariantType = "MINIMUM_COUNT"`
+  - `attemptedAction = "EVICT"`
+  - `blocked = false`
+  - `strength = "SHOULD"`
+
+#### Scenario: Multiple violations publish multiple events
+
+- **GIVEN** two invariants are violated by a single demotion attempt (one MUST, one SHOULD)
+- **WHEN** `AnchorEngine.demote()` evaluates invariants
+- **THEN** two `InvariantViolation` events SHALL be published -- one for each violated invariant
+
+#### Scenario: InvariantViolation event gated by lifecycle events config
+
+- **GIVEN** `dice-anchors.anchor.lifecycle-events-enabled` is `false`
+- **WHEN** an invariant violation occurs
+- **THEN** no `InvariantViolation` event SHALL be published
+
+### Requirement: InvariantViolation event listener logging
+
+The existing `AnchorLifecycleListener` SHALL handle `InvariantViolation` events with an `@EventListener` method. The listener SHALL:
+
+1. Log at WARN level for MUST-strength violations: `"Invariant {} violated: {} — action {} BLOCKED for anchor {}"`
+2. Log at WARN level for SHOULD-strength violations: `"Invariant {} violated: {} — action {} WARNED for anchor {}"`
+3. Set OTEL span attributes when tracing is active (see observability spec)
+
+#### Scenario: Blocked violation logged at WARN
+
+- **GIVEN** a MUST-strength `InvariantViolation` event
+- **WHEN** the `AnchorLifecycleListener` handles the event
+- **THEN** a WARN-level log SHALL be emitted containing the rule ID, constraint description, attempted action, and "BLOCKED"
+
+#### Scenario: Warned violation logged at WARN
+
+- **GIVEN** a SHOULD-strength `InvariantViolation` event
+- **WHEN** the `AnchorLifecycleListener` handles the event
+- **THEN** a WARN-level log SHALL be emitted containing the rule ID, constraint description, attempted action, and "WARNED"

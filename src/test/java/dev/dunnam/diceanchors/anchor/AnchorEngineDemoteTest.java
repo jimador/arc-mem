@@ -20,6 +20,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -38,12 +39,16 @@ class AnchorEngineDemoteTest {
     @Mock private ApplicationEventPublisher eventPublisher;
     @Mock private TrustPipeline trustPipeline;
     @Mock private CanonizationGate canonizationGate;
+    @Mock private InvariantEvaluator invariantEvaluator;
 
     private AnchorEngine engine;
     private AnchorEngine engineWithGateDisabled;
 
     @BeforeEach
     void setUp() {
+        lenient().when(invariantEvaluator.evaluate(any(), any(), any(), any()))
+                .thenReturn(new InvariantEvaluation(java.util.List.of(), 0));
+
         engine = new AnchorEngine(
                 repository,
                 properties(true, true),
@@ -53,7 +58,8 @@ class AnchorEngineDemoteTest {
                 decayPolicy,
                 eventPublisher,
                 trustPipeline,
-                canonizationGate);
+                canonizationGate,
+                invariantEvaluator);
 
         engineWithGateDisabled = new AnchorEngine(
                 repository,
@@ -64,7 +70,8 @@ class AnchorEngineDemoteTest {
                 decayPolicy,
                 eventPublisher,
                 trustPipeline,
-                canonizationGate);
+                canonizationGate,
+                invariantEvaluator);
     }
 
     @Nested
@@ -102,7 +109,7 @@ class AnchorEngineDemoteTest {
 
             engine.demote("a2", DemotionReason.MANUAL);
 
-            verify(repository).archiveAnchor("a2");
+            verify(repository).archiveAnchor("a2", null);
             verify(eventPublisher).publishEvent(any(AnchorLifecycleEvent.Archived.class));
             verify(repository, never()).setAuthority(anyString(), anyString());
         }
@@ -121,7 +128,7 @@ class AnchorEngineDemoteTest {
             engine.demote("missing", DemotionReason.MANUAL);
 
             verify(repository, never()).setAuthority(anyString(), anyString());
-            verify(repository, never()).archiveAnchor(anyString());
+            verify(repository, never()).archiveAnchor(anyString(), any());
             verify(eventPublisher, never()).publishEvent(any());
         }
     }
@@ -141,7 +148,7 @@ class AnchorEngineDemoteTest {
             verify(canonizationGate).requestDecanonization(
                     "a3", CONTEXT_ID, node.getText(), DemotionReason.MANUAL.name(), "system");
             verify(repository, never()).setAuthority(anyString(), anyString());
-            verify(repository, never()).archiveAnchor(anyString());
+            verify(repository, never()).archiveAnchor(anyString(), any());
         }
 
         @Test
@@ -178,7 +185,7 @@ class AnchorEngineDemoteTest {
                 lifecycleEventsEnabled,
                 canonizationGateEnabled,
                 true,
-                0.6, 400, 200, null);
+                0.6, 400, 200, null, null, null);
         return new DiceAnchorsProperties(
                 anchorConfig,
                 new DiceAnchorsProperties.ChatConfig("dm", 200, null),

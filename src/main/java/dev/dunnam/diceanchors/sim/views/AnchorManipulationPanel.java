@@ -1,6 +1,7 @@
 package dev.dunnam.diceanchors.sim.views;
 
 import com.embabel.dice.proposition.PropositionStatus;
+import dev.dunnam.diceanchors.anchor.event.ArchiveReason;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -345,6 +346,12 @@ public class AnchorManipulationPanel extends VerticalLayout {
                     null,
                     0,
                     0.0,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
                     null
             );
 
@@ -420,7 +427,7 @@ public class AnchorManipulationPanel extends VerticalLayout {
         acceptButton.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_SUCCESS);
         acceptButton.addClickListener(e -> {
             if (resolution == ConflictResolver.Resolution.REPLACE) {
-                anchorRepository.archiveAnchor(conflict.existing().id());
+                anchorEngine.archive(conflict.existing().id(), ArchiveReason.CONFLICT_REPLACEMENT);
             }
             recordIntervention(ActionType.CONFLICT_RESOLVE, conflict.existing().id(),
                                "conflict", "accepted: " + resolution.name());

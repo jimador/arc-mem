@@ -3,6 +3,8 @@ package dev.dunnam.diceanchors.sim.engine;
 import dev.dunnam.diceanchors.DiceAnchorsProperties;
 import dev.dunnam.diceanchors.anchor.Anchor;
 import dev.dunnam.diceanchors.anchor.AnchorEngine;
+import dev.dunnam.diceanchors.anchor.CanonizationGate;
+import dev.dunnam.diceanchors.anchor.InvariantRuleProvider;
 import dev.dunnam.diceanchors.assembly.CompactedContextProvider;
 import dev.dunnam.diceanchors.persistence.AnchorRepository;
 import dev.dunnam.diceanchors.persistence.PropositionNode;
@@ -62,6 +64,8 @@ public class SimulationService {
     private final RunHistoryStore runStore;
     private final CompactedContextProvider compactedContextProvider;
     private final ScoringService scoringService;
+    private final CanonizationGate canonizationGate;
+    private final InvariantRuleProvider invariantRuleProvider;
 
     private volatile boolean running = false;
     private volatile boolean paused = false;
@@ -78,7 +82,9 @@ public class SimulationService {
             AssertionRegistry assertionRegistry,
             RunHistoryStore runStore,
             CompactedContextProvider compactedContextProvider,
-            ScoringService scoringService) {
+            ScoringService scoringService,
+            CanonizationGate canonizationGate,
+            InvariantRuleProvider invariantRuleProvider) {
         this.turnExecutor = turnExecutor;
         this.anchorEngine = anchorEngine;
         this.anchorRepository = anchorRepository;
@@ -89,6 +95,8 @@ public class SimulationService {
         this.runStore = runStore;
         this.compactedContextProvider = compactedContextProvider;
         this.scoringService = scoringService;
+        this.canonizationGate = canonizationGate;
+        this.invariantRuleProvider = invariantRuleProvider;
     }
 
     /**
@@ -129,6 +137,21 @@ public class SimulationService {
                     seedAnchor(contextId, seed);
                 }
                 logger.info("Seeded {} anchors for context {}", scenario.seedAnchors().size(), contextId);
+            }
+
+            // Register scenario-scoped invariant rules
+            if (scenario.invariants() != null && !scenario.invariants().isEmpty()) {
+                var scenarioRules = scenario.invariants().stream()
+                        .map(def -> InvariantRuleProvider.toRule(new DiceAnchorsProperties.InvariantRuleDefinition(
+                                def.id(), def.type(),
+                                def.strength() != null ? def.strength() : "MUST",
+                                def.contextId(),
+                                def.anchorTextPattern(),
+                                def.minimumAuthority(),
+                                def.minimumCount())))
+                        .toList();
+                invariantRuleProvider.registerForContext(contextId, scenarioRules);
+                logger.info("Registered {} invariant rules for context {}", scenarioRules.size(), contextId);
             }
 
             // Turn loop
@@ -220,7 +243,7 @@ public class SimulationService {
                         playerMessage, null,
                         List.of(), null, List.of(), false,
                         "Turn %d/%d — thinking...".formatted(turnNumber, maxTurns),
-                        injectionEnabled, null, null, List.of(), null, 0L));
+                        injectionEnabled, null, null, List.of(), null, 0L, null, null));
 
                 // Execute the turn with state diffing, optional compaction, and optional extraction
                 long turnStart = System.currentTimeMillis();
@@ -256,6 +279,10 @@ public class SimulationService {
                 // Pass full verdicts list (not just worst)
                 var turnVerdicts = turn.verdicts() != null ? turn.verdicts() : List.<EvalVerdict> of();
                 var anchorEvents = turn.anchorEvents() != null ? turn.anchorEvents() : List.<SimulationTurn.AnchorEvent> of();
+
+                // Collect active invariant rules for this context
+                var activeRules = invariantRuleProvider.rulesForContext(contextId);
+
                 onProgress.accept(new SimulationProgress(
                         phase, turnType, attackStrategy, turnNumber, maxTurns,
                         playerMessage, turn.dmResponse(),
@@ -263,7 +290,9 @@ public class SimulationService {
                         turnVerdicts,
                         false,
                         "Turn %d/%d — %s".formatted(turnNumber, maxTurns, turnType.name()),
-                        injectionEnabled, null, result.compactionResult(), anchorEvents, null, turnDurationMs));
+                        injectionEnabled, null, result.compactionResult(), anchorEvents, null, turnDurationMs,
+                        activeRules.isEmpty() ? null : activeRules,
+                        null));
 
                 turnSnapshots.add(new SimulationRunRecord.TurnSnapshot(
                         turnNumber, turnType, attackStrategy,
@@ -307,7 +336,7 @@ public class SimulationService {
                     null, null, currentAnchors(contextId), null, List.of(),
                     true,
                     cancelRequested.get() ? "Simulation cancelled." : "Simulation complete.",
-                    Boolean.TRUE.equals(injectionStateSupplier.get()), assertionResults, null, List.of(), scoringResult, 0L));
+                    Boolean.TRUE.equals(injectionStateSupplier.get()), assertionResults, null, List.of(), scoringResult, 0L, null, null));
 
         } catch (Exception e) {
             logger.error("Simulation failed for context {}: {}", contextId, e.getMessage(), e);
@@ -316,7 +345,15 @@ public class SimulationService {
                     "Simulation failed: " + e.getMessage(), List.of(), false, null));
         } finally {
             running = false;
-            logger.info("Simulation finished for context {}", contextId);
+            try {
+                canonizationGate.markContextRequestsStale(contextId);
+                invariantRuleProvider.deregisterForContext(contextId);
+                compactedContextProvider.clearContext(contextId);
+                anchorRepository.clearByContext(contextId);
+                logger.info("Cleaned up context {} after simulation", contextId);
+            } catch (Exception cleanupEx) {
+                logger.warn("Context cleanup failed for {}: {}", contextId, cleanupEx.getMessage());
+            }
         }
     }
 
@@ -494,7 +531,7 @@ public class SimulationService {
         return new SimulationProgress(
                 phase, turnType, null, turn, total, null, null, anchors, null, List.of(),
                 phase == SimulationProgress.SimulationPhase.COMPLETE, status,
-                injectionState, assertionResults, null, List.of(), null, 0L);
+                injectionState, assertionResults, null, List.of(), null, 0L, null, null);
     }
 
     private static String computeVerdictSeverity(SimulationTurn turn) {

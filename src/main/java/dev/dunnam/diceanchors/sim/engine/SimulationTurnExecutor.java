@@ -725,7 +725,11 @@ public class SimulationTurnExecutor {
                 scenarioConfig.enabled(),
                 scenarioConfig.tokenThreshold(),
                 scenarioConfig.messageThreshold(),
-                scenarioConfig.forceAtTurns() != null ? scenarioConfig.forceAtTurns() : List.of());
+                scenarioConfig.forceAtTurns() != null ? scenarioConfig.forceAtTurns() : List.of(),
+                scenarioConfig.minMatchRatio() != null ? scenarioConfig.minMatchRatio() : 0.5,
+                scenarioConfig.maxRetries() != null ? scenarioConfig.maxRetries() : 2,
+                scenarioConfig.retryBackoffMillis() != null ? scenarioConfig.retryBackoffMillis() : 1000L,
+                scenarioConfig.eventsEnabled() != null ? scenarioConfig.eventsEnabled() : true);
     }
 
     private String buildSystemPrompt(String setting, String anchorBlock, String propositionBlock) {

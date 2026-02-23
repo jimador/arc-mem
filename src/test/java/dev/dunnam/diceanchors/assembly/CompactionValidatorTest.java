@@ -25,7 +25,7 @@ class CompactionValidatorTest {
             );
             var summary = "The dragon sleeps in a deep mountain cave near the village.";
 
-            var losses = CompactionValidator.validate(summary, anchors);
+            var losses = CompactionValidator.validate(summary, anchors, 0.5);
 
             assertThat(losses).isEmpty();
         }
@@ -38,7 +38,7 @@ class CompactionValidatorTest {
             );
             var summary = "The party traveled through the forest and found a tavern.";
 
-            var losses = CompactionValidator.validate(summary, anchors);
+            var losses = CompactionValidator.validate(summary, anchors, 0.5);
 
             assertThat(losses).hasSize(1);
             assertThat(losses.getFirst().anchorId()).isEqualTo("a-1");
@@ -57,7 +57,7 @@ class CompactionValidatorTest {
             );
             var summary = "A golden treasure was found near the dragon lair.";
 
-            var losses = CompactionValidator.validate(summary, anchors);
+            var losses = CompactionValidator.validate(summary, anchors, 0.5);
 
             assertThat(losses).isEmpty();
         }
@@ -72,7 +72,7 @@ class CompactionValidatorTest {
             );
             var summary = "The king continues to rule from Waterdeep. The goblin army marches towards the southern border.";
 
-            var losses = CompactionValidator.validate(summary, anchors);
+            var losses = CompactionValidator.validate(summary, anchors, 0.5);
 
             assertThat(losses).hasSize(1);
             assertThat(losses.getFirst().anchorId()).isEqualTo("a-2");
@@ -86,7 +86,7 @@ class CompactionValidatorTest {
                     Anchor.withoutTrust("a-2", "Dark elves patrol the underdark", 500, Authority.UNRELIABLE, false, 0.7, 1)
             );
 
-            var losses = CompactionValidator.validate("", anchors);
+            var losses = CompactionValidator.validate("", anchors, 0.5);
 
             assertThat(losses).hasSize(2);
             assertThat(losses).extracting(CompactionLossEvent::anchorId)
@@ -100,7 +100,7 @@ class CompactionValidatorTest {
                     Anchor.withoutTrust("a-1", "Ancient temple holds secrets", 500, Authority.PROVISIONAL, false, 0.6, 0)
             );
 
-            var losses = CompactionValidator.validate(null, anchors);
+            var losses = CompactionValidator.validate(null, anchors, 0.5);
 
             assertThat(losses).hasSize(1);
         }
@@ -108,7 +108,7 @@ class CompactionValidatorTest {
         @Test
         @DisplayName("empty anchor list returns empty losses")
         void emptyAnchorListReturnsEmpty() {
-            var losses = CompactionValidator.validate("Some summary text here.", List.of());
+            var losses = CompactionValidator.validate("Some summary text here.", List.of(), 0.5);
 
             assertThat(losses).isEmpty();
         }
@@ -120,7 +120,7 @@ class CompactionValidatorTest {
                     Anchor.withoutTrust("a-1", "the is a an", 500, Authority.PROVISIONAL, false, 0.5, 0)
             );
 
-            var losses = CompactionValidator.validate("Unrelated summary.", anchors);
+            var losses = CompactionValidator.validate("Unrelated summary.", anchors, 0.5);
 
             assertThat(losses).isEmpty();
         }

@@ -42,7 +42,8 @@ public record SimulationScenario(
         String testFocus,
         List<String> highlights,
         @Nullable String adversaryMode,
-        @Nullable AdversaryConfig adversaryConfig
+        @Nullable AdversaryConfig adversaryConfig,
+        @Nullable List<InvariantRuleDef> invariants
 ) {
     /**
      * Configuration for the player character persona during simulation.
@@ -105,7 +106,16 @@ public record SimulationScenario(
     public record TrustConfig(String profile, Map<String, Double> weightOverrides) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record CompactionConfig(boolean enabled, List<Integer> forceAtTurns, int tokenThreshold, int messageThreshold) {}
+    public record CompactionConfig(
+            boolean enabled,
+            List<Integer> forceAtTurns,
+            int tokenThreshold,
+            int messageThreshold,
+            @Nullable Double minMatchRatio,
+            @Nullable Integer maxRetries,
+            @Nullable Long retryBackoffMillis,
+            @Nullable Boolean eventsEnabled
+    ) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record DormancyConfig(double decayRate, double revivalThreshold, int dormancyTurns) {}
@@ -115,6 +125,17 @@ public record SimulationScenario(
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record AssertionConfig(String type, Map<String, Object> params) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record InvariantRuleDef(
+            String id,
+            String type,
+            @Nullable String strength,
+            @Nullable String contextId,
+            @Nullable String anchorTextPattern,
+            @Nullable String minimumAuthority,
+            @Nullable Integer minimumCount
+    ) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record ScriptedTurn(

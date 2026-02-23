@@ -18,6 +18,7 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -42,7 +43,7 @@ class CompactionTest {
 
         @BeforeEach
         void setUp() {
-            provider = new CompactedContextProvider(List.of(), summaryGenerator, anchorEngine);
+            provider = new CompactedContextProvider(List.of(), summaryGenerator, anchorEngine, event -> {});
         }
 
         @Nested
@@ -61,7 +62,7 @@ class CompactionTest {
             @Test
             @DisplayName("returns true when message count reaches threshold")
             void shouldCompactMessageThresholdReachedReturnsTrue() {
-                var config = new CompactionConfig(true, 0, 3, List.of());
+                var config = new CompactionConfig(true, 0, 3, List.of(), 0.5, 2, 1000L, true);
                 provider.addMessage(CONTEXT_ID, "Message 1");
                 provider.addMessage(CONTEXT_ID, "Message 2");
                 provider.addMessage(CONTEXT_ID, "Message 3");
@@ -72,7 +73,7 @@ class CompactionTest {
             @Test
             @DisplayName("returns false when message count is below threshold")
             void shouldCompactMessageCountBelowThresholdReturnsFalse() {
-                var config = new CompactionConfig(true, 0, 5, List.of());
+                var config = new CompactionConfig(true, 0, 5, List.of(), 0.5, 2, 1000L, true);
                 provider.addMessage(CONTEXT_ID, "Message 1");
                 provider.addMessage(CONTEXT_ID, "Message 2");
 
@@ -83,7 +84,7 @@ class CompactionTest {
             @DisplayName("returns true when token estimate reaches threshold")
             void shouldCompactTokenThresholdReachedReturnsTrue() {
                 // 4 chars per token heuristic, so 40 chars = 10 tokens
-                var config = new CompactionConfig(true, 10, 0, List.of());
+                var config = new CompactionConfig(true, 10, 0, List.of(), 0.5, 2, 1000L, true);
                 provider.addMessage(CONTEXT_ID, "a]".repeat(20)); // 40 chars = 10 tokens
 
                 assertThat(provider.shouldCompact(CONTEXT_ID, config)).isTrue();
@@ -92,7 +93,7 @@ class CompactionTest {
             @Test
             @DisplayName("returns false when token estimate is below threshold")
             void shouldCompactTokensBelowThresholdReturnsFalse() {
-                var config = new CompactionConfig(true, 100, 0, List.of());
+                var config = new CompactionConfig(true, 100, 0, List.of(), 0.5, 2, 1000L, true);
                 provider.addMessage(CONTEXT_ID, "short");
 
                 assertThat(provider.shouldCompact(CONTEXT_ID, config)).isFalse();
@@ -101,7 +102,7 @@ class CompactionTest {
             @Test
             @DisplayName("returns false for unknown context with no messages")
             void shouldCompactNoMessagesReturnsFalse() {
-                var config = new CompactionConfig(true, 10, 3, List.of());
+                var config = new CompactionConfig(true, 10, 3, List.of(), 0.5, 2, 1000L, true);
 
                 assertThat(provider.shouldCompact("unknown-ctx", config)).isFalse();
             }
@@ -114,7 +115,7 @@ class CompactionTest {
             @Test
             @DisplayName("returns true when current turn is in forceAtTurns list")
             void isForcedTurnMatchingTurnReturnsTrue() {
-                var config = new CompactionConfig(true, 0, 0, List.of(3, 7, 12));
+                var config = new CompactionConfig(true, 0, 0, List.of(3, 7, 12), 0.5, 2, 1000L, true);
 
                 assertThat(provider.isForcedTurn(3, config)).isTrue();
                 assertThat(provider.isForcedTurn(7, config)).isTrue();
@@ -124,7 +125,7 @@ class CompactionTest {
             @Test
             @DisplayName("returns false when current turn is not in forceAtTurns list")
             void isForcedTurnNonMatchingTurnReturnsFalse() {
-                var config = new CompactionConfig(true, 0, 0, List.of(3, 7, 12));
+                var config = new CompactionConfig(true, 0, 0, List.of(3, 7, 12), 0.5, 2, 1000L, true);
 
                 assertThat(provider.isForcedTurn(1, config)).isFalse();
                 assertThat(provider.isForcedTurn(5, config)).isFalse();
@@ -133,7 +134,7 @@ class CompactionTest {
             @Test
             @DisplayName("returns false when compaction is disabled")
             void isForcedTurnDisabledReturnsFalse() {
-                var config = new CompactionConfig(false, 0, 0, List.of(3));
+                var config = new CompactionConfig(false, 0, 0, List.of(3), 0.5, 2, 1000L, true);
 
                 assertThat(provider.isForcedTurn(3, config)).isFalse();
             }
@@ -146,12 +147,12 @@ class CompactionTest {
             @Test
             @DisplayName("generates summary and clears message history")
             void compactClearsMessagesAndStoresSummary() {
-                when(summaryGenerator.generateSummary(any(), anyString()))
-                        .thenReturn("Summary of the session.");
+                when(summaryGenerator.generateSummary(any(), anyString(), any(), anyInt(), any()))
+                        .thenReturn(new SummaryResult("Summary of the session.", 0, false));
 
                 provider.addMessage(CONTEXT_ID, "Turn 1 message");
                 provider.addMessage(CONTEXT_ID, "Turn 2 message");
-                var config = new CompactionConfig(true, 0, 2, List.of());
+                var config = new CompactionConfig(true, 0, 2, List.of(), 0.5, 2, 1000L, true);
 
                 var result = provider.compact(CONTEXT_ID, config, "message_threshold");
 
@@ -166,11 +167,11 @@ class CompactionTest {
             @Test
             @DisplayName("stores summary retrievable via getSummaries")
             void compactStoresSummaryRetrievableAfterwards() {
-                when(summaryGenerator.generateSummary(any(), anyString()))
-                        .thenReturn("The party defeated the dragon.");
+                when(summaryGenerator.generateSummary(any(), anyString(), any(), anyInt(), any()))
+                        .thenReturn(new SummaryResult("The party defeated the dragon.", 0, false));
 
                 provider.addMessage(CONTEXT_ID, "Combat round 1");
-                var config = new CompactionConfig(true, 0, 1, List.of());
+                var config = new CompactionConfig(true, 0, 1, List.of(), 0.5, 2, 1000L, true);
                 provider.compact(CONTEXT_ID, config, "forced_turn");
 
                 var summaries = provider.getSummaries(CONTEXT_ID);
@@ -181,12 +182,12 @@ class CompactionTest {
             @Test
             @DisplayName("auto-detects token_threshold trigger reason")
             void compactAutoDetectsTokenThresholdReason() {
-                when(summaryGenerator.generateSummary(any(), anyString()))
-                        .thenReturn("Short.");
+                when(summaryGenerator.generateSummary(any(), anyString(), any(), anyInt(), any()))
+                        .thenReturn(new SummaryResult("Short.", 0, false));
 
                 // 80 chars = 20 tokens, threshold is 10
                 provider.addMessage(CONTEXT_ID, "x".repeat(80));
-                var config = new CompactionConfig(true, 10, 0, List.of());
+                var config = new CompactionConfig(true, 10, 0, List.of(), 0.5, 2, 1000L, true);
 
                 var result = provider.compact(CONTEXT_ID, config);
 
@@ -196,13 +197,13 @@ class CompactionTest {
             @Test
             @DisplayName("auto-detects message_threshold trigger reason")
             void compactAutoDetectsMessageThresholdReason() {
-                when(summaryGenerator.generateSummary(any(), anyString()))
-                        .thenReturn("Short.");
+                when(summaryGenerator.generateSummary(any(), anyString(), any(), anyInt(), any()))
+                        .thenReturn(new SummaryResult("Short.", 0, false));
 
                 provider.addMessage(CONTEXT_ID, "msg1");
                 provider.addMessage(CONTEXT_ID, "msg2");
                 provider.addMessage(CONTEXT_ID, "msg3");
-                var config = new CompactionConfig(true, 0, 3, List.of());
+                var config = new CompactionConfig(true, 0, 3, List.of(), 0.5, 2, 1000L, true);
 
                 var result = provider.compact(CONTEXT_ID, config);
 
@@ -212,11 +213,11 @@ class CompactionTest {
             @Test
             @DisplayName("auto-detects forced_turn trigger reason when no threshold met")
             void compactAutoDetectsForcedTurnReason() {
-                when(summaryGenerator.generateSummary(any(), anyString()))
-                        .thenReturn("Short.");
+                when(summaryGenerator.generateSummary(any(), anyString(), any(), anyInt(), any()))
+                        .thenReturn(new SummaryResult("Short.", 0, false));
 
                 provider.addMessage(CONTEXT_ID, "msg");
-                var config = new CompactionConfig(true, 99999, 99999, List.of(1));
+                var config = new CompactionConfig(true, 99999, 99999, List.of(1), 0.5, 2, 1000L, true);
 
                 var result = provider.compact(CONTEXT_ID, config);
 
@@ -231,13 +232,13 @@ class CompactionTest {
                         new ProtectedContent("anchor-1", "The sword is cursed", 700, "anchor"),
                         new ProtectedContent("anchor-2", "Elf king is hostile", 500, "anchor")
                 ));
-                when(summaryGenerator.generateSummary(any(), anyString()))
-                        .thenReturn("Summary.");
+                when(summaryGenerator.generateSummary(any(), anyString(), any(), anyInt(), any()))
+                        .thenReturn(new SummaryResult("Summary.", 0, false));
 
                 var providerWithProtectors = new CompactedContextProvider(
-                        List.of(protector), summaryGenerator, anchorEngine);
+                        List.of(protector), summaryGenerator, anchorEngine, event -> {});
                 providerWithProtectors.addMessage(CONTEXT_ID, "msg");
-                var config = new CompactionConfig(true, 0, 1, List.of());
+                var config = new CompactionConfig(true, 0, 1, List.of(), 0.5, 2, 1000L, true);
 
                 var result = providerWithProtectors.compact(CONTEXT_ID, config, "test");
 
@@ -252,11 +253,11 @@ class CompactionTest {
             @Test
             @DisplayName("removes messages and summaries for the context")
             void clearContextRemovesAllState() {
-                when(summaryGenerator.generateSummary(any(), anyString()))
-                        .thenReturn("Summary.");
+                when(summaryGenerator.generateSummary(any(), anyString(), any(), anyInt(), any()))
+                        .thenReturn(new SummaryResult("Summary.", 0, false));
 
                 provider.addMessage(CONTEXT_ID, "msg");
-                var config = new CompactionConfig(true, 0, 1, List.of());
+                var config = new CompactionConfig(true, 0, 1, List.of(), 0.5, 2, 1000L, true);
                 provider.compact(CONTEXT_ID, config, "test");
 
                 provider.clearContext(CONTEXT_ID);
@@ -597,7 +598,8 @@ class CompactionTest {
         @DisplayName("record accessors return constructor values")
         void recordAccessorsReturnCorrectValues() {
             var result = new CompactionResult(
-                    "token_threshold", 500, 50, List.of("a-1", "a-2"), "Summary text.", 123L, List.of());
+                    "token_threshold", 500, 50, List.of("a-1", "a-2"), "Summary text.", 123L, List.of(),
+                    true, 1, false);
 
             assertThat(result.triggerReason()).isEqualTo("token_threshold");
             assertThat(result.tokensBefore()).isEqualTo(500);
@@ -606,6 +608,9 @@ class CompactionTest {
             assertThat(result.summary()).isEqualTo("Summary text.");
             assertThat(result.durationMs()).isEqualTo(123L);
             assertThat(result.lossEvents()).isEmpty();
+            assertThat(result.compactionApplied()).isTrue();
+            assertThat(result.retryCount()).isEqualTo(1);
+            assertThat(result.fallbackUsed()).isFalse();
         }
     }
 }

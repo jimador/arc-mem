@@ -24,6 +24,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -58,11 +59,17 @@ class AnchorEngineLifecycleEventsTest {
     @Mock
     private CanonizationGate canonizationGate;
 
+    @Mock
+    private InvariantEvaluator invariantEvaluator;
+
     private AnchorEngine enabledEngine;
     private AnchorEngine disabledEngine;
 
     @BeforeEach
     void setUp() {
+        lenient().when(invariantEvaluator.evaluate(any(), any(), any(), any()))
+                .thenReturn(new InvariantEvaluation(List.of(), 0));
+
         enabledEngine = new AnchorEngine(
                 repository,
                 properties(true),
@@ -72,7 +79,8 @@ class AnchorEngineLifecycleEventsTest {
                 decayPolicy,
                 eventPublisher,
                 trustPipeline,
-                canonizationGate);
+                canonizationGate,
+                invariantEvaluator);
 
         disabledEngine = new AnchorEngine(
                 repository,
@@ -83,7 +91,8 @@ class AnchorEngineLifecycleEventsTest {
                 decayPolicy,
                 eventPublisher,
                 trustPipeline,
-                canonizationGate);
+                canonizationGate,
+                invariantEvaluator);
     }
 
     @Test
@@ -208,7 +217,7 @@ class AnchorEngineLifecycleEventsTest {
 
         enabledEngine.archive("a1", ArchiveReason.DORMANCY_DECAY);
 
-        verify(repository).archiveAnchor("a1");
+        verify(repository).archiveAnchor("a1", null);
         verify(eventPublisher).publishEvent(any(AnchorLifecycleEvent.Archived.class));
     }
 
@@ -329,7 +338,7 @@ class AnchorEngineLifecycleEventsTest {
                 0.6,
                 400,
                 200,
-                null);
+                null, null, null);
         return new DiceAnchorsProperties(
                 anchorConfig,
                 new DiceAnchorsProperties.ChatConfig("dm", 200, null),

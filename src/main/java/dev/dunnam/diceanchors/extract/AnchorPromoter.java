@@ -361,7 +361,7 @@ public class AnchorPromoter {
                 case REPLACE -> {
                     logger.info("Replacing anchor {} with proposition {}",
                             conflict.existing().id(), prop.getId());
-                    engine.archive(conflict.existing().id(), ArchiveReason.CONFLICT_REPLACEMENT);
+                    engine.supersede(conflict.existing().id(), prop.getId(), ArchiveReason.CONFLICT_REPLACEMENT);
                 }
                 case DEMOTE_EXISTING -> {
                     // Task 6.3: demote existing anchor, allow incoming to proceed

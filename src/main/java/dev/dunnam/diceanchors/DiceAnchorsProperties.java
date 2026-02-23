@@ -2,9 +2,12 @@ package dev.dunnam.diceanchors;
 
 import com.embabel.common.ai.model.LlmOptions;
 import dev.dunnam.diceanchors.assembly.RetrievalMode;
+import org.jspecify.annotations.Nullable;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 import org.springframework.boot.context.properties.bind.DefaultValue;
+
+import java.util.List;
 
 @ConfigurationProperties(prefix = "dice-anchors")
 public record DiceAnchorsProperties(
@@ -35,7 +38,9 @@ public record DiceAnchorsProperties(
             @DefaultValue("0.6") double demoteThreshold,
             @DefaultValue("400") int reliableRankThreshold,
             @DefaultValue("200") int unreliableRankThreshold,
-            @NestedConfigurationProperty TierConfig tier
+            @NestedConfigurationProperty TierConfig tier,
+            @Nullable InvariantConfig invariants,
+            @Nullable ChatSeedConfig chatSeed
     ) {}
 
     public record TierConfig(
@@ -113,5 +118,32 @@ public record DiceAnchorsProperties(
             @DefaultValue("0.4") double authorityWeight,
             @DefaultValue("0.3") double tierWeight,
             @DefaultValue("0.3") double confidenceWeight
+    ) {}
+
+    public record InvariantConfig(
+            @DefaultValue("true") boolean enabled,
+            @Nullable List<InvariantRuleDefinition> rules
+    ) {}
+
+    public record InvariantRuleDefinition(
+            String id,
+            String type,
+            @DefaultValue("MUST") String strength,
+            @Nullable String contextId,
+            @Nullable String anchorTextPattern,
+            @Nullable String minimumAuthority,
+            @Nullable Integer minimumCount
+    ) {}
+
+    public record ChatSeedConfig(
+            @DefaultValue("false") boolean enabled,
+            @Nullable List<ChatSeedAnchor> anchors
+    ) {}
+
+    public record ChatSeedAnchor(
+            String text,
+            @DefaultValue("RELIABLE") String authority,
+            @DefaultValue("500") int rank,
+            @DefaultValue("false") boolean pinned
     ) {}
 }

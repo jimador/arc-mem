@@ -36,25 +36,25 @@ Normative roadmap statements SHOULD use RFC 2119 keywords (`MUST`, `SHOULD`, `MA
 
 ## Proposal Waves
 
-| Wave | Feature ID | Feature Slug | Priority | Depends On | Visibility | OpenSpec Change Slug |
-|------|------------|--------------|----------|------------|------------|----------------------|
-| 1 | F01 | working-memory-tiering-core | MUST | none | UI + Observability | working-memory-tiering-core |
-| 1 | F02 | conflict-detection-calibration-core | MUST | F01 | UI + Observability | conflict-detection-calibration-core |
-| 1 | F03 | retrieval-quality-gate-toolishrag | MUST | F02 | UI + Observability | retrieval-quality-gate-toolishrag |
-| 2 | F04 | bi-temporal-validity-and-supersession | SHOULD | F01, F02 | UI + Observability | bi-temporal-validity-and-supersession |
-| 2 | F05 | compaction-recovery-guardrails | MUST | none | UI + Observability | compaction-recovery-guardrails |
-| 3 | F06 | benchmarking-and-statistical-rigor | SHOULD | F01, F02, F03, F04, F05 | UI + Observability | benchmarking-and-statistical-rigor |
-| 3 | F07 | operator-invariants-api-and-governance | MAY | F01, F02 | UI + Observability | operator-invariants-api-and-governance |
-| 4 | F08 | dice-framework-fit-upstream-proposal | MUST | F01, F02, F03 | UI + Observability | dice-framework-fit-upstream-proposal |
+| Wave | Feature ID | Feature Slug                           | Priority | Depends On              | Visibility         | OpenSpec Change Slug                   |
+|------|------------|----------------------------------------|----------|-------------------------|--------------------|----------------------------------------|
+| 1    | F01        | working-memory-tiering-core            | MUST     | none                    | UI + Observability | working-memory-tiering-core            |
+| 1    | F02        | conflict-detection-calibration-core    | MUST     | F01                     | UI + Observability | conflict-detection-calibration-core    |
+| 1    | F03        | retrieval-quality-gate-toolishrag      | MUST     | F02                     | UI + Observability | retrieval-quality-gate-toolishrag      |
+| 2    | F04        | bi-temporal-validity-and-supersession  | SHOULD   | F01, F02                | UI + Observability | bi-temporal-validity-and-supersession  |
+| 2    | F05        | compaction-recovery-guardrails         | MUST     | none                    | UI + Observability | compaction-recovery-guardrails         |
+| 3    | F06        | benchmarking-and-statistical-rigor     | SHOULD   | F01, F02, F03, F04, F05 | UI + Observability | benchmarking-and-statistical-rigor     |
+| 3    | F07        | operator-invariants-api-and-governance | MAY      | F01, F02                | UI + Observability | operator-invariants-api-and-governance |
+| 4    | F08        | dice-framework-fit-upstream-proposal   | MUST     | F01, F02, F03           | UI + Observability | dice-framework-fit-upstream-proposal   |
 
 ## Research Backlog (Optional)
 
-| Task ID | Question | Target Feature(s) | Channels | Timebox | Success Criteria | Output Doc |
-|---------|----------|-------------------|----------|---------|------------------|------------|
-| R01 | What calibration approach should replace static conflict thresholds while preserving stable policy behavior? | F02, F03 | codebase + repo-docs + web + similar-repos | 8h | Decision matrix and rollout gates with measurable review/false-allow targets. | `docs/roadmaps/anchors-working-memory-evolution/research/R01-conflict-calibration-method.md` |
-| R02 | Which temporal model best fits existing graph constraints with low migration risk? | F04 | codebase + repo-docs + web | 6h | Accepted temporal field model, migration approach, and supersession rules. | `docs/roadmaps/anchors-working-memory-evolution/research/R02-temporal-model-and-migration.md` |
-| R03 | Which retry/fallback sequence provides no-regression compaction behavior under latency constraints? | F05 | codebase + repo-docs + similar-repos | 6h | Policy recommendation with objective replacement safety criteria. | `docs/roadmaps/anchors-working-memory-evolution/research/R03-compaction-recovery-policy.md` |
-| R04 | How should operator-defined invariants be modeled and prioritized against extracted anchors? | F07, F08 | codebase + repo-docs + web | 8h | Precedence matrix, lifecycle model, and audit contract ready for proposal drafting. | `docs/roadmaps/anchors-working-memory-evolution/research/R04-operator-invariants-governance-model.md` |
+| Task ID | Question                                                                                                     | Target Feature(s) | Channels                                   | Timebox | Success Criteria                                                                    | Output Doc                                                                                            |
+|---------|--------------------------------------------------------------------------------------------------------------|-------------------|--------------------------------------------|---------|-------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|
+| R01     | What calibration approach should replace static conflict thresholds while preserving stable policy behavior? | F02, F03          | codebase + repo-docs + web + similar-repos | 8h      | Decision matrix and rollout gates with measurable review/false-allow targets.       | `docs/roadmaps/anchors-working-memory-evolution/research/R01-conflict-calibration-method.md`          |
+| R02     | Which temporal model best fits existing graph constraints with low migration risk?                           | F04               | codebase + repo-docs + web                 | 6h      | Accepted temporal field model, migration approach, and supersession rules.          | `docs/roadmaps/anchors-working-memory-evolution/research/R02-temporal-model-and-migration.md`         |
+| R03     | Which retry/fallback sequence provides no-regression compaction behavior under latency constraints?          | F05               | codebase + repo-docs + similar-repos       | 6h      | Policy recommendation with objective replacement safety criteria.                   | `docs/roadmaps/anchors-working-memory-evolution/research/R03-compaction-recovery-policy.md`           |
+| R04     | How should operator-defined invariants be modeled and prioritized against extracted anchors?                 | F07, F08          | codebase + repo-docs + web                 | 8h      | Precedence matrix, lifecycle model, and audit contract ready for proposal drafting. | `docs/roadmaps/anchors-working-memory-evolution/research/R04-operator-invariants-governance-model.md` |
 
 ## Sequencing Rationale
 

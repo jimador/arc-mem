@@ -29,7 +29,7 @@ class SimulationProgressTest {
             var progress = new SimulationProgress(
                     SimulationProgress.SimulationPhase.ESTABLISH, TurnType.ESTABLISH, null,
                     2, 10, "player", "dm", List.of(), null, List.of(),
-                    false, "status", true, null, null, List.of(), null, 2300L);
+                    false, "status", true, null, null, List.of(), null, 2300L, null, null);
             assertThat(progress.turnDurationMs()).isGreaterThan(0L);
         }
 
@@ -39,7 +39,7 @@ class SimulationProgressTest {
             var progress = new SimulationProgress(
                     SimulationProgress.SimulationPhase.COMPLETE, null, null,
                     10, 10, null, null, List.of(), null, List.of(),
-                    true, "done", false, null, null, List.of(), null, 0L);
+                    true, "done", false, null, null, List.of(), null, 0L, null, null);
             assertThat(progress.turnDurationMs()).isEqualTo(0L);
         }
 
@@ -49,7 +49,7 @@ class SimulationProgressTest {
             var progress = new SimulationProgress(
                     SimulationProgress.SimulationPhase.SETUP, null, null,
                     0, 10, null, null, List.of(), null, List.of(),
-                    false, "seeding", true, null, null, List.of(), null, 0L);
+                    false, "seeding", true, null, null, List.of(), null, 0L, null, null);
             assertThat(progress.turnDurationMs()).isEqualTo(0L);
         }
 
@@ -59,7 +59,7 @@ class SimulationProgressTest {
             var progress = new SimulationProgress(
                     SimulationProgress.SimulationPhase.ATTACK, TurnType.ATTACK, null,
                     3, 10, "player msg", null, List.of(), null, List.of(),
-                    false, "thinking...", true, null, null, List.of(), null, 0L);
+                    false, "thinking...", true, null, null, List.of(), null, 0L, null, null);
             assertThat(progress.lastDmResponse()).isNull();
             assertThat(progress.turnDurationMs()).isEqualTo(0L);
         }
@@ -69,6 +69,6 @@ class SimulationProgressTest {
         return new SimulationProgress(
                 SimulationProgress.SimulationPhase.ATTACK, TurnType.ATTACK, null,
                 1, 10, "player msg", "dm response", List.of(), null, List.of(),
-                false, "T1/10 — ATTACK", true, null, null, List.of(), null, durationMs);
+                false, "T1/10 — ATTACK", true, null, null, List.of(), null, durationMs, null, null);
     }
 }

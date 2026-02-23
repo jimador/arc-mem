@@ -44,7 +44,7 @@ class AnchorPromoterTest {
 
     @BeforeEach
     void setUp() {
-        var anchorConfig = new DiceAnchorsProperties.AnchorConfig(20, INITIAL_RANK, 100, 900, true, THRESHOLD, "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200, null);
+        var anchorConfig = new DiceAnchorsProperties.AnchorConfig(20, INITIAL_RANK, 100, 900, true, THRESHOLD, "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200, null, null, null);
         var properties = new DiceAnchorsProperties(
                 anchorConfig, null, null, null, null, null, null, new DiceAnchorsProperties.AssemblyConfig(0), null, null
         );
@@ -174,7 +174,7 @@ class AnchorPromoterTest {
             var result = promoter.evaluateAndPromote(CONTEXT_ID, List.of(prop));
 
             assertThat(result).isEqualTo(1);
-            verify(engine).archive("a1", ArchiveReason.CONFLICT_REPLACEMENT);
+            verify(engine).supersede("a1", "p1", ArchiveReason.CONFLICT_REPLACEMENT);
             verify(engine).promote("p1", INITIAL_RANK, Authority.RELIABLE);
         }
 

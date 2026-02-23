@@ -101,7 +101,7 @@ class ExponentialDecayPolicyTest {
                         20, 500, 100, 900, true, 0.65,
                         "FAST_THEN_LLM", "TIERED",
                         true, true, true,
-                        0.6, 400, 200, null);
+                        0.6, 400, 200, null, null, null);
 
         private final DecayPolicy policyWithThresholds = DecayPolicy.exponential(24.0, anchorConfig);
 

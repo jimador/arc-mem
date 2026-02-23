@@ -53,6 +53,7 @@ class SimulationScenarioTest {
                 null,
                 List.of(),
                 null,
+                null,
                 null);
     }
 }

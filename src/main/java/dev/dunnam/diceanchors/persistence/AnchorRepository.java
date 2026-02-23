@@ -2,6 +2,7 @@ package dev.dunnam.diceanchors.persistence;
 
 import com.embabel.agent.rag.service.RetrievableIdentifier;
 import dev.dunnam.diceanchors.anchor.EvictedAnchorInfo;
+import dev.dunnam.diceanchors.anchor.event.SupersessionReason;
 import com.embabel.common.ai.model.EmbeddingService;
 import com.embabel.common.core.types.SimilarityResult;
 import com.embabel.common.core.types.SimpleSimilaritySearchResult;
@@ -1153,7 +1154,9 @@ public class AnchorRepository implements PropositionRepository {
                     p.authority = $authority,
                     p.status = 'ACTIVE',
                     p.lastReinforced = $now,
-                    p.memoryTier = $memoryTier
+                    p.memoryTier = $memoryTier,
+                    p.validFrom = $now,
+                    p.transactionStart = $now
                 """;
         var params = new HashMap<String, Object>();
         params.put("id", propositionId);
@@ -1298,7 +1301,9 @@ public class AnchorRepository implements PropositionRepository {
                 MATCH (p:Proposition {contextId: $contextId})
                 WHERE p.rank > 0 AND coalesce(p.status, 'ACTIVE') IN ['ACTIVE', 'PROMOTED'] AND p.pinned = false
                 WITH p, p.rank AS previousRank ORDER BY p.rank ASC LIMIT $evictCount
-                SET p.status = 'SUPERSEDED', p.rank = 0
+                SET p.status = 'SUPERSEDED', p.rank = 0,
+                    p.validTo = toString(datetime()),
+                    p.transactionEnd = toString(datetime())
                 RETURN {anchorId: p.id, rank: previousRank} AS result
                 """;
         var evictParams = Map.of("contextId", contextId, "evictCount", evictCount);
@@ -1385,14 +1390,41 @@ public class AnchorRepository implements PropositionRepository {
      */
     @Transactional
     public void archiveAnchor(@NonNull String id) {
-        var cypher = """
-                MATCH (p:Proposition {id: $id})
-                SET p.status = 'SUPERSEDED', p.rank = 0
-                """;
-        var params = Map.of("id", id);
+        archiveAnchor(id, null);
+    }
+
+    /**
+     * Archive an anchor, optionally recording the successor that replaced it.
+     *
+     * @param id          the proposition ID to archive
+     * @param successorId the ID of the replacing anchor, or null if no successor
+     */
+    @Transactional
+    public void archiveAnchor(@NonNull String id, @Nullable String successorId) {
+        var now = Instant.now().toString();
+        String cypher;
+        Map<String, Object> params;
+        if (successorId != null) {
+            cypher = """
+                    MATCH (p:Proposition {id: $id})
+                    SET p.status = 'SUPERSEDED', p.rank = 0,
+                        p.validTo = $now,
+                        p.transactionEnd = $now,
+                        p.supersededBy = $successorId
+                    """;
+            params = Map.of("id", id, "now", now, "successorId", successorId);
+        } else {
+            cypher = """
+                    MATCH (p:Proposition {id: $id})
+                    SET p.status = 'SUPERSEDED', p.rank = 0,
+                        p.validTo = $now,
+                        p.transactionEnd = $now
+                    """;
+            params = Map.of("id", id, "now", now);
+        }
         try {
             persistenceManager.execute(QuerySpecification.withStatement(cypher).bind(params));
-            logger.debug("Archived anchor {}", id);
+            logger.debug("Archived anchor {}{}", id, successorId != null ? " (superseded by " + successorId + ")" : "");
         } catch (Exception e) {
             logger.error("Failed to archive anchor {}: {}", id, e.getMessage(), e);
         }
@@ -1535,6 +1567,361 @@ public class AnchorRepository implements PropositionRepository {
             logger.debug("Updated pinned status for proposition {} to {}", id, pinned);
         } catch (Exception e) {
             logger.error("Failed to update pinned status for proposition {}: {}", id, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Create a supersession link between a successor and predecessor anchor.
+     * Atomically creates the SUPERSEDES relationship and sets denormalized
+     * fields on both nodes in a single Cypher statement.
+     * <p>
+     * <b>Alpha note:</b> This method assumes 1:1 supersession (one successor
+     * replaces one predecessor). Fan-in (merge: multiple predecessors → one
+     * successor) and fan-out (split: one predecessor → multiple successors)
+     * are not yet modeled. The {@code supersedes}/{@code supersededBy} fields
+     * store only the most recent link.
+     *
+     * @param successorId   the ID of the replacing anchor
+     * @param predecessorId the ID of the replaced anchor
+     * @param reason        why the supersession occurred
+     */
+    @Transactional
+    public void createSupersessionLink(@NonNull String successorId, @NonNull String predecessorId,
+                                       @NonNull SupersessionReason reason) {
+        var cypher = """
+                MATCH (successor:Proposition {id: $successorId})
+                MATCH (predecessor:Proposition {id: $predecessorId})
+                CREATE (successor)-[:SUPERSEDES {reason: $reason, occurredAt: $now}]->(predecessor)
+                SET successor.supersedes = $predecessorId,
+                    predecessor.supersededBy = $successorId
+                """;
+        var params = Map.of(
+                "successorId", successorId,
+                "predecessorId", predecessorId,
+                "reason", reason.name(),
+                "now", Instant.now().toString()
+        );
+        try {
+            persistenceManager.execute(QuerySpecification.withStatement(cypher).bind(params));
+            logger.debug("Created supersession link: {} supersedes {} (reason={})", successorId, predecessorId, reason);
+        } catch (Exception e) {
+            logger.error("Failed to create supersession link {} -> {}: {}", successorId, predecessorId, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Find anchors that were valid at a specific point in time.
+     * Handles null temporal fields for backward compatibility with legacy nodes.
+     *
+     * @param contextId   the context to query
+     * @param pointInTime the instant to check validity against
+     * @return anchor IDs whose valid-time window contains the given instant, ordered by rank DESC
+     */
+    @Transactional(readOnly = true)
+    public List<String> findValidAt(@NonNull String contextId, @NonNull Instant pointInTime) {
+        var cypher = """
+                MATCH (p:Proposition {contextId: $contextId})
+                WHERE p.rank > 0
+                  AND (p.validFrom IS NULL OR p.validFrom <= $pointInTime)
+                  AND (p.validTo IS NULL OR p.validTo > $pointInTime)
+                RETURN p.id AS id
+                ORDER BY p.rank DESC
+                """;
+        var params = Map.of("contextId", contextId, "pointInTime", pointInTime.toString());
+        try {
+            return persistenceManager.query(
+                    QuerySpecification.withStatement(cypher).bind(params).transform(String.class));
+        } catch (Exception e) {
+            logger.error("findValidAt query failed for context {}: {}", contextId, e.getMessage(), e);
+            return List.of();
+        }
+    }
+
+    /**
+     * Walk the SUPERSEDES relationship chain from a given anchor, returning
+     * the full ordered chain from oldest predecessor to newest successor.
+     * Depth is bounded to 50 to prevent runaway traversal.
+     *
+     * @param anchorId the anchor to start from
+     * @return ordered list of anchor IDs in the supersession chain (oldest first)
+     */
+    @Transactional(readOnly = true)
+    public List<String> findSupersessionChain(@NonNull String anchorId) {
+        var cypher = """
+                MATCH path = (start:Proposition {id: $anchorId})
+                              -[:SUPERSEDES*0..50]->(predecessor:Proposition)
+                WHERE NOT (predecessor)-[:SUPERSEDES]->()
+                WITH predecessor
+                MATCH chain = (newest:Proposition)-[:SUPERSEDES*0..50]->(predecessor)
+                WHERE NOT ()-[:SUPERSEDES]->(newest)
+                RETURN [node IN nodes(chain) | node.id] AS chain
+                """;
+        var params = Map.of("anchorId", anchorId);
+        try {
+            var result = persistenceManager.query(
+                    QuerySpecification.withStatement(cypher).bind(params).transform(List.class));
+            if (result.isEmpty()) {
+                return List.of(anchorId);
+            }
+            @SuppressWarnings("unchecked")
+            var chain = (List<String>) result.getFirst();
+            // SUPERSEDES points from newer to older, so nodes(chain) is newest-first
+            // Reverse to get chronological order (oldest first)
+            var reversed = new ArrayList<>(chain);
+            java.util.Collections.reverse(reversed);
+            return reversed;
+        } catch (Exception e) {
+            logger.error("findSupersessionChain query failed for anchor {}: {}", anchorId, e.getMessage(), e);
+            return List.of(anchorId);
+        }
+    }
+
+    /**
+     * Find the predecessor anchor (the one this anchor superseded).
+     * O(1) lookup via the denormalized {@code supersedes} field.
+     *
+     * @param anchorId the anchor to query
+     * @return the predecessor's ID, or empty if no predecessor
+     */
+    @Transactional(readOnly = true)
+    public Optional<String> findPredecessor(@NonNull String anchorId) {
+        return findPropositionNodeById(anchorId)
+                .map(PropositionNode::getSupersedes)
+                .filter(id -> !id.isBlank());
+    }
+
+    /**
+     * Find the successor anchor (the one that superseded this anchor).
+     * O(1) lookup via the denormalized {@code supersededBy} field.
+     *
+     * @param anchorId the anchor to query
+     * @return the successor's ID, or empty if not superseded
+     */
+    @Transactional(readOnly = true)
+    public Optional<String> findSuccessor(@NonNull String anchorId) {
+        return findPropositionNodeById(anchorId)
+                .map(PropositionNode::getSupersededBy)
+                .filter(id -> !id.isBlank());
+    }
+
+    // -------------------------------------------------------------------------
+    // Canonization request persistence
+    // -------------------------------------------------------------------------
+
+    /**
+     * Create a canonization request node with a relationship to the target proposition.
+     *
+     * @param id                 unique request ID
+     * @param anchorId           the anchor whose authority is changing
+     * @param contextId          the context the anchor belongs to
+     * @param anchorText         snapshot of anchor text at request time
+     * @param currentAuthority   authority at request creation
+     * @param requestedAuthority target authority
+     * @param reason             human-readable reason
+     * @param requestedBy        actor requesting the change
+     */
+    @Transactional
+    public void createCanonizationRequest(@NonNull String id, @NonNull String anchorId,
+                                           @NonNull String contextId, @NonNull String anchorText,
+                                           @NonNull String currentAuthority, @NonNull String requestedAuthority,
+                                           @NonNull String reason, @NonNull String requestedBy) {
+        var cypher = """
+                CREATE (r:CanonizationRequest {
+                    id: $id, anchorId: $anchorId, contextId: $contextId,
+                    anchorText: $anchorText, currentAuthority: $currentAuthority,
+                    requestedAuthority: $requestedAuthority, reason: $reason,
+                    requestedBy: $requestedBy, status: 'PENDING',
+                    createdAt: toString(datetime())
+                })
+                WITH r
+                MATCH (p:Proposition {id: $anchorId})
+                CREATE (r)-[:CANONIZATION_REQUEST_FOR]->(p)
+                RETURN {id: r.id} AS result
+                """;
+        var params = new HashMap<String, Object>();
+        params.put("id", id);
+        params.put("anchorId", anchorId);
+        params.put("contextId", contextId);
+        params.put("anchorText", anchorText);
+        params.put("currentAuthority", currentAuthority);
+        params.put("requestedAuthority", requestedAuthority);
+        params.put("reason", reason);
+        params.put("requestedBy", requestedBy);
+        try {
+            persistenceManager.execute(QuerySpecification.withStatement(cypher).bind(params));
+            logger.debug("Created canonization request {} for anchor {}", id, anchorId);
+        } catch (Exception e) {
+            logger.error("Failed to create canonization request {} for anchor {}: {}", id, anchorId, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Find all pending canonization requests for a specific context.
+     *
+     * @param contextId the context to query
+     * @return list of request data maps
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> findPendingCanonizationRequests(@NonNull String contextId) {
+        var cypher = """
+                MATCH (r:CanonizationRequest {contextId: $contextId, status: 'PENDING'})
+                RETURN {id: r.id, anchorId: r.anchorId, contextId: r.contextId,
+                        anchorText: r.anchorText, currentAuthority: r.currentAuthority,
+                        requestedAuthority: r.requestedAuthority, reason: r.reason,
+                        requestedBy: r.requestedBy, status: r.status,
+                        createdAt: toString(r.createdAt)} AS result
+                """;
+        var params = Map.of("contextId", contextId);
+        try {
+            @SuppressWarnings("unchecked")
+            var rows = (List<Map<String, Object>>) (List<?>) persistenceManager.query(
+                    QuerySpecification.withStatement(cypher).bind(params).transform(Map.class));
+            return rows;
+        } catch (Exception e) {
+            logger.warn("findPendingCanonizationRequests query failed for context {}: {}", contextId, e.getMessage());
+            return List.of();
+        }
+    }
+
+    /**
+     * Find a pending canonization request for a specific anchor and requested authority.
+     * Used for idempotency checks.
+     *
+     * @param anchorId           the anchor ID
+     * @param requestedAuthority the requested authority level
+     * @return the request data map if found
+     */
+    @Transactional(readOnly = true)
+    public Optional<Map<String, Object>> findPendingCanonizationRequest(@NonNull String anchorId,
+                                                                         @NonNull String requestedAuthority) {
+        var cypher = """
+                MATCH (r:CanonizationRequest {anchorId: $anchorId, requestedAuthority: $requestedAuthority, status: 'PENDING'})
+                RETURN {id: r.id, anchorId: r.anchorId, contextId: r.contextId,
+                        anchorText: r.anchorText, currentAuthority: r.currentAuthority,
+                        requestedAuthority: r.requestedAuthority, reason: r.reason,
+                        requestedBy: r.requestedBy, status: r.status,
+                        createdAt: toString(r.createdAt)} AS result
+                LIMIT 1
+                """;
+        var params = Map.of("anchorId", anchorId, "requestedAuthority", requestedAuthority);
+        try {
+            @SuppressWarnings("unchecked")
+            var rows = (List<Map<String, Object>>) (List<?>) persistenceManager.query(
+                    QuerySpecification.withStatement(cypher).bind(params).transform(Map.class));
+            return rows.isEmpty() ? Optional.empty() : Optional.of(rows.getFirst());
+        } catch (Exception e) {
+            logger.warn("findPendingCanonizationRequest query failed for anchor {}: {}", anchorId, e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Resolve a canonization request (approve/reject) with audit trail fields.
+     *
+     * @param requestId  the request ID
+     * @param newStatus  the new status (APPROVED, REJECTED, STALE)
+     * @param resolvedBy identifier of the resolving actor
+     * @param note       optional resolution note
+     */
+    @Transactional
+    public void resolveCanonizationRequest(@NonNull String requestId, @NonNull String newStatus,
+                                            @Nullable String resolvedBy, @Nullable String note) {
+        var cypher = """
+                MATCH (r:CanonizationRequest {id: $id})
+                SET r.status = $newStatus,
+                    r.resolvedAt = toString(datetime()),
+                    r.resolvedBy = $resolvedBy,
+                    r.resolutionNote = $note
+                """;
+        var params = new HashMap<String, Object>();
+        params.put("id", requestId);
+        params.put("newStatus", newStatus);
+        params.put("resolvedBy", resolvedBy);
+        params.put("note", note);
+        try {
+            persistenceManager.execute(QuerySpecification.withStatement(cypher).bind(params));
+            logger.debug("Resolved canonization request {} as {}", requestId, newStatus);
+        } catch (Exception e) {
+            logger.error("Failed to resolve canonization request {}: {}", requestId, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Find a canonization request by its ID (any status).
+     *
+     * @param requestId the request ID
+     * @return the request data map if found
+     */
+    @Transactional(readOnly = true)
+    public Optional<Map<String, Object>> findCanonizationRequestById(@NonNull String requestId) {
+        var cypher = """
+                MATCH (r:CanonizationRequest {id: $id})
+                RETURN {id: r.id, anchorId: r.anchorId, contextId: r.contextId,
+                        anchorText: r.anchorText, currentAuthority: r.currentAuthority,
+                        requestedAuthority: r.requestedAuthority, reason: r.reason,
+                        requestedBy: r.requestedBy, status: r.status,
+                        createdAt: toString(r.createdAt),
+                        resolvedAt: toString(r.resolvedAt),
+                        resolvedBy: r.resolvedBy,
+                        resolutionNote: r.resolutionNote} AS result
+                """;
+        var params = Map.of("id", requestId);
+        try {
+            @SuppressWarnings("unchecked")
+            var rows = (List<Map<String, Object>>) (List<?>) persistenceManager.query(
+                    QuerySpecification.withStatement(cypher).bind(params).transform(Map.class));
+            return rows.isEmpty() ? Optional.empty() : Optional.of(rows.getFirst());
+        } catch (Exception e) {
+            logger.warn("findCanonizationRequestById query failed for request {}: {}", requestId, e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Find all pending canonization requests across all contexts.
+     *
+     * @return list of pending request data maps
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> findAllPendingCanonizationRequests() {
+        var cypher = """
+                MATCH (r:CanonizationRequest {status: 'PENDING'})
+                RETURN {id: r.id, anchorId: r.anchorId, contextId: r.contextId,
+                        anchorText: r.anchorText, currentAuthority: r.currentAuthority,
+                        requestedAuthority: r.requestedAuthority, reason: r.reason,
+                        requestedBy: r.requestedBy, status: r.status,
+                        createdAt: toString(r.createdAt)} AS result
+                """;
+        try {
+            @SuppressWarnings("unchecked")
+            var rows = (List<Map<String, Object>>) (List<?>) persistenceManager.query(
+                    QuerySpecification.withStatement(cypher).transform(Map.class));
+            return rows;
+        } catch (Exception e) {
+            logger.warn("findAllPendingCanonizationRequests query failed: {}", e.getMessage());
+            return List.of();
+        }
+    }
+
+    /**
+     * Mark all PENDING canonization requests for a context as STALE.
+     * Used during context teardown to prevent orphaned pending requests.
+     *
+     * @param contextId the context to clean up
+     */
+    @Transactional
+    public void markContextRequestsStale(@NonNull String contextId) {
+        var cypher = """
+                MATCH (r:CanonizationRequest {contextId: $contextId, status: 'PENDING'})
+                SET r.status = 'STALE',
+                    r.resolvedAt = toString(datetime())
+                """;
+        var params = Map.of("contextId", contextId);
+        try {
+            persistenceManager.execute(QuerySpecification.withStatement(cypher).bind(params));
+            logger.debug("Marked pending canonization requests as STALE for context {}", contextId);
+        } catch (Exception e) {
+            logger.warn("Failed to mark canonization requests as stale for context {}: {}", contextId, e.getMessage());
         }
     }
 }

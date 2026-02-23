@@ -284,7 +284,8 @@ class AnchorToolsTest {
         return new PropositionNode(
                 id, CONTEXT_ID, text, 0.9, 0.0, null, List.of(),
                 java.time.Instant.now(), java.time.Instant.now(), PropositionStatus.ACTIVE,
-                null, List.of(), rank, authority, pinned, null, null, 0, 0.0, null
+                null, List.of(), rank, authority, pinned, null, null, 0, 0.0, null,
+                null, null, null, null, null, null
         );
     }
 

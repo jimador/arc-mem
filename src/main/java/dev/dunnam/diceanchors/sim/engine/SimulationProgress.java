@@ -1,6 +1,8 @@
 package dev.dunnam.diceanchors.sim.engine;
 
 import dev.dunnam.diceanchors.anchor.Anchor;
+import dev.dunnam.diceanchors.anchor.InvariantRule;
+import dev.dunnam.diceanchors.anchor.InvariantViolationData;
 import dev.dunnam.diceanchors.assembly.CompactionResult;
 import org.jspecify.annotations.Nullable;
 
@@ -31,7 +33,9 @@ public record SimulationProgress(
         @Nullable CompactionResult compactionResult,
         List<SimulationTurn.AnchorEvent> anchorEvents,
         @Nullable ScoringResult scoringResult,
-        long turnDurationMs
+        long turnDurationMs,
+        @Nullable List<InvariantRule> activeInvariantRules,
+        @Nullable List<InvariantViolationData> invariantViolations
 ) {
     /**
      * Lifecycle phases for the simulation state machine.

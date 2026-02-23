@@ -58,4 +58,11 @@ public class AnchorLifecycleListener {
                 event.getAnchorId(), event.getPreviousAuthority(), event.getNewAuthority(),
                 event.getReason(), event.getContextId());
     }
+
+    @EventListener
+    public void onInvariantViolation(AnchorLifecycleEvent.InvariantViolation event) {
+        logger.warn("[{}] Invariant violation — rule={}, strength={}, action={}, anchor={}, constraint={}",
+                event.getContextId(), event.getRuleId(), event.getStrength(),
+                event.getBlockedAction(), event.getAnchorId(), event.getConstraintDescription());
+    }
 }

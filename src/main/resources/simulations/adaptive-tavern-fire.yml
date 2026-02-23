@@ -59,4 +59,14 @@ assertions:
     params:
       min: 3
       max: 20
+invariants:
+  - id: protect-tavern-fire
+    type: archive-prohibition
+    strength: MUST
+    anchorTextPattern: tavern
+  - id: floor-canon-authority
+    type: authority-floor
+    strength: SHOULD
+    anchorTextPattern: Elara
+    minimumAuthority: RELIABLE
 turns: []

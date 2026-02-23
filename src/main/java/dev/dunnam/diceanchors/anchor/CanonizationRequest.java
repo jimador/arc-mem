@@ -1,5 +1,7 @@
 package dev.dunnam.diceanchors.anchor;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.Instant;
 
 /**
@@ -32,6 +34,9 @@ import java.time.Instant;
  *                            "user", "llm-tool")
  * @param createdAt           timestamp when the request was created
  * @param status              current lifecycle status of this request
+ * @param resolvedAt          timestamp when the request was approved, rejected, or marked stale (null while PENDING)
+ * @param resolvedBy          identifier of the actor who resolved the request (null while PENDING)
+ * @param resolutionNote      optional note attached when the request is resolved (null while PENDING)
  */
 public record CanonizationRequest(
         String id,
@@ -43,5 +48,8 @@ public record CanonizationRequest(
         String reason,
         String requestedBy,
         Instant createdAt,
-        CanonizationStatus status
+        CanonizationStatus status,
+        @Nullable Instant resolvedAt,
+        @Nullable String resolvedBy,
+        @Nullable String resolutionNote
 ) {}

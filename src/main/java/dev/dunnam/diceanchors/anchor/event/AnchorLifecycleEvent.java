@@ -3,7 +3,11 @@ package dev.dunnam.diceanchors.anchor.event;
 import dev.dunnam.diceanchors.anchor.Authority;
 import dev.dunnam.diceanchors.anchor.AuthorityChangeDirection;
 import dev.dunnam.diceanchors.anchor.ConflictResolver;
+import dev.dunnam.diceanchors.anchor.InvariantStrength;
+import dev.dunnam.diceanchors.anchor.InvariantViolationData;
 import dev.dunnam.diceanchors.anchor.MemoryTier;
+import dev.dunnam.diceanchors.anchor.ProposedAction;
+import org.jspecify.annotations.Nullable;
 import org.springframework.context.ApplicationEvent;
 
 import java.time.Instant;
@@ -26,6 +30,7 @@ import java.util.List;
  *   <li>{@link ConflictResolved} — a conflict was resolved</li>
  *   <li>{@link AuthorityChanged} — an anchor's authority was promoted or demoted</li>
  *   <li>{@link TierChanged} — an anchor's memory tier changed due to rank modification</li>
+ *   <li>{@link Superseded} — one anchor superseded another (F04)</li>
  * </ul>
  */
 public abstract sealed class AnchorLifecycleEvent extends ApplicationEvent
@@ -36,7 +41,9 @@ public abstract sealed class AnchorLifecycleEvent extends ApplicationEvent
                 AnchorLifecycleEvent.ConflictDetected,
                 AnchorLifecycleEvent.ConflictResolved,
                 AnchorLifecycleEvent.AuthorityChanged,
-                AnchorLifecycleEvent.TierChanged {
+                AnchorLifecycleEvent.TierChanged,
+                AnchorLifecycleEvent.Superseded,
+                AnchorLifecycleEvent.InvariantViolation {
 
     private final String contextId;
     private final Instant occurredAt;
@@ -106,6 +113,28 @@ public abstract sealed class AnchorLifecycleEvent extends ApplicationEvent
                                                     String reason) {
         return new AuthorityChanged(source, contextId, anchorId, previousAuthority, newAuthority,
                 direction, reason);
+    }
+
+    public static Superseded superseded(Object source, String contextId,
+                                        String predecessorId, String successorId,
+                                        SupersessionReason reason) {
+        return new Superseded(source, contextId, predecessorId, successorId, reason);
+    }
+
+    public static InvariantViolation invariantViolation(
+            Object source, String contextId,
+            String ruleId, InvariantStrength strength,
+            ProposedAction blockedAction, String constraintDescription,
+            @Nullable String anchorId) {
+        return new InvariantViolation(source, contextId, ruleId, strength,
+                blockedAction, constraintDescription, anchorId);
+    }
+
+    public static InvariantViolation invariantViolation(
+            Object source, String contextId, InvariantViolationData violation) {
+        return new InvariantViolation(source, contextId, violation.ruleId(),
+                violation.strength(), violation.blockedAction(),
+                violation.constraintDescription(), violation.anchorId());
     }
 
     // ── Concrete subtypes ──────────────────────────────────────────────────────
@@ -279,5 +308,56 @@ public abstract sealed class AnchorLifecycleEvent extends ApplicationEvent
         public String getAnchorId() { return anchorId; }
         public MemoryTier getPreviousTier() { return previousTier; }
         public MemoryTier getNewTier() { return newTier; }
+    }
+
+    /**
+     * Published when one anchor supersedes another (e.g., conflict replacement).
+     * The predecessor is archived and the successor takes its place.
+     */
+    public static final class Superseded extends AnchorLifecycleEvent {
+        private final String predecessorId;
+        private final String successorId;
+        private final SupersessionReason reason;
+
+        private Superseded(Object source, String contextId,
+                           String predecessorId, String successorId,
+                           SupersessionReason reason) {
+            super(source, contextId);
+            this.predecessorId = predecessorId;
+            this.successorId = successorId;
+            this.reason = reason;
+        }
+
+        public String getPredecessorId() { return predecessorId; }
+        public String getSuccessorId() { return successorId; }
+        public SupersessionReason getReason() { return reason; }
+    }
+
+    /** Published when an operator invariant rule is violated by a proposed lifecycle action. */
+    public static final class InvariantViolation extends AnchorLifecycleEvent {
+        private final String ruleId;
+        private final InvariantStrength strength;
+        private final ProposedAction blockedAction;
+        private final String constraintDescription;
+        private final @Nullable String anchorId;
+
+        private InvariantViolation(Object source, String contextId,
+                                   String ruleId, InvariantStrength strength,
+                                   ProposedAction blockedAction,
+                                   String constraintDescription,
+                                   @Nullable String anchorId) {
+            super(source, contextId);
+            this.ruleId = ruleId;
+            this.strength = strength;
+            this.blockedAction = blockedAction;
+            this.constraintDescription = constraintDescription;
+            this.anchorId = anchorId;
+        }
+
+        public String getRuleId() { return ruleId; }
+        public InvariantStrength getStrength() { return strength; }
+        public ProposedAction getBlockedAction() { return blockedAction; }
+        public String getConstraintDescription() { return constraintDescription; }
+        public @Nullable String getAnchorId() { return anchorId; }
     }
 }

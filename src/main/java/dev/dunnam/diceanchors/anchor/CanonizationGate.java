@@ -10,9 +10,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Human-in-the-loop (HITL) approval gate for all CANON authority transitions.
@@ -40,6 +40,11 @@ import java.util.concurrent.ConcurrentHashMap;
  * <h2>Stale requests</h2>
  * If the anchor's authority has changed since the request was created, {@link #approve}
  * marks the request as {@link CanonizationStatus#STALE} and does not apply the change.
+ *
+ * <h2>Persistence</h2>
+ * Canonization requests are persisted to Neo4j as {@code CanonizationRequest} nodes with
+ * {@code CANONIZATION_REQUEST_FOR} relationships to the target proposition. This replaces
+ * the earlier in-memory ConcurrentHashMap approach and provides an audit trail.
  */
 @Service
 public class CanonizationGate {
@@ -49,9 +54,6 @@ public class CanonizationGate {
     private final AnchorRepository repository;
     private final ApplicationEventPublisher eventPublisher;
     private final DiceAnchorsProperties.AnchorConfig config;
-
-    // In-memory pending requests: requestId -> CanonizationRequest
-    private final ConcurrentHashMap<String, CanonizationRequest> requests = new ConcurrentHashMap<>();
 
     public CanonizationGate(AnchorRepository repository,
                             ApplicationEventPublisher eventPublisher,
@@ -109,15 +111,28 @@ public class CanonizationGate {
      * {@link CanonizationRequest#currentAuthority()}, the request is marked STALE and
      * the transition is not applied.
      *
-     * @param requestId the ID of the request to approve
+     * @param requestId  the ID of the request to approve
      * @return the updated request, or empty if not found
      */
     public Optional<CanonizationRequest> approve(String requestId) {
-        var request = requests.get(requestId);
-        if (request == null) {
+        return approve(requestId, null, null);
+    }
+
+    /**
+     * Approve a pending canonization request with audit trail.
+     *
+     * @param requestId  the ID of the request to approve
+     * @param resolvedBy identifier of the resolving actor (nullable)
+     * @param note       optional resolution note (nullable)
+     * @return the updated request, or empty if not found
+     */
+    public Optional<CanonizationRequest> approve(String requestId, String resolvedBy, String note) {
+        var requestOpt = loadRequest(requestId);
+        if (requestOpt.isEmpty()) {
             logger.warn("Cannot approve: request {} not found", requestId);
             return Optional.empty();
         }
+        var request = requestOpt.get();
         if (request.status() != CanonizationStatus.PENDING) {
             logger.warn("Cannot approve: request {} is in state {}", requestId, request.status());
             return Optional.of(request);
@@ -127,9 +142,8 @@ public class CanonizationGate {
         var nodeOpt = repository.findPropositionNodeById(request.anchorId());
         if (nodeOpt.isEmpty()) {
             logger.warn("Cannot approve: anchor {} not found", request.anchorId());
-            var stale = withStatus(request, CanonizationStatus.STALE);
-            requests.put(requestId, stale);
-            return Optional.of(stale);
+            repository.resolveCanonizationRequest(requestId, CanonizationStatus.STALE.name(), resolvedBy, note);
+            return Optional.of(withStatus(request, CanonizationStatus.STALE, resolvedBy, note));
         }
         var currentAuthStr = nodeOpt.get().getAuthority();
         var currentAuth = currentAuthStr != null
@@ -137,9 +151,8 @@ public class CanonizationGate {
         if (currentAuth != request.currentAuthority()) {
             logger.warn("Stale canonization request {}: expected {} but found {}",
                     requestId, request.currentAuthority(), currentAuth);
-            var stale = withStatus(request, CanonizationStatus.STALE);
-            requests.put(requestId, stale);
-            return Optional.of(stale);
+            repository.resolveCanonizationRequest(requestId, CanonizationStatus.STALE.name(), resolvedBy, note);
+            return Optional.of(withStatus(request, CanonizationStatus.STALE, resolvedBy, note));
         }
 
         // Execute the transition
@@ -155,8 +168,8 @@ public class CanonizationGate {
             logger.warn("Failed to publish AuthorityChanged event after canonization approval: {}", e.getMessage());
         }
 
-        var approved = withStatus(request, CanonizationStatus.APPROVED);
-        requests.put(requestId, approved);
+        repository.resolveCanonizationRequest(requestId, CanonizationStatus.APPROVED.name(), resolvedBy, note);
+        var approved = withStatus(request, CanonizationStatus.APPROVED, resolvedBy, note);
         logger.info("Canonization request {} approved: anchor {} {} -> {}",
                 requestId, request.anchorId(), request.currentAuthority(), request.requestedAuthority());
         return Optional.of(approved);
@@ -169,17 +182,30 @@ public class CanonizationGate {
      * @return the updated request, or empty if not found
      */
     public Optional<CanonizationRequest> reject(String requestId) {
-        var request = requests.get(requestId);
-        if (request == null) {
+        return reject(requestId, null, null);
+    }
+
+    /**
+     * Reject a pending canonization request with audit trail.
+     *
+     * @param requestId  the ID of the request to reject
+     * @param resolvedBy identifier of the resolving actor (nullable)
+     * @param note       optional resolution note (nullable)
+     * @return the updated request, or empty if not found
+     */
+    public Optional<CanonizationRequest> reject(String requestId, String resolvedBy, String note) {
+        var requestOpt = loadRequest(requestId);
+        if (requestOpt.isEmpty()) {
             logger.warn("Cannot reject: request {} not found", requestId);
             return Optional.empty();
         }
+        var request = requestOpt.get();
         if (request.status() != CanonizationStatus.PENDING) {
             logger.warn("Cannot reject: request {} is in state {}", requestId, request.status());
             return Optional.of(request);
         }
-        var rejected = withStatus(request, CanonizationStatus.REJECTED);
-        requests.put(requestId, rejected);
+        repository.resolveCanonizationRequest(requestId, CanonizationStatus.REJECTED.name(), resolvedBy, note);
+        var rejected = withStatus(request, CanonizationStatus.REJECTED, resolvedBy, note);
         logger.info("Canonization request {} rejected for anchor {}", requestId, request.anchorId());
         return Optional.of(rejected);
     }
@@ -188,9 +214,10 @@ public class CanonizationGate {
      * Returns all pending canonization requests across all contexts.
      */
     public List<CanonizationRequest> pendingRequests() {
-        return requests.values().stream()
-                .filter(r -> r.status() == CanonizationStatus.PENDING)
-                .toList();
+        // Query all pending requests (no context filter) — use empty string convention
+        // to signal "all contexts". We query each known context, but since we cannot
+        // enumerate contexts cheaply, we use a direct Cypher query instead.
+        return findAllPendingRequests();
     }
 
     /**
@@ -199,10 +226,19 @@ public class CanonizationGate {
      * @param contextId the context to filter by
      */
     public List<CanonizationRequest> pendingRequests(String contextId) {
-        return requests.values().stream()
-                .filter(r -> r.status() == CanonizationStatus.PENDING
-                        && contextId.equals(r.contextId()))
+        return repository.findPendingCanonizationRequests(contextId).stream()
+                .map(this::toCanonizationRequest)
                 .toList();
+    }
+
+    /**
+     * Mark all PENDING requests for a context as STALE.
+     * Should be called during context teardown to prevent orphaned pending requests.
+     *
+     * @param contextId the context to clean up
+     */
+    public void markContextRequestsStale(String contextId) {
+        repository.markContextRequestsStale(contextId);
     }
 
     // ── Private helpers ────────────────────────────────────────────────────────
@@ -212,26 +248,26 @@ public class CanonizationGate {
                                               Authority requestedAuthority,
                                               String reason, String requestedBy) {
         // Idempotency: return existing pending request for this anchor if one exists
-        var existing = requests.values().stream()
-                .filter(r -> r.status() == CanonizationStatus.PENDING
-                        && anchorId.equals(r.anchorId())
-                        && requestedAuthority == r.requestedAuthority())
-                .findFirst();
-        if (existing.isPresent()) {
+        var existingOpt = repository.findPendingCanonizationRequest(anchorId, requestedAuthority.name());
+        if (existingOpt.isPresent()) {
+            var existing = toCanonizationRequest(existingOpt.get());
             logger.debug("Returning existing pending canonization request {} for anchor {}",
-                    existing.get().id(), anchorId);
-            return existing.get();
+                    existing.id(), anchorId);
+            return existing;
         }
 
+        var id = UUID.randomUUID().toString();
+        repository.createCanonizationRequest(id, anchorId, contextId, anchorText,
+                currentAuthority.name(), requestedAuthority.name(), reason, requestedBy);
+
         var request = new CanonizationRequest(
-                UUID.randomUUID().toString(),
-                anchorId, contextId, anchorText,
+                id, anchorId, contextId, anchorText,
                 currentAuthority, requestedAuthority,
                 reason, requestedBy,
                 Instant.now(),
-                CanonizationStatus.PENDING
+                CanonizationStatus.PENDING,
+                null, null, null
         );
-        requests.put(request.id(), request);
         logger.info("Canonization request {} created: anchor {} {} -> {} (requestedBy={})",
                 request.id(), anchorId, currentAuthority, requestedAuthority, requestedBy);
 
@@ -244,9 +280,55 @@ public class CanonizationGate {
         return request;
     }
 
-    private static CanonizationRequest withStatus(CanonizationRequest r, CanonizationStatus newStatus) {
+    private Optional<CanonizationRequest> loadRequest(String requestId) {
+        // Look up the request by ID using a direct query via findPendingCanonizationRequest
+        // We need a by-ID lookup; use the repository's persistence manager indirectly
+        // by searching all pending requests. For efficiency we query by ID directly.
+        return repository.findCanonizationRequestById(requestId).map(this::toCanonizationRequest);
+    }
+
+    private List<CanonizationRequest> findAllPendingRequests() {
+        return repository.findAllPendingCanonizationRequests().stream()
+                .map(this::toCanonizationRequest)
+                .toList();
+    }
+
+    private CanonizationRequest toCanonizationRequest(Map<String, Object> row) {
+        var id = (String) row.get("id");
+        var anchorId = (String) row.get("anchorId");
+        var ctxId = (String) row.get("contextId");
+        var anchorText = (String) row.get("anchorText");
+        var currentAuth = Authority.valueOf((String) row.get("currentAuthority"));
+        var requestedAuth = Authority.valueOf((String) row.get("requestedAuthority"));
+        var reason = (String) row.get("reason");
+        var requestedBy = (String) row.get("requestedBy");
+        var statusStr = (String) row.get("status");
+        var status = CanonizationStatus.valueOf(statusStr);
+        var createdAtStr = (String) row.get("createdAt");
+        var createdAt = createdAtStr != null ? parseInstant(createdAtStr) : Instant.now();
+        var resolvedAtStr = (String) row.get("resolvedAt");
+        var resolvedAt = resolvedAtStr != null ? parseInstant(resolvedAtStr) : null;
+        var resolvedBy = (String) row.get("resolvedBy");
+        var resolutionNote = (String) row.get("resolutionNote");
+        return new CanonizationRequest(id, anchorId, ctxId, anchorText,
+                currentAuth, requestedAuth, reason, requestedBy,
+                createdAt, status, resolvedAt, resolvedBy, resolutionNote);
+    }
+
+    private static Instant parseInstant(String text) {
+        try {
+            return Instant.parse(text);
+        } catch (Exception e) {
+            // Neo4j datetime strings may not be ISO-8601 compliant; fall back
+            return Instant.now();
+        }
+    }
+
+    private static CanonizationRequest withStatus(CanonizationRequest r, CanonizationStatus newStatus,
+                                                   String resolvedBy, String note) {
         return new CanonizationRequest(r.id(), r.anchorId(), r.contextId(), r.anchorText(),
                 r.currentAuthority(), r.requestedAuthority(), r.reason(), r.requestedBy(),
-                r.createdAt(), newStatus);
+                r.createdAt(), newStatus,
+                Instant.now(), resolvedBy, note);
     }
 }

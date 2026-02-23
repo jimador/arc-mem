@@ -14,10 +14,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -47,6 +51,10 @@ class CanonizationGateTest {
         @Test
         @DisplayName("creates PENDING request")
         void createsPendingRequest() {
+            // No existing pending request
+            when(repository.findPendingCanonizationRequest(ANCHOR_ID, Authority.CANON.name()))
+                    .thenReturn(Optional.empty());
+
             var request = gate.requestCanonization(
                     ANCHOR_ID, CONTEXT_ID, ANCHOR_TEXT, Authority.RELIABLE, "test", "user");
 
@@ -54,18 +62,29 @@ class CanonizationGateTest {
             assertThat(request.anchorId()).isEqualTo(ANCHOR_ID);
             assertThat(request.requestedAuthority()).isEqualTo(Authority.CANON);
             assertThat(request.currentAuthority()).isEqualTo(Authority.RELIABLE);
+            assertThat(request.resolvedAt()).isNull();
+            assertThat(request.resolvedBy()).isNull();
+            assertThat(request.resolutionNote()).isNull();
         }
 
         @Test
         @DisplayName("idempotency: second call returns same request ID")
         void idempotentDuplicateRequest() {
+            // First call: no existing request
+            when(repository.findPendingCanonizationRequest(ANCHOR_ID, Authority.CANON.name()))
+                    .thenReturn(Optional.empty());
+
             var first = gate.requestCanonization(
                     ANCHOR_ID, CONTEXT_ID, ANCHOR_TEXT, Authority.RELIABLE, "test", "user");
+
+            // Second call: existing request found
+            when(repository.findPendingCanonizationRequest(ANCHOR_ID, Authority.CANON.name()))
+                    .thenReturn(Optional.of(requestMap(first.id(), ANCHOR_ID, CONTEXT_ID)));
+
             var second = gate.requestCanonization(
                     ANCHOR_ID, CONTEXT_ID, ANCHOR_TEXT, Authority.RELIABLE, "test", "user");
 
             assertThat(second.id()).isEqualTo(first.id());
-            assertThat(gate.pendingRequests()).hasSize(1);
         }
     }
 
@@ -76,16 +95,25 @@ class CanonizationGateTest {
         @Test
         @DisplayName("approved pending request executes authority transition and publishes event")
         void approvePendingRequest() {
+            when(repository.findPendingCanonizationRequest(ANCHOR_ID, Authority.CANON.name()))
+                    .thenReturn(Optional.empty());
+
             var node = anchorNode(ANCHOR_ID, Authority.RELIABLE);
             when(repository.findPropositionNodeById(ANCHOR_ID)).thenReturn(Optional.of(node));
 
             var request = gate.requestCanonization(
                     ANCHOR_ID, CONTEXT_ID, ANCHOR_TEXT, Authority.RELIABLE, "test", "user");
+
+            // Mock loading the request by ID for approve
+            when(repository.findCanonizationRequestById(request.id()))
+                    .thenReturn(Optional.of(requestMap(request.id(), ANCHOR_ID, CONTEXT_ID)));
+
             var result = gate.approve(request.id());
 
             assertThat(result).isPresent();
             assertThat(result.get().status()).isEqualTo(CanonizationStatus.APPROVED);
             verify(repository).setAuthority(ANCHOR_ID, Authority.CANON.name());
+            verify(repository).resolveCanonizationRequest(eq(request.id()), eq("APPROVED"), isNull(), isNull());
             var captor = ArgumentCaptor.forClass(AnchorLifecycleEvent.AuthorityChanged.class);
             verify(eventPublisher).publishEvent(captor.capture());
             assertThat(captor.getValue().getDirection()).isEqualTo(AuthorityChangeDirection.PROMOTED);
@@ -94,9 +122,16 @@ class CanonizationGateTest {
         @Test
         @DisplayName("stale request not applied when anchor authority changed since request")
         void staleRequestNotApplied() {
+            when(repository.findPendingCanonizationRequest(ANCHOR_ID, Authority.CANON.name()))
+                    .thenReturn(Optional.empty());
+
             // Request was created when anchor was RELIABLE
             var request = gate.requestCanonization(
                     ANCHOR_ID, CONTEXT_ID, ANCHOR_TEXT, Authority.RELIABLE, "test", "user");
+
+            // Mock loading the request by ID
+            when(repository.findCanonizationRequestById(request.id()))
+                    .thenReturn(Optional.of(requestMap(request.id(), ANCHOR_ID, CONTEXT_ID)));
 
             // But now anchor is at UNRELIABLE (changed since request)
             var node = anchorNode(ANCHOR_ID, Authority.UNRELIABLE);
@@ -108,6 +143,7 @@ class CanonizationGateTest {
             assertThat(result.get().status()).isEqualTo(CanonizationStatus.STALE);
             verify(repository, never()).setAuthority(any(), any());
             verify(eventPublisher, never()).publishEvent(any());
+            verify(repository).resolveCanonizationRequest(eq(request.id()), eq("STALE"), isNull(), isNull());
         }
     }
 
@@ -118,8 +154,15 @@ class CanonizationGateTest {
         @Test
         @DisplayName("rejected request has REJECTED status and does not call setAuthority")
         void rejectPendingRequest() {
+            when(repository.findPendingCanonizationRequest(ANCHOR_ID, Authority.CANON.name()))
+                    .thenReturn(Optional.empty());
+
             var request = gate.requestCanonization(
                     ANCHOR_ID, CONTEXT_ID, ANCHOR_TEXT, Authority.RELIABLE, "test", "user");
+
+            // Mock loading the request by ID
+            when(repository.findCanonizationRequestById(request.id()))
+                    .thenReturn(Optional.of(requestMap(request.id(), ANCHOR_ID, CONTEXT_ID)));
 
             var result = gate.reject(request.id());
 
@@ -127,6 +170,7 @@ class CanonizationGateTest {
             assertThat(result.get().status()).isEqualTo(CanonizationStatus.REJECTED);
             verify(repository, never()).setAuthority(any(), any());
             verify(eventPublisher, never()).publishEvent(any());
+            verify(repository).resolveCanonizationRequest(eq(request.id()), eq("REJECTED"), isNull(), isNull());
         }
     }
 
@@ -135,19 +179,16 @@ class CanonizationGateTest {
     class PendingRequests {
 
         @Test
-        @DisplayName("pendingRequests returns only PENDING after one is approved")
-        void pendingRequestsOnlyReturnsPending() {
-            var node1 = anchorNode("a1", Authority.RELIABLE);
-            when(repository.findPropositionNodeById("a1")).thenReturn(Optional.of(node1));
+        @DisplayName("pendingRequests by context returns results from repository")
+        void pendingRequestsByContext() {
+            var requestMap = requestMap("req-1", "a1", CONTEXT_ID);
+            when(repository.findPendingCanonizationRequests(CONTEXT_ID))
+                    .thenReturn(java.util.List.of(requestMap));
 
-            var req1 = gate.requestCanonization("a1", CONTEXT_ID, "text1", Authority.RELIABLE, "r", "u");
-            gate.requestCanonization("a2", CONTEXT_ID, "text2", Authority.RELIABLE, "r", "u");
+            var pending = gate.pendingRequests(CONTEXT_ID);
 
-            // Approve req1
-            gate.approve(req1.id());
-
-            assertThat(gate.pendingRequests()).hasSize(1);
-            assertThat(gate.pendingRequests().getFirst().anchorId()).isEqualTo("a2");
+            assertThat(pending).hasSize(1);
+            assertThat(pending.getFirst().anchorId()).isEqualTo("a1");
         }
     }
 
@@ -159,8 +200,18 @@ class CanonizationGateTest {
         @DisplayName("sim-* context with autoApproveInSimulation=true immediately approves request")
         void simContextAutoApproved() {
             var simContextId = "sim-abc123";
+            when(repository.findPendingCanonizationRequest(ANCHOR_ID, Authority.CANON.name()))
+                    .thenReturn(Optional.empty());
+
             var node = anchorNode(ANCHOR_ID, Authority.RELIABLE);
             when(repository.findPropositionNodeById(ANCHOR_ID)).thenReturn(Optional.of(node));
+
+            // The auto-approve path calls approve() which loads the request by ID
+            when(repository.findCanonizationRequestById(anyString()))
+                    .thenAnswer(inv -> {
+                        var id = (String) inv.getArgument(0);
+                        return Optional.of(requestMap(id, ANCHOR_ID, simContextId));
+                    });
 
             var request = gate.requestCanonization(
                     ANCHOR_ID, simContextId, ANCHOR_TEXT, Authority.RELIABLE, "test", "system");
@@ -174,11 +225,27 @@ class CanonizationGateTest {
         @Test
         @DisplayName("non-sim context does not auto-approve")
         void nonSimContextNotAutoApproved() {
+            when(repository.findPendingCanonizationRequest(ANCHOR_ID, Authority.CANON.name()))
+                    .thenReturn(Optional.empty());
+
             var request = gate.requestCanonization(
                     ANCHOR_ID, CONTEXT_ID, ANCHOR_TEXT, Authority.RELIABLE, "test", "user");
 
             assertThat(request.status()).isEqualTo(CanonizationStatus.PENDING);
             verify(repository, never()).setAuthority(any(), any());
+        }
+    }
+
+    @Nested
+    @DisplayName("markContextRequestsStale")
+    class MarkContextRequestsStale {
+
+        @Test
+        @DisplayName("delegates to repository")
+        void delegatesToRepository() {
+            gate.markContextRequestsStale("sim-cleanup");
+
+            verify(repository).markContextRequestsStale("sim-cleanup");
         }
     }
 
@@ -196,12 +263,27 @@ class CanonizationGateTest {
         return node;
     }
 
+    private static Map<String, Object> requestMap(String id, String anchorId, String contextId) {
+        return Map.ofEntries(
+                Map.entry("id", id),
+                Map.entry("anchorId", anchorId),
+                Map.entry("contextId", contextId),
+                Map.entry("anchorText", ANCHOR_TEXT),
+                Map.entry("currentAuthority", Authority.RELIABLE.name()),
+                Map.entry("requestedAuthority", Authority.CANON.name()),
+                Map.entry("reason", "test"),
+                Map.entry("requestedBy", "user"),
+                Map.entry("status", "PENDING"),
+                Map.entry("createdAt", java.time.Instant.now().toString())
+        );
+    }
+
     private static DiceAnchorsProperties properties(boolean gateEnabled, boolean autoApproveInSim) {
         var anchorConfig = new DiceAnchorsProperties.AnchorConfig(
                 20, 500, 100, 900, true, 0.65,
                 "FAST_THEN_LLM", "TIERED",
                 true, gateEnabled, autoApproveInSim,
-                0.6, 400, 200, null);
+                0.6, 400, 200, null, null, null);
         return new DiceAnchorsProperties(
                 anchorConfig,
                 new DiceAnchorsProperties.ChatConfig("dm", 200, null),

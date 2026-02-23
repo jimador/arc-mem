@@ -27,15 +27,17 @@ public final class CompactionValidator {
 
     /**
      * Validate that protected anchors are represented in the compaction summary.
-     * An anchor is considered "found" if more than 50% of its significant words
+     * An anchor is considered "found" if at least {@code minMatchRatio} of its significant words
      * (length &gt; 3, not stop words) appear in the normalized summary.
      *
      * @param summary          the compaction summary text
      * @param protectedAnchors anchors that must survive compaction
+     * @param minMatchRatio    minimum ratio of significant words required [0.0, 1.0]
      *
      * @return loss events for anchors not adequately represented in the summary
      */
-    public static List<CompactionLossEvent> validate(String summary, List<Anchor> protectedAnchors) {
+    public static List<CompactionLossEvent> validate(String summary, List<Anchor> protectedAnchors,
+                                                     double minMatchRatio) {
         var normalizedSummary = normalize(summary);
         var losses = new ArrayList<CompactionLossEvent>();
         for (var anchor : protectedAnchors) {
@@ -47,7 +49,7 @@ public final class CompactionValidator {
                                               .filter(normalizedSummary::contains)
                                               .count();
             double matchRatio = (double) matchCount / significantWords.size();
-            if (matchRatio <= 0.5) {
+            if (matchRatio < minMatchRatio) {
                 losses.add(new CompactionLossEvent(
                         anchor.id(), anchor.text(), anchor.authority(), anchor.rank()));
             }

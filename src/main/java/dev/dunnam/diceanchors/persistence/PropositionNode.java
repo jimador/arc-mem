@@ -136,6 +136,44 @@ public class PropositionNode {
      */
     private @Nullable String memoryTier;
 
+    // --- Bi-temporal validity fields (F04) ---
+
+    /**
+     * Valid-time start: when the anchor's fact became true.
+     * Set at promotion time. Null for legacy nodes (treated as {@code created}).
+     */
+    private @Nullable Instant validFrom;
+
+    /**
+     * Valid-time end: when the anchor's fact stopped being true.
+     * Null while active (open-ended). Set when archived or superseded.
+     */
+    private @Nullable Instant validTo;
+
+    /**
+     * Transaction-time start: when this anchor state was written to the store.
+     * Set at promotion time. Null for legacy nodes (treated as {@code created}).
+     */
+    private @Nullable Instant transactionStart;
+
+    /**
+     * Transaction-time end: when this anchor state was superseded in the store.
+     * Null while current. Set when archived, superseded, or evicted.
+     */
+    private @Nullable Instant transactionEnd;
+
+    // --- Supersession tracking fields (F04) ---
+
+    /**
+     * ID of the anchor that superseded this one. Null if not superseded.
+     */
+    private @Nullable String supersededBy;
+
+    /**
+     * ID of the anchor that this one supersedes. Null if no predecessor.
+     */
+    private @Nullable String supersedes;
+
     @JsonCreator
     public PropositionNode(
             @JsonProperty("id") String id,
@@ -157,7 +195,13 @@ public class PropositionNode {
             @JsonProperty("lastReinforced") @Nullable Instant lastReinforced,
             @JsonProperty("reinforcementCount") int reinforcementCount,
             @JsonProperty("importance") double importance,
-            @JsonProperty("memoryTier") @Nullable String memoryTier) {
+            @JsonProperty("memoryTier") @Nullable String memoryTier,
+            @JsonProperty("validFrom") @Nullable Instant validFrom,
+            @JsonProperty("validTo") @Nullable Instant validTo,
+            @JsonProperty("transactionStart") @Nullable Instant transactionStart,
+            @JsonProperty("transactionEnd") @Nullable Instant transactionEnd,
+            @JsonProperty("supersededBy") @Nullable String supersededBy,
+            @JsonProperty("supersedes") @Nullable String supersedes) {
         this.id = id != null ? id : UUID.randomUUID().toString();
         this.contextId = contextId != null ? contextId : "default";
         this.text = text;
@@ -178,6 +222,12 @@ public class PropositionNode {
         this.reinforcementCount = reinforcementCount;
         this.importance = importance;
         this.memoryTier = memoryTier;
+        this.validFrom = validFrom;
+        this.validTo = validTo;
+        this.transactionStart = transactionStart;
+        this.transactionEnd = transactionEnd;
+        this.supersededBy = supersededBy;
+        this.supersedes = supersedes;
     }
 
     /**
@@ -187,13 +237,15 @@ public class PropositionNode {
                            @Nullable String reasoning, List<String> grounding, Instant created, Instant revised,
                            PropositionStatus status, @Nullable String uri, List<String> sourceIds) {
         this(id, contextId, text, confidence, decay, reasoning, grounding, created, revised,
-             status, uri, sourceIds, 0, null, false, null, null, 0, 0.0, null);
+             status, uri, sourceIds, 0, null, false, null, null, 0, 0.0, null,
+             null, null, null, null, null, null);
     }
 
     public PropositionNode(String text, double confidence) {
         this(UUID.randomUUID().toString(), "default", text, confidence, 0.0, null, List.of(),
              Instant.now(), Instant.now(), PropositionStatus.ACTIVE, null, List.of(),
-             0, null, false, null, null, 0, 0.0, null);
+             0, null, false, null, null, 0, 0.0, null,
+             null, null, null, null, null, null);
     }
 
     // --- Standard proposition getters and setters ---
@@ -368,6 +420,58 @@ public class PropositionNode {
         this.memoryTier = memoryTier;
     }
 
+    // --- Bi-temporal validity getters and setters ---
+
+    public @Nullable Instant getValidFrom() {
+        return validFrom;
+    }
+
+    public void setValidFrom(@Nullable Instant validFrom) {
+        this.validFrom = validFrom;
+    }
+
+    public @Nullable Instant getValidTo() {
+        return validTo;
+    }
+
+    public void setValidTo(@Nullable Instant validTo) {
+        this.validTo = validTo;
+    }
+
+    public @Nullable Instant getTransactionStart() {
+        return transactionStart;
+    }
+
+    public void setTransactionStart(@Nullable Instant transactionStart) {
+        this.transactionStart = transactionStart;
+    }
+
+    public @Nullable Instant getTransactionEnd() {
+        return transactionEnd;
+    }
+
+    public void setTransactionEnd(@Nullable Instant transactionEnd) {
+        this.transactionEnd = transactionEnd;
+    }
+
+    // --- Supersession tracking getters and setters ---
+
+    public @Nullable String getSupersededBy() {
+        return supersededBy;
+    }
+
+    public void setSupersededBy(@Nullable String supersededBy) {
+        this.supersededBy = supersededBy;
+    }
+
+    public @Nullable String getSupersedes() {
+        return supersedes;
+    }
+
+    public void setSupersedes(@Nullable String supersedes) {
+        this.supersedes = supersedes;
+    }
+
     /**
      * Returns true if this proposition is currently promoted to anchor status.
      */
@@ -384,6 +488,8 @@ public class PropositionNode {
                ", status=" + status +
                ", rank=" + rank +
                ", authority='" + authority + '\'' +
+               (supersededBy != null ? ", supersededBy='" + supersededBy + '\'' : "") +
+               (supersedes != null ? ", supersedes='" + supersedes + '\'' : "") +
                '}';
     }
 }

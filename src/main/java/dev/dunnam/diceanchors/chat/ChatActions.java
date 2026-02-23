@@ -49,7 +49,8 @@ public record ChatActions(
         DiceAnchorsProperties properties,
         CompliancePolicy compliancePolicy,
         TokenCounter tokenCounter,
-        RelevanceScorer relevanceScorer
+        RelevanceScorer relevanceScorer,
+        ChatContextInitializer chatContextInitializer
 ) {
 
     private static final Logger logger = LoggerFactory.getLogger(ChatActions.class);
@@ -66,6 +67,7 @@ public record ChatActions(
     @Action(canRerun = true, trigger = UserMessage.class)
     void respond(@NonNull Conversation conversation, ActionContext context) {
         var contextId = DEFAULT_CONTEXT;
+        chatContextInitializer.initializeContext(contextId);
         var window = properties.memory().windowSize();
 
         var anchorRef = new AnchorsLlmReference(

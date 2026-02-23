@@ -3,15 +3,19 @@ package dev.dunnam.diceanchors.anchor;
 import dev.dunnam.diceanchors.DiceAnchorsProperties;
 import dev.dunnam.diceanchors.anchor.event.AnchorLifecycleEvent;
 import dev.dunnam.diceanchors.anchor.event.ArchiveReason;
+import dev.dunnam.diceanchors.anchor.event.SupersessionReason;
 import dev.dunnam.diceanchors.persistence.AnchorRepository;
 import io.opentelemetry.api.trace.Span;
 import dev.dunnam.diceanchors.persistence.PropositionNode;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -69,6 +73,7 @@ public class AnchorEngine {
     private final boolean lifecycleEventsEnabled;
     private final TrustPipeline trustPipeline;
     private final CanonizationGate canonizationGate;
+    private final InvariantEvaluator invariantEvaluator;
 
     public AnchorEngine(
             AnchorRepository repository,
@@ -79,7 +84,8 @@ public class AnchorEngine {
             DecayPolicy decayPolicy,
             ApplicationEventPublisher eventPublisher,
             @Lazy TrustPipeline trustPipeline,
-            CanonizationGate canonizationGate) {
+            CanonizationGate canonizationGate,
+            InvariantEvaluator invariantEvaluator) {
         this.repository = repository;
         this.config = properties.anchor();
         this.conflictDetector = conflictDetector;
@@ -90,6 +96,7 @@ public class AnchorEngine {
         this.lifecycleEventsEnabled = properties.anchor().lifecycleEventsEnabled();
         this.trustPipeline = trustPipeline;
         this.canonizationGate = canonizationGate;
+        this.invariantEvaluator = invariantEvaluator;
     }
 
     // ========================================================================
@@ -182,9 +189,41 @@ public class AnchorEngine {
         if (proposition != null) {
             var contextId = proposition.getContextIdValue();
             publish(AnchorLifecycleEvent.promoted(this, contextId, propositionId, propositionId, rank));
-            var evicted = repository.evictLowestRanked(contextId, config.budget());
-            for (var e : evicted) {
-                publish(AnchorLifecycleEvent.evicted(this, contextId, e.anchorId(), e.previousRank()));
+            // Invariant-aware eviction: check which anchors are invariant-protected
+            var allAnchors = findByContext(contextId);
+            var protectedIds = new java.util.HashSet<String>();
+            for (var anchor : allAnchors) {
+                if (anchor.pinned()) continue;
+                var eval = evaluateInvariants(contextId, ProposedAction.EVICT, allAnchors, anchor);
+                if (eval.hasBlockingViolation()) {
+                    protectedIds.add(anchor.id());
+                    for (var v : eval.violations()) {
+                        publish(AnchorLifecycleEvent.invariantViolation(this, contextId, v));
+                    }
+                    setInvariantSpanAttributes(eval, ProposedAction.EVICT);
+                }
+            }
+
+            if (protectedIds.isEmpty()) {
+                // Fast path: no invariant-protected anchors, use existing eviction
+                var evicted = repository.evictLowestRanked(contextId, config.budget());
+                for (var e : evicted) {
+                    publish(AnchorLifecycleEvent.evicted(this, contextId, e.anchorId(), e.previousRank()));
+                }
+            } else {
+                // Slow path: manual eviction skipping protected anchors
+                if (allAnchors.size() > config.budget()) {
+                    int toEvict = allAnchors.size() - config.budget();
+                    var evictable = allAnchors.stream()
+                            .filter(a -> !a.pinned() && !protectedIds.contains(a.id()))
+                            .sorted(java.util.Comparator.comparingInt(Anchor::rank))
+                            .limit(toEvict)
+                            .toList();
+                    for (var victim : evictable) {
+                        repository.archiveAnchor(victim.id());
+                        publish(AnchorLifecycleEvent.evicted(this, contextId, victim.id(), victim.rank()));
+                    }
+                }
             }
         } else {
             logger.warn("Promoted proposition {} not found after write; skipping eviction", propositionId);
@@ -314,6 +353,22 @@ public class AnchorEngine {
             return;
         }
 
+        // Invariant enforcement — evaluate before state change
+        var targetAnchor = toAnchor(node);
+        var allAnchors = findByContext(node.getContextId());
+        var eval = evaluateInvariants(node.getContextId(), ProposedAction.DEMOTE, allAnchors, targetAnchor);
+        for (var violation : eval.violations()) {
+            publish(AnchorLifecycleEvent.invariantViolation(this, node.getContextId(), violation));
+        }
+        setInvariantSpanAttributes(eval, ProposedAction.DEMOTE);
+        if (eval.hasBlockingViolation()) {
+            logger.warn("Demotion of anchor {} blocked by MUST invariant(s)", anchorId);
+            return;
+        }
+        if (eval.hasWarnings()) {
+            logger.warn("Demotion of anchor {} proceeding despite SHOULD invariant warning(s)", anchorId);
+        }
+
         var newAuthority = current.previousLevel();
         repository.setAuthority(anchorId, newAuthority.name());
         publish(AnchorLifecycleEvent.authorityChanged(
@@ -367,27 +422,55 @@ public class AnchorEngine {
 
     /**
      * Archive an anchor (deactivate it) with an explicit lifecycle reason.
+     * Delegates to {@link #archive(String, ArchiveReason, String)} with no successor.
+     */
+    public void archive(String anchorId, ArchiveReason reason) {
+        archive(anchorId, reason, null);
+    }
+
+    /**
+     * Archive an anchor (deactivate it) with an explicit lifecycle reason and
+     * optional successor for supersession tracking.
      *
      * <p>Preconditions: {@code anchorId} should reference an active anchor.
-     * <p>Postconditions: anchor status = SUPERSEDED, rank = 0.
+     * <p>Postconditions: anchor status = SUPERSEDED, rank = 0, validTo/transactionEnd set.
      * <p>Invariants preserved: none modified.
      * <p>Events published: {@link AnchorLifecycleEvent.Archived}.
      * <p>Error behavior: if the anchor is not found, a WARN is logged and no exception
      *     is thrown.
      *
-     * @param anchorId the proposition node ID of the anchor
-     * @param reason   archive reason for lifecycle tracking
+     * @param anchorId    the proposition node ID of the anchor
+     * @param reason      archive reason for lifecycle tracking
+     * @param successorId the ID of the replacing anchor, or null if no successor
      */
-    public void archive(String anchorId, ArchiveReason reason) {
+    public void archive(String anchorId, ArchiveReason reason, @Nullable String successorId) {
         var nodeOpt = repository.findPropositionNodeById(anchorId);
         if (nodeOpt.isEmpty()) {
             logger.warn("Cannot archive anchor {} because it was not found", anchorId);
             return;
         }
         var node = nodeOpt.get();
-        repository.archiveAnchor(anchorId);
+
+        // Invariant enforcement — evaluate before state change
+        var targetAnchor = toAnchor(node);
+        var allAnchors = findByContext(node.getContextId());
+        var eval = evaluateInvariants(node.getContextId(), ProposedAction.ARCHIVE, allAnchors, targetAnchor);
+        for (var violation : eval.violations()) {
+            publish(AnchorLifecycleEvent.invariantViolation(this, node.getContextId(), violation));
+        }
+        setInvariantSpanAttributes(eval, ProposedAction.ARCHIVE);
+        if (eval.hasBlockingViolation()) {
+            logger.warn("Archive of anchor {} blocked by MUST invariant(s)", anchorId);
+            return;
+        }
+        if (eval.hasWarnings()) {
+            logger.warn("Archive of anchor {} proceeding despite SHOULD invariant warning(s)", anchorId);
+        }
+
+        repository.archiveAnchor(anchorId, successorId);
         publish(AnchorLifecycleEvent.archived(this, node.getContextId(), anchorId, reason));
-        logger.info("Archived anchor {} with reason {}", anchorId, reason);
+        logger.info("Archived anchor {} with reason {}{}", anchorId, reason,
+                successorId != null ? " (successor=" + successorId + ")" : "");
     }
 
     // ========================================================================
@@ -521,6 +604,52 @@ public class AnchorEngine {
         return resolution;
     }
 
+    /**
+     * Execute the full supersession flow when one anchor replaces another.
+     * Archives the predecessor, creates the supersession link, publishes
+     * the Superseded event, and sets OTEL span attributes.
+     *
+     * <p>This method should be called by callers that handle
+     * {@link ConflictResolver.Resolution#REPLACE} outcomes. The successor
+     * promotion is the caller's responsibility (occurs after this call).
+     *
+     * @param predecessorId the ID of the anchor being replaced
+     * @param successorId   the ID of the anchor that will replace it
+     * @param reason        the archive reason driving the supersession
+     */
+    public void supersede(String predecessorId, String successorId, ArchiveReason reason) {
+        var nodeOpt = repository.findPropositionNodeById(predecessorId);
+        if (nodeOpt.isEmpty()) {
+            logger.warn("Cannot supersede anchor {} — not found", predecessorId);
+            return;
+        }
+        var node = nodeOpt.get();
+        var predecessorAuthority = node.getAuthority() != null
+                ? node.getAuthority() : Authority.PROVISIONAL.name();
+        var predecessorRank = node.getRank();
+
+        // Archive the predecessor with successor reference
+        archive(predecessorId, reason, successorId);
+
+        // Create the supersession relationship and denormalized fields
+        var supersessionReason = SupersessionReason.fromArchiveReason(reason);
+        repository.createSupersessionLink(successorId, predecessorId, supersessionReason);
+
+        // Publish Superseded lifecycle event
+        publish(AnchorLifecycleEvent.superseded(
+                this, node.getContextId(), predecessorId, successorId, supersessionReason));
+
+        // OTEL span attributes for supersession observability (D6)
+        var span = Span.current();
+        span.setAttribute("supersession.reason", supersessionReason.name());
+        span.setAttribute("supersession.predecessor_id", predecessorId);
+        span.setAttribute("supersession.successor_id", successorId);
+        span.setAttribute("supersession.predecessor_authority", predecessorAuthority);
+        span.setAttribute("supersession.predecessor_rank", predecessorRank);
+
+        logger.info("Superseded anchor {} by {} (reason={})", predecessorId, successorId, supersessionReason);
+    }
+
     // ========================================================================
     // Query
     // ========================================================================
@@ -558,6 +687,47 @@ public class AnchorEngine {
      */
     public int activeCount(String contextId) {
         return repository.countActiveAnchors(contextId);
+    }
+
+    /**
+     * Find anchors that were valid at a specific point in time.
+     *
+     * @param contextId   the context to query
+     * @param pointInTime the instant to check validity against
+     * @return anchor IDs whose valid-time window contains the given instant
+     */
+    public List<String> findValidAt(String contextId, Instant pointInTime) {
+        return repository.findValidAt(contextId, pointInTime);
+    }
+
+    /**
+     * Walk the supersession chain from a given anchor.
+     *
+     * @param anchorId the anchor to start from
+     * @return ordered list of anchor IDs (oldest predecessor to newest successor)
+     */
+    public List<String> findSupersessionChain(String anchorId) {
+        return repository.findSupersessionChain(anchorId);
+    }
+
+    /**
+     * Find the predecessor anchor (the one this anchor superseded).
+     *
+     * @param anchorId the anchor to query
+     * @return the predecessor's ID, or empty if no predecessor
+     */
+    public Optional<String> findPredecessor(String anchorId) {
+        return repository.findPredecessor(anchorId);
+    }
+
+    /**
+     * Find the successor anchor (the one that superseded this anchor).
+     *
+     * @param anchorId the anchor to query
+     * @return the successor's ID, or empty if not superseded
+     */
+    public Optional<String> findSuccessor(String anchorId) {
+        return repository.findSuccessor(anchorId);
     }
 
     // ========================================================================
@@ -640,6 +810,27 @@ public class AnchorEngine {
         } catch (Exception e) {
             logger.warn("Failed to publish lifecycle event {}: {}",
                     event.getClass().getSimpleName(), e.getMessage());
+        }
+    }
+
+    private InvariantEvaluation evaluateInvariants(String contextId, ProposedAction action,
+            List<Anchor> anchors, @Nullable Anchor target) {
+        var eval = invariantEvaluator.evaluate(contextId, action, anchors, target);
+        return eval != null ? eval : new InvariantEvaluation(List.of(), 0);
+    }
+
+    private void setInvariantSpanAttributes(InvariantEvaluation eval, ProposedAction action) {
+        var span = Span.current();
+        span.setAttribute("invariant.checked_count", (long) eval.checkedCount());
+        span.setAttribute("invariant.violated_count", (long) eval.violations().size());
+        span.setAttribute("invariant.must_violations",
+                eval.violations().stream()
+                        .filter(v -> v.strength() == InvariantStrength.MUST).count());
+        span.setAttribute("invariant.should_violations",
+                eval.violations().stream()
+                        .filter(v -> v.strength() == InvariantStrength.SHOULD).count());
+        if (eval.hasBlockingViolation()) {
+            span.setAttribute("invariant.blocked_action", action.name());
         }
     }
 }
