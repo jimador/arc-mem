@@ -100,12 +100,6 @@ public class AnchorPromoter {
         this.duplicateDetector = duplicateDetector;
     }
 
-    /**
-     * Evaluate a list of propositions for promotion through the full pipeline.
-     * Pipeline gates: confidence -> dedup -> conflict resolution -> trust -> promote.
-     *
-     * @return number of propositions promoted
-     */
     public int evaluateAndPromote(String contextId, List<Proposition> propositions) {
         int total = 0;
         int postConfidence = 0;
@@ -123,7 +117,6 @@ public class AnchorPromoter {
             }
             total++;
 
-            // Gate 1: Confidence threshold
             if (prop.getConfidence() < threshold) {
                 logger.debug("Skipping proposition {} - confidence {} below threshold {}",
                         prop.getId(), prop.getConfidence(), threshold);
@@ -131,14 +124,12 @@ public class AnchorPromoter {
             }
             postConfidence++;
 
-            // Gate 2: Duplicate detection
             if (duplicateDetector.isDuplicate(contextId, prop.getText())) {
                 logger.info("Proposition {} is duplicate, filtering at dedup gate", prop.getId());
                 continue;
             }
             postDedup++;
 
-            // Gate 3: Conflict detection and resolution
             var conflicts = engine.detectConflicts(contextId, prop.getText());
             if (!conflicts.isEmpty()) {
                 if (!resolveConflicts(prop, conflicts)) {
@@ -147,7 +138,6 @@ public class AnchorPromoter {
             }
             postConflict++;
 
-            // Gate 4: Trust evaluation
             TrustScore trustScore = null;
             var nodeOpt = repository.findPropositionNodeById(prop.getId());
             if (nodeOpt.isPresent()) {
@@ -174,7 +164,6 @@ public class AnchorPromoter {
             }
             postTrust++;
 
-            // Task 5.1: pass trust ceiling to promote so initial authority is capped
             if (trustScore != null) {
                 engine.promote(prop.getId(), initialRank, trustScore.authorityCeiling());
             } else {
@@ -191,13 +180,8 @@ public class AnchorPromoter {
 
     /**
      * Batch evaluate and promote propositions through the full gate pipeline.
-     * Gate sequence preserved (I1): confidence → dedup → conflict → trust → promote.
-     * Batch size capped at configured maximum (I2).
-     * Individual promote() preserves budget enforcement (I4).
-     *
-     * @param contextId    the simulation context
-     * @param propositions candidates to evaluate
-     * @return number promoted
+     * More efficient than sequential {@link #evaluateAndPromote} for many candidates
+     * because dedup and trust scoring use batch LLM calls.
      */
     public int batchEvaluateAndPromote(String contextId, List<Proposition> propositions) {
         if (propositions.isEmpty()) {
@@ -208,7 +192,6 @@ public class AnchorPromoter {
         var initialRank = properties.anchor().initialRank();
         var maxBatch = properties.sim().batchMaxSize();
 
-        // Gate 1: Confidence filter + intra-batch dedup by text (no LLM)
         // DICE can extract identical text twice from one response; keep the first occurrence
         // so downstream Collectors.toMap() keyed by text never encounters a duplicate key.
         var seen = new java.util.LinkedHashSet<String>();
@@ -223,7 +206,6 @@ public class AnchorPromoter {
             return 0;
         }
 
-        // Task 7.3: Cross-reference against existing active anchors — exact text match (no LLM)
         var existingTexts = engine.findByContext(contextId).stream()
                 .map(dev.dunnam.diceanchors.anchor.Anchor::text)
                 .collect(Collectors.toSet());
@@ -236,7 +218,6 @@ public class AnchorPromoter {
             return 0;
         }
 
-        // Gate 2: Batch dedup
         var candidateTexts = postExistingDedup.stream().map(Proposition::getText).toList();
         var dedupResults = batchDedupWithFallback(contextId, candidateTexts);
         var postDedup = postExistingDedup.stream()
@@ -248,7 +229,6 @@ public class AnchorPromoter {
             return 0;
         }
 
-        // Gate 3: Batch conflict detection
         var postDedupTexts = postDedup.stream().map(Proposition::getText).toList();
         var conflictResults = engine.batchDetectConflicts(contextId, postDedupTexts);
         var postConflict = new ArrayList<Proposition>();
@@ -264,7 +244,6 @@ public class AnchorPromoter {
             return 0;
         }
 
-        // Gate 4: Batch trust scoring
         var trustContexts = postConflict.stream()
                 .map(p -> repository.findPropositionNodeById(p.getId())
                         .map(node -> new TrustContext(node, contextId))
@@ -286,8 +265,6 @@ public class AnchorPromoter {
             return 0;
         }
 
-        // Gate 5: Sequential promote (preserves budget enforcement invariant I4)
-        // Task 5.1: pass trust ceiling per-proposition when available
         int promoted = 0;
         for (var prop : postTrust) {
             var trustScore = trustResults.get(prop.getText());
@@ -354,7 +331,6 @@ public class AnchorPromoter {
                 case KEEP_EXISTING -> {
                     logger.info("Keeping existing anchor {}, rejecting proposition {}",
                             conflict.existing().id(), prop.getId());
-                    // Task 5.2: re-evaluate trust for surviving existing anchor
                     engine.reEvaluateTrust(conflict.existing().id());
                     rejected = true;
                 }
@@ -364,17 +340,14 @@ public class AnchorPromoter {
                     engine.supersede(conflict.existing().id(), prop.getId(), ArchiveReason.CONFLICT_REPLACEMENT);
                 }
                 case DEMOTE_EXISTING -> {
-                    // Task 6.3: demote existing anchor, allow incoming to proceed
                     logger.info("Demoting existing anchor {} due to conflict with proposition {}",
                             conflict.existing().id(), prop.getId());
                     engine.demote(conflict.existing().id(), DemotionReason.CONFLICT_EVIDENCE);
-                    // Task 5.2: re-evaluate trust after demotion
                     engine.reEvaluateTrust(conflict.existing().id());
                 }
                 case COEXIST -> {
                     logger.debug("Coexisting: proposition {} and anchor {}",
                             prop.getId(), conflict.existing().id());
-                    // Task 5.2: re-evaluate trust for surviving existing anchor
                     engine.reEvaluateTrust(conflict.existing().id());
                 }
             }
@@ -384,7 +357,6 @@ public class AnchorPromoter {
             }
         }
 
-        // Task 4.1: OTEL conflict span attributes
         var span = Span.current();
         span.setAttribute("conflict.detected_count", conflicts.size());
         span.setAttribute("conflict.resolved_count", resolvedCount);

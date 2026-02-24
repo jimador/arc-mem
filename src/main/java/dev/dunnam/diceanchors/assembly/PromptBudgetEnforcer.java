@@ -57,9 +57,8 @@ public class PromptBudgetEnforcer {
      * the result is returned with {@code budgetExceeded = true} and the full CANON
      * set still included.
      *
-     * @param anchors     candidate anchors to fit within budget (MUST NOT be null)
+     * @param anchors     candidate anchors to fit within budget; MUST NOT be null
      * @param tokenBudget maximum allowed tokens; pass {@code <= 0} to skip enforcement
-     * @param counter     token estimator used to measure anchor text and overhead
      * @param policy      compliance policy (currently unused in budget math, reserved)
      * @return a {@link BudgetResult} where {@link BudgetResult#included()} are the anchors
      *         that fit within budget and {@link BudgetResult#excluded()} are those dropped

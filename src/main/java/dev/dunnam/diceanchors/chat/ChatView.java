@@ -107,9 +107,6 @@ public class ChatView extends VerticalLayout {
         restoreConversation();
     }
 
-    // ========================================================================
-    // UI Construction
-    // ========================================================================
 
     private void buildUI() {
         var header = new H2("Bigby — Your D&D Dungeon Master");
@@ -231,9 +228,6 @@ public class ChatView extends VerticalLayout {
         return sidebar;
     }
 
-    // ========================================================================
-    // Sidebar refresh
-    // ========================================================================
 
     /**
      * Refresh all three sidebar tabs with current data from the repository.
@@ -457,9 +451,6 @@ public class ChatView extends VerticalLayout {
         return row;
     }
 
-    // ========================================================================
-    // Anchor card with management controls
-    // ========================================================================
 
     private Div anchorCard(Anchor anchor) {
         var card = new Div();
@@ -541,9 +532,6 @@ public class ChatView extends VerticalLayout {
         return card;
     }
 
-    // ========================================================================
-    // Create Anchor form
-    // ========================================================================
 
     private Div buildCreateAnchorForm() {
         var form = new Div();
@@ -611,9 +599,6 @@ public class ChatView extends VerticalLayout {
         return text.substring(0, maxLength) + "...";
     }
 
-    // ========================================================================
-    // Message handling
-    // ========================================================================
 
     private void sendMessage() {
         var text = inputField.getValue();
@@ -679,9 +664,6 @@ public class ChatView extends VerticalLayout {
         }, "dice-anchors-chat-" + UUID.randomUUID().toString().substring(0, 8)).start();
     }
 
-    // ========================================================================
-    // Session management (stored in VaadinSession to survive navigation)
-    // ========================================================================
 
     private record SessionData(ChatSession chatSession, BlockingQueue<Message> responseQueue) {}
 
@@ -731,9 +713,6 @@ public class ChatView extends VerticalLayout {
         }
     }
 
-    // ========================================================================
-    // Bubble helpers
-    // ========================================================================
 
     private void addUserBubble(String text) {
         var bubble = new Div(new Paragraph(text));
@@ -777,9 +756,6 @@ public class ChatView extends VerticalLayout {
         messagesScroller.getElement().executeJs("this.scrollTop = this.scrollHeight");
     }
 
-    // ========================================================================
-    // Inner types
-    // ========================================================================
 
     /**
      * Vaadin-specific OutputChannel that routes assistant messages to the UI queue

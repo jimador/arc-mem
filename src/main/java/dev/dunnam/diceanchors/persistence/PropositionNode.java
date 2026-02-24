@@ -136,8 +136,6 @@ public class PropositionNode {
      */
     private @Nullable String memoryTier;
 
-    // --- Bi-temporal validity fields (F04) ---
-
     /**
      * Valid-time start: when the anchor's fact became true.
      * Set at promotion time. Null for legacy nodes (treated as {@code created}).
@@ -161,8 +159,6 @@ public class PropositionNode {
      * Null while current. Set when archived, superseded, or evicted.
      */
     private @Nullable Instant transactionEnd;
-
-    // --- Supersession tracking fields (F04) ---
 
     /**
      * ID of the anchor that superseded this one. Null if not superseded.

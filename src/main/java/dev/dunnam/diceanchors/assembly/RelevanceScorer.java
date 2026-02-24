@@ -52,9 +52,8 @@ public class RelevanceScorer {
     }
 
     /**
-     * Compute a heuristic relevance score for an anchor based on authority, tier, and confidence.
+     * Computes a heuristic relevance score for an anchor based on authority, tier, and confidence.
      *
-     * @param anchor  the anchor to score
      * @param scoring weight configuration; if null, uses multiplicative fallback
      * @return score in [0.0, 1.0]
      */
@@ -71,9 +70,8 @@ public class RelevanceScorer {
     }
 
     /**
-     * Score and rank anchors using heuristic signals only.
+     * Scores and ranks anchors using heuristic signals only.
      *
-     * @param anchors the anchors to score
      * @param scoring weight configuration
      * @return anchors sorted by descending relevance score
      */
@@ -88,13 +86,11 @@ public class RelevanceScorer {
     }
 
     /**
-     * Score anchors by relevance to a query, blending LLM semantic scores with heuristic scores.
-     * <p>
-     * If ChatModel is unavailable, falls back to heuristic-only scoring with a warning log.
+     * Scores anchors by relevance to a query, blending LLM semantic scores with heuristic scores.
+     * Falls back to heuristic-only scoring if ChatModel is unavailable.
      *
-     * @param query   the user query or conversational context
-     * @param anchors the anchors to score
-     * @param config  retrieval configuration containing scoring weights
+     * @param query  the user query or conversational context
+     * @param config retrieval configuration containing scoring weights
      * @return anchors sorted by descending blended relevance score
      */
     public List<ScoredAnchor> scoreByRelevance(String query, List<Anchor> anchors,

@@ -141,9 +141,8 @@ public class AnchorsLlmReference {
     }
 
     /**
-     * Invalidate cache for next call.
-     * If an {@link AnchorCacheInvalidator} is present, marks the context dirty
-     * and clears cached state so the next access reloads from the engine.
+     * Clears cached state so the next access reloads from the engine.
+     * If an {@link AnchorCacheInvalidator} is present, marks the context clean.
      */
     public void refresh() {
         if (cacheInvalidator != null) {
@@ -156,7 +155,6 @@ public class AnchorsLlmReference {
 
     private void ensureAnchorsLoaded() {
         if (selectedAnchors != null) {
-            // Check event-driven invalidation: if dirty, evict the cache and reload.
             if (cacheInvalidator != null && cacheInvalidator.isDirty(contextId)) {
                 cacheInvalidator.markClean(contextId);
                 cachedAnchors = null;
@@ -230,13 +228,11 @@ public class AnchorsLlmReference {
         var scoring = retrievalConfig != null ? retrievalConfig.scoring() : null;
         var scored = relevanceScorer.scoreAndRank(allAnchors, scoring);
 
-        // CANON anchors are always included
         var canonAnchors = allAnchors.stream()
                 .filter(a -> a.authority() == Authority.CANON)
                 .toList();
         var canonIds = canonAnchors.stream().map(Anchor::id).collect(Collectors.toSet());
 
-        // Filter non-CANON by minRelevance threshold, take top-k
         var minRelevance = retrievalConfig != null ? retrievalConfig.minRelevance() : 0.0;
         var topK = retrievalConfig != null ? retrievalConfig.baselineTopK() : 5;
 
@@ -246,17 +242,14 @@ public class AnchorsLlmReference {
                 .limit(topK)
                 .toList();
 
-        // Map scored non-canon back to Anchor objects
         var selectedIds = topNonCanon.stream().map(ScoredAnchor::id).collect(Collectors.toSet());
         var topAnchors = allAnchors.stream()
                 .filter(a -> selectedIds.contains(a.id()))
                 .toList();
 
-        // Combine CANON + top-k
         var baseline = new ArrayList<>(canonAnchors);
         baseline.addAll(topAnchors);
 
-        // Compute OTEL metrics: how many non-CANON anchors were filtered out by minRelevance
         var filteredCount = (int) scored.stream()
                 .filter(sa -> !canonIds.contains(sa.id()))
                 .filter(sa -> sa.relevanceScore() < minRelevance)
@@ -267,7 +260,6 @@ public class AnchorsLlmReference {
         logger.debug("HYBRID retrieval: {} total anchors, {} CANON always-included, {} non-CANON selected (top-k={}, minRelevance={})",
                 allAnchors.size(), canonAnchors.size(), topAnchors.size(), topK, minRelevance);
 
-        // Apply token budget enforcement on baseline
         if (tokenBudget > 0 && tokenCounter != null) {
             lastBudgetResult = budgetEnforcer.enforce(baseline, tokenBudget, tokenCounter, compliancePolicy);
             selectedAnchors = lastBudgetResult.included();

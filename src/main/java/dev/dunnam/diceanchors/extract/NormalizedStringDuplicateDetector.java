@@ -19,11 +19,6 @@ public class NormalizedStringDuplicateDetector {
 
     private static final Logger logger = LoggerFactory.getLogger(NormalizedStringDuplicateDetector.class);
 
-    /**
-     * Check if the candidate text is a normalized-string duplicate of any anchor.
-     *
-     * @return true if a normalized match is found (candidate is a duplicate)
-     */
     public boolean isDuplicate(String candidateText, List<Anchor> anchors) {
         var normalizedCandidate = normalize(candidateText);
         for (var anchor : anchors) {
@@ -35,9 +30,6 @@ public class NormalizedStringDuplicateDetector {
         return false;
     }
 
-    /**
-     * Normalize text for comparison: lowercase, collapse whitespace, strip punctuation.
-     */
     static String normalize(String text) {
         return text.toLowerCase()
                    .replaceAll("[^a-z0-9\\s]", "")

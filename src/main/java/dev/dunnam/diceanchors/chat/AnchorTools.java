@@ -137,7 +137,7 @@ public record AnchorTools(AnchorEngine engine, AnchorRepository repository, Stri
     }
 
     /**
-     * Task 7.4: Demote an anchor's authority one level (RELIABLE→UNRELIABLE→PROVISIONAL).
+     * Demote an anchor's authority one level (RELIABLE→UNRELIABLE→PROVISIONAL).
      * PROVISIONAL anchors are archived when demoted further.
      * CANON demotion routes through the canonization gate if enabled — a pending
      * decanonization request is created rather than an immediate demotion.

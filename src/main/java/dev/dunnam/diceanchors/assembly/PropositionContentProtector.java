@@ -31,9 +31,6 @@ public class PropositionContentProtector implements ProtectedContentProvider {
         var result = propositions.stream()
                                  .filter(p -> p.getConfidence() > 0)
                                  .map(p -> {
-                                     // Unpromoted propositions have rank == 0 in the node layer;
-                                     // the Dice Proposition API does not expose rank directly,
-                                     // so we use confidence as the proxy for priority.
                                      var priority = (int) (p.getConfidence() * 100);
                                      return new ProtectedContent(
                                              p.getId(),

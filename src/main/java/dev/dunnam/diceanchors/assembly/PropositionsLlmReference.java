@@ -65,9 +65,8 @@ public class PropositionsLlmReference {
     }
 
     /**
-     * Invalidate cache for next call.
-     * If an {@link AnchorCacheInvalidator} is present, marks the context clean
-     * and clears cached state so the next access reloads from the repository.
+     * Clears cached state so the next access reloads from the repository.
+     * If an {@link AnchorCacheInvalidator} is present, marks the context clean.
      */
     public void refresh() {
         if (cacheInvalidator != null) {
@@ -78,7 +77,6 @@ public class PropositionsLlmReference {
 
     private void ensureLoaded() {
         if (cachedPropositions != null) {
-            // Check event-driven invalidation: if dirty, evict the cache and reload.
             if (cacheInvalidator != null && cacheInvalidator.isDirty(contextId)) {
                 cacheInvalidator.markClean(contextId);
                 cachedPropositions = null;

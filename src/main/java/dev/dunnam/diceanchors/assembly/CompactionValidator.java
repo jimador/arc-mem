@@ -21,19 +21,14 @@ public final class CompactionValidator {
             "for", "with", "that", "this", "has", "had", "have"
     );
 
-    private CompactionValidator() {
-        // utility class
-    }
+    private CompactionValidator() {}
 
     /**
-     * Validate that protected anchors are represented in the compaction summary.
+     * Validates that protected anchors are represented in the compaction summary.
      * An anchor is considered "found" if at least {@code minMatchRatio} of its significant words
      * (length &gt; 3, not stop words) appear in the normalized summary.
      *
-     * @param summary          the compaction summary text
-     * @param protectedAnchors anchors that must survive compaction
-     * @param minMatchRatio    minimum ratio of significant words required [0.0, 1.0]
-     *
+     * @param minMatchRatio minimum ratio of significant words required; must be in [0.0, 1.0]
      * @return loss events for anchors not adequately represented in the summary
      */
     public static List<CompactionLossEvent> validate(String summary, List<Anchor> protectedAnchors,

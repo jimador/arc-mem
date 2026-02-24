@@ -56,18 +56,12 @@ public class DuplicateDetector {
         logger.info("Duplicate detection strategy: {}", this.strategy);
     }
 
-    /**
-     * Check if the candidate text is a duplicate of any existing anchor.
-     *
-     * @return true if it IS a duplicate (should NOT be promoted)
-     */
     public boolean isDuplicate(String contextId, String candidateText) {
         var anchors = engine.inject(contextId);
         if (anchors.isEmpty()) {
             return false;
         }
 
-        // Fast-path: normalized string matching
         if (strategy != DuplicateDetectionStrategy.LLM_ONLY) {
             if (fastDetector.isDuplicate(candidateText, anchors)) {
                 logger.info("Fast-path duplicate detected: '{}'", candidateText);
@@ -78,7 +72,6 @@ public class DuplicateDetector {
             }
         }
 
-        // LLM fallback
         return llmDuplicateCheck(candidateText, anchors);
     }
 
@@ -88,7 +81,6 @@ public class DuplicateDetector {
      * Remaining candidates are batched into a single LLM call.
      * Falls back to individual isDuplicate() calls if the batch LLM call fails.
      *
-     * @param contextId      the conversation context
      * @param candidateTexts list of candidate proposition texts
      * @return map from candidate text to duplicate status (true = is duplicate)
      */
@@ -98,7 +90,6 @@ public class DuplicateDetector {
         }
         var anchors = engine.inject(contextId);
         if (anchors.isEmpty()) {
-            // No existing anchors → nothing can be a duplicate
             return candidateTexts.stream().collect(Collectors.toMap(c -> c, c -> false));
         }
 

@@ -35,13 +35,7 @@ public class SimSummaryGenerator {
     }
 
     /**
-     * Convenience overload with no retry, no protected content.
-     * Delegates to the full method with zero retries and empty protected content.
-     *
-     * @param messages           the messages to summarize
-     * @param contextDescription description of the context for the summary prompt
-     *
-     * @return a narrative summary string
+     * Convenience overload with no retry and no protected content.
      */
     public String generateSummary(List<String> messages, String contextDescription) {
         var result = generateSummary(messages, contextDescription, List.of(), 0, Duration.ZERO);
@@ -57,12 +51,9 @@ public class SimSummaryGenerator {
      * If all attempts fail, produces a deterministic extractive fallback from
      * {@code protectedContent} sorted by priority descending.
      *
-     * @param messages           the messages to summarize
-     * @param contextDescription description of the context for the summary prompt
-     * @param protectedContent   content that should survive compaction (used for fallback)
-     * @param maxRetries         maximum number of retry attempts (0 = single attempt, no retry)
-     * @param initialBackoff     initial backoff duration between retries (doubles per attempt)
-     *
+     * @param protectedContent content that must survive compaction; used for extractive fallback
+     * @param maxRetries       maximum retry attempts; 0 = single attempt with no retry
+     * @param initialBackoff   backoff duration that doubles on each subsequent retry
      * @return a {@link SummaryResult} with the summary text, retry count, and fallback flag
      */
     public SummaryResult generateSummary(List<String> messages, String contextDescription,
@@ -104,7 +95,6 @@ public class SimSummaryGenerator {
             }
         }
 
-        // All attempts failed — extractive fallback
         var fallback = buildExtractiveFallback(protectedContent);
         logger.warn("All {} LLM attempts failed, using extractive fallback ({} chars)",
                     totalAttempts, fallback.length());
@@ -121,9 +111,6 @@ public class SimSummaryGenerator {
                 .collect(Collectors.joining(" "));
     }
 
-    /**
-     * Clear the result cache. Useful for testing or memory management.
-     */
     public void clearCache() {
         resultCache.clear();
     }

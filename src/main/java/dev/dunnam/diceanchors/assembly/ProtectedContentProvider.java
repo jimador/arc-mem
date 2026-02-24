@@ -9,11 +9,8 @@ import java.util.List;
 public interface ProtectedContentProvider {
 
     /**
-     * Return all content that should be protected from compaction in the given context.
-     *
-     * @param contextId the conversation or session context
-     *
-     * @return protected content entries, ordered by priority descending
+     * Returns all content that should be protected from compaction in the given context,
+     * ordered by priority descending.
      */
     List<ProtectedContent> getProtectedContent(String contextId);
 }

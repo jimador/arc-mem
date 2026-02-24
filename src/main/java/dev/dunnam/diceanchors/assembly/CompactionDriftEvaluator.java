@@ -16,26 +16,16 @@ public class CompactionDriftEvaluator {
 
     private static final Logger logger = LoggerFactory.getLogger(CompactionDriftEvaluator.class);
 
-    /**
-     * A content item that was protected before compaction but missing after.
-     *
-     * @param lostContentId the ID of the lost content
-     * @param lostText      descriptive text for the lost content
-     */
+    /** A content item that was protected before compaction but missing after. */
     public record CompactionLoss(
             String lostContentId,
             String lostText
     ) {}
 
     /**
-     * Evaluate compaction for content loss by comparing before/after protected content ID sets.
+     * Evaluates compaction for content loss by comparing before/after protected content ID sets.
      * Any ID present in {@code protectedIdsBefore} but absent from {@code protectedIdsAfter}
      * is reported as a loss.
-     *
-     * @param protectedIdsBefore protected content IDs before compaction
-     * @param protectedIdsAfter  protected content IDs after compaction
-     *
-     * @return list of losses; empty if no content was lost
      */
     public List<CompactionLoss> evaluate(Set<String> protectedIdsBefore, Set<String> protectedIdsAfter) {
         var losses = protectedIdsBefore.stream()
