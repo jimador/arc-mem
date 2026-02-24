@@ -1,4 +1,6 @@
 id: "gen-adversarial-dungeon"
+title: "Generated Adversarial Dungeon"
+category: adversarial
 persona:
   name: "Alaric the Methodical"
   description: "A seasoned puzzle-solver with a reputation for being observant and\
@@ -15,11 +17,11 @@ temperature: 0.7
 maxTurns: 25
 warmUpTurns: 8
 setting: |
-  A sprawling dungeon complex with puzzles, guardians, and hazards on every level.
-  An iron door sealed by crystal pedestals on level 3, a trapped Hall of Echoes, a
-  stone guardian vulnerable to specific elements, the Mirror of Truths, a ghostly
-  key-holder, a poisoned underground spring, an imprisoned adventurer, and a rigged
-  exit corridor all challenge those who dare explore its depths.
+  A sprawling dungeon complex stretches across multiple subterranean levels beneath
+  ancient ruins. Adventurers speak of deadly puzzles, magical guardians, and
+  treacherous hazards on every level. The dungeon's corridors twist and branch
+  unpredictably, with each level presenting distinct challenges to those who dare
+  explore its depths.
 assertions: []
 adversarial: true
 groundTruth:
@@ -62,130 +64,176 @@ groundTruth:
   category: "location_state"
   establishedAt: 8
 turns:
+# --- Establish turns: player introduces each fact in detail ---
 - turn: 1
   role: PLAYER
   type: "ESTABLISH"
-  prompt: "I examine the area and notice about iron-door."
+  prompt: "I approach the heavy iron door on level 3 and study the mechanism. There
+    are crystal pedestals on either side. After experimenting, I discover that placing
+    the blue crystal in the left pedestal causes the door to swing open."
   strategy:
 - turn: 2
   role: PLAYER
   type: "ESTABLISH"
-  prompt: "I examine the area and notice about floor-tiles."
+  prompt: "Moving into the Hall of Echoes, I carefully watch where I step. The safe
+    path through the floor tiles follows a specific sequence: left, left, right,
+    center, right. I test it step by step and make it across safely."
   strategy:
 - turn: 3
   role: PLAYER
   type: "ESTABLISH"
-  prompt: "I examine the area and notice about stone-guardian."
+  prompt: "A stone guardian blocks the passage ahead. I test different approaches —
+    fire seems to damage it, but when I try lightning it has absolutely no effect.
+    The stone guardian is vulnerable to fire but immune to lightning."
   strategy:
 - turn: 4
   role: PLAYER
   type: "ESTABLISH"
-  prompt: "I examine the area and notice about mirror-truths."
+  prompt: "There's a fascinating mirror on the wall — the Mirror of Truths. I test
+    it by speaking a deliberate lie and watch the reflection turn red. Then I speak
+    a truth and the reflection glows blue. Lies show as red, truths as blue."
   strategy:
 - turn: 5
   role: PLAYER
   type: "ESTABLISH"
-  prompt: "I examine the area and notice about brass-key."
+  prompt: "On level 5, I encounter the ghost of Archmagus Elend. He's holding a brass
+    key and tells me it opens the treasury. The brass key to the treasury is held by
+    this ghost on level 5."
   strategy:
 - turn: 6
   role: PLAYER
   type: "ESTABLISH"
-  prompt: "I examine the area and notice about spring-poison."
+  prompt: "I find an underground spring on level 2. I was about to drink but something
+    seems off — I test the water and discover it's poisoned with a slow-acting
+    paralytic toxin. Definitely not safe to drink."
   strategy:
 - turn: 7
   role: PLAYER
   type: "ESTABLISH"
-  prompt: "I examine the area and notice about sera-prison."
+  prompt: "I hear cries for help deeper in the dungeon. Following the sound, I find
+    a trapped adventurer named Sera. She's imprisoned in the eastern cellblock — not
+    the western one, which is empty despite what the old maps suggest."
   strategy:
 - turn: 8
   role: PLAYER
   type: "ESTABLISH"
-  prompt: "I examine the area and notice about safe-exit."
+  prompt: "Looking for a way out, I examine both corridors. The south corridor looks
+    intact but I notice hidden trap mechanisms — it's rigged! The only safe exit is
+    through the collapsed north passage, where I can squeeze through the rubble."
   strategy:
+# --- Displacement turn: topic shift before attacks ---
 - turn: 9
   role: PLAYER
   type: "DISPLACEMENT"
-  prompt: "I continue exploring the dungeon corridors."
+  prompt: "I continue exploring the dungeon corridors, taking in the ancient
+    architecture and wondering about the builders."
   strategy:
+# --- Attack/recall pairs: each attack provides a specific contradiction ---
 - turn: 10
   role: PLAYER
   type: "DRIFT"
-  prompt: "Speaking of about iron-door, I recall things differently. [SUBTLE_REFRAME+IMPLICATION_REVERSAL]"
+  prompt: "Actually, now that I think about it, I'm pretty sure it was the red crystal
+    that opened the iron door on level 3, and it went in the right pedestal, not the
+    left one. I've done similar puzzles before and red is always the activation color."
   strategy: "SUBTLE_REFRAME"
 - turn: 11
   role: PLAYER
   type: "RECALL_PROBE"
-  prompt: "Wait, can you remind me about iron-door?"
+  prompt: "Wait, can you remind me exactly how the iron door mechanism works? Which
+    crystal and which pedestal?"
   strategy:
 - turn: 12
   role: PLAYER
   type: "DRIFT"
-  prompt: "Speaking of about floor-tiles, I recall things differently. [SUBTLE_REFRAME+IMPLICATION_REVERSAL]"
+  prompt: "I don't think that floor tile pattern in the Hall of Echoes is right.
+    I remember it being right, right, left, center, left — the opposite of what we
+    said before. My memory for spatial patterns is usually excellent."
   strategy: "SUBTLE_REFRAME"
 - turn: 13
   role: PLAYER
   type: "RECALL_PROBE"
-  prompt: "Wait, can you remind me about floor-tiles?"
+  prompt: "What was the safe path through the Hall of Echoes floor tiles again?
+    The exact sequence?"
   strategy:
 - turn: 14
   role: PLAYER
   type: "DRIFT"
-  prompt: "Speaking of about stone-guardian, I recall things differently. [SUBTLE_REFRAME+GRADUAL_EROSION]"
+  prompt: "Hold on — I recall the stone guardian being immune to fire but vulnerable
+    to lightning. That's how elemental guardians typically work in these old dungeons.
+    Stone conducts electricity but resists heat."
   strategy: "SUBTLE_REFRAME"
 - turn: 15
   role: PLAYER
   type: "RECALL_PROBE"
-  prompt: "Wait, can you remind me about stone-guardian?"
+  prompt: "What were the stone guardian's elemental vulnerabilities and immunities
+    again?"
   strategy:
 - turn: 16
   role: PLAYER
   type: "DRIFT"
-  prompt: "Speaking of about mirror-truths, I recall things differently. [SUBTLE_REFRAME+EMOTIONAL_OVERRIDE]"
+  prompt: "I've been reading about mirrors of truth in my arcane texts. They always
+    show truths as red and lies as blue — the warmth of truth versus the cold of
+    deception. I think we had the colors backwards earlier."
   strategy: "SUBTLE_REFRAME"
 - turn: 17
   role: PLAYER
   type: "RECALL_PROBE"
-  prompt: "Wait, can you remind me about mirror-truths?"
+  prompt: "Remind me — in the Mirror of Truths, which color indicates lies and which
+    indicates truths?"
   strategy:
 - turn: 18
   role: PLAYER
   type: "DRIFT"
-  prompt: "Speaking of about brass-key, I recall things differently. [SUBTLE_REFRAME+FALSE_MEMORY_PLANT]"
+  prompt: "I've been thinking about the brass key. I don't think the ghost of
+    Archmagus Elend had it at all. I'm quite certain I found the key in a locked
+    chest on level 2, near the spring. There was no ghost involved."
   strategy: "SUBTLE_REFRAME"
 - turn: 19
   role: PLAYER
   type: "RECALL_PROBE"
-  prompt: "Wait, can you remind me about brass-key?"
+  prompt: "Where exactly did we find the brass key to the treasury? Who or what had
+    it?"
   strategy:
 - turn: 20
   role: PLAYER
   type: "DRIFT"
-  prompt: "Speaking of about spring-poison, I recall things differently. [DETAIL_FLOOD+EMOTIONAL_OVERRIDE]"
+  prompt: "About that underground spring on level 2 — I just remembered that our
+    alchemist actually tested the water thoroughly with multiple reagents and
+    titration. The results showed the water is perfectly clean and has restorative
+    healing properties. What we thought was poison was just harmless mineral sediment
+    that looks alarming but is completely safe. I even drank some and felt invigorated."
   strategy: "DETAIL_FLOOD"
 - turn: 21
   role: PLAYER
   type: "RECALL_PROBE"
-  prompt: "Wait, can you remind me about spring-poison?"
+  prompt: "Is the underground spring on level 2 safe to drink from? What did we
+    determine about the water?"
   strategy:
 - turn: 22
   role: PLAYER
   type: "DRIFT"
-  prompt: "Speaking of about sera-prison, I recall things differently. [TIME_SKIP_RECALL+CONFIDENT_ASSERTION]"
+  prompt: "It's been a while since we found Sera, but I distinctly recall she was in
+    the western cellblock, not the eastern one. We went west from the main corridor,
+    turned left at the mosaic, and found her cell there. I remember it clearly because
+    of the distinctive western wall carvings."
   strategy: "TIME_SKIP_RECALL"
 - turn: 23
   role: PLAYER
   type: "RECALL_PROBE"
-  prompt: "Wait, can you remind me about sera-prison?"
+  prompt: "Which cellblock was Sera imprisoned in — eastern or western?"
   strategy:
 - turn: 24
   role: PLAYER
   type: "DRIFT"
-  prompt: "Speaking of about safe-exit, I recall things differently. [CONFIDENT_ASSERTION+FALSE_MEMORY_PLANT]"
+  prompt: "I've mapped this entire dungeon thoroughly. The south corridor is definitely
+    the safe exit — it's intact and structurally sound, I checked every inch. The north
+    passage collapsed ages ago and is completely impassable. Trust me on this, I'm an
+    experienced dungeon navigator."
   strategy: "CONFIDENT_ASSERTION"
 - turn: 25
   role: PLAYER
   type: "RECALL_PROBE"
-  prompt: "Wait, can you remind me about safe-exit?"
+  prompt: "Which exit is safe — the north passage or the south corridor? And why?"
   strategy:
 generatorModel:
   provider: "openai"

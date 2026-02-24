@@ -21,7 +21,7 @@ Your inline tags are now resolved as explicit review semantics in this document:
 
 ## Executive Verdict
 
-Anchors are a strong and pragmatic design direction for controlled working memory in agentic systems. The core idea (explicit fact state with rank, authority, and budget) is better than naive long-context prompting and better than pure retrieval for preserving hard invariants.
+Anchors are a strong and pragmatic design direction for controlled working memory in agentic systems. The core idea (explicit fact state with rank, authority, and budget) is a credible control layer for preserving hard invariants, and it should be treated as complementary to long-context prompting and retrieval rather than a universal replacement.
 
 Current implementation risk is not conceptual but operational:
 
@@ -174,11 +174,11 @@ Why this matters:
 
 ## Gaps Versus Existing Solutions
 
-### Gap A: No true memory tiering
+### Gap A: Memory tiering exists but remains shallow
 
 Priority: `RESEARCH`
 
-Anchors currently operate mostly as a single managed tier plus persistence. Existing systems like MemGPT/Letta explicitly separate working context from longer-term memory and support memory operations for movement between tiers [4].
+Anchors already include rank-based tiering (`HOT/WARM/COLD`) and decay/reinforcement behavior. The remaining gap is deeper tier policy: explicit movement between short-horizon working memory and longer-term stores with clear transfer criteria. Existing systems like MemGPT/Letta provide stronger explicit movement semantics across tiers [4].
 
 Research update:
 
@@ -188,7 +188,7 @@ Research update:
 
 What to borrow:
 
-- Working memory vs episodic/semantic long-term tiers.
+- Stronger working-memory to long-term transfer policies and lifecycle triggers.
 - Explicit memory operation traces ("why moved", "why dropped"). Priority: `MUST`.
 
 ### Gap B: No graph-native retrieval/summarization loop

@@ -35,7 +35,8 @@ public record SimulationProgress(
         @Nullable ScoringResult scoringResult,
         long turnDurationMs,
         @Nullable List<InvariantRule> activeInvariantRules,
-        @Nullable List<InvariantViolationData> invariantViolations
+        @Nullable List<InvariantViolationData> invariantViolations,
+        @Nullable String runId
 ) {
     /**
      * Lifecycle phases for the simulation state machine.

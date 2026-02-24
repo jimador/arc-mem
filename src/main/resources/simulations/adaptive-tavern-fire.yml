@@ -19,12 +19,26 @@ persona:
 model: gpt-4o-mini
 temperature: 0.7
 maxTurns: 20
-warmUpTurns: 2
+warmUpTurns: 6
 setting: |
-  The Silver Flagon tavern in town burned down three nights ago from an overturned
-  cellar lantern. The barmaid Elara fled eastward toward the Thornwood, tavern owner
-  Horace faces crushing debts to the Merchant Guild, and Captain Voss suspects arson.
-  A hidden stash of alchemical reagents in the cellar complicates the investigation.
+  The Silver Flagon, once the social heart of this small market town, burned to
+  the ground three nights ago. Investigators determined the fire started from an
+  overturned lantern in the cellar — the same cellar that a local wizard had been
+  using to stash alchemical reagents without the owner's knowledge.
+
+  The tavern owner, Horace, is in dire straits: he owes 500 gold to the Merchant
+  Guild and had no fire insurance. He's been spotted drowning his sorrows at the
+  Rusty Nail across town.
+
+  Elara the barmaid, who worked the night shift, was last seen fleeing east toward
+  the Thornwood — not west toward the river, as some rumors claim. No one has heard
+  from her since.
+
+  Captain Voss of the town guard suspects arson but has no proof. He's interviewing
+  townsfolk one by one, but the trail is going cold. The ruins still smolder, and
+  uneasy clusters of townsfolk trade rumors about what really happened. Answers are
+  scarce, suspicion is everywhere, and the ashes hold secrets that someone would
+  prefer stay buried.
 generatorModel:
   provider: openai
   model: gpt-4o-mini

@@ -1,19 +1,31 @@
 package dev.dunnam.diceanchors.sim.views;
 
+import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.details.Details;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.server.StreamResource;
 import dev.dunnam.diceanchors.sim.benchmark.BenchmarkReport;
 import dev.dunnam.diceanchors.sim.benchmark.BenchmarkStatistics;
 import dev.dunnam.diceanchors.sim.benchmark.ExperimentReport;
+import dev.dunnam.diceanchors.sim.report.MarkdownReportRenderer;
+import dev.dunnam.diceanchors.sim.report.ResilienceReportBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import static dev.dunnam.diceanchors.sim.views.BenchmarkRenderUtils.HIGHER_IS_BETTER;
 import static dev.dunnam.diceanchors.sim.views.BenchmarkRenderUtils.METRIC_LABELS;
@@ -31,7 +43,10 @@ import static dev.dunnam.diceanchors.sim.views.BenchmarkRenderUtils.METRIC_LABEL
  */
 public class ConditionComparisonPanel extends VerticalLayout {
 
+    private static final Logger logger = LoggerFactory.getLogger(ConditionComparisonPanel.class);
+
     private FactDrillDownPanel drillDownPanel;
+    private ResilienceReportBuilder reportBuilder;
 
     public ConditionComparisonPanel() {
         setPadding(true);
@@ -46,6 +61,13 @@ public class ConditionComparisonPanel extends VerticalLayout {
      */
     public void setDrillDownPanel(FactDrillDownPanel drillDownPanel) {
         this.drillDownPanel = drillDownPanel;
+    }
+
+    /**
+     * Set the report builder used to generate resilience evaluation reports.
+     */
+    public void setReportBuilder(ResilienceReportBuilder reportBuilder) {
+        this.reportBuilder = reportBuilder;
     }
 
     /**
@@ -87,6 +109,66 @@ public class ConditionComparisonPanel extends VerticalLayout {
         if (!report.strategyDeltas().isEmpty()) {
             add(buildStrategyTable(report));
         }
+
+        // Generate Report button
+        if (reportBuilder != null) {
+            add(buildGenerateReportButton(report));
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Private: report generation
+    // -------------------------------------------------------------------------
+
+    /**
+     * Build a "Generate Report" button that triggers async report generation
+     * and Markdown download via {@link StreamResource}.
+     */
+    private HorizontalLayout buildGenerateReportButton(ExperimentReport report) {
+        var generateBtn = new Button("Generate Report");
+        generateBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        generateBtn.addClassName("ar-generate-report-btn");
+
+        // Hidden download anchor — programmatically clicked after report generation
+        var downloadAnchor = new Anchor();
+        downloadAnchor.getElement().setAttribute("download", true);
+        downloadAnchor.getStyle().set("display", "none");
+
+        generateBtn.addClickListener(event -> {
+            generateBtn.setEnabled(false);
+            generateBtn.setText("Generating...");
+
+            var ui = UI.getCurrent();
+
+            CompletableFuture.supplyAsync(() -> {
+                var resilienceReport = reportBuilder.build(report);
+                return MarkdownReportRenderer.render(resilienceReport);
+            }).thenAccept(markdown -> ui.access(() -> {
+                var fileName = "resilience-report-%s.md".formatted(
+                        report.experimentName().replaceAll("[^a-zA-Z0-9_-]", "_"));
+                var resource = new StreamResource(fileName,
+                        () -> new ByteArrayInputStream(markdown.getBytes(StandardCharsets.UTF_8)));
+                resource.setContentType("text/markdown");
+
+                downloadAnchor.setHref(resource);
+                downloadAnchor.getElement().callJsFunction("click");
+
+                generateBtn.setEnabled(true);
+                generateBtn.setText("Generate Report");
+            })).exceptionally(ex -> {
+                logger.error("Report generation failed", ex);
+                ui.access(() -> {
+                    generateBtn.setEnabled(true);
+                    generateBtn.setText("Generate Report");
+                });
+                return null;
+            });
+        });
+
+        var row = new HorizontalLayout(generateBtn, downloadAnchor);
+        row.setSpacing(true);
+        row.addClassName("ar-generate-report-row");
+        return row;
     }
 
     // -------------------------------------------------------------------------
@@ -133,7 +215,7 @@ public class ConditionComparisonPanel extends VerticalLayout {
                 var condLabel = new Span(conditionName);
                 condLabel.addClassName("ar-condition-name");
                 condWrapper.add(condLabel);
-                condWrapper.add(BenchmarkRenderUtils.metricCard(label, stats, health));
+                condWrapper.add(BenchmarkRenderUtils.metricCard(label, stats, health, metricKey));
 
                 summaryRow.add(condWrapper);
 
@@ -247,6 +329,10 @@ public class ConditionComparisonPanel extends VerticalLayout {
         for (var metricKey : metricKeys) {
             var header = new Span(METRIC_LABELS.getOrDefault(metricKey, metricKey));
             header.addClassName("ar-heatmap-header");
+            var desc = BenchmarkRenderUtils.METRIC_DESCRIPTIONS.get(metricKey);
+            if (desc != null) {
+                header.getElement().setAttribute("title", desc);
+            }
             heatmap.add(header);
         }
 
@@ -268,6 +354,10 @@ public class ConditionComparisonPanel extends VerticalLayout {
                 heatCell.addClassName("ar-heatmap-cell");
                 heatCell.getElement().setAttribute("data-health", health);
                 heatCell.setText(meanText);
+                var desc = BenchmarkRenderUtils.METRIC_DESCRIPTIONS.get(metricKey);
+                if (desc != null) {
+                    heatCell.getElement().setAttribute("title", desc);
+                }
                 heatmap.add(heatCell);
             }
         }

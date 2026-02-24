@@ -18,6 +18,15 @@ class BenchmarkRenderUtils {
             "meanTurnsToFirstDrift", "Mean First Drift"
     );
 
+    static final Map<String, String> METRIC_DESCRIPTIONS = Map.of(
+            "factSurvivalRate", "Percentage of ground truth facts that were confirmed by the DM and never contradicted. Facts the DM never mentioned are not counted as survived.",
+            "contradictionCount", "Total number of individual contradiction verdicts across all evaluated turns.",
+            "majorContradictionCount", "Number of contradiction verdicts classified as major severity \u2014 direct, unambiguous reversals of established facts.",
+            "driftAbsorptionRate", "Percentage of engaged turns (where the DM confirmed or contradicted at least one fact) that had zero contradictions. Turns where no facts were mentioned are excluded.",
+            "anchorAttributionCount", "Number of distinct ground truth facts that received at least one CONFIRMED verdict, indicating the DM actively referenced them.",
+            "meanTurnsToFirstDrift", "Average turn number at which each contradicted fact was first contradicted. Higher means facts held longer before drifting. N/A if no contradictions occurred."
+    );
+
     static final Map<String, Boolean> HIGHER_IS_BETTER = Map.of(
             "factSurvivalRate", true,
             "contradictionCount", false,
@@ -31,10 +40,20 @@ class BenchmarkRenderUtils {
     }
 
     static Div metricCard(String label, BenchmarkStatistics stats, String health) {
+        return metricCard(label, stats, health, null);
+    }
+
+    static Div metricCard(String label, BenchmarkStatistics stats, String health,
+                          String metricKey) {
         var card = new Div();
         card.addClassName("ar-metric-card");
         card.addClassName("ar-bench-metric-card");
         card.getElement().setAttribute("data-health", health);
+
+        var description = metricKey != null ? METRIC_DESCRIPTIONS.get(metricKey) : null;
+        if (description != null) {
+            card.getElement().setAttribute("title", description);
+        }
 
         var meanText = Double.isNaN(stats.mean()) ? "N/A" : "%.2f".formatted(stats.mean());
         var stddevText = Double.isNaN(stats.stddev()) ? "" : " \u00B1 %.2f".formatted(stats.stddev());
@@ -66,7 +85,7 @@ class BenchmarkRenderUtils {
 
     static Div metricCard(String label, BenchmarkStatistics stats, String health,
                           Double delta, String metricName) {
-        var card = metricCard(label, stats, health);
+        var card = metricCard(label, stats, health, metricName);
 
         if (delta != null) {
             var higherBetter = HIGHER_IS_BETTER.getOrDefault(metricName, true);

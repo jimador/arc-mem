@@ -13,6 +13,7 @@ import dev.dunnam.diceanchors.sim.benchmark.ExperimentReport;
 import dev.dunnam.diceanchors.sim.benchmark.ExperimentRunner;
 import dev.dunnam.diceanchors.sim.engine.RunHistoryStore;
 import dev.dunnam.diceanchors.sim.engine.ScenarioLoader;
+import dev.dunnam.diceanchors.sim.report.ResilienceReportBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,7 +54,8 @@ public class BenchmarkView extends VerticalLayout {
     public BenchmarkView(
             ExperimentRunner experimentRunner,
             ScenarioLoader scenarioLoader,
-            RunHistoryStore runHistoryStore) {
+            RunHistoryStore runHistoryStore,
+            ResilienceReportBuilder reportBuilder) {
         this.experimentRunner = experimentRunner;
         this.runHistoryStore = runHistoryStore;
 
@@ -86,6 +88,7 @@ public class BenchmarkView extends VerticalLayout {
         drillDownPanel = new FactDrillDownPanel(runHistoryStore, scenarioLoader);
         comparisonPanel = new ConditionComparisonPanel();
         comparisonPanel.setDrillDownPanel(drillDownPanel);
+        comparisonPanel.setReportBuilder(reportBuilder);
         historyPanel = new ExperimentHistoryPanel(runHistoryStore);
 
         // --- Wire callbacks (tasks 8.1, 8.2, 8.3) ---

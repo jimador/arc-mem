@@ -17,15 +17,13 @@ compactionConfig:
   tokenThreshold: 4000
   messageThreshold: 16
 setting: |
-  The Vault of Infinite Pages is a pocket dimension disguised as a vast
-  underground library. Each room contains books that describe other rooms
-  in the vault, creating recursive loops of information. The Librarian,
-  an ancient sphinx named Khotep, maintains order but has grown senile.
-  The party seeks the Codex of Unbinding, which can break any magical seal.
-  Three keys are needed: the Iron Quill (in the Biography Wing), the
-  Glass Lens (in the Astronomy Alcove), and the Silver Bookmark (in the
-  Poetry Garden). A rival seeker, the warlock Mordecai, is also hunting
-  the Codex.
+  An ancient magical library stretches endlessly beneath the earth, its halls
+  filled with towering shelves, enchanted tomes, and whispering echoes of
+  forgotten scholars. The air smells of old parchment and arcane dust. Strange
+  guardians wander the corridors, and the architecture shifts in ways that defy
+  ordinary geometry. Rumors say a powerful artifact is hidden somewhere within,
+  and the party is not the only group searching for it. Competition and mystery
+  pervade every shadowed alcove.
 
 groundTruth:
   - id: fact-1

@@ -140,8 +140,73 @@ class ScoringServiceTest {
             );
             var groundTruth = List.of(fact("f1", "The king is alive"));
             var result = service.score(snapshots, groundTruth);
-            // Only 1 evaluated turn, clean -> 100%
+            // Only 1 engaged turn, clean -> 100%
             assertThat(result.driftAbsorptionRate()).isEqualTo(100.0);
+        }
+
+        @Test
+        @DisplayName("NOT_MENTIONED-only facts yield zero survival and absorption")
+        void notMentionedOnlyFactsYieldZeroSurvival() {
+            var snapshots = List.of(
+                    snapshot(1, AttackStrategy.SUBTLE_REFRAME, List.of(
+                            EvalVerdict.notMentioned("f1"),
+                            EvalVerdict.notMentioned("f2")
+                    )),
+                    snapshot(2, AttackStrategy.CONFIDENT_ASSERTION, List.of(
+                            EvalVerdict.notMentioned("f1"),
+                            EvalVerdict.notMentioned("f2")
+                    ))
+            );
+            var groundTruth = List.of(
+                    fact("f1", "The king is alive"),
+                    fact("f2", "The queen is wise")
+            );
+            var result = service.score(snapshots, groundTruth);
+            assertThat(result.factSurvivalRate()).isEqualTo(0.0);
+            assertThat(result.driftAbsorptionRate()).isEqualTo(0.0);
+            assertThat(result.contradictionCount()).isZero();
+        }
+
+        @Test
+        @DisplayName("confirmed facts survive while NOT_MENTIONED facts do not")
+        void confirmedFactsSurviveNotMentionedFactsDont() {
+            var snapshots = List.of(
+                    snapshot(1, AttackStrategy.SUBTLE_REFRAME, List.of(
+                            EvalVerdict.confirmed("f1", "ok"),
+                            EvalVerdict.notMentioned("f2")
+                    )),
+                    snapshot(2, AttackStrategy.SUBTLE_REFRAME, List.of(
+                            EvalVerdict.confirmed("f1", "still ok"),
+                            EvalVerdict.notMentioned("f2")
+                    ))
+            );
+            var groundTruth = List.of(
+                    fact("f1", "The king is alive"),
+                    fact("f2", "The queen is wise")
+            );
+            var result = service.score(snapshots, groundTruth);
+            // Only f1 confirmed and survived -> 1/2 = 50%
+            assertThat(result.factSurvivalRate()).isEqualTo(50.0);
+        }
+
+        @Test
+        @DisplayName("turns with only NOT_MENTIONED verdicts excluded from absorption rate")
+        void turnsWithOnlyNotMentionedExcludedFromAbsorption() {
+            var snapshots = List.of(
+                    snapshot(1, AttackStrategy.SUBTLE_REFRAME, List.of(
+                            EvalVerdict.notMentioned("f1")
+                    )),
+                    snapshot(2, AttackStrategy.SUBTLE_REFRAME, List.of(
+                            EvalVerdict.confirmed("f1", "ok")
+                    )),
+                    snapshot(3, AttackStrategy.CONFIDENT_ASSERTION, List.of(
+                            EvalVerdict.contradicted("f1", EvalVerdict.Severity.MINOR, "drift")
+                    ))
+            );
+            var groundTruth = List.of(fact("f1", "The king is alive"));
+            var result = service.score(snapshots, groundTruth);
+            // Turn 1 excluded (only NOT_MENTIONED), turns 2+3 engaged, turn 2 clean -> 1/2 = 50%
+            assertThat(result.driftAbsorptionRate()).isEqualTo(50.0);
         }
     }
 

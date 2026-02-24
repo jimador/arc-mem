@@ -177,7 +177,7 @@ public class SimulationTurnExecutor {
 
         // 5. Drift evaluation — only on adversarial turns with ground truth
         var verdicts = shouldEvaluate(turnType, groundTruth)
-                ? evaluateDrift(dmResponse, groundTruth)
+                ? evaluateDrift(dmResponse, groundTruth, playerMessage)
                 : List.<EvalVerdict> of();
 
         logger.info("Turn {} [{}]: player='{}', dm='{}', anchors={}, verdicts={}",
@@ -340,6 +340,7 @@ public class SimulationTurnExecutor {
         // Capture final values for use inside lambdas (effectively-final requirement)
         final var finalDmResponse = dmResponse;
         final var finalGroundTruth = groundTruth;
+        final var finalPlayerMessage = playerMessage;
 
         // 5. Fork Branch A (drift eval) and Branch B (extraction) concurrently.
         // AtomicReferences hold each branch's result; lambdas return Void so the
@@ -360,7 +361,7 @@ public class SimulationTurnExecutor {
             // Branch A: drift evaluation — only on turns that require it
             scope.fork(() -> {
                 if (shouldEvaluate(turnType, finalGroundTruth)) {
-                    verdictsRef.set(evaluateDrift(finalDmResponse, finalGroundTruth));
+                    verdictsRef.set(evaluateDrift(finalDmResponse, finalGroundTruth, finalPlayerMessage));
                 }
                 return null;
             });
@@ -774,14 +775,19 @@ public class SimulationTurnExecutor {
     @Observed(name = "simulation.drift_evaluation")
     List<EvalVerdict> evaluateDrift(
             String dmResponse,
-            List<SimulationScenario.GroundTruth> groundTruth) {
+            List<SimulationScenario.GroundTruth> groundTruth,
+            String playerMessage) {
         var serializedGroundTruth = groundTruth.stream()
                 .filter(fact -> fact.text() != null && !fact.text().isBlank())
                 .map(fact -> Map.of("id", fact.id(), "text", fact.text()))
                 .toList();
-        var userPrompt = PromptTemplates.render(PromptPathConstants.SIM_DRIFT_EVALUATION_USER, Map.of(
-                "ground_truth", serializedGroundTruth,
-                "dm_response", dmResponse != null ? dmResponse : ""));
+        var templateVars = new HashMap<String, Object>();
+        templateVars.put("ground_truth", serializedGroundTruth);
+        templateVars.put("dm_response", dmResponse != null ? dmResponse : "");
+        if (playerMessage != null && !playerMessage.isBlank()) {
+            templateVars.put("player_message", playerMessage);
+        }
+        var userPrompt = PromptTemplates.render(PromptPathConstants.SIM_DRIFT_EVALUATION_USER, templateVars);
 
         try {
             var evalResponse = chatModel.call(new Prompt(List.of(

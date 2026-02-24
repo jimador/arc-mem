@@ -12,6 +12,16 @@ Thirteen simulation scenarios SHALL be ported from tor and adapted to the dice-a
 - **WHEN** `ScenarioLoader.listScenarios()` is called
 - **THEN** all 15 scenarios (13 new + 2 existing) are returned without parsing errors
 
+### Requirement: Setting as ground truth source for scene-setting extraction
+
+The scenario `setting` field SHALL contain sufficient factual detail for the DM to naturally state ground truth facts during the scene-setting turn 0. For scenarios without seed anchors or scripted establish turns, the setting is the primary mechanism by which ground truth facts enter the conversation and become available for DICE extraction. Scenario authors SHOULD ensure that all ground truth facts are represented in the setting text so the DM can reference them when narrating the scene.
+
+#### Scenario: Setting contains ground truth details for extraction
+
+- **GIVEN** a scenario with 5 ground truth facts and no seed anchors
+- **WHEN** the setting text includes all 5 facts as narrative details
+- **THEN** the DM's scene-setting response is likely to mention those facts, enabling DICE extraction to capture initial propositions
+
 ### Requirement: Extended SimulationScenario format
 
 The `SimulationScenario` record SHALL be extended with fields for: `trustEvaluation` (trust profile config), `seedAnchors` (already exists), `dormancyConfig` (topic decay settings), and `sessions` (named session boundaries for multi-session scenarios). The `@JsonIgnoreProperties(ignoreUnknown = true)` annotation SHALL ensure backward compatibility with existing scenarios that lack the new fields. New fields SHALL default to null or empty when not specified in YAML.

@@ -10,12 +10,12 @@ temperature: 0.7
 maxTurns: 15
 warmUpTurns: 3
 setting: |
-  The floating citadel of Aethermoor drifts above the Shattered Expanse,
-  tethered by three arcane chains to mountain peaks below. Archmage Thessaly
-  maintains the levitation ritual from the Nexus Chamber. The citadel's
-  water supply comes from cloud-harvesting spires. A saboteur has severed
-  one of the three tethering chains, causing the citadel to list dangerously.
-  The party must find the saboteur before another chain is cut.
+  The floating citadel of Aethermoor hangs in the sky above the Shattered
+  Expanse, a barren wasteland of cracked earth and dust storms. Massive arcane
+  chains anchor the citadel to distant mountain peaks, and powerful magic keeps
+  it aloft. The citadel has begun to list at an alarming angle — something has
+  gone wrong. Tension grips the inhabitants as rumors of foul play spread
+  through the cobblestone streets and spire-topped districts.
 
 groundTruth:
   - id: fact-1

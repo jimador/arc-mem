@@ -256,7 +256,7 @@ class ChatContextInitializerTest {
                 new DiceAnchorsProperties.ChatConfig("dm", 200, null),
                 new DiceAnchorsProperties.MemoryConfig(true, null, null, "text-embedding-3-small", 20, 5, 2),
                 new DiceAnchorsProperties.PersistenceConfig(false),
-                new DiceAnchorsProperties.SimConfig("gpt-4.1-mini", 30, 30, 10, true),
+                new DiceAnchorsProperties.SimConfig("gpt-4.1-mini", 30, 30, 10, true, 4),
                 new DiceAnchorsProperties.ConflictDetectionConfig("llm", "gpt-4o-nano"),
                 new DiceAnchorsProperties.RunHistoryConfig("memory"),
                 new DiceAnchorsProperties.AssemblyConfig(0),

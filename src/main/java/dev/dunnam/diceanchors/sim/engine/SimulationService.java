@@ -32,8 +32,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -67,10 +68,8 @@ public class SimulationService {
     private final CanonizationGate canonizationGate;
     private final InvariantRuleProvider invariantRuleProvider;
 
-    private volatile boolean running = false;
-    private volatile boolean paused = false;
-    private final AtomicBoolean cancelRequested = new AtomicBoolean(false);
-    private volatile String currentContextId;
+    private final Set<SimulationRunContext> activeContexts = ConcurrentHashMap.newKeySet();
+    private volatile SimulationRunContext lastRunContext;
 
     public SimulationService(
             SimulationTurnExecutor turnExecutor,
@@ -115,12 +114,12 @@ public class SimulationService {
             Supplier<Integer> tokenBudgetSupplier,
             Consumer<SimulationProgress> onProgress) {
 
-        running = true;
-        paused = false;
-        cancelRequested.set(false);
         var runId = UUID.randomUUID().toString().substring(0, 8);
         var contextId = "sim-" + runId;
-        this.currentContextId = contextId;
+        var ctx = new SimulationRunContext(contextId, runId);
+        ctx.start();
+        activeContexts.add(ctx);
+        this.lastRunContext = ctx;
         var startedAt = Instant.now();
 
         try {
@@ -162,6 +161,59 @@ public class SimulationService {
             Map<String, Anchor> previousAnchorState = new HashMap<>();
             var dormancyState = new HashMap<String, Integer>();
 
+            // Phase: SCENE_SET — DM narrates the setting, extraction captures initial propositions.
+            // This mirrors a real campaign where the DM introduces the scene before players act.
+            if (scenario.setting() != null && !scenario.setting().isBlank()
+                && scenario.isExtractionEnabled()) {
+                var injectionEnabled = Boolean.TRUE.equals(injectionStateSupplier.get());
+                var configuredBudget = properties.assembly().promptTokenBudget();
+                var overrideBudget = tokenBudgetSupplier.get();
+                var tokenBudget = overrideBudget != null ? Math.max(0, overrideBudget) : configuredBudget;
+
+                onProgress.accept(progress(
+                        SimulationProgress.SimulationPhase.SETUP, null, 0, maxTurns,
+                        "DM narrating scene — initial proposition extraction...", List.of(),
+                        injectionEnabled, null));
+
+                var sceneResult = turnExecutor.executeTurnFull(
+                        contextId, 0, "Set the scene for us. Describe what we see and what we know.",
+                        TurnType.ESTABLISH, List.of(),
+                        scenario.setting(), injectionEnabled, tokenBudget, scenario.groundTruth(),
+                        conversationHistory, previousAnchorState,
+                        compactedContextProvider, scenario.compactionConfig(),
+                        true, // extraction always enabled for scene-setting
+                        scenario.dormancyConfig(),
+                        dormancyState);
+
+                var sceneTurn = sceneResult.turn();
+                var scenePlayerMessage = "Set the scene for us. Describe what we see and what we know.";
+                conversationHistory.add(SimulationTurnExecutor.formatConversationLine(
+                        "Player", scenePlayerMessage));
+                conversationHistory.add(SimulationTurnExecutor.formatConversationLine(
+                        "DM", sceneTurn.dmResponse()));
+                previousAnchorState = new HashMap<>(sceneResult.currentAnchorState());
+
+                // Deliver turn 0 to UI so the conversation panel shows the DM's narration
+                var sceneAnchors = currentAnchors(contextId);
+                var sceneAnchorEvents = sceneTurn.anchorEvents() != null
+                        ? sceneTurn.anchorEvents() : List.<SimulationTurn.AnchorEvent> of();
+                onProgress.accept(new SimulationProgress(
+                        SimulationProgress.SimulationPhase.ESTABLISH, TurnType.ESTABLISH,
+                        List.of(), 0, maxTurns,
+                        scenePlayerMessage, sceneTurn.dmResponse(),
+                        sceneAnchors, sceneTurn.contextTrace(),
+                        List.of(), false,
+                        "Turn 0/%d — Scene setting".formatted(maxTurns),
+                        injectionEnabled, null, sceneResult.compactionResult(),
+                        sceneAnchorEvents, null, 0L, null, null, null));
+
+                logger.info("Scene-setting turn 0: dm='{}', anchors after={}",
+                        sceneTurn.dmResponse().length() > 80
+                                ? sceneTurn.dmResponse().substring(0, 80) + "..."
+                                : sceneTurn.dmResponse(),
+                        sceneResult.currentAnchorState().size());
+            }
+
             // Task 4.1: Per-run adaptive adversary state
             var attackHistory = new AttackHistory();
             var isAdaptive = "adaptive".equals(scenario.effectiveAdversaryMode());
@@ -173,9 +225,9 @@ public class SimulationService {
                     : null;
 
             // Main simulation loop: process up to maxTurns, respecting pause/cancel requests
-            for (int i = 0; i < maxTurns && !cancelRequested.get(); i++) {
-                awaitResumeOrCancel();
-                if (cancelRequested.get()) {
+            for (int i = 0; i < maxTurns && !ctx.isCancelRequested(); i++) {
+                awaitResumeOrCancel(ctx);
+                if (ctx.isCancelRequested()) {
                     break;
                 }
 
@@ -244,7 +296,7 @@ public class SimulationService {
                         playerMessage, null,
                         List.of(), null, List.of(), false,
                         "Turn %d/%d — thinking...".formatted(turnNumber, maxTurns),
-                        injectionEnabled, null, null, List.of(), null, 0L, null, null));
+                        injectionEnabled, null, null, List.of(), null, 0L, null, null, null));
 
                 // Execute the turn with state diffing, optional compaction, and optional extraction
                 long turnStart = System.currentTimeMillis();
@@ -293,7 +345,7 @@ public class SimulationService {
                         "Turn %d/%d — %s".formatted(turnNumber, maxTurns, turnType.name()),
                         injectionEnabled, null, result.compactionResult(), anchorEvents, null, turnDurationMs,
                         activeRules.isEmpty() ? null : activeRules,
-                        null));
+                        null, null));
 
                 turnSnapshots.add(new SimulationRunRecord.TurnSnapshot(
                         turnNumber, turnType, attackStrategies,
@@ -329,15 +381,15 @@ public class SimulationService {
             logger.info("Saved run record {} for scenario '{}'", runId, scenario.id());
 
             // Final progress update
-            var finalPhase = cancelRequested.get()
+            var finalPhase = ctx.isCancelRequested()
                     ? SimulationProgress.SimulationPhase.CANCELLED
                     : SimulationProgress.SimulationPhase.COMPLETE;
             onProgress.accept(new SimulationProgress(
                     finalPhase, null, List.of(), maxTurns, maxTurns,
                     null, null, currentAnchors(contextId), null, List.of(),
                     true,
-                    cancelRequested.get() ? "Simulation cancelled." : "Simulation complete.",
-                    Boolean.TRUE.equals(injectionStateSupplier.get()), assertionResults, null, List.of(), scoringResult, 0L, null, null));
+                    ctx.isCancelRequested() ? "Simulation cancelled." : "Simulation complete.",
+                    Boolean.TRUE.equals(injectionStateSupplier.get()), assertionResults, null, List.of(), scoringResult, 0L, null, null, runId));
 
         } catch (Exception e) {
             logger.error("Simulation failed for context {}: {}", contextId, e.getMessage(), e);
@@ -345,7 +397,8 @@ public class SimulationService {
                     SimulationProgress.SimulationPhase.COMPLETE, null, 0, maxTurns,
                     "Simulation failed: " + e.getMessage(), List.of(), false, null));
         } finally {
-            running = false;
+            ctx.complete();
+            activeContexts.remove(ctx);
             try {
                 canonizationGate.markContextRequestsStale(contextId);
                 invariantRuleProvider.deregisterForContext(contextId);
@@ -360,32 +413,35 @@ public class SimulationService {
 
     /**
      * Pause execution. Takes effect at the next turn boundary.
+     * Delegates to the most recent run context (backward compat for single-run UI).
      */
     public void pause() {
-        paused = true;
+        if (lastRunContext != null) lastRunContext.pause();
     }
 
     /**
      * Resume a paused simulation.
+     * Delegates to the most recent run context (backward compat for single-run UI).
      */
     public void resume() {
-        paused = false;
+        if (lastRunContext != null) lastRunContext.resume();
     }
 
     /**
-     * Request cancellation. Takes effect at the next turn boundary.
+     * Request cancellation of all active simulation runs. Takes effect at the next turn boundary.
      */
     public void cancel() {
-        cancelRequested.set(true);
-        paused = false;
+        for (var ctx : activeContexts) {
+            ctx.cancel();
+        }
     }
 
     public boolean isRunning() {
-        return running;
+        return lastRunContext != null && lastRunContext.isRunning();
     }
 
     public boolean isPaused() {
-        return paused;
+        return lastRunContext != null && lastRunContext.isPaused();
     }
 
     /**
@@ -393,7 +449,7 @@ public class SimulationService {
      * May be null if no simulation has been started.
      */
     public String getCurrentContextId() {
-        return currentContextId;
+        return lastRunContext != null ? lastRunContext.contextId() : null;
     }
 
     public RunHistoryStore getRunStore() {
@@ -419,13 +475,13 @@ public class SimulationService {
         logger.debug("Seeded anchor '{}' (rank={}, authority={})", seed.text(), seed.rank(), seed.authority());
     }
 
-    private void awaitResumeOrCancel() {
-        while (paused && !cancelRequested.get()) {
+    private void awaitResumeOrCancel(SimulationRunContext ctx) {
+        while (ctx.isPaused() && !ctx.isCancelRequested()) {
             try {
                 Thread.sleep(200);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                cancelRequested.set(true);
+                ctx.cancel();
             }
         }
     }
@@ -532,7 +588,7 @@ public class SimulationService {
         return new SimulationProgress(
                 phase, turnType, List.of(), turn, total, null, null, anchors, null, List.of(),
                 phase == SimulationProgress.SimulationPhase.COMPLETE, status,
-                injectionState, assertionResults, null, List.of(), null, 0L, null, null);
+                injectionState, assertionResults, null, List.of(), null, 0L, null, null, null);
     }
 
     private static String computeVerdictSeverity(SimulationTurn turn) {

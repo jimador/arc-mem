@@ -80,7 +80,8 @@ public record DiceAnchorsProperties(
             @DefaultValue("30") int adversaryBudget,
             @DefaultValue("30") int llmCallTimeoutSeconds,
             @DefaultValue("10") int batchMaxSize,
-            @DefaultValue("true") boolean parallelPostResponse
+            @DefaultValue("true") boolean parallelPostResponse,
+            @DefaultValue("4") int benchmarkParallelism
     ) {}
 
     public record ConflictDetectionConfig(

@@ -169,7 +169,8 @@ class LlmCallServiceTest {
                 30,
                 timeoutSeconds,
                 10,
-                true);
+                true,
+                4);
         return new DiceAnchorsProperties(
                 new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200, null, null, null),
                 new DiceAnchorsProperties.ChatConfig("dm", 200, null),

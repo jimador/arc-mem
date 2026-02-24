@@ -112,7 +112,7 @@ class InvariantOtelTest {
                 new dev.dunnam.diceanchors.DiceAnchorsProperties.ChatConfig("dm", 200, null),
                 new dev.dunnam.diceanchors.DiceAnchorsProperties.MemoryConfig(true, null, null, "text-embedding-3-small", 20, 5, 2),
                 new dev.dunnam.diceanchors.DiceAnchorsProperties.PersistenceConfig(false),
-                new dev.dunnam.diceanchors.DiceAnchorsProperties.SimConfig("gpt-4.1-mini", 30, 30, 10, true),
+                new dev.dunnam.diceanchors.DiceAnchorsProperties.SimConfig("gpt-4.1-mini", 30, 30, 10, true, 4),
                 new dev.dunnam.diceanchors.DiceAnchorsProperties.ConflictDetectionConfig("llm", "gpt-4o-nano"),
                 new dev.dunnam.diceanchors.DiceAnchorsProperties.RunHistoryConfig("memory"),
                 new dev.dunnam.diceanchors.DiceAnchorsProperties.AssemblyConfig(0),

@@ -1,5 +1,8 @@
 Ground truth facts:
 {% for fact in ground_truth %}- {{ fact.id }}: {{ fact.text }}
 {% endfor %}
-DM's response:
+{% if player_message is defined and player_message %}Player message:
+{{ player_message }}
+
+{% endif %}DM's response:
 {{ dm_response }}

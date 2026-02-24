@@ -21,13 +21,12 @@ dormancyConfig:
   revivalThreshold: 0.3
   dormancyTurns: 5
 setting: |
-  The surface village of Dawnhollow sits at the edge of the Gloomfen Swamp.
-  A plague of shadow blight is killing crops and livestock. The source is a
-  corrupted ley line nexus deep in the swamp, where a dead sorcerer named
-  Vexaris anchored his phylactery. The village elder, Marta Thorngage, knows
-  the old paths through the swamp. A pack of displacer beasts has moved into
-  the swamp recently, drawn by the dark energy. The only cure for shadow
-  blight is moonpetal, a rare flower that grows near uncorrupted ley lines.
+  The small farming village of Dawnhollow clings to the edge of the vast and
+  treacherous Gloomfen Swamp. A creeping darkness has settled over the region,
+  withering the land and unsettling the locals. The swamp is ancient, tangled,
+  and full of dangers both natural and unnatural. Villagers speak in hushed
+  tones about what lurks in the deeper reaches. The community is desperate for
+  answers and aid, and an air of dread hangs over every conversation.
 
 groundTruth:
   - id: fact-1

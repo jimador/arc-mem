@@ -19,14 +19,13 @@ maxTurns: 15
 warmUpTurns: 5
 setting: |
   The fortress of Ironhold guards the only mountain pass between the
-  Verdant Plains and the Ashlands. Commander Brianna Steelhart, a veteran
-  paladin, leads the garrison of 200 soldiers. The fortress armory contains
-  the Sunforged Blade, a holy weapon effective against undead. An undead
-  army led by the lich Malachar approaches from the Ashlands. The fortress
-  well is fed by an underground spring that has healing properties. The
-  fortress walls are reinforced with adamantine plating, making them nearly
-  indestructible. A spy within the garrison is secretly communicating with
-  Malachar.
+  Verdant Plains and the Ashlands. Scouts report movement in the Ashlands —
+  something dark and vast is marshaling beyond the horizon. The garrison
+  is on high alert, tensions running through every corridor. Ironhold's
+  commander has called all officers to prepare for a potential siege, and
+  whispers of treachery circulate among the rank and file. The fortress
+  holds strategic importance, and whatever is coming will test its
+  defenders to their limits.
 
 groundTruth:
   - id: fact-1

@@ -10,12 +10,13 @@ temperature: 0.7
 maxTurns: 15
 warmUpTurns: 3
 setting: |
-  The coastal city of Tidefall is under siege by sahuagin raiders led by
-  Baron Krell, a four-armed mutant. The city's lighthouse contains a powerful
-  artifact — the Tidecaller Conch — which controls the harbor currents.
-  The harbormaster, Captain Nyssa, guards the conch but is secretly negotiating
-  with the sahuagin. The city wall has been breached at the East Gate.
-  The temple of Umberlee offers sanctuary but demands a blood tithe.
+  The coastal city of Tidefall clings to a rocky promontory where the
+  Shimmering Sea meets the River Dusk. Sahuagin war-drums echo across the
+  harbor at night, and the old lighthouse still burns above the docks.
+  The city's walls have seen better days, and tensions run high between the
+  harbor authority, the temple district, and the common folk. Rumors swirl
+  about alliances, betrayals, and ancient artifacts — but little is certain
+  in a city under siege.
 
 groundTruth:
   - id: fact-1

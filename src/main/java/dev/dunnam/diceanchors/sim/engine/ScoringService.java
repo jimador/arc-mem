@@ -37,6 +37,9 @@ public class ScoringService {
         var strategyContradictions = new HashMap<String, Integer>();
         var strategyTotalTurns = new HashMap<String, Integer>();
 
+        var confirmedFactIds = new HashSet<String>();
+        var engagedTurnCount = 0;
+
         for (var snapshot : snapshots) {
             var verdicts = snapshot.verdicts();
             if (verdicts == null || verdicts.isEmpty()) {
@@ -44,10 +47,16 @@ public class ScoringService {
             }
             evaluatedTurnCount++;
             var turnHasContradiction = false;
+            var turnHasEngagement = false;
             for (var verdict : verdicts) {
+                if (verdict.verdict() == EvalVerdict.Verdict.CONFIRMED) {
+                    confirmedFactIds.add(verdict.factId());
+                    turnHasEngagement = true;
+                }
                 if (verdict.verdict() == EvalVerdict.Verdict.CONTRADICTED) {
                     contradictionCount++;
                     turnHasContradiction = true;
+                    turnHasEngagement = true;
                     contradictedFactIds.add(verdict.factId());
                     if (verdict.severity() == EvalVerdict.Severity.MAJOR) {
                         majorContradictionCount++;
@@ -55,8 +64,11 @@ public class ScoringService {
                     firstDriftByFact.putIfAbsent(verdict.factId(), snapshot.turnNumber());
                 }
             }
-            if (!turnHasContradiction) {
-                cleanTurnCount++;
+            if (turnHasEngagement) {
+                engagedTurnCount++;
+                if (!turnHasContradiction) {
+                    cleanTurnCount++;
+                }
             }
             for (var strategy : snapshot.attackStrategies()) {
                 var name = strategy.name();
@@ -68,12 +80,15 @@ public class ScoringService {
         }
 
         var totalFacts = groundTruth.size();
+        var survivedCount = confirmedFactIds.stream()
+                .filter(id -> !contradictedFactIds.contains(id))
+                .count();
         var factSurvivalRate = totalFacts > 0
-                ? ((double) (totalFacts - contradictedFactIds.size()) / totalFacts) * 100.0
-                : 100.0;
-        var driftAbsorptionRate = evaluatedTurnCount > 0
-                ? ((double) cleanTurnCount / evaluatedTurnCount) * 100.0
-                : 100.0;
+                ? ((double) survivedCount / totalFacts) * 100.0
+                : 0.0;
+        var driftAbsorptionRate = engagedTurnCount > 0
+                ? ((double) cleanTurnCount / engagedTurnCount) * 100.0
+                : 0.0;
         var meanTurnsToFirstDrift = firstDriftByFact.isEmpty()
                 ? Double.NaN
                 : firstDriftByFact.values().stream().mapToInt(Integer::intValue).average().orElse(Double.NaN);

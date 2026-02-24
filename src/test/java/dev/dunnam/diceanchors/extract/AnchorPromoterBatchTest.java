@@ -58,7 +58,7 @@ class AnchorPromoterBatchTest {
         var anchorConfig = new DiceAnchorsProperties.AnchorConfig(
                 20, INITIAL_RANK, 100, 900, true, THRESHOLD, "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200, null, null, null);
         var simConfig = new DiceAnchorsProperties.SimConfig(
-                "gpt-4.1-mini", 30, 30, BATCH_MAX_SIZE, true);
+                "gpt-4.1-mini", 30, 30, BATCH_MAX_SIZE, true, 4);
         var properties = new DiceAnchorsProperties(
                 anchorConfig, null, null, null, simConfig, null, null,
                 new DiceAnchorsProperties.AssemblyConfig(0), null, null);
