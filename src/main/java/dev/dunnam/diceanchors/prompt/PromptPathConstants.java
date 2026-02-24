@@ -11,8 +11,6 @@ public final class PromptPathConstants {
     private PromptPathConstants() {
     }
 
-    // --- Top-level anchor/proposition templates ---
-
     public static final String ANCHORS_REFERENCE =
             "prompts/anchors-reference.jinja";
 
@@ -27,8 +25,6 @@ public final class PromptPathConstants {
 
     public static final String RELEVANCE_SCORING =
             "prompts/relevance-scoring.jinja";
-
-    // --- DICE extraction/dedup/conflict templates ---
 
     public static final String DICE_BATCH_CONFLICT_DETECTION =
             "prompts/dice/batch-conflict-detection.jinja";
@@ -47,8 +43,6 @@ public final class PromptPathConstants {
 
     public static final String DICE_DUPLICATE_USER =
             "prompts/dice/duplicate-user.jinja";
-
-    // --- Simulation templates ---
 
     public static final String SIM_SYSTEM =
             "prompts/sim/system.jinja";

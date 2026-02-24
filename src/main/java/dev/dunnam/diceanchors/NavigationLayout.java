@@ -57,9 +57,6 @@ public class NavigationLayout extends AppLayout {
             .set("font-weight", "600")
             .set("padding", "4px 8px")
             .set("border-radius", "var(--lumo-border-radius-s)");
-        link.getElement().addEventListener("mouseenter",
-                                           e -> {
-                                           }).addEventData("element.style.color");
         return link;
     }
 

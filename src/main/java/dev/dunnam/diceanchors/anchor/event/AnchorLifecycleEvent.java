@@ -57,8 +57,6 @@ public abstract sealed class AnchorLifecycleEvent extends ApplicationEvent
     public String getContextId() { return contextId; }
     public Instant getOccurredAt() { return occurredAt; }
 
-    // ── Static factories ───────────────────────────────────────────────────────
-
     public static Promoted promoted(Object source, String contextId,
                                     String propositionId, String anchorId, int initialRank) {
         return new Promoted(source, contextId, propositionId, anchorId, initialRank);
@@ -137,7 +135,6 @@ public abstract sealed class AnchorLifecycleEvent extends ApplicationEvent
                 violation.constraintDescription(), violation.anchorId());
     }
 
-    // ── Concrete subtypes ──────────────────────────────────────────────────────
 
     /** Published when a proposition is promoted to anchor status. */
     public static final class Promoted extends AnchorLifecycleEvent {

@@ -10,9 +10,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Utility for loading and rendering classpath prompt templates.
- */
 public final class PromptTemplates {
 
     private static final Logger logger = LoggerFactory.getLogger(PromptTemplates.class);
