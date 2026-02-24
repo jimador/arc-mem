@@ -20,6 +20,7 @@ import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.RouterLink;
 import dev.dunnam.diceanchors.anchor.AnchorEngine;
 import dev.dunnam.diceanchors.persistence.AnchorRepository;
 import dev.dunnam.diceanchors.sim.benchmark.BenchmarkReport;
@@ -141,7 +142,10 @@ public class SimulationView extends VerticalLayout {
         themeToggleButton = new Button("\u2600 LIGHT");
         themeToggleButton.addClickListener(e -> toggleTheme());
 
-        var headerRow = new HorizontalLayout(title, themeToggleButton);
+        var benchmarkLink = new RouterLink("Benchmark", BenchmarkView.class);
+        benchmarkLink.addClassName("ar-nav-link");
+
+        var headerRow = new HorizontalLayout(title, themeToggleButton, benchmarkLink);
         headerRow.setWidthFull();
         headerRow.setAlignItems(HorizontalLayout.Alignment.CENTER);
         headerRow.setJustifyContentMode(HorizontalLayout.JustifyContentMode.BETWEEN);

@@ -16,6 +16,8 @@ import dev.dunnam.diceanchors.sim.benchmark.BenchmarkStatistics;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import static dev.dunnam.diceanchors.sim.views.BenchmarkRenderUtils.METRIC_LABELS;
+
 /**
  * Panel displaying aggregated benchmark statistics across multiple simulation runs.
  * <p>
@@ -27,26 +29,6 @@ import java.util.function.Consumer;
  * {@link dev.dunnam.diceanchors.sim.benchmark.BenchmarkRunner} callbacks.
  */
 public class BenchmarkPanel extends VerticalLayout {
-
-    // Human-readable labels for metric keys
-    private static final Map<String, String> METRIC_LABELS = Map.of(
-            "factSurvivalRate", "Survival Rate",
-            "contradictionCount", "Contradictions",
-            "majorContradictionCount", "Major Contradictions",
-            "driftAbsorptionRate", "Absorption Rate",
-            "anchorAttributionCount", "Attribution",
-            "meanTurnsToFirstDrift", "Mean First Drift"
-    );
-
-    // Metrics where higher is better (for health coloring and delta badges)
-    private static final Map<String, Boolean> HIGHER_IS_BETTER = Map.of(
-            "factSurvivalRate", true,
-            "contradictionCount", false,
-            "majorContradictionCount", false,
-            "driftAbsorptionRate", true,
-            "anchorAttributionCount", true,
-            "meanTurnsToFirstDrift", true
-    );
 
     // Controls
     private final IntegerField runCountField;
@@ -166,9 +148,9 @@ public class BenchmarkPanel extends VerticalLayout {
             var metricName = entry.getKey();
             var stats = entry.getValue();
             var label = METRIC_LABELS.getOrDefault(metricName, metricName);
-            var health = determineHealth(metricName, stats);
+            var health = BenchmarkRenderUtils.determineHealth(metricName, stats);
             var delta = report.baselineDeltas() != null ? report.baselineDeltas().get(metricName) : null;
-            metricsGrid.add(benchmarkMetricCard(label, stats, health, delta, metricName));
+            metricsGrid.add(BenchmarkRenderUtils.metricCard(label, stats, health, delta, metricName));
         }
 
         // Strategy effectiveness bars with confidence bounds
@@ -242,80 +224,6 @@ public class BenchmarkPanel extends VerticalLayout {
     // -------------------------------------------------------------------------
 
     /**
-     * Build a metric card showing mean +/- stddev, median, p95, sample count,
-     * optional high-variance warning, and optional baseline delta badge.
-     */
-    private Div benchmarkMetricCard(String label, BenchmarkStatistics stats,
-                                     String health, Double delta, String metricName) {
-        var card = new Div();
-        card.addClassName("ar-metric-card");
-        card.addClassName("ar-bench-metric-card");
-        card.getElement().setAttribute("data-health", health);
-
-        // Mean +/- stddev
-        var meanText = Double.isNaN(stats.mean()) ? "N/A" : "%.1f".formatted(stats.mean());
-        var stddevText = Double.isNaN(stats.stddev()) ? "" : " \u00B1 %.1f".formatted(stats.stddev());
-        var valueSpan = new Span(meanText + stddevText);
-        valueSpan.addClassName("ar-metric-value");
-        valueSpan.getElement().setAttribute("data-health", health);
-
-        // Label
-        var labelSpan = new Span(label);
-        labelSpan.addClassName("ar-metric-label");
-
-        // Median and P95
-        var medianText = Double.isNaN(stats.median()) ? "N/A" : "%.1f".formatted(stats.median());
-        var p95Text = Double.isNaN(stats.p95()) ? "N/A" : "%.1f".formatted(stats.p95());
-        var detailSpan = new Span("median: %s | p95: %s".formatted(medianText, p95Text));
-        detailSpan.addClassName("ar-bench-metric-detail");
-
-        // Sample count
-        var sampleSpan = new Span("n=%d".formatted(stats.sampleCount()));
-        sampleSpan.addClassName("ar-bench-sample-count");
-
-        card.add(valueSpan, labelSpan, detailSpan, sampleSpan);
-
-        // High-variance warning
-        if (stats.isHighVariance()) {
-            var warningBadge = new Span("HIGH VARIANCE");
-            warningBadge.addClassName("ar-bench-warning-badge");
-            card.add(warningBadge);
-        }
-
-        // Baseline delta badge
-        if (delta != null) {
-            var higherBetter = HIGHER_IS_BETTER.getOrDefault(metricName, true);
-            card.add(baselineDeltaBadge(delta, higherBetter));
-        }
-
-        return card;
-    }
-
-    /**
-     * Render baseline comparison badge: IMPROVED, REGRESSED, or UNCHANGED.
-     */
-    private Span baselineDeltaBadge(double delta, boolean higherIsBetter) {
-        String text;
-        String badgeType;
-
-        if (Math.abs(delta) < 0.01) {
-            text = "UNCHANGED";
-            badgeType = "neutral";
-        } else {
-            var improved = higherIsBetter ? delta > 0 : delta < 0;
-            text = improved
-                    ? "IMPROVED %+.1f".formatted(delta)
-                    : "REGRESSED %+.1f".formatted(delta);
-            badgeType = improved ? "good" : "bad";
-        }
-
-        var badge = new Span(text);
-        badge.addClassName("ar-bench-delta-badge");
-        badge.getElement().setAttribute("data-health", badgeType);
-        return badge;
-    }
-
-    /**
      * Render per-strategy effectiveness bars with confidence bounds (mean +/- 1 stddev).
      */
     private void renderStrategyBreakdown(Map<String, BenchmarkStatistics> strategyStats) {
@@ -326,40 +234,7 @@ public class BenchmarkPanel extends VerticalLayout {
         for (var entry : strategyStats.entrySet()) {
             var strategy = entry.getKey();
             var stats = entry.getValue();
-            var meanPct = stats.mean() * 100.0;
-            var stddevPct = stats.stddev() * 100.0;
-            var health = meanPct == 0 ? "good" : meanPct <= 30 ? "warn" : "bad";
-
-            var row = new HorizontalLayout();
-            row.setWidthFull();
-            row.setSpacing(true);
-            row.setAlignItems(HorizontalLayout.Alignment.CENTER);
-
-            var nameSpan = new Span(strategy);
-            nameSpan.addClassName("ar-strategy-name");
-
-            var barOuter = new Div();
-            barOuter.addClassName("ar-bar-outer");
-
-            // Main bar at mean
-            var barInner = new Div();
-            barInner.addClassName("ar-bar-inner");
-            barInner.getElement().setAttribute("data-health", health);
-            barInner.getElement().setAttribute("style", "width: %.0f%%".formatted(Math.min(100, meanPct)));
-            barOuter.add(barInner);
-
-            // Confidence range indicator (mean +/- 1 stddev)
-            var lowerBound = Math.max(0, meanPct - stddevPct);
-            var upperBound = Math.min(100, meanPct + stddevPct);
-            var confidenceSpan = new Span("[%.0f%% - %.0f%%]".formatted(lowerBound, upperBound));
-            confidenceSpan.addClassName("ar-bench-confidence");
-
-            var rateSpan = new Span("%.0f%% \u00B1 %.0f%%".formatted(meanPct, stddevPct));
-            rateSpan.addClassName("ar-strategy-rate");
-            rateSpan.getElement().setAttribute("data-health", health);
-
-            row.add(nameSpan, barOuter, rateSpan, confidenceSpan);
-            strategySection.add(row);
+            strategySection.add(BenchmarkRenderUtils.strategyBar(strategy, stats));
 
             // High-variance warning for strategy
             if (stats.isHighVariance()) {
@@ -368,23 +243,5 @@ public class BenchmarkPanel extends VerticalLayout {
                 strategySection.add(warningSpan);
             }
         }
-    }
-
-    /**
-     * Determine health coloring for a metric based on its mean value.
-     */
-    private String determineHealth(String metricName, BenchmarkStatistics stats) {
-        if (Double.isNaN(stats.mean())) {
-            return "good";
-        }
-        return switch (metricName) {
-            case "factSurvivalRate" -> stats.mean() >= 80 ? "good" : stats.mean() >= 50 ? "warn" : "bad";
-            case "contradictionCount" -> stats.mean() == 0 ? "good" : stats.mean() <= 2 ? "warn" : "bad";
-            case "majorContradictionCount" -> stats.mean() == 0 ? "good" : "bad";
-            case "driftAbsorptionRate" -> stats.mean() >= 80 ? "good" : stats.mean() >= 50 ? "warn" : "bad";
-            case "anchorAttributionCount" -> stats.mean() > 0 ? "good" : "warn";
-            case "meanTurnsToFirstDrift" -> "warn";
-            default -> "good";
-        };
     }
 }

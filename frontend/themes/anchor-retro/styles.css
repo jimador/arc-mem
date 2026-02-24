@@ -1715,4 +1715,209 @@ html[theme~="light"] {
     --lumo-tint-40pct: rgba(26, 26, 46, 0.20);
     --lumo-tint-50pct: rgba(26, 26, 46, 0.30);
     --lumo-tint: var(--anchor-text);
+
+    /* Light mode: effect-size label overrides */
+    .ar-effect-size-label[data-magnitude="small"] { color: #c65100; }
+    .ar-effect-size-label[data-magnitude="medium"] { color: #0097a7; }
+    .ar-effect-size-label[data-magnitude="large"] { color: #c62828; }
+
+    /* Light mode: heatmap cell overrides */
+    .ar-heatmap-cell[data-health="good"] { background: rgba(76, 175, 80, 0.1); }
+    .ar-heatmap-cell[data-health="warn"] { background: rgba(255, 152, 0, 0.1); }
+    .ar-heatmap-cell[data-health="bad"] { background: rgba(244, 67, 54, 0.1); }
+}
+
+/* ─── Benchmark View ─── */
+
+.ar-condition-column {
+    min-width: 220px;
+    flex: 1;
+}
+
+.ar-delta-column {
+    min-width: 140px;
+    max-width: 180px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    justify-content: center;
+    padding: 0 8px;
+}
+
+.ar-effect-size {
+    font-size: 0.75rem;
+    color: var(--anchor-text-secondary);
+    font-family: var(--lumo-font-family);
+}
+
+.ar-effect-size-label {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.ar-effect-size-label[data-magnitude="negligible"] {
+    background: rgba(144, 144, 160, 0.2);
+    color: #9090a0;
+}
+
+.ar-effect-size-label[data-magnitude="small"] {
+    background: rgba(255, 176, 32, 0.15);
+    color: #ffb020;
+}
+
+.ar-effect-size-label[data-magnitude="medium"] {
+    background: rgba(0, 212, 255, 0.15);
+    color: #00d4ff;
+}
+
+.ar-effect-size-label[data-magnitude="large"] {
+    background: rgba(255, 48, 128, 0.15);
+    color: #ff3080;
+}
+
+/* Heatmap */
+.ar-heatmap-grid {
+    display: grid;
+    gap: 2px;
+    margin: 16px 0;
+}
+
+.ar-heatmap-cell {
+    padding: 8px;
+    text-align: center;
+    font-size: 0.85rem;
+    font-family: var(--lumo-font-family);
+    border-radius: 4px;
+    background: var(--anchor-surface);
+    border: 1px solid var(--anchor-border);
+    transition: background 0.2s;
+}
+
+.ar-heatmap-cell[data-health="good"] {
+    background: rgba(76, 175, 80, 0.15);
+    color: #4caf50;
+    border-color: rgba(76, 175, 80, 0.3);
+}
+
+.ar-heatmap-cell[data-health="warn"] {
+    background: rgba(255, 152, 0, 0.15);
+    color: #ff9800;
+    border-color: rgba(255, 152, 0, 0.3);
+}
+
+.ar-heatmap-cell[data-health="bad"] {
+    background: rgba(244, 67, 54, 0.15);
+    color: #f44336;
+    border-color: rgba(244, 67, 54, 0.3);
+}
+
+.ar-heatmap-header {
+    padding: 6px 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--anchor-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Experiment history */
+.ar-experiment-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--anchor-border);
+    border-radius: 6px;
+    background: var(--anchor-surface);
+    margin-bottom: 6px;
+    transition: border-color 0.2s;
+}
+
+.ar-experiment-row:hover {
+    border-color: var(--anchor-accent-cyan);
+}
+
+.ar-experiment-summary {
+    flex: 1;
+    font-size: 0.85rem;
+    color: var(--anchor-text-secondary);
+}
+
+.ar-experiment-name {
+    font-weight: 600;
+    color: var(--anchor-text);
+    font-size: 0.9rem;
+}
+
+.ar-experiment-date {
+    font-size: 0.75rem;
+    color: var(--anchor-text-secondary);
+}
+
+.ar-experiment-metric {
+    font-family: var(--lumo-font-family);
+    font-size: 0.85rem;
+}
+
+/* Cancelled experiment banner */
+.ar-cancelled-banner {
+    padding: 8px 16px;
+    background: rgba(255, 152, 0, 0.15);
+    border: 1px solid rgba(255, 152, 0, 0.3);
+    border-radius: 6px;
+    color: #ff9800;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+/* Category badge for scenario selection */
+.ar-category-badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: rgba(0, 212, 255, 0.15);
+    color: var(--anchor-accent-cyan);
+    margin-left: 6px;
+}
+
+/* Nav links in header */
+.ar-nav-link {
+    color: var(--anchor-accent-cyan);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-family: var(--lumo-font-family);
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.ar-nav-link:hover {
+    background: rgba(0, 212, 255, 0.1);
+}
+
+/* Drill-down Details accordion within ConditionComparisonPanel */
+.ar-drilldown-details {
+    border: 1px solid rgba(0, 212, 255, 0.12);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    background: rgba(0, 0, 0, 0.15);
+}
+
+.ar-drilldown-details [slot="summary"] {
+    padding: 0;
+}
+
+.ar-drilldown-content {
+    padding: 12px 8px;
+    border-top: 1px solid rgba(0, 212, 255, 0.08);
 }

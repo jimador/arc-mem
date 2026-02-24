@@ -30,6 +30,7 @@ import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.server.VaadinSession;
 import dev.dunnam.diceanchors.anchor.Anchor;
 import dev.dunnam.diceanchors.anchor.AnchorEngine;
@@ -114,6 +115,16 @@ public class ChatView extends VerticalLayout {
         var header = new H2("Bigby — Your D&D Dungeon Master");
         header.addClassName("ar-chat-header");
 
+        var benchmarkLink = new RouterLink("Benchmark", dev.dunnam.diceanchors.sim.views.BenchmarkView.class);
+        benchmarkLink.addClassName("ar-nav-link");
+        var simLink = new RouterLink("Simulator", dev.dunnam.diceanchors.sim.views.SimulationView.class);
+        simLink.addClassName("ar-nav-link");
+
+        var headerRow = new HorizontalLayout(header, simLink, benchmarkLink);
+        headerRow.setWidthFull();
+        headerRow.setAlignItems(HorizontalLayout.Alignment.CENTER);
+        headerRow.addClassName("ar-header-row");
+
         messagesLayout = new VerticalLayout();
         messagesLayout.setWidthFull();
         messagesLayout.setPadding(true);
@@ -138,7 +149,7 @@ public class ChatView extends VerticalLayout {
         splitLayout.setSizeFull();
         splitLayout.setSplitterPosition(70);
 
-        add(header, splitLayout);
+        add(headerRow, splitLayout);
         setFlexGrow(1, splitLayout);
         setPadding(false);
     }

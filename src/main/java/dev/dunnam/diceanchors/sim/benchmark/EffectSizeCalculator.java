@@ -81,7 +81,8 @@ public class EffectSizeCalculator {
 
                     var d = computeCohensD(meanA, sampleSdA, nA, meanB, sampleSdB, nB);
                     var interpretation = EffectSizeEntry.interpret(d);
-                    var lowConfidence = statsA.stream().anyMatch(BenchmarkStatistics::isHighVariance)
+                    var lowConfidence = nA < 10 || nB < 10
+                            || statsA.stream().anyMatch(BenchmarkStatistics::isHighVariance)
                             || statsB.stream().anyMatch(BenchmarkStatistics::isHighVariance);
 
                     metricEntries.put(metric, new EffectSizeEntry(d, interpretation, lowConfidence));
