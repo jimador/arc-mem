@@ -97,7 +97,6 @@ public class LlmConflictDetector implements ConflictDetector {
         try {
             var json = responseText.replaceAll("(?s)```[a-z]*\\s*", "").replaceAll("```", "").trim();
             var parsed = MAPPER.readValue(json, BatchConflictResult.class);
-            // Build anchor text -> anchor lookup
             var anchorByText = anchors.stream()
                     .collect(Collectors.toMap(Anchor::text, a -> a, (a, b) -> a));
             var result = new LinkedHashMap<String, List<Conflict>>();

@@ -138,7 +138,7 @@ public class CanonizationGate {
             return Optional.of(request);
         }
 
-        // Stale check: verify current authority still matches request's expected state
+        // Stale check: anchor authority may have changed since request was created
         var nodeOpt = repository.findPropositionNodeById(request.anchorId());
         if (nodeOpt.isEmpty()) {
             logger.warn("Cannot approve: anchor {} not found", request.anchorId());
@@ -155,7 +155,6 @@ public class CanonizationGate {
             return Optional.of(withStatus(request, CanonizationStatus.STALE, resolvedBy, note));
         }
 
-        // Execute the transition
         repository.setAuthority(request.anchorId(), request.requestedAuthority().name());
         var direction = request.requestedAuthority().level() > request.currentAuthority().level()
                 ? AuthorityChangeDirection.PROMOTED : AuthorityChangeDirection.DEMOTED;
@@ -214,9 +213,6 @@ public class CanonizationGate {
      * Returns all pending canonization requests across all contexts.
      */
     public List<CanonizationRequest> pendingRequests() {
-        // Query all pending requests (no context filter) — use empty string convention
-        // to signal "all contexts". We query each known context, but since we cannot
-        // enumerate contexts cheaply, we use a direct Cypher query instead.
         return findAllPendingRequests();
     }
 
@@ -241,13 +237,11 @@ public class CanonizationGate {
         repository.markContextRequestsStale(contextId);
     }
 
-    // ── Private helpers ────────────────────────────────────────────────────────
-
     private CanonizationRequest createRequest(String anchorId, String contextId,
                                               String anchorText, Authority currentAuthority,
                                               Authority requestedAuthority,
                                               String reason, String requestedBy) {
-        // Idempotency: return existing pending request for this anchor if one exists
+        // Idempotency: return existing pending request rather than creating a duplicate
         var existingOpt = repository.findPendingCanonizationRequest(anchorId, requestedAuthority.name());
         if (existingOpt.isPresent()) {
             var existing = toCanonizationRequest(existingOpt.get());
@@ -271,7 +265,7 @@ public class CanonizationGate {
         logger.info("Canonization request {} created: anchor {} {} -> {} (requestedBy={})",
                 request.id(), anchorId, currentAuthority, requestedAuthority, requestedBy);
 
-        // Simulation auto-approve: immediately approve for sim-* contexts
+        // Auto-approve for simulation contexts to enable automated testing
         if (config.autoApproveInSimulation() && contextId != null && contextId.startsWith("sim-")) {
             logger.debug("Auto-approving canonization request {} for simulation context {}", request.id(), contextId);
             return approve(request.id()).orElse(request);
@@ -281,9 +275,6 @@ public class CanonizationGate {
     }
 
     private Optional<CanonizationRequest> loadRequest(String requestId) {
-        // Look up the request by ID using a direct query via findPendingCanonizationRequest
-        // We need a by-ID lookup; use the repository's persistence manager indirectly
-        // by searching all pending requests. For efficiency we query by ID directly.
         return repository.findCanonizationRequestById(requestId).map(this::toCanonizationRequest);
     }
 

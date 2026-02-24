@@ -48,7 +48,7 @@ public class AuthorityConflictResolver implements ConflictResolver {
         var effectiveDemote = demoteThreshold + tierBias;
 
         var resolution = switch (existingAuthority) {
-            case CANON -> Resolution.KEEP_EXISTING; // unreachable, but needed for exhaustive switch
+            case CANON -> Resolution.KEEP_EXISTING;
             case RELIABLE -> {
                 if (confidence >= effectiveReplace) {
                     yield Resolution.REPLACE;
@@ -68,7 +68,6 @@ public class AuthorityConflictResolver implements ConflictResolver {
             case PROVISIONAL -> Resolution.REPLACE;
         };
 
-        // Task 4.2: OTEL span attributes for conflict resolution observability
         setSpanAttributes(existingAuthority, confidence, conflict.existing().memoryTier(), resolution);
 
         return resolution;

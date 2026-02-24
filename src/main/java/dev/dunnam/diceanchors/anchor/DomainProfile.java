@@ -58,7 +58,6 @@ public record DomainProfile(
     public static DomainProfile forTesting(String name, Map<String, Double> weights,
                                            double autoPromoteThreshold, double reviewThreshold,
                                            double archiveThreshold) {
-        // Normalize weights to sum to exactly 1.0 for testing convenience
         var sum = weights.values().stream().mapToDouble(Double::doubleValue).sum();
         if (sum == 0.0) {
             throw new IllegalArgumentException("forTesting: weights must not all be zero");

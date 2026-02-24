@@ -43,17 +43,6 @@ import java.util.Optional;
  *       {@link AnchorLifecycleEvent.AuthorityChanged} lifecycle events.</li>
  * </ul>
  *
- * <h2>Sections</h2>
- * <ul>
- *   <li><strong>Injection</strong>: {@link #inject} — assembles anchor list for context</li>
- *   <li><strong>Lifecycle</strong>: {@link #promote}, {@link #reinforce}, {@link #demote},
- *       {@link #archive}, {@link #applyDecay}</li>
- *   <li><strong>Trust</strong>: {@link #reEvaluateTrust}</li>
- *   <li><strong>Conflict</strong>: {@link #detectConflicts}, {@link #batchDetectConflicts},
- *       {@link #resolveConflict}</li>
- *   <li><strong>Query</strong>: {@link #activeCount}</li>
- * </ul>
- *
  * <p>If this class grows beyond ~400 lines or gains new responsibility categories,
  * decompose into focused services (AnchorLifecycleService, AnchorBudgetManager,
  * AnchorQueryService).
@@ -99,10 +88,6 @@ public class AnchorEngine {
         this.invariantEvaluator = invariantEvaluator;
     }
 
-    // ========================================================================
-    // Injection
-    // ========================================================================
-
     /**
      * Returns ranked active anchors for injection into the LLM context.
      * <p>
@@ -116,7 +101,7 @@ public class AnchorEngine {
      * <p>Events published: none.
      * <p>Error behavior: if the repository throws, the exception propagates to the caller.
      *
-     * @param contextId the conversation or session context
+     * @param contextId conversation or session context
      * @return up to {@code budget} active anchors, highest-rank first
      */
     public List<Anchor> inject(String contextId) {
@@ -126,10 +111,6 @@ public class AnchorEngine {
                     .map(this::toAnchor)
                     .toList();
     }
-
-    // ========================================================================
-    // Lifecycle
-    // ========================================================================
 
     /**
      * Promote a proposition to anchor status at PROVISIONAL authority.
@@ -189,7 +170,7 @@ public class AnchorEngine {
         if (proposition != null) {
             var contextId = proposition.getContextIdValue();
             publish(AnchorLifecycleEvent.promoted(this, contextId, propositionId, propositionId, rank));
-            // Invariant-aware eviction: check which anchors are invariant-protected
+            // Invariant-aware eviction: skip eviction for invariant-protected anchors
             var allAnchors = findByContext(contextId);
             var protectedIds = new java.util.HashSet<String>();
             for (var anchor : allAnchors) {
@@ -205,13 +186,11 @@ public class AnchorEngine {
             }
 
             if (protectedIds.isEmpty()) {
-                // Fast path: no invariant-protected anchors, use existing eviction
                 var evicted = repository.evictLowestRanked(contextId, config.budget());
                 for (var e : evicted) {
                     publish(AnchorLifecycleEvent.evicted(this, contextId, e.anchorId(), e.previousRank()));
                 }
             } else {
-                // Slow path: manual eviction skipping protected anchors
                 if (allAnchors.size() > config.budget()) {
                     int toEvict = allAnchors.size() - config.budget();
                     var evictable = allAnchors.stream()
@@ -266,9 +245,8 @@ public class AnchorEngine {
         var newTier = computeTier(newRank);
 
         if (reinforcementPolicy.shouldUpgradeAuthority(current)) {
-            // Task 5.2: re-evaluate trust before authority upgrade at milestone
+            // Re-evaluate trust before authority upgrade; re-read after potential demotion
             reEvaluateTrust(anchorId);
-            // Re-read node after potential trust demotion so upgrade uses fresh authority
             var postTrustNodeOpt = repository.findPropositionNodeById(anchorId);
             if (postTrustNodeOpt.isEmpty()) {
                 logger.warn("Anchor {} not found after trust re-evaluation; skipping authority upgrade", anchorId);
@@ -336,7 +314,7 @@ public class AnchorEngine {
         var current = currentAuthStr != null
                 ? Authority.valueOf(currentAuthStr) : Authority.PROVISIONAL;
 
-        // CANON gate: route through canonization gate if enabled
+        // CANON gate (invariant A3b): route through canonization gate if enabled
         if (current == Authority.CANON && config.canonizationGateEnabled()) {
             canonizationGate.requestDecanonization(
                     anchorId, node.getContextId(), node.getText(),
@@ -346,14 +324,13 @@ public class AnchorEngine {
             return;
         }
 
-        // PROVISIONAL floor: archive instead of demoting further
+        // PROVISIONAL is the floor: archive instead of demoting further
         if (current == Authority.PROVISIONAL) {
             archive(anchorId, ArchiveReason.CONFLICT_REPLACEMENT);
             logger.info("Demote of PROVISIONAL anchor {} resulted in archive (reason={})", anchorId, reason);
             return;
         }
 
-        // Invariant enforcement — evaluate before state change
         var targetAnchor = toAnchor(node);
         var allAnchors = findByContext(node.getContextId());
         var eval = evaluateInvariants(node.getContextId(), ProposedAction.DEMOTE, allAnchors, targetAnchor);
@@ -411,7 +388,6 @@ public class AnchorEngine {
         updateTierIfChanged(anchorId, previousTier, newTier, node.getContextId());
         logger.debug("Decayed anchor {} rank {} -> {}", anchorId, currentRank, clampedRank);
 
-        // Task 5.4: authority demotion when rank drops below authority threshold
         var anchor = toAnchor(node);
         if (decayPolicy.shouldDemoteAuthority(anchor, clampedRank)) {
             logger.info("Rank decay triggered authority demotion for anchor {} (rank={}, authority={})",
@@ -451,7 +427,6 @@ public class AnchorEngine {
         }
         var node = nodeOpt.get();
 
-        // Invariant enforcement — evaluate before state change
         var targetAnchor = toAnchor(node);
         var allAnchors = findByContext(node.getContextId());
         var eval = evaluateInvariants(node.getContextId(), ProposedAction.ARCHIVE, allAnchors, targetAnchor);
@@ -472,10 +447,6 @@ public class AnchorEngine {
         logger.info("Archived anchor {} with reason {}{}", anchorId, reason,
                 successorId != null ? " (successor=" + successorId + ")" : "");
     }
-
-    // ========================================================================
-    // Trust
-    // ========================================================================
 
     /**
      * Re-evaluate the trust score for an anchor and demote it if the new authority ceiling
@@ -527,10 +498,6 @@ public class AnchorEngine {
                     anchorId, ceiling, current);
         }
     }
-
-    // ========================================================================
-    // Conflict
-    // ========================================================================
 
     /**
      * Check incoming text for conflicts with existing active anchors in the context.
@@ -628,18 +595,14 @@ public class AnchorEngine {
                 ? node.getAuthority() : Authority.PROVISIONAL.name();
         var predecessorRank = node.getRank();
 
-        // Archive the predecessor with successor reference
         archive(predecessorId, reason, successorId);
 
-        // Create the supersession relationship and denormalized fields
         var supersessionReason = SupersessionReason.fromArchiveReason(reason);
         repository.createSupersessionLink(successorId, predecessorId, supersessionReason);
 
-        // Publish Superseded lifecycle event
         publish(AnchorLifecycleEvent.superseded(
                 this, node.getContextId(), predecessorId, successorId, supersessionReason));
 
-        // OTEL span attributes for supersession observability (D6)
         var span = Span.current();
         span.setAttribute("supersession.reason", supersessionReason.name());
         span.setAttribute("supersession.predecessor_id", predecessorId);
@@ -649,10 +612,6 @@ public class AnchorEngine {
 
         logger.info("Superseded anchor {} by {} (reason={})", predecessorId, successorId, supersessionReason);
     }
-
-    // ========================================================================
-    // Query
-    // ========================================================================
 
     /**
      * Return all active anchors for a context (no budget limit applied).
@@ -730,10 +689,6 @@ public class AnchorEngine {
         return repository.findSuccessor(anchorId);
     }
 
-    // ========================================================================
-    // Private helpers
-    // ========================================================================
-
     /**
      * Convert a {@link PropositionNode} to the {@link Anchor} view record.
      * Populates DICE fields ({@code diceImportance}, {@code diceDecay}) and memory tier from the node.
@@ -751,8 +706,8 @@ public class AnchorEngine {
                 node.getConfidence(),
                 node.getReinforcementCount(),
                 null,                   // trustScore: populated by TrustPipeline on demand
-                node.getImportance(),   // diceImportance from DICE proposition
-                node.getDecay(),        // diceDecay from DICE proposition (default 1.0 = standard rate)
+                node.getImportance(),
+                node.getDecay(),
                 tier
         );
     }

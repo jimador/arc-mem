@@ -45,14 +45,12 @@ public class TrustEvaluator {
      * @return the computed TrustScore with score, zone, ceiling, and audit
      */
     public TrustScore evaluate(PropositionNode proposition, String contextId) {
-        // Collect raw signal values
         Map<String, OptionalDouble> rawValues = new LinkedHashMap<>();
         for (var signal : signals) {
             var value = signal.evaluate(proposition, contextId);
             rawValues.put(signal.name(), value);
         }
 
-        // Separate present from absent signals
         Map<String, Double> presentValues = new HashMap<>();
         double absentWeight = 0.0;
         double presentWeight = 0.0;
@@ -69,7 +67,6 @@ public class TrustEvaluator {
             }
         }
 
-        // Compute weighted sum with redistribution
         double score = 0.0;
         Map<String, Double> signalAudit = new LinkedHashMap<>();
 
@@ -84,7 +81,6 @@ public class TrustEvaluator {
             }
         }
 
-        // Clamp score to [0.0, 1.0]
         score = Math.max(0.0, Math.min(1.0, score));
 
         var zone = routeToZone(score);

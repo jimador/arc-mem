@@ -66,7 +66,6 @@ public class CompositeConflictDetector implements ConflictDetector {
         var result = new LinkedHashMap<String, List<Conflict>>();
         var semanticBatch = new ArrayList<String>();
 
-        // Run lexical batch first (parallel)
         var lexicalResults = lexicalDetector.batchDetect(candidateTexts, anchors);
         for (var candidate : candidateTexts) {
             var lexicalConflicts = lexicalResults.getOrDefault(candidate, List.of());

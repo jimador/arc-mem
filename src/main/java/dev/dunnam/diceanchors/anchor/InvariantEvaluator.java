@@ -38,8 +38,6 @@ public class InvariantEvaluator {
         var violations = new ArrayList<InvariantViolationData>();
 
         for (var rule : rules) {
-            // Global rules (contextId==null) apply everywhere;
-            // context-specific rules only apply to their context
             if (rule.contextId() != null && !rule.contextId().equals(contextId)) {
                 continue;
             }

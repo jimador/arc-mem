@@ -5,7 +5,7 @@
  * Key fields: {@code rank} (clamped to [100, 900]), {@code authority} (PROVISIONAL → UNRELIABLE → RELIABLE → CANON),
  * {@code reinforcementCount}, {@code pinned} status, and optional {@code trustScore}.
  * Invariants: rank is clamped via {@link dev.dunnam.diceanchors.anchor.Anchor#clampRank(int)},
- * authority only upgrades (never downgrades), CANON is never auto-assigned, and pinned anchors are immune to rank-based eviction.
+ * CANON is never auto-assigned, and pinned anchors are immune to rank-based eviction.
  * <p>
  * {@link dev.dunnam.diceanchors.anchor.AnchorEngine} is the lifecycle entry point.
  * It orchestrates budget enforcement (max 20 active anchors), rank-based eviction of lowest-ranked non-pinned anchors when over budget,
