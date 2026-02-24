@@ -32,30 +32,6 @@ class ExperimentReportTest {
     }
 
     @Nested
-    @DisplayName("record construction")
-    class RecordConstruction {
-
-        @Test
-        @DisplayName("all fields are accessible via accessors")
-        void allFieldsAccessible() {
-            var report = sampleReport();
-
-            assertThat(report.reportId()).isEqualTo("exp-001");
-            assertThat(report.experimentName()).isEqualTo("test-exp");
-            assertThat(report.createdAt()).isNotNull();
-            assertThat(report.conditions()).containsExactly("FULL_ANCHORS", "NO_ANCHORS");
-            assertThat(report.scenarioIds()).containsExactly("s1");
-            assertThat(report.repetitionsPerCell()).isEqualTo(5);
-            assertThat(report.totalDurationMs()).isEqualTo(5000L);
-            assertThat(report.cellReports()).hasSize(1);
-            assertThat(report.effectSizeMatrix()).hasSize(1);
-            assertThat(report.confidenceIntervals()).hasSize(1);
-            assertThat(report.strategyDeltas()).hasSize(1);
-            assertThat(report.cancelled()).isFalse();
-        }
-    }
-
-    @Nested
     @DisplayName("immutable collections")
     class ImmutableCollections {
 

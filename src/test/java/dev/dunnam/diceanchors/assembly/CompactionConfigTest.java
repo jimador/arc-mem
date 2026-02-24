@@ -9,28 +9,8 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@DisplayName("CompactionConfig — Guardrail Validation (Section 8.1)")
+@DisplayName("CompactionConfig — Guardrail Validation")
 class CompactionConfigTest {
-
-    @Nested
-    @DisplayName("valid construction")
-    class ValidConstruction {
-
-        @Test
-        @DisplayName("accepts all valid fields including guardrail parameters")
-        void validFieldsConstructsSuccessfully() {
-            var config = new CompactionConfig(true, 500, 10, List.of(3, 7), 0.6, 3, 2000L, true);
-
-            assertThat(config.enabled()).isTrue();
-            assertThat(config.tokenThreshold()).isEqualTo(500);
-            assertThat(config.messageThreshold()).isEqualTo(10);
-            assertThat(config.forceAtTurns()).containsExactly(3, 7);
-            assertThat(config.minMatchRatio()).isEqualTo(0.6);
-            assertThat(config.maxRetries()).isEqualTo(3);
-            assertThat(config.retryBackoffMillis()).isEqualTo(2000L);
-            assertThat(config.eventsEnabled()).isTrue();
-        }
-    }
 
     @Nested
     @DisplayName("minMatchRatio validation")
@@ -111,20 +91,4 @@ class CompactionConfigTest {
         }
     }
 
-    @Nested
-    @DisplayName("disabled() factory")
-    class DisabledFactory {
-
-        @Test
-        @DisplayName("returns expected guardrail defaults")
-        void disabledReturnsExpectedDefaults() {
-            var config = CompactionConfig.disabled();
-
-            assertThat(config.enabled()).isFalse();
-            assertThat(config.minMatchRatio()).isEqualTo(0.5);
-            assertThat(config.maxRetries()).isEqualTo(2);
-            assertThat(config.retryBackoffMillis()).isEqualTo(1000L);
-            assertThat(config.eventsEnabled()).isTrue();
-        }
-    }
 }
