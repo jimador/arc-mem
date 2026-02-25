@@ -3,8 +3,6 @@ package dev.dunnam.diceanchors.extract;
 import dev.dunnam.diceanchors.anchor.Anchor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
 
 /**
@@ -14,11 +12,11 @@ import java.util.List;
  * <p>
  * Normalization: lowercase → collapse whitespace → strip non-alphanumeric.
  */
-@Service
-public class NormalizedStringDuplicateDetector {
+public class NormalizedStringDuplicateDetector implements DuplicateDetector {
 
     private static final Logger logger = LoggerFactory.getLogger(NormalizedStringDuplicateDetector.class);
 
+    @Override
     public boolean isDuplicate(String candidateText, List<Anchor> anchors) {
         var normalizedCandidate = normalize(candidateText);
         for (var anchor : anchors) {

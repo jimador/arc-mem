@@ -2,6 +2,10 @@ package dev.dunnam.diceanchors.anchor;
 
 import dev.dunnam.diceanchors.DiceAnchorsProperties;
 import dev.dunnam.diceanchors.assembly.RelevanceScorer;
+import dev.dunnam.diceanchors.extract.CompositeDuplicateDetector;
+import dev.dunnam.diceanchors.extract.DuplicateDetector;
+import dev.dunnam.diceanchors.extract.LlmDuplicateDetector;
+import dev.dunnam.diceanchors.extract.NormalizedStringDuplicateDetector;
 import dev.dunnam.diceanchors.sim.engine.LlmCallService;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
@@ -162,6 +166,28 @@ public class AnchorConfiguration {
     @ConditionalOnMissingBean
     DecayPolicy decayPolicy() {
         return DecayPolicy.exponential(24.0);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    DuplicateDetector duplicateDetector(ChatModel chatModel, LlmCallService llmCallService) {
+        var strategy = properties.anchor().dedupStrategy().toUpperCase();
+        var fast = new NormalizedStringDuplicateDetector();
+        var llm = new LlmDuplicateDetector(chatModel, llmCallService);
+        return switch (strategy) {
+            case "FAST_ONLY" -> {
+                logger.info("Using fast-only duplicate detection (normalized string)");
+                yield fast;
+            }
+            case "LLM_ONLY" -> {
+                logger.info("Using LLM-only duplicate detection");
+                yield llm;
+            }
+            default -> {
+                logger.info("Using composite duplicate detection (fast then LLM)");
+                yield new CompositeDuplicateDetector(fast, llm);
+            }
+        };
     }
 
     @Bean

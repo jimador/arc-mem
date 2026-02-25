@@ -127,6 +127,7 @@ public class AnchorPromoter {
 
         var threshold = properties.anchor().autoActivateThreshold();
         var initialRank = properties.anchor().initialRank();
+        var anchors = engine.inject(contextId);
 
         for (var prop : propositions) {
             if (!isPromotionCandidate(prop.getStatus())) {
@@ -141,7 +142,7 @@ public class AnchorPromoter {
             }
             postConfidence++;
 
-            if (duplicateDetector.isDuplicate(contextId, prop.getText())) {
+            if (duplicateDetector.isDuplicate(prop.getText(), anchors)) {
                 logger.info("Proposition {} is duplicate, filtering at dedup gate", prop.getId());
                 continue;
             }
@@ -229,7 +230,8 @@ public class AnchorPromoter {
             return PromotionOutcome.empty();
         }
 
-        var existingTexts = engine.findByContext(contextId).stream()
+        var existingAnchors = engine.findByContext(contextId);
+        var existingTexts = existingAnchors.stream()
                 .map(dev.dunnam.diceanchors.anchor.Anchor::text)
                 .collect(Collectors.toSet());
         var postExistingDedup = confident.stream()
@@ -242,7 +244,7 @@ public class AnchorPromoter {
         }
 
         var candidateTexts = postExistingDedup.stream().map(Proposition::getText).toList();
-        var dedupResults = batchDedupWithFallback(contextId, candidateTexts);
+        var dedupResults = batchDedupWithFallback(candidateTexts, existingAnchors);
         var postDedup = postExistingDedup.stream()
                 .filter(p -> !dedupResults.getOrDefault(p.getText(), false))
                 .toList();
@@ -313,15 +315,16 @@ public class AnchorPromoter {
         return new PromotionOutcome(promoted, degradedConflictCount);
     }
 
-    private Map<String, Boolean> batchDedupWithFallback(String contextId, List<String> candidates) {
+    private Map<String, Boolean> batchDedupWithFallback(List<String> candidates,
+                                                         List<dev.dunnam.diceanchors.anchor.Anchor> anchors) {
         try {
-            return duplicateDetector.batchIsDuplicate(contextId, candidates);
+            return duplicateDetector.batchIsDuplicate(candidates, anchors);
         } catch (Exception e) {
             logger.warn("Batch dedup failed, falling back to per-candidate: {}", e.getMessage());
             return candidates.stream()
                     .collect(Collectors.toMap(
                             c -> c,
-                            c -> duplicateDetector.isDuplicate(contextId, c)));
+                            c -> duplicateDetector.isDuplicate(c, anchors)));
         }
     }
 

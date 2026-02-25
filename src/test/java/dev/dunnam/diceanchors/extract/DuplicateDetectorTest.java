@@ -1,9 +1,8 @@
 package dev.dunnam.diceanchors.extract;
 
-import dev.dunnam.diceanchors.DiceAnchorsProperties;
 import dev.dunnam.diceanchors.anchor.Anchor;
-import dev.dunnam.diceanchors.anchor.AnchorEngine;
 import dev.dunnam.diceanchors.anchor.Authority;
+import dev.dunnam.diceanchors.sim.engine.LlmCallService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -14,6 +13,7 @@ import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
+import org.springframework.ai.chat.prompt.Prompt;
 
 import java.util.List;
 import java.util.Map;
@@ -23,22 +23,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("DuplicateDetector")
+@DisplayName("LlmDuplicateDetector")
 class DuplicateDetectorTest {
 
-    private static final String CONTEXT_ID = "test-ctx";
-
     @Mock private ChatModel chatModel;
-    @Mock private AnchorEngine engine;
-    @Mock private dev.dunnam.diceanchors.sim.engine.LlmCallService llmCallService;
-
-    private final NormalizedStringDuplicateDetector fastDetector = new NormalizedStringDuplicateDetector();
-
-    private DuplicateDetector detectorWithStrategy(String strategy) {
-        var anchorConfig = new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, strategy, "TIERED", true, true, true, 0.6, 400, 200, null, null, null);
-        var properties = new DiceAnchorsProperties(anchorConfig, null, null, null, null, null, null, new DiceAnchorsProperties.AssemblyConfig(0), null, null);
-        return new DuplicateDetector(chatModel, engine, fastDetector, properties, llmCallService);
-    }
+    @Mock private LlmCallService llmCallService;
 
     private List<Anchor> singleAnchor(String text) {
         return List.of(Anchor.withoutTrust("a1", text, 500, Authority.PROVISIONAL, false, 0.9, 0));
@@ -47,143 +36,116 @@ class DuplicateDetectorTest {
     private void mockLlmResponse(String response) {
         var generation = new Generation(new AssistantMessage(response));
         var chatResponse = new ChatResponse(List.of(generation));
-        when(chatModel.call(any(org.springframework.ai.chat.prompt.Prompt.class))).thenReturn(chatResponse);
+        when(chatModel.call(any(Prompt.class))).thenReturn(chatResponse);
     }
 
     @Nested
-    @DisplayName("FAST_ONLY strategy")
-    class FastOnly {
+    @DisplayName("isDuplicate")
+    class IsDuplicate {
 
         @Test
-        @DisplayName("returns true for normalized match without LLM call")
-        void normalizedMatchNoLlm() {
-            var detector = detectorWithStrategy("FAST_ONLY");
-            when(engine.inject(CONTEXT_ID)).thenReturn(singleAnchor("The king is dead"));
-
-            var result = detector.isDuplicate(CONTEXT_ID, "THE KING IS DEAD!");
-
-            assertThat(result).isTrue();
-            verify(chatModel, never()).call(any(org.springframework.ai.chat.prompt.Prompt.class));
-        }
-
-        @Test
-        @DisplayName("returns false for non-match without LLM call")
-        void noMatchNoLlm() {
-            var detector = detectorWithStrategy("FAST_ONLY");
-            when(engine.inject(CONTEXT_ID)).thenReturn(singleAnchor("The king is dead"));
-
-            var result = detector.isDuplicate(CONTEXT_ID, "The queen is alive");
-
-            assertThat(result).isFalse();
-            verify(chatModel, never()).call(any(org.springframework.ai.chat.prompt.Prompt.class));
-        }
-    }
-
-    @Nested
-    @DisplayName("LLM_ONLY strategy")
-    class LlmOnly {
-
-        @Test
-        @DisplayName("skips fast-path and calls LLM")
-        void skipsFastPathCallsLlm() {
-            var detector = detectorWithStrategy("LLM_ONLY");
-            when(engine.inject(CONTEXT_ID)).thenReturn(singleAnchor("The king is dead"));
+        @DisplayName("returns true when LLM says DUPLICATE")
+        void llmDuplicate() {
+            var detector = new LlmDuplicateDetector(chatModel, llmCallService);
             mockLlmResponse("DUPLICATE");
 
-            var result = detector.isDuplicate(CONTEXT_ID, "THE KING IS DEAD!");
-
-            assertThat(result).isTrue();
-            verify(chatModel).call(any(org.springframework.ai.chat.prompt.Prompt.class));
+            assertThat(detector.isDuplicate("The monarch has perished", singleAnchor("The king is dead"))).isTrue();
+            verify(chatModel).call(any(Prompt.class));
         }
 
         @Test
-        @DisplayName("returns LLM unique result")
+        @DisplayName("returns false when LLM says UNIQUE")
         void llmUnique() {
-            var detector = detectorWithStrategy("LLM_ONLY");
-            when(engine.inject(CONTEXT_ID)).thenReturn(singleAnchor("The king is dead"));
+            var detector = new LlmDuplicateDetector(chatModel, llmCallService);
             mockLlmResponse("UNIQUE");
 
-            var result = detector.isDuplicate(CONTEXT_ID, "Something different");
+            assertThat(detector.isDuplicate("Something different", singleAnchor("The king is dead"))).isFalse();
+        }
 
-            assertThat(result).isFalse();
+        @Test
+        @DisplayName("returns false for empty anchor list without LLM call")
+        void emptyAnchorsReturnsFalse() {
+            var detector = new LlmDuplicateDetector(chatModel, llmCallService);
+
+            assertThat(detector.isDuplicate("anything", List.of())).isFalse();
+            verify(chatModel, never()).call(any(Prompt.class));
+        }
+
+        @Test
+        @DisplayName("fail-open: LLM exception returns false (assume unique)")
+        void llmFailureReturnsUnique() {
+            var detector = new LlmDuplicateDetector(chatModel, llmCallService);
+            when(chatModel.call(any(Prompt.class))).thenThrow(new RuntimeException("LLM timeout"));
+
+            assertThat(detector.isDuplicate("candidate", singleAnchor("anchor"))).isFalse();
         }
     }
 
     @Nested
-    @DisplayName("FAST_THEN_LLM strategy")
-    class FastThenLlm {
+    @DisplayName("batchIsDuplicate")
+    class BatchIsDuplicate {
 
         @Test
-        @DisplayName("returns true on fast-path match without LLM call")
-        void fastMatchSkipsLlm() {
-            var detector = detectorWithStrategy("FAST_THEN_LLM");
-            when(engine.inject(CONTEXT_ID)).thenReturn(singleAnchor("The king is dead"));
+        @DisplayName("fail-open: parse failure returns all false (assume unique)")
+        void batchParseFailureReturnsAllUnique() {
+            var detector = new LlmDuplicateDetector(chatModel, llmCallService);
+            when(llmCallService.callBatched(any(), any())).thenReturn("not-json");
 
-            var result = detector.isDuplicate(CONTEXT_ID, "the king is dead");
+            var result = detector.batchIsDuplicate(List.of("A", "B"), singleAnchor("The king is dead"));
 
-            assertThat(result).isTrue();
-            verify(chatModel, never()).call(any(org.springframework.ai.chat.prompt.Prompt.class));
+            assertThat(result).isEqualTo(Map.of("A", false, "B", false));
+        }
+
+        @Test
+        @DisplayName("fail-open: omitted candidates assumed unique")
+        void batchOmissionsAssumedUnique() {
+            var detector = new LlmDuplicateDetector(chatModel, llmCallService);
+            when(llmCallService.callBatched(any(), any())).thenReturn("""
+                    {"results":[{"candidate":"A","isDuplicate":false}]}
+                    """);
+
+            var result = detector.batchIsDuplicate(List.of("A", "B"), singleAnchor("The king is dead"));
+
+            assertThat(result).isEqualTo(Map.of("A", false, "B", false));
+        }
+    }
+
+    @Nested
+    @DisplayName("CompositeDuplicateDetector")
+    class Composite {
+
+        @Test
+        @DisplayName("fast-path match short-circuits without LLM call")
+        void fastPathMatchSkipsLlm() {
+            var fast = new NormalizedStringDuplicateDetector();
+            var llm = new LlmDuplicateDetector(chatModel, llmCallService);
+            var detector = new CompositeDuplicateDetector(fast, llm);
+
+            assertThat(detector.isDuplicate("the king is dead", singleAnchor("The king is dead"))).isTrue();
+            verify(chatModel, never()).call(any(Prompt.class));
         }
 
         @Test
         @DisplayName("falls back to LLM when fast-path misses")
         void fallsBackToLlm() {
-            var detector = detectorWithStrategy("FAST_THEN_LLM");
-            when(engine.inject(CONTEXT_ID)).thenReturn(singleAnchor("The king is dead"));
+            var fast = new NormalizedStringDuplicateDetector();
+            var llm = new LlmDuplicateDetector(chatModel, llmCallService);
+            var detector = new CompositeDuplicateDetector(fast, llm);
             mockLlmResponse("DUPLICATE");
 
-            var result = detector.isDuplicate(CONTEXT_ID, "The monarch has perished");
-
-            assertThat(result).isTrue();
-            verify(chatModel).call(any(org.springframework.ai.chat.prompt.Prompt.class));
+            assertThat(detector.isDuplicate("The monarch has perished", singleAnchor("The king is dead"))).isTrue();
+            verify(chatModel).call(any(Prompt.class));
         }
 
         @Test
         @DisplayName("returns false when both paths say unique")
         void bothUnique() {
-            var detector = detectorWithStrategy("FAST_THEN_LLM");
-            when(engine.inject(CONTEXT_ID)).thenReturn(singleAnchor("The king is dead"));
+            var fast = new NormalizedStringDuplicateDetector();
+            var llm = new LlmDuplicateDetector(chatModel, llmCallService);
+            var detector = new CompositeDuplicateDetector(fast, llm);
             mockLlmResponse("UNIQUE");
 
-            var result = detector.isDuplicate(CONTEXT_ID, "The tavern is warm");
-
-            assertThat(result).isFalse();
+            assertThat(detector.isDuplicate("The tavern is warm", singleAnchor("The king is dead"))).isFalse();
         }
-    }
-
-    @Test
-    @DisplayName("returns false for empty anchor list regardless of strategy")
-    void emptyAnchorsReturnsFalse() {
-        var detector = detectorWithStrategy("FAST_THEN_LLM");
-        when(engine.inject(CONTEXT_ID)).thenReturn(List.of());
-
-        assertThat(detector.isDuplicate(CONTEXT_ID, "anything")).isFalse();
-        verify(chatModel, never()).call(any(org.springframework.ai.chat.prompt.Prompt.class));
-    }
-
-    @Test
-    @DisplayName("batch parse failures quarantine candidates as duplicates")
-    void batchParseFailuresQuarantineCandidates() {
-        var detector = detectorWithStrategy("LLM_ONLY");
-        when(engine.inject(CONTEXT_ID)).thenReturn(singleAnchor("The king is dead"));
-        when(llmCallService.callBatched(any(), any())).thenReturn("not-json");
-
-        var result = detector.batchIsDuplicate(CONTEXT_ID, List.of("A", "B"));
-
-        assertThat(result).isEqualTo(Map.of("A", true, "B", true));
-    }
-
-    @Test
-    @DisplayName("batch omissions quarantine missing candidates as duplicates")
-    void batchOmissionsQuarantineMissingCandidates() {
-        var detector = detectorWithStrategy("LLM_ONLY");
-        when(engine.inject(CONTEXT_ID)).thenReturn(singleAnchor("The king is dead"));
-        when(llmCallService.callBatched(any(), any())).thenReturn("""
-                {"results":[{"candidate":"A","isDuplicate":false}]}
-                """);
-
-        var result = detector.batchIsDuplicate(CONTEXT_ID, List.of("A", "B"));
-
-        assertThat(result).isEqualTo(Map.of("A", false, "B", true));
     }
 }

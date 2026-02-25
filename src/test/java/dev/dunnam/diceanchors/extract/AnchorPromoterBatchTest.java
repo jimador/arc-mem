@@ -109,7 +109,7 @@ class AnchorPromoterBatchTest {
             var existingAnchor = Anchor.withoutTrust("a1", "The dragon is red", 500, Authority.RELIABLE, false, 0.9, 0);
             when(engine.findByContext(CONTEXT_ID)).thenReturn(List.of(existingAnchor));
 
-            when(duplicateDetector.batchIsDuplicate(eq(CONTEXT_ID), anyList()))
+            when(duplicateDetector.batchIsDuplicate(anyList(), anyList()))
                     .thenReturn(Map.of("The dragon breathes fire", false));
             when(engine.batchDetectConflicts(eq(CONTEXT_ID), anyList()))
                     .thenReturn(Map.of("The dragon breathes fire", List.of()));
@@ -139,7 +139,7 @@ class AnchorPromoterBatchTest {
             var result = promoter.batchEvaluateAndPromote(CONTEXT_ID, List.of(prop1, prop2));
 
             assertThat(result).isZero();
-            verify(duplicateDetector, never()).batchIsDuplicate(anyString(), anyList());
+            verify(duplicateDetector, never()).batchIsDuplicate(anyList(), anyList());
             verify(engine, never()).batchDetectConflicts(anyString(), anyList());
             verify(engine, never()).promote(anyString(), anyInt());
         }
@@ -150,7 +150,7 @@ class AnchorPromoterBatchTest {
             var result = promoter.batchEvaluateAndPromote(CONTEXT_ID, List.of());
 
             assertThat(result).isZero();
-            verify(duplicateDetector, never()).batchIsDuplicate(anyString(), anyList());
+            verify(duplicateDetector, never()).batchIsDuplicate(anyList(), anyList());
         }
     }
 
@@ -163,7 +163,7 @@ class AnchorPromoterBatchTest {
         void batchEvaluateAndPromoteFullPipelinePromotion() {
             var prop = activeProposition("p1", "Valid high-confidence fact", 0.9);
 
-            when(duplicateDetector.batchIsDuplicate(eq(CONTEXT_ID), anyList()))
+            when(duplicateDetector.batchIsDuplicate(anyList(), anyList()))
                     .thenReturn(Map.of("Valid high-confidence fact", false));
             when(engine.batchDetectConflicts(eq(CONTEXT_ID), anyList()))
                     .thenReturn(Map.of("Valid high-confidence fact", List.of()));
@@ -184,7 +184,7 @@ class AnchorPromoterBatchTest {
         void batchEvaluateAndPromoteFiltersDuplicates() {
             var prop = activeProposition("p1", "Duplicate fact", 0.9);
 
-            when(duplicateDetector.batchIsDuplicate(eq(CONTEXT_ID), anyList()))
+            when(duplicateDetector.batchIsDuplicate(anyList(), anyList()))
                     .thenReturn(Map.of("Duplicate fact", true));
 
             var result = promoter.batchEvaluateAndPromote(CONTEXT_ID, List.of(prop));
@@ -199,7 +199,7 @@ class AnchorPromoterBatchTest {
         void batchEvaluateAndPromoteFiltersReviewZone() {
             var prop = activeProposition("p1", "Review fact", 0.9);
 
-            when(duplicateDetector.batchIsDuplicate(eq(CONTEXT_ID), anyList()))
+            when(duplicateDetector.batchIsDuplicate(anyList(), anyList()))
                     .thenReturn(Map.of("Review fact", false));
             when(engine.batchDetectConflicts(eq(CONTEXT_ID), anyList()))
                     .thenReturn(Map.of("Review fact", List.of()));
@@ -221,7 +221,7 @@ class AnchorPromoterBatchTest {
             var prop1 = activeProposition("p1", "Fact one", 0.9);
             var prop2 = activeProposition("p2", "Fact two", 0.9);
 
-            when(duplicateDetector.batchIsDuplicate(eq(CONTEXT_ID), anyList()))
+            when(duplicateDetector.batchIsDuplicate(anyList(), anyList()))
                     .thenReturn(Map.of("Fact one", false, "Fact two", false));
             when(engine.batchDetectConflicts(eq(CONTEXT_ID), anyList()))
                     .thenReturn(Map.of("Fact one", List.of(), "Fact two", List.of()));
@@ -257,7 +257,7 @@ class AnchorPromoterBatchTest {
                     com.embabel.dice.proposition.PropositionStatus.ACTIVE,
                     null, List.of());
 
-            when(duplicateDetector.batchIsDuplicate(eq(CONTEXT_ID), anyList()))
+            when(duplicateDetector.batchIsDuplicate(anyList(), anyList()))
                     .thenReturn(Map.of("The temple demands a blood tithe", false));
             when(engine.batchDetectConflicts(eq(CONTEXT_ID), anyList()))
                     .thenReturn(Map.of("The temple demands a blood tithe", List.of()));
@@ -277,7 +277,7 @@ class AnchorPromoterBatchTest {
         void batchEvaluateAndPromoteNoNodeAllowed() {
             var prop = activeProposition("p1", "Fact without node", 0.9);
 
-            when(duplicateDetector.batchIsDuplicate(eq(CONTEXT_ID), anyList()))
+            when(duplicateDetector.batchIsDuplicate(anyList(), anyList()))
                     .thenReturn(Map.of("Fact without node", false));
             when(engine.batchDetectConflicts(eq(CONTEXT_ID), anyList()))
                     .thenReturn(Map.of("Fact without node", List.of()));

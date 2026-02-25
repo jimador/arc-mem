@@ -23,6 +23,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -70,7 +71,7 @@ class AnchorPromoterTest {
     }
 
     private void allowPromotion(String propId) {
-        when(duplicateDetector.isDuplicate(eq(CONTEXT_ID), anyString())).thenReturn(false);
+        when(duplicateDetector.isDuplicate(anyString(), anyList())).thenReturn(false);
         when(engine.detectConflicts(eq(CONTEXT_ID), anyString())).thenReturn(List.of());
         var node = mockNode();
         when(repository.findPropositionNodeById(propId)).thenReturn(Optional.of(node));
@@ -89,7 +90,7 @@ class AnchorPromoterTest {
             var result = promoter.evaluateAndPromote(CONTEXT_ID, List.of(prop));
 
             assertThat(result).isZero();
-            verify(duplicateDetector, never()).isDuplicate(anyString(), anyString());
+            verify(duplicateDetector, never()).isDuplicate(anyString(), anyList());
         }
 
         @Test
@@ -112,7 +113,7 @@ class AnchorPromoterTest {
         @DisplayName("rejects duplicate proposition")
         void duplicateRejected() {
             var prop = activeProposition("p1", "Duplicate fact", 0.9);
-            when(duplicateDetector.isDuplicate(CONTEXT_ID, "Duplicate fact")).thenReturn(true);
+            when(duplicateDetector.isDuplicate(eq("Duplicate fact"), anyList())).thenReturn(true);
 
             var result = promoter.evaluateAndPromote(CONTEXT_ID, List.of(prop));
 
@@ -148,7 +149,7 @@ class AnchorPromoterTest {
         @DisplayName("KEEP_EXISTING rejects incoming proposition")
         void keepExistingRejectsIncoming() {
             var prop = activeProposition("p1", "incoming text", 0.9);
-            when(duplicateDetector.isDuplicate(CONTEXT_ID, "incoming text")).thenReturn(false);
+            when(duplicateDetector.isDuplicate(eq("incoming text"), anyList())).thenReturn(false);
             var conflict = makeConflict("a1", "existing text");
             when(engine.detectConflicts(CONTEXT_ID, "incoming text")).thenReturn(List.of(conflict));
             when(engine.resolveConflict(conflict)).thenReturn(ConflictResolver.Resolution.KEEP_EXISTING);
@@ -163,7 +164,7 @@ class AnchorPromoterTest {
         @DisplayName("REPLACE archives existing anchor and promotes incoming")
         void replaceArchivesExistingAndPromotes() {
             var prop = activeProposition("p1", "incoming text", 0.9);
-            when(duplicateDetector.isDuplicate(CONTEXT_ID, "incoming text")).thenReturn(false);
+            when(duplicateDetector.isDuplicate(eq("incoming text"), anyList())).thenReturn(false);
             var conflict = makeConflict("a1", "existing text");
             when(engine.detectConflicts(CONTEXT_ID, "incoming text")).thenReturn(List.of(conflict));
             when(engine.resolveConflict(conflict)).thenReturn(ConflictResolver.Resolution.REPLACE);
@@ -182,7 +183,7 @@ class AnchorPromoterTest {
         @DisplayName("COEXIST allows promotion to proceed")
         void coexistAllowsPromotion() {
             var prop = activeProposition("p1", "incoming text", 0.9);
-            when(duplicateDetector.isDuplicate(CONTEXT_ID, "incoming text")).thenReturn(false);
+            when(duplicateDetector.isDuplicate(eq("incoming text"), anyList())).thenReturn(false);
             var conflict = makeConflict("a1", "existing text");
             when(engine.detectConflicts(CONTEXT_ID, "incoming text")).thenReturn(List.of(conflict));
             when(engine.resolveConflict(conflict)).thenReturn(ConflictResolver.Resolution.COEXIST);
@@ -200,7 +201,7 @@ class AnchorPromoterTest {
         @DisplayName("KEEP_EXISTING takes precedence over COEXIST in multiple conflicts")
         void keepTakesPrecedenceOverCoexist() {
             var prop = activeProposition("p1", "incoming text", 0.9);
-            when(duplicateDetector.isDuplicate(CONTEXT_ID, "incoming text")).thenReturn(false);
+            when(duplicateDetector.isDuplicate(eq("incoming text"), anyList())).thenReturn(false);
             var conflict1 = makeConflict("a1", "anchor 1");
             var conflict2 = makeConflict("a2", "anchor 2");
             when(engine.detectConflicts(CONTEXT_ID, "incoming text"))
@@ -222,7 +223,7 @@ class AnchorPromoterTest {
         @DisplayName("dedup runs before conflict detection")
         void dedupBeforeConflict() {
             var prop = activeProposition("p1", "text", 0.9);
-            when(duplicateDetector.isDuplicate(CONTEXT_ID, "text")).thenReturn(true);
+            when(duplicateDetector.isDuplicate(eq("text"), anyList())).thenReturn(true);
 
             promoter.evaluateAndPromote(CONTEXT_ID, List.of(prop));
 
@@ -233,7 +234,7 @@ class AnchorPromoterTest {
         @DisplayName("conflict runs before trust evaluation")
         void conflictBeforeTrust() {
             var prop = activeProposition("p1", "text", 0.9);
-            when(duplicateDetector.isDuplicate(CONTEXT_ID, "text")).thenReturn(false);
+            when(duplicateDetector.isDuplicate(eq("text"), anyList())).thenReturn(false);
             var conflict = new ConflictDetector.Conflict(
                     Anchor.withoutTrust("a1", "old", 700, Authority.RELIABLE, false, 0.9, 0),
                     "text", 0.9, "negation"
@@ -256,7 +257,7 @@ class AnchorPromoterTest {
         @DisplayName("ceiling=PROVISIONAL limits initial authority passed to engine.promote()")
         void ceilingLimitsInitialAuthority() {
             var prop = activeProposition("p1", "Valid fact", 0.9);
-            when(duplicateDetector.isDuplicate(CONTEXT_ID, "Valid fact")).thenReturn(false);
+            when(duplicateDetector.isDuplicate(eq("Valid fact"), anyList())).thenReturn(false);
             when(engine.detectConflicts(CONTEXT_ID, "Valid fact")).thenReturn(List.of());
             var node = mockNode();
             when(repository.findPropositionNodeById("p1")).thenReturn(Optional.of(node));
@@ -273,7 +274,7 @@ class AnchorPromoterTest {
         @DisplayName("ceiling=RELIABLE passes RELIABLE authority ceiling to engine.promote()")
         void ceilingAboveAssignedHasNoEffect() {
             var prop = activeProposition("p1", "Valid fact", 0.9);
-            when(duplicateDetector.isDuplicate(CONTEXT_ID, "Valid fact")).thenReturn(false);
+            when(duplicateDetector.isDuplicate(eq("Valid fact"), anyList())).thenReturn(false);
             when(engine.detectConflicts(CONTEXT_ID, "Valid fact")).thenReturn(List.of());
             var node = mockNode();
             when(repository.findPropositionNodeById("p1")).thenReturn(Optional.of(node));
@@ -290,7 +291,7 @@ class AnchorPromoterTest {
         @DisplayName("no trust score (node not found) uses two-arg promote()")
         void noTrustScoreUsesTwoArgPromote() {
             var prop = activeProposition("p1", "Valid fact", 0.9);
-            when(duplicateDetector.isDuplicate(CONTEXT_ID, "Valid fact")).thenReturn(false);
+            when(duplicateDetector.isDuplicate(eq("Valid fact"), anyList())).thenReturn(false);
             when(engine.detectConflicts(CONTEXT_ID, "Valid fact")).thenReturn(List.of());
             when(repository.findPropositionNodeById("p1")).thenReturn(Optional.empty());
 
@@ -309,7 +310,7 @@ class AnchorPromoterTest {
         @DisplayName("KEEP_EXISTING resolution triggers trust re-evaluation on kept anchor")
         void keepExistingResolutionTriggersTrustReEvaluation() {
             var prop = activeProposition("p1", "incoming text", 0.9);
-            when(duplicateDetector.isDuplicate(CONTEXT_ID, "incoming text")).thenReturn(false);
+            when(duplicateDetector.isDuplicate(eq("incoming text"), anyList())).thenReturn(false);
             var existingAnchor = Anchor.withoutTrust("a1", "existing text", 700, Authority.PROVISIONAL, false, 0.8, 0);
             var conflict = new ConflictDetector.Conflict(existingAnchor, "incoming text", 0.9, "negation");
             when(engine.detectConflicts(CONTEXT_ID, "incoming text")).thenReturn(List.of(conflict));
@@ -367,8 +368,8 @@ class AnchorPromoterTest {
             var good = activeProposition("p1", "Good fact", 0.9);
             var dup = activeProposition("p2", "Dup fact", 0.9);
 
-            when(duplicateDetector.isDuplicate(CONTEXT_ID, "Good fact")).thenReturn(false);
-            when(duplicateDetector.isDuplicate(CONTEXT_ID, "Dup fact")).thenReturn(true);
+            when(duplicateDetector.isDuplicate(eq("Good fact"), anyList())).thenReturn(false);
+            when(duplicateDetector.isDuplicate(eq("Dup fact"), anyList())).thenReturn(true);
             when(engine.detectConflicts(CONTEXT_ID, "Good fact")).thenReturn(List.of());
             var node = mockNode();
             when(repository.findPropositionNodeById("p1")).thenReturn(Optional.of(node));
