@@ -135,7 +135,6 @@ public class EffectSizeCalculator {
     public Map<String, Map<String, Double>> computeStrategyDeltas(
             Map<String, BenchmarkReport> cellReports) {
 
-        // Collect all strategy names across all cells
         var allStrategies = new TreeSet<String>();
         for (var report : cellReports.values()) {
             allStrategies.addAll(report.strategyStatistics().keySet());

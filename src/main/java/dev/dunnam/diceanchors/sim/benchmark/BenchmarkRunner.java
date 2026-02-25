@@ -119,7 +119,6 @@ public class BenchmarkRunner {
         cancelRequested.set(false);
         var startTime = System.currentTimeMillis();
 
-        // Apply condition to seed anchors
         var modifiedSeedAnchors = condition.applySeedAnchors(
                 scenario.seedAnchors() != null ? scenario.seedAnchors() : List.of());
         var conditionedScenario = new SimulationScenario(
@@ -132,7 +131,6 @@ public class BenchmarkRunner {
                 scenario.title(), scenario.objective(), scenario.testFocus(), scenario.highlights(),
                 scenario.adversaryMode(), scenario.adversaryConfig(), scenario.invariants());
 
-        // Override injection supplier if condition disables injection
         Supplier<Boolean> effectiveInjectionSupplier = condition.injectionEnabled()
                 ? injectionStateSupplier
                 : () -> false;
@@ -140,7 +138,6 @@ public class BenchmarkRunner {
         var scoringResults = Collections.synchronizedList(new ArrayList<ScoringResult>());
         var runIds = Collections.synchronizedList(new ArrayList<String>());
 
-        // OTEL enrichment
         var currentSpan = Span.current();
         currentSpan.setAttribute("benchmark.scenario_id", scenario.id());
         currentSpan.setAttribute("benchmark.run_count", runCount);
@@ -226,7 +223,6 @@ public class BenchmarkRunner {
                         ? report.metricStatistics().get("factSurvivalRate").mean()
                         : 0.0);
 
-        // Persist
         runHistoryStore.saveBenchmarkReport(report);
         logger.info("Benchmark complete: scenario='{}', runs={}, duration={}ms, condition='{}', reportId='{}'",
                 scenario.id(), scoringResults.size(), durationMs, condition.name(), report.reportId());

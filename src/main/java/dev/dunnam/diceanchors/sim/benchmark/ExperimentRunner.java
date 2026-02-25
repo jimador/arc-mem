@@ -70,7 +70,6 @@ public class ExperimentRunner {
         var startTime = System.currentTimeMillis();
         var totalCells = definition.totalCells();
 
-        // OTEL enrichment on the @Observed span
         var experimentSpan = Span.current();
         experimentSpan.setAttribute("experiment.name", definition.name());
         experimentSpan.setAttribute("experiment.condition_count", definition.conditions().size());
@@ -124,7 +123,6 @@ public class ExperimentRunner {
 
         var durationMs = System.currentTimeMillis() - startTime;
 
-        // Compute cross-condition statistics
         var effectSizeMatrix = effectSizeCalculator.computeEffectSizes(cellReports, definition.conditions());
         var confidenceIntervals = effectSizeCalculator.computeConfidenceIntervals(cellReports);
         var strategyDeltas = effectSizeCalculator.computeStrategyDeltas(cellReports);

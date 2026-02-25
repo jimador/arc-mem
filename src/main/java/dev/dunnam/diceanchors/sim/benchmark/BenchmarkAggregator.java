@@ -57,7 +57,6 @@ public class BenchmarkAggregator {
                         Double.NaN, Double.NaN, Double.NaN, Double.NaN,
                         Double.NaN, Double.NaN, 0));
 
-        // Per-strategy stats
         var allStrategies = new TreeSet<String>();
         for (var r : results) {
             allStrategies.addAll(r.strategyEffectiveness().keySet());

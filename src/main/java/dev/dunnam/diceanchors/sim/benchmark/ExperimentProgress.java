@@ -18,9 +18,6 @@ public record ExperimentProgress(
         int currentRun,
         int totalRuns
 ) {
-    /**
-     * Returns the formatted progress message per spec.
-     */
     public String message() {
         return "Cell %d/%d: %s x %s, Run %d/%d".formatted(
                 currentCell, totalCells, conditionName, scenarioId, currentRun, totalRuns);
