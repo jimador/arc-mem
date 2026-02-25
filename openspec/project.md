@@ -1,7 +1,7 @@
 # dice-anchors Project Overview
 
 ## Purpose
-dice-anchors is a standalone demo app demonstrating how **Anchors** — enriched DICE Propositions with rank, authority, and budget management — resist adversarial prompt drift. It serves as a working reference for DICE <-> Anchor integration.
+dice-anchors is a standalone application and test bed for **Anchors** — enriched DICE Propositions with rank, authority, and budget management — that implements a working memory model resistant to adversarial prompt drift. Working reference for DICE <-> Anchor integration.
 
 ## Tech Stack
 - Java 21 / Spring Boot 3.5.10 / Embabel Agent 0.3.5-SNAPSHOT / DICE 0.1.0-SNAPSHOT

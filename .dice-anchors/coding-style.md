@@ -4,7 +4,7 @@
 
 Java 25 with `--enable-preview`. Maven. Spring Boot 3.5.x. Embabel Agent 0.3.x.
 
-Follow the style of the code you read. Favor clarity over novelty. This is a demo app — ruthlessly cut anything that doesn't serve understanding.
+Follow the style of the code you read. Favor clarity over novelty. Ruthlessly cut anything that doesn't serve understanding.
 
 Do not include blank lines within methods without good reason.
 

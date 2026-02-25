@@ -1,6 +1,6 @@
 ---
 name: deslop
-description: Use when cleaning up AI-generated code in this Java 25 / Spring Boot / Embabel / DICE codebase. Use after any code generation pass, when reviewing PRs with AI-generated code, or when the user says "clean up", "deslop", "remove slop", or "review for AI artifacts". This is a demo app — ruthlessly cut anything that doesn't serve clarity.
+description: Use when cleaning up AI-generated code in this Java 25 / Spring Boot / Embabel / DICE codebase. Use after any code generation pass, when reviewing PRs with AI-generated code, or when the user says "clean up", "deslop", "remove slop", or "review for AI artifacts". Ruthlessly cut anything that doesn't serve clarity.
 ---
 
 # Deslop
@@ -131,7 +131,7 @@ This project runs Java 25 with `--enable-preview`. Prefer modern Java structures
 
 ## Test Slop — Delete or Fix
 
-This is a demo app. Tests exist to verify that anchors resist drift, authority upgrades work, conflicts resolve correctly, and the simulation engine produces meaningful results.
+Tests exist to verify that anchors resist drift, authority upgrades work, conflicts resolve correctly, and the simulation engine produces meaningful results.
 
 ### Delete Entirely
 

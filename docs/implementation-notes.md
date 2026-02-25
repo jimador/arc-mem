@@ -11,26 +11,26 @@ The anchor engine in dice-anchors was built by surveying the Tor anchor-engine-c
 
 ### Adopted
 
-| Pattern | Source | dice-anchors Location |
-|---------|--------|-----------------------|
-| RFC 2119 compliance preamble in prompt injection | `DefaultPromptAssembler` | `src/main/resources/prompts/dice-anchors.jinja`, `AnchorsLlmReference` |
-| Injection toggle + context trace visibility | Tor `anchor-sim-injection-toggle` spec | `ContextTrace.injectionEnabled`, sim panels |
-| Core drift metrics (fact survival, contradiction, attribution) | Tor `drift-evaluation` spec | `ScoringService` |
-| Trust scoring model (pipeline, evaluator, signals, profiles) | Tor `trust-scoring` spec | `TrustPipeline`, `TrustEvaluator` |
+| Pattern                                                        | Source                                 | dice-anchors Location                                                  |
+|----------------------------------------------------------------|----------------------------------------|------------------------------------------------------------------------|
+| RFC 2119 compliance preamble in prompt injection               | `DefaultPromptAssembler`               | `src/main/resources/prompts/dice-anchors.jinja`, `AnchorsLlmReference` |
+| Injection toggle + context trace visibility                    | Tor `anchor-sim-injection-toggle` spec | `ContextTrace.injectionEnabled`, sim panels                            |
+| Core drift metrics (fact survival, contradiction, attribution) | Tor `drift-evaluation` spec            | `ScoringService`                                                       |
+| Trust scoring model (pipeline, evaluator, signals, profiles)   | Tor `trust-scoring` spec               | `TrustPipeline`, `TrustEvaluator`                                      |
 
 ### Remaining Candidates (not yet adopted)
 
-| # | Pattern | Value for Demo | Complexity |
-|---|---------|----------------|------------|
-| 1 | Authority-tiered compliance directives (separate instruction tiers per authority level) | Stronger prompt framing | Low-medium |
-| 2 | Token-budgeted prompt assembly (SPI-based `TokenCounter` + `PromptBudget`) | Hard budget guarantees | Medium |
-| 3 | Hybrid conflict detection (lexical first, then semantic on subject-filtered candidates) | Fewer LLM calls, better coverage | Medium |
-| 4 | Fast+fallback duplicate detection (normalized-string pre-check before LLM dedup) | Cleaner anchor list, lower cost | Low |
-| 5 | Lifecycle listener SPI for metrics/audit | Telemetry without coupling | Medium |
-| 6 | Per-context lock with idle cleanup | Correct concurrent mutation | Medium |
-| 7 | Prompt ordering contract tests | Clearer causal framing evidence | Low |
-| 8 | Deterministic simulation tests (canned responses) | CI reliability | Medium |
-| 9 | Lightweight prompt variant A/B runs | Side-by-side framing evidence | Low-medium |
+| # | Pattern                                                                                 | Value for Demo                   | Complexity |
+|---|-----------------------------------------------------------------------------------------|----------------------------------|------------|
+| 1 | Authority-tiered compliance directives (separate instruction tiers per authority level) | Stronger prompt framing          | Low-medium |
+| 2 | Token-budgeted prompt assembly (SPI-based `TokenCounter` + `PromptBudget`)              | Hard budget guarantees           | Medium     |
+| 3 | Hybrid conflict detection (lexical first, then semantic on subject-filtered candidates) | Fewer LLM calls, better coverage | Medium     |
+| 4 | Fast+fallback duplicate detection (normalized-string pre-check before LLM dedup)        | Cleaner anchor list, lower cost  | Low        |
+| 5 | Lifecycle listener SPI for metrics/audit                                                | Telemetry without coupling       | Medium     |
+| 6 | Per-context lock with idle cleanup                                                      | Correct concurrent mutation      | Medium     |
+| 7 | Prompt ordering contract tests                                                          | Clearer causal framing evidence  | Low        |
+| 8 | Deterministic simulation tests (canned responses)                                       | CI reliability                   | Medium     |
+| 9 | Lightweight prompt variant A/B runs                                                     | Side-by-side framing evidence    | Low-medium |
 
 ## 2. Conflict Detection Pipeline
 
@@ -96,25 +96,25 @@ Anchor mutations follow a fixed processing order:
 
 ### Current Coverage
 
-| Metric | Status |
-|--------|--------|
-| Turn-level artifacts (messages, verdicts, context traces) | Instrumented |
-| Aggregated benchmark metrics with effect-size reporting | Instrumented |
-| Per-fact survival and contradiction-detail tables | Instrumented |
-| Scenario corpus: 24 scenarios, 357 scripted turns, 180 evaluated turns | Active |
-| Strategy catalog: 20 strategies, 17 exercised in scenarios | Partial |
+| Metric                                                                 | Status       |
+|------------------------------------------------------------------------|--------------|
+| Turn-level artifacts (messages, verdicts, context traces)              | Instrumented |
+| Aggregated benchmark metrics with effect-size reporting                | Instrumented |
+| Per-fact survival and contradiction-detail tables                      | Instrumented |
+| Scenario corpus: 24 scenarios, 357 scripted turns, 180 evaluated turns | Active       |
+| Strategy catalog: 20 strategies, 17 exercised in scenarios             | Partial      |
 
 ### Drift Taxonomy
 
 Five drift categories are defined. Instrumentation depth varies:
 
-| Category | Measurement | Instrumentation Status |
-|----------|-------------|----------------------|
-| Constraint violation | `CONTRADICTED` verdicts, severity split | Full |
-| Identity drift | Identity-tagged fact checks | Partial (tagging incomplete) |
-| Objective drift | Objective-tagged facts + `RECALL_PROBE` | Partial |
-| Source-of-truth drift | Authority transition tracking | Partial |
-| Silent drift | Persistent `NOT_MENTIONED` + semantic divergence | Under-instrumented |
+| Category              | Measurement                                      | Instrumentation Status       |
+|-----------------------|--------------------------------------------------|------------------------------|
+| Constraint violation  | `CONTRADICTED` verdicts, severity split          | Full                         |
+| Identity drift        | Identity-tagged fact checks                      | Partial (tagging incomplete) |
+| Objective drift       | Objective-tagged facts + `RECALL_PROBE`          | Partial                      |
+| Source-of-truth drift | Authority transition tracking                    | Partial                      |
+| Silent drift          | Persistent `NOT_MENTIONED` + semantic divergence | Under-instrumented           |
 
 ### Gaps
 
@@ -126,12 +126,12 @@ Five drift categories are defined. Instrumentation depth varies:
 
 ### New Adversarial Scenario Families
 
-| Family | Tests For |
-|--------|-----------|
-| `authority-inversion-chain` | Higher-authority facts retained despite pressure |
-| `conflicting-canon-crisis` | Explicit conflict signaling, no silent canon blending |
-| `budget-starvation-interference` | Load-bearing anchor preservation under context flood |
-| `evidence-laundering-poisoning` | Quarantine/rejection of weakly supported "authoritative" claims |
+| Family                           | Tests For                                                       |
+|----------------------------------|-----------------------------------------------------------------|
+| `authority-inversion-chain`      | Higher-authority facts retained despite pressure                |
+| `conflicting-canon-crisis`       | Explicit conflict signaling, no silent canon blending           |
+| `budget-starvation-interference` | Load-bearing anchor preservation under context flood            |
+| `evidence-laundering-poisoning`  | Quarantine/rejection of weakly supported "authoritative" claims |
 
 ## 7. Observability
 

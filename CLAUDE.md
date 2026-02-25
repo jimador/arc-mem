@@ -2,7 +2,7 @@
 
 ## Project
 
-**dice-anchors** — Standalone demo app showing how Anchors (enriched DICE Propositions with rank, authority, and budget management) resist adversarial prompt drift. Working reference for DICE <-> Anchor integration. Java 25 / Spring Boot 3.5.10 / Embabel Agent 0.3.5-SNAPSHOT / DICE 0.1.0-SNAPSHOT / Vaadin 24.6.4 / Neo4j 5.x (Drivine ORM).
+**dice-anchors** — Test bed for Anchors (enriched DICE Propositions with rank, authority, and budget management) as a working memory model resistant to adversarial prompt drift. Working reference for DICE <-> Anchor integration. Java 25 / Spring Boot 3.5.10 / Embabel Agent 0.3.5-SNAPSHOT / DICE 0.1.0-SNAPSHOT / Vaadin 24.6.4 / Neo4j 5.x (Drivine ORM).
 
 Single-module Maven project.
 
@@ -51,14 +51,14 @@ This document uses keywords per [RFC 2119](https://www.ietf.org/rfc/rfc2119.txt)
 
 ```bash
 # Build (skip tests)
-./mvnw.cmd clean compile -DskipTests
+./mvnw clean compile -DskipTests
 
-# Test (84 tests)
-./mvnw.cmd test
+# Test (696 tests)
+./mvnw test
 
 # Run (needs Neo4j + LLM API key)
 docker-compose up -d
-OPENAI_API_KEY=sk-... ./mvnw.cmd spring-boot:run
+OPENAI_API_KEY=sk-... ./mvnw spring-boot:run
 # Then: http://localhost:8089 (sim view), http://localhost:8089/chat, http://localhost:8089/benchmark
 
 # Neo4j browser
@@ -90,7 +90,7 @@ See `.dice-anchors/coding-style.md` for the complete reference.
 
 ## Architecture
 
-- **Single-module** Spring Boot app with Vaadin UI at three routes: `/` (SimulationView), `/chat` (ChatView), `/benchmark` (BenchmarkView)
+- **Single-module** Spring Boot app with Vaadin UI at four routes: `/` (SimulationView), `/chat` (ChatView), `/benchmark` (BenchmarkView), `/run` (RunInspectorView)
 - **Neo4j only** -- no PostgreSQL. Drivine for ORM, Neo4j 5.x for persistence
 - **Anchors = Propositions + extra fields** -- `rank > 0` means it's an anchor. No separate node type.
 - **Budget enforcement** -- max 20 active anchors. Evicts lowest-ranked non-pinned when over budget.
@@ -108,7 +108,7 @@ See `.dice-anchors/coding-style.md` for the complete reference.
 - `@Nested` + `@DisplayName` for test structure
 - Method naming: `actionConditionExpectedOutcome` (no test prefix)
 - Integration tests (`*IT.java`, `@Tag("integration")`) excluded by default via Surefire
-- 84 tests across test classes in `anchor/`, `assembly/`, `chat/`, `extract/`, and `sim/` packages
+- 696 tests across test classes in `anchor/`, `assembly/`, `chat/`, `extract/`, `persistence/`, `prompt/`, and `sim/` packages
 
 ## Key Files
 
@@ -119,27 +119,49 @@ See `.dice-anchors/coding-style.md` for the complete reference.
 | Anchor engine | `src/main/java/dev/dunnam/diceanchors/anchor/AnchorEngine.java` |
 | Anchor model | `src/main/java/dev/dunnam/diceanchors/anchor/Anchor.java` |
 | Authority enum | `src/main/java/dev/dunnam/diceanchors/anchor/Authority.java` |
-| Conflict detection | `src/main/java/dev/dunnam/diceanchors/anchor/NegationConflictDetector.java` |
+| Negation conflict detection | `src/main/java/dev/dunnam/diceanchors/anchor/NegationConflictDetector.java` |
+| LLM conflict detection | `src/main/java/dev/dunnam/diceanchors/anchor/LlmConflictDetector.java` |
+| Composite conflict detection | `src/main/java/dev/dunnam/diceanchors/anchor/CompositeConflictDetector.java` |
 | Conflict resolution | `src/main/java/dev/dunnam/diceanchors/anchor/AuthorityConflictResolver.java` |
-| Decay policy | `src/main/java/dev/dunnam/diceanchors/anchor/ExponentialDecayPolicy.java` |
-| Reinforcement policy | `src/main/java/dev/dunnam/diceanchors/anchor/ThresholdReinforcementPolicy.java` |
+| Decay policy | `src/main/java/dev/dunnam/diceanchors/anchor/DecayPolicy.java` |
+| Reinforcement policy | `src/main/java/dev/dunnam/diceanchors/anchor/ReinforcementPolicy.java` |
+| Trust pipeline | `src/main/java/dev/dunnam/diceanchors/anchor/TrustPipeline.java` |
+| Trust audit record | `src/main/java/dev/dunnam/diceanchors/anchor/TrustAuditRecord.java` |
+| Invariant evaluator | `src/main/java/dev/dunnam/diceanchors/anchor/InvariantEvaluator.java` |
+| Canonization gate | `src/main/java/dev/dunnam/diceanchors/anchor/CanonizationGate.java` |
+| Memory tier | `src/main/java/dev/dunnam/diceanchors/anchor/MemoryTier.java` |
+| Domain profile | `src/main/java/dev/dunnam/diceanchors/anchor/DomainProfile.java` |
 | Lifecycle events | `src/main/java/dev/dunnam/diceanchors/anchor/event/` |
 | Neo4j persistence | `src/main/java/dev/dunnam/diceanchors/persistence/AnchorRepository.java` |
 | Proposition node | `src/main/java/dev/dunnam/diceanchors/persistence/PropositionNode.java` |
+| Proposition view | `src/main/java/dev/dunnam/diceanchors/persistence/PropositionView.java` |
 | Context injection | `src/main/java/dev/dunnam/diceanchors/assembly/AnchorsLlmReference.java` |
 | Context lock | `src/main/java/dev/dunnam/diceanchors/assembly/AnchorContextLock.java` |
 | Token budgeting | `src/main/java/dev/dunnam/diceanchors/assembly/PromptBudgetEnforcer.java` |
 | Token counting SPI | `src/main/java/dev/dunnam/diceanchors/assembly/TokenCounter.java` |
+| Compacted context | `src/main/java/dev/dunnam/diceanchors/assembly/CompactedContextProvider.java` |
+| Compaction validator | `src/main/java/dev/dunnam/diceanchors/assembly/CompactionValidator.java` |
+| Relevance scorer | `src/main/java/dev/dunnam/diceanchors/assembly/RelevanceScorer.java` |
 | Anchor promotion | `src/main/java/dev/dunnam/diceanchors/extract/AnchorPromoter.java` |
 | Duplicate detection | `src/main/java/dev/dunnam/diceanchors/extract/DuplicateDetector.java` |
 | Chat actions | `src/main/java/dev/dunnam/diceanchors/chat/ChatActions.java` |
+| Chat context init | `src/main/java/dev/dunnam/diceanchors/chat/ChatContextInitializer.java` |
+| Anchor tools | `src/main/java/dev/dunnam/diceanchors/chat/AnchorTools.java` |
 | Chat UI | `src/main/java/dev/dunnam/diceanchors/chat/ChatView.java` |
+| Prompt templates | `src/main/java/dev/dunnam/diceanchors/prompt/PromptTemplates.java` |
+| Prompt path constants | `src/main/java/dev/dunnam/diceanchors/prompt/PromptPathConstants.java` |
 | Sim service | `src/main/java/dev/dunnam/diceanchors/sim/engine/SimulationService.java` |
 | Sim turn executor | `src/main/java/dev/dunnam/diceanchors/sim/engine/SimulationTurnExecutor.java` |
 | Sim run context | `src/main/java/dev/dunnam/diceanchors/sim/engine/SimulationRunContext.java` |
+| LLM call service | `src/main/java/dev/dunnam/diceanchors/sim/engine/LlmCallService.java` |
+| Context trace | `src/main/java/dev/dunnam/diceanchors/sim/engine/ContextTrace.java` |
 | Scoring service | `src/main/java/dev/dunnam/diceanchors/sim/engine/ScoringService.java` |
 | Scenario loader | `src/main/java/dev/dunnam/diceanchors/sim/engine/ScenarioLoader.java` |
+| Adversary strategy | `src/main/java/dev/dunnam/diceanchors/sim/engine/adversary/AdversaryStrategy.java` |
+| Adaptive attack prompter | `src/main/java/dev/dunnam/diceanchors/sim/engine/adversary/AdaptiveAttackPrompter.java` |
+| Sim assertions | `src/main/java/dev/dunnam/diceanchors/sim/assertions/` |
 | Sim UI | `src/main/java/dev/dunnam/diceanchors/sim/views/SimulationView.java` |
+| Run inspector UI | `src/main/java/dev/dunnam/diceanchors/sim/views/RunInspectorView.java` |
 | Context inspector | `src/main/java/dev/dunnam/diceanchors/sim/views/ContextInspectorPanel.java` |
 | Entity mention graph view | `src/main/java/dev/dunnam/diceanchors/sim/views/EntityMentionNetworkView.java` |
 | Benchmark UI | `src/main/java/dev/dunnam/diceanchors/sim/views/BenchmarkView.java` |
@@ -154,7 +176,7 @@ See `.dice-anchors/coding-style.md` for the complete reference.
 | Scenario section | `src/main/java/dev/dunnam/diceanchors/sim/report/ScenarioSection.java` |
 | Fact survival loader | `src/main/java/dev/dunnam/diceanchors/sim/report/FactSurvivalLoader.java` |
 | Contradiction detail loader | `src/main/java/dev/dunnam/diceanchors/sim/report/ContradictionDetailLoader.java` |
-| Prompt templates | `src/main/resources/prompts/` |
+| Prompt template files | `src/main/resources/prompts/` |
 | Spring config | `src/main/resources/application.yml` |
 | Sim scenarios | `src/main/resources/simulations/` |
 | Docker Compose | `docker-compose.yml` (Neo4j only) |
@@ -171,6 +193,13 @@ See `.dice-anchors/coding-style.md` for the complete reference.
 8. **Scene-setting turn 0** — When `scenario.setting()` is non-blank and extraction is enabled, `SimulationService` executes an ESTABLISH turn before turn 1. The DM narrates the setting; DICE extraction captures initial propositions. This gives the anchor framework material to defend before adversarial pressure begins. Skipped if setting is blank or extraction is disabled.
 9. **Drift evaluator: epistemic hedging = NOT_MENTIONED** — The drift evaluation prompt distinguishes three DM response categories: (1) contradiction (asserts the opposite), (2) world progression (narrative change that isn't a contradiction), (3) epistemic hedging (declines to affirm without asserting the opposite). Hedging is classified as NOT_MENTIONED, not CONTRADICTED. The player message is included in the evaluator prompt so the evaluator can distinguish defensive resistance from genuine forgetting.
 10. **No seed anchors required** — Scenarios may have no seed anchors. The expected flow is that scene-setting turn 0 + warm-up turns allow the anchor framework to accumulate propositions organically before adversarial pressure.
+11. **Composite conflict detection** — `CompositeConflictDetector` chains multiple strategies (LLM semantic + negation lexical). Strategy selection is configurable via `ConflictDetectionStrategy`.
+12. **Trust pipeline** — `TrustPipeline` evaluates propositions through multiple trust signals (source authority, extraction confidence, reinforcement history) before promotion. `TrustAuditRecord` captures the decision trail.
+13. **Context compaction** — `CompactedContextProvider` summarizes older context when token thresholds are exceeded. `CompactionValidator` ensures protected facts survive compaction.
+14. **Simulation assertions** — Post-run validation via `sim/assertions/` package. Nine assertion types (anchor-count, rank-distribution, trust-score-range, promotion-zone, authority-at-most, kg-context-contains, kg-context-empty, no-canon-auto-assigned, compaction-integrity) declared in scenario YAML.
+15. **Memory tiers** — `MemoryTier` classifies propositions as `T0_INVARIANT`, `T1_WORKING`, or `T2_EPISODIC`. Tier influences decay rates and eviction priority.
+16. **Invariant rules** — `InvariantEvaluator` checks propositions against domain-specific invariant rules provided by `InvariantRuleProvider`. Violations can block promotion or trigger alerts.
+17. **Canonization gating** — `CanonizationGate` controls CANON authority assignment. CANON is never auto-assigned; requires explicit operator action through the gate.
 
 ## OpenSpec (Spec-Driven Development)
 
