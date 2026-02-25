@@ -1,14 +1,43 @@
 # Anchors for DICE
 
-Anchors resist adversarial prompt drift — a working reference for DICE + Embabel Agent integration.
+Anchors add a trust-governed working memory layer on top of DICE + Embabel to resist long-horizon conversational drift.
 
 ## What are Anchors?
 
-Large language models forget. Over a multi-turn conversation, established facts silently erode: an attacker reframes a detail, the model accommodates, and ground truth drifts. In agentic systems where the LLM drives decisions, this drift has real consequences.
+Large language models are good at continuation, not persistence. In long-running conversations, established facts can silently degrade as new turns reweight attention. That behavior is useful for creativity, but dangerous when parts of the context are supposed to remain stable.
 
-**Anchors** demonstrates a defense. They enriched [DICE](https://github.com/embabel/dice) Propositions with rank, authority, and budget management that are injected into every LLM prompt as a ranked reference block. When incoming text contradicts an anchor, the system detects the conflict and resolves it based on authority. Budget constraints (max 20 active anchors) force eviction of the weakest, keeping the context window focused on the most important facts.
+**Anchors** are promoted [DICE](https://github.com/embabel/dice) propositions with additional control fields:
+- **Rank**: importance under memory pressure
+- **Authority**: trust level (PROVISIONAL → UNRELIABLE → RELIABLE → CANON)
+- **Authority ceiling**: maximum auto-promotion level allowed by trust provenance
+- **Budget membership**: explicit participation in a bounded working set (default max 20 active anchors)
 
-The project includes a D&D-themed adversarial simulation harness that stress-tests anchor stability. An attacker (controlled by the LLM) tries to reframe or contradict ground-truth facts using tactics like subtle reframing, detail flooding, or false authority claims. The system evaluates drift per turn — how far anchors have strayed from ground truth — and a benchmarking framework measures resilience across ablation conditions.
+At runtime, anchors are injected into every prompt as a ranked reference block. This turns memory from an implicit side effect into an explicit, governed mechanism:
+- conflict checks gate contradictory updates
+- trust scoring gates promotion and authority movement
+- budget enforcement evicts low-value anchors first
+- reinforcement/decay updates importance over time
+
+Knowledge graphs answer “what facts exist.” Anchors answer “what must stay salient and trusted right now.” That distinction is the core motivation.
+
+## Why DICE + Embabel?
+
+This project is intentionally an extension layer, not a replacement stack:
+- **DICE** provides proposition extraction, grounding, and graph persistence primitives.
+- **Embabel** provides agent orchestration and prompt/action lifecycle integration.
+- **Anchors** adds trust/authority governance and bounded working-memory control where base proposition systems are intentionally neutral.
+
+Practically: DICE/Embabel handle information acquisition and agent flow; Anchors handles memory prioritization, trust-constrained mutation, and drift resistance.
+
+## Why D&D as the proving ground?
+
+D&D/TTRPG scenarios are a high-signal benchmark for this problem:
+- long-horizon narrative state
+- mixed hard constraints (rules, world facts) and soft constraints (style, pacing)
+- strong need for LLM freedom within guardrails
+- adversarial opportunities (reframing, false authority, lore poisoning)
+
+That makes TTRPG simulation a useful stress environment for evaluating whether a governed memory layer can preserve world integrity without flattening generative quality. The same pattern generalizes to other domains that need trusted working memory (audit, compliance, operations support, etc.).
 
 ## Architecture Overview
 
@@ -392,4 +421,3 @@ dice-anchors uses [OpenSpec](https://github.com/Fission-AI/OpenSpec) for structu
 - [DICE](https://github.com/embabel/dice)
 - [impromptu](https://github.com/embabel/impromptu)
 - [OpenSpec](https://github.com/Fission-AI/OpenSpec)
-
