@@ -84,6 +84,18 @@ public class AnchorPromoter {
 
     private static final Logger logger = LoggerFactory.getLogger(AnchorPromoter.class);
 
+    public record PromotionOutcome(int promotedCount, int degradedConflictCount) {
+        public static PromotionOutcome empty() {
+            return new PromotionOutcome(0, 0);
+        }
+    }
+
+    private record ConflictResolutionResult(boolean accepted, int degradedConflictCount) {
+        static ConflictResolutionResult rejected(int degradedConflictCount) {
+            return new ConflictResolutionResult(false, degradedConflictCount);
+        }
+    }
+
     private final AnchorEngine engine;
     private final DiceAnchorsProperties properties;
     private final TrustPipeline trustPipeline;
@@ -101,12 +113,17 @@ public class AnchorPromoter {
     }
 
     public int evaluateAndPromote(String contextId, List<Proposition> propositions) {
+        return evaluateAndPromoteWithOutcome(contextId, propositions).promotedCount();
+    }
+
+    public PromotionOutcome evaluateAndPromoteWithOutcome(String contextId, List<Proposition> propositions) {
         int total = 0;
         int postConfidence = 0;
         int postDedup = 0;
         int postConflict = 0;
         int postTrust = 0;
         int promoted = 0;
+        int degradedConflictCount = 0;
 
         var threshold = properties.anchor().autoActivateThreshold();
         var initialRank = properties.anchor().initialRank();
@@ -132,7 +149,9 @@ public class AnchorPromoter {
 
             var conflicts = engine.detectConflicts(contextId, prop.getText());
             if (!conflicts.isEmpty()) {
-                if (!resolveConflicts(prop, conflicts)) {
+                var resolutionResult = resolveConflicts(prop, conflicts);
+                degradedConflictCount += resolutionResult.degradedConflictCount();
+                if (!resolutionResult.accepted()) {
                     continue;
                 }
             }
@@ -173,9 +192,9 @@ public class AnchorPromoter {
         }
 
         logger.info("Promotion funnel for context {}: {} active, {} post-confidence, {} post-dedup, " +
-                        "{} post-conflict, {} post-trust, {} promoted",
-                contextId, total, postConfidence, postDedup, postConflict, postTrust, promoted);
-        return promoted;
+                        "{} post-conflict, {} post-trust, {} promoted, {} degraded-conflict(s)",
+                contextId, total, postConfidence, postDedup, postConflict, postTrust, promoted, degradedConflictCount);
+        return new PromotionOutcome(promoted, degradedConflictCount);
     }
 
     /**
@@ -184,8 +203,12 @@ public class AnchorPromoter {
      * because dedup and trust scoring use batch LLM calls.
      */
     public int batchEvaluateAndPromote(String contextId, List<Proposition> propositions) {
+        return batchEvaluateAndPromoteWithOutcome(contextId, propositions).promotedCount();
+    }
+
+    public PromotionOutcome batchEvaluateAndPromoteWithOutcome(String contextId, List<Proposition> propositions) {
         if (propositions.isEmpty()) {
-            return 0;
+            return PromotionOutcome.empty();
         }
 
         var threshold = properties.anchor().autoActivateThreshold();
@@ -203,7 +226,7 @@ public class AnchorPromoter {
 
         if (confident.isEmpty()) {
             logger.info("Batch promotion: all {} candidates filtered at confidence gate", propositions.size());
-            return 0;
+            return PromotionOutcome.empty();
         }
 
         var existingTexts = engine.findByContext(contextId).stream()
@@ -215,7 +238,7 @@ public class AnchorPromoter {
 
         if (postExistingDedup.isEmpty()) {
             logger.info("Batch promotion: all candidates filtered at existing-anchor dedup gate");
-            return 0;
+            return PromotionOutcome.empty();
         }
 
         var candidateTexts = postExistingDedup.stream().map(Proposition::getText).toList();
@@ -226,22 +249,29 @@ public class AnchorPromoter {
 
         if (postDedup.isEmpty()) {
             logger.info("Batch promotion: all candidates filtered at dedup gate");
-            return 0;
+            return PromotionOutcome.empty();
         }
 
         var postDedupTexts = postDedup.stream().map(Proposition::getText).toList();
         var conflictResults = engine.batchDetectConflicts(contextId, postDedupTexts);
         var postConflict = new ArrayList<Proposition>();
+        var degradedConflictCount = 0;
         for (var prop : postDedup) {
             var conflicts = conflictResults.getOrDefault(prop.getText(), List.of());
-            if (conflicts.isEmpty() || resolveConflicts(prop, conflicts)) {
+            if (conflicts.isEmpty()) {
+                postConflict.add(prop);
+                continue;
+            }
+            var resolutionResult = resolveConflicts(prop, conflicts);
+            degradedConflictCount += resolutionResult.degradedConflictCount();
+            if (resolutionResult.accepted()) {
                 postConflict.add(prop);
             }
         }
 
         if (postConflict.isEmpty()) {
             logger.info("Batch promotion: all candidates filtered at conflict gate");
-            return 0;
+            return new PromotionOutcome(0, degradedConflictCount);
         }
 
         var trustContexts = postConflict.stream()
@@ -262,7 +292,7 @@ public class AnchorPromoter {
 
         if (postTrust.isEmpty()) {
             logger.info("Batch promotion: all candidates filtered at trust gate");
-            return 0;
+            return new PromotionOutcome(0, degradedConflictCount);
         }
 
         int promoted = 0;
@@ -277,10 +307,10 @@ public class AnchorPromoter {
         }
 
         logger.info("Batch promotion funnel for context {}: {} input, {} post-confidence, {} post-dedup, " +
-                        "{} post-conflict, {} post-trust, {} promoted",
+                        "{} post-conflict, {} post-trust, {} promoted, {} degraded-conflict(s)",
                 contextId, propositions.size(), confident.size(), postDedup.size(),
-                postConflict.size(), postTrust.size(), promoted);
-        return promoted;
+                postConflict.size(), postTrust.size(), promoted, degradedConflictCount);
+        return new PromotionOutcome(promoted, degradedConflictCount);
     }
 
     private Map<String, Boolean> batchDedupWithFallback(String contextId, List<String> candidates) {
@@ -315,12 +345,23 @@ public class AnchorPromoter {
      *
      * @return true if the incoming proposition should proceed to trust evaluation
      */
-    private boolean resolveConflicts(Proposition prop, List<ConflictDetector.Conflict> conflicts) {
+    private ConflictResolutionResult resolveConflicts(Proposition prop, List<ConflictDetector.Conflict> conflicts) {
         int resolvedCount = 0;
+        int degradedCount = 0;
         var outcomes = new ArrayList<String>();
         boolean rejected = false;
 
         for (var conflict : conflicts) {
+            if (conflict.detectionQuality() == ConflictDetector.DetectionQuality.DEGRADED
+                    || conflict.existing() == null) {
+                logger.warn("Degraded conflict detection for proposition {} — routing to review; reason={}",
+                        prop.getId(), conflict.reason());
+                outcomes.add("DEGRADED");
+                degradedCount++;
+                rejected = true;
+                break;
+            }
+
             var resolution = engine.resolveConflict(conflict);
             resolvedCount++;
             outcomes.add(resolution.name());
@@ -361,7 +402,11 @@ public class AnchorPromoter {
         span.setAttribute("conflict.detected_count", conflicts.size());
         span.setAttribute("conflict.resolved_count", resolvedCount);
         span.setAttribute("conflict.resolution_outcomes", String.join(",", outcomes));
+        span.setAttribute("conflict.degraded_count", degradedCount);
 
-        return !rejected;
+        if (rejected) {
+            return ConflictResolutionResult.rejected(degradedCount);
+        }
+        return new ConflictResolutionResult(true, degradedCount);
     }
 }

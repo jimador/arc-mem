@@ -278,6 +278,50 @@ class AnchorEngineInvariantTest {
             verify(repository).setAuthority("a6", Authority.RELIABLE.name());
             verify(repository).updateRank("a6", 550);
         }
+
+        @Test
+        @DisplayName("reinforce respects persisted authority ceiling on upgrade")
+        void reinforceRespectsPersistedAuthorityCeiling() {
+            var node = anchorNode("a7", Authority.UNRELIABLE);
+            node.setRank(500);
+            node.setReinforcementCount(7);
+            node.setAuthorityCeiling(Authority.UNRELIABLE.name());
+            when(repository.findPropositionNodeById("a7")).thenReturn(Optional.of(node));
+            when(repository.findActiveAnchors(CONTEXT_ID)).thenReturn(List.of(node));
+            when(reinforcementPolicy.calculateRankBoost(any())).thenReturn(50);
+            when(reinforcementPolicy.shouldUpgradeAuthority(any())).thenReturn(true);
+
+            var cleanEval = new InvariantEvaluation(List.of(), 1);
+            when(invariantEvaluator.evaluate(eq(CONTEXT_ID), eq(ProposedAction.AUTHORITY_CHANGE), any(), any()))
+                    .thenReturn(cleanEval);
+
+            var trustScore = new TrustScore(0.9, Authority.RELIABLE,
+                    PromotionZone.AUTO_PROMOTE, java.util.Map.of(), java.time.Instant.now());
+            when(trustPipeline.evaluate(any(), any())).thenReturn(trustScore);
+
+            engine.reinforce("a7");
+
+            verify(repository, never()).setAuthority("a7", Authority.RELIABLE.name());
+            verify(repository).updateRank("a7", 550);
+        }
+    }
+
+    @Nested
+    @DisplayName("Promotion persists authority ceiling")
+    class PromotionPersistsAuthorityCeiling {
+
+        @Test
+        @DisplayName("promote stores ceiling on proposition node")
+        void promoteStoresAuthorityCeiling() {
+            engine.promote("p7", 500, Authority.UNRELIABLE);
+
+            verify(repository).promoteToAnchor(
+                    "p7",
+                    500,
+                    Authority.PROVISIONAL.name(),
+                    MemoryTier.WARM.name(),
+                    Authority.UNRELIABLE.name());
+        }
     }
 
     // Helpers

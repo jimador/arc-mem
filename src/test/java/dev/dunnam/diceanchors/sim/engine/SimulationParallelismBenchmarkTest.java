@@ -115,7 +115,7 @@ class SimulationParallelismBenchmarkTest {
 
         when(extractionService.extract(anyString(), anyString())).thenAnswer(inv -> {
             if (delayMs > 0) Thread.sleep(delayMs);
-            return new ExtractionResult(2, 1, List.of("fact-a", "fact-b"));
+            return new ExtractionResult(2, 1, 0, List.of("fact-a", "fact-b"));
         });
     }
 

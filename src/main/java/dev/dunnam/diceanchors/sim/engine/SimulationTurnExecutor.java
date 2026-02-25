@@ -213,19 +213,60 @@ public class SimulationTurnExecutor {
             boolean extractionEnabled,
             SimulationScenario.DormancyConfig dormancyConfig,
             Map<String, Integer> dormancyState) {
+        return executeTurnFull(
+                contextId,
+                turnNumber,
+                playerMessage,
+                turnType,
+                attackStrategies,
+                setting,
+                injectionEnabled,
+                tokenBudget,
+                groundTruth,
+                conversationHistory,
+                previousAnchorState,
+                compactionProvider,
+                compactionConfig,
+                extractionEnabled,
+                dormancyConfig,
+                dormancyState,
+                true,
+                true);
+    }
 
+    public TurnExecutionResult executeTurnFull(
+            String contextId,
+            int turnNumber,
+            String playerMessage,
+            TurnType turnType,
+            List<AttackStrategy> attackStrategies,
+            String setting,
+            boolean injectionEnabled,
+            int tokenBudget,
+            List<SimulationScenario.GroundTruth> groundTruth,
+            List<String> conversationHistory,
+            Map<String, Anchor> previousAnchorState,
+            CompactedContextProvider compactionProvider,
+            SimulationScenario.CompactionConfig compactionConfig,
+            boolean extractionEnabled,
+            SimulationScenario.DormancyConfig dormancyConfig,
+            Map<String, Integer> dormancyState,
+            boolean rankMutationEnabled,
+            boolean authorityPromotionEnabled) {
         if (properties.sim() != null && properties.sim().parallelPostResponse()) {
             return executeTurnFullParallel(
                     contextId, turnNumber, playerMessage, turnType, attackStrategies,
                     setting, injectionEnabled, tokenBudget, groundTruth, conversationHistory,
                     previousAnchorState, compactionProvider, compactionConfig,
-                    extractionEnabled, dormancyConfig, dormancyState);
+                    extractionEnabled, dormancyConfig, dormancyState,
+                    rankMutationEnabled, authorityPromotionEnabled);
         }
         return executeTurnFullSequential(
                 contextId, turnNumber, playerMessage, turnType, attackStrategies,
                 setting, injectionEnabled, tokenBudget, groundTruth, conversationHistory,
                 previousAnchorState, compactionProvider, compactionConfig,
-                extractionEnabled, dormancyConfig, dormancyState);
+                extractionEnabled, dormancyConfig, dormancyState,
+                rankMutationEnabled, authorityPromotionEnabled);
     }
 
     /**
@@ -249,7 +290,9 @@ public class SimulationTurnExecutor {
             SimulationScenario.CompactionConfig compactionConfig,
             boolean extractionEnabled,
             SimulationScenario.DormancyConfig dormancyConfig,
-            Map<String, Integer> dormancyState) {
+            Map<String, Integer> dormancyState,
+            boolean rankMutationEnabled,
+            boolean authorityPromotionEnabled) {
 
         var mutableDormancyState = dormancyState != null ? dormancyState : new HashMap<String, Integer>();
 
@@ -357,8 +400,10 @@ public class SimulationTurnExecutor {
         if (extractionEnabled) {
             currentSpan.setAttribute("sim.propositions_extracted", extractionResult.extractedCount());
             currentSpan.setAttribute("sim.propositions_promoted", extractionResult.promotedCount());
-            logger.info("Turn {} extraction: {} extracted, {} promoted",
-                    turnNumber, extractionResult.extractedCount(), extractionResult.promotedCount());
+            currentSpan.setAttribute("sim.degraded_conflict_count", extractionResult.degradedConflictCount());
+            logger.info("Turn {} extraction: {} extracted, {} promoted, {} degraded conflict(s)",
+                    turnNumber, extractionResult.extractedCount(), extractionResult.promotedCount(),
+                    extractionResult.degradedConflictCount());
         }
         logger.info("Turn {} [{}]: player='{}', dm='{}', anchors={}, verdicts={}",
                 turnNumber, turnType,
@@ -372,7 +417,8 @@ public class SimulationTurnExecutor {
         var turnResult = buildResult(
                 contextId, turnNumber, playerMessage, turn, extractionResult,
                 injectionEnabled, previousAnchorState, compactionProvider,
-                compactionConfig, dormancyConfig, mutableDormancyState);
+                compactionConfig, dormancyConfig, mutableDormancyState,
+                rankMutationEnabled, authorityPromotionEnabled);
         setTurnObservabilityAttributes(currentSpan, contextId, turnResult);
         return turnResult;
     }
@@ -398,7 +444,9 @@ public class SimulationTurnExecutor {
             SimulationScenario.CompactionConfig compactionConfig,
             boolean extractionEnabled,
             SimulationScenario.DormancyConfig dormancyConfig,
-            Map<String, Integer> dormancyState) {
+            Map<String, Integer> dormancyState,
+            boolean rankMutationEnabled,
+            boolean authorityPromotionEnabled) {
 
         var mutableDormancyState = dormancyState != null ? dormancyState : new HashMap<String, Integer>();
 
@@ -412,14 +460,17 @@ public class SimulationTurnExecutor {
             var currentSpan = Span.current();
             currentSpan.setAttribute("sim.propositions_extracted", extractionResult.extractedCount());
             currentSpan.setAttribute("sim.propositions_promoted", extractionResult.promotedCount());
-            logger.info("Turn {} extraction: {} extracted, {} promoted",
-                    turnNumber, extractionResult.extractedCount(), extractionResult.promotedCount());
+            currentSpan.setAttribute("sim.degraded_conflict_count", extractionResult.degradedConflictCount());
+            logger.info("Turn {} extraction: {} extracted, {} promoted, {} degraded conflict(s)",
+                    turnNumber, extractionResult.extractedCount(), extractionResult.promotedCount(),
+                    extractionResult.degradedConflictCount());
         }
 
         var turnResult = buildResult(
                 contextId, turnNumber, playerMessage, turn, extractionResult,
                 injectionEnabled, previousAnchorState, compactionProvider,
-                compactionConfig, dormancyConfig, mutableDormancyState);
+                compactionConfig, dormancyConfig, mutableDormancyState,
+                rankMutationEnabled, authorityPromotionEnabled);
         setTurnObservabilityAttributes(Span.current(), contextId, turnResult);
         return turnResult;
     }
@@ -440,26 +491,34 @@ public class SimulationTurnExecutor {
             CompactedContextProvider compactionProvider,
             SimulationScenario.CompactionConfig compactionConfig,
             SimulationScenario.DormancyConfig dormancyConfig,
-            Map<String, Integer> mutableDormancyState) {
+            Map<String, Integer> mutableDormancyState,
+            boolean rankMutationEnabled,
+            boolean authorityPromotionEnabled) {
 
         var reinforcedAnchorIds = new HashSet<String>();
         if (injectionEnabled && originalTraceHasAnchors(turn.contextTrace())) {
             for (var injectedAnchor : turn.contextTrace().injectedAnchors()) {
-                anchorEngine.reinforce(injectedAnchor.id());
+                anchorEngine.reinforce(
+                        injectedAnchor.id(),
+                        rankMutationEnabled,
+                        authorityPromotionEnabled);
                 reinforcedAnchorIds.add(injectedAnchor.id());
             }
         }
 
         var currentAnchors = anchorEngine.inject(contextId);
-        var dormancyLifecycleEnabled = dormancyConfig != null
+        var dormancyLifecycleEnabled = rankMutationEnabled
+                                       && dormancyConfig != null
                                        && dormancyConfig.decayRate() > 0
                                        && dormancyConfig.dormancyTurns() > 0;
-        var dormancyArchivedAnchorIds = applyDormancyLifecycle(
-                currentAnchors,
-                previousAnchorState,
-                reinforcedAnchorIds,
-                dormancyConfig,
-                mutableDormancyState);
+        var dormancyArchivedAnchorIds = dormancyLifecycleEnabled
+                ? applyDormancyLifecycle(
+                        currentAnchors,
+                        previousAnchorState,
+                        reinforcedAnchorIds,
+                        dormancyConfig,
+                        mutableDormancyState)
+                : Set.<String>of();
 
         if (dormancyLifecycleEnabled) {
             currentAnchors = anchorEngine.inject(contextId);
@@ -474,6 +533,7 @@ public class SimulationTurnExecutor {
                 originalTrace.fullUserPrompt(),
                 originalTrace.budgetApplied(), originalTrace.anchorsExcluded(),
                 extractionResult.extractedCount(), extractionResult.promotedCount(),
+                extractionResult.degradedConflictCount(),
                 extractionResult.extractedTexts(),
                 originalTrace.hotCount(), originalTrace.warmCount(), originalTrace.coldCount());
         turn = new SimulationTurn(

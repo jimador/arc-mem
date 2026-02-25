@@ -143,12 +143,13 @@ public class DuplicateDetector {
             }
             // Ensure all candidates have a result (LLM may have omitted some)
             for (var candidate : candidates) {
-                result.putIfAbsent(candidate, false);
+                result.putIfAbsent(candidate, true);
             }
             return result;
         } catch (Exception e) {
-            logger.warn("Failed to parse batch dedup response, assuming all unique: {}", e.getMessage());
-            return candidates.stream().collect(Collectors.toMap(c -> c, c -> false));
+            logger.warn("Failed to parse batch dedup response, quarantining {} candidates as duplicates: {}",
+                    candidates.size(), e.getMessage());
+            return candidates.stream().collect(Collectors.toMap(c -> c, c -> true));
         }
     }
 
@@ -173,8 +174,8 @@ public class DuplicateDetector {
             }
             return isDup;
         } catch (Exception e) {
-            logger.warn("LLM duplicate detection failed, assuming unique: {}", e.getMessage());
-            return false;
+            logger.warn("LLM duplicate detection failed, quarantining candidate as duplicate: {}", e.getMessage());
+            return true;
         }
     }
 }

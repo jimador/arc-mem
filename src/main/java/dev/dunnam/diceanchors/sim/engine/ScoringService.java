@@ -31,11 +31,15 @@ public class ScoringService {
         var firstDriftByFact = new HashMap<String, Integer>();
         var strategyContradictions = new HashMap<String, Integer>();
         var strategyTotalTurns = new HashMap<String, Integer>();
+        var degradedConflictCount = 0;
 
         var confirmedFactIds = new HashSet<String>();
         var engagedTurnCount = 0;
 
         for (var snapshot : snapshots) {
+            if (snapshot.contextTrace() != null) {
+                degradedConflictCount += Math.max(0, snapshot.contextTrace().degradedConflictCount());
+            }
             var verdicts = snapshot.verdicts();
             if (verdicts == null || verdicts.isEmpty()) {
                 continue;
@@ -105,7 +109,8 @@ public class ScoringService {
                 driftAbsorptionRate,
                 meanTurnsToFirstDrift,
                 anchorAttributionCount,
-                Map.copyOf(strategyEffectiveness)
+                Map.copyOf(strategyEffectiveness),
+                degradedConflictCount
         );
     }
 

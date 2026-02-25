@@ -164,10 +164,16 @@ public class AnchorEngine {
     public void promote(String propositionId, int initialRank, Authority authorityCeiling) {
         int rank = Anchor.clampRank(initialRank);
         var tier = computeTier(rank);
-        repository.promoteToAnchor(propositionId, rank, Authority.PROVISIONAL.name(), tier.name());
+        var effectiveCeiling = authorityCeiling != null ? authorityCeiling : Authority.CANON;
+        repository.promoteToAnchor(
+                propositionId,
+                rank,
+                Authority.PROVISIONAL.name(),
+                tier.name(),
+                effectiveCeiling.name());
 
-        if (authorityCeiling != null && authorityCeiling != Authority.CANON) {
-            logger.debug("Promoting proposition {} with authority ceiling {}", propositionId, authorityCeiling);
+        if (effectiveCeiling != Authority.CANON) {
+            logger.debug("Promoting proposition {} with authority ceiling {}", propositionId, effectiveCeiling);
         }
 
         var proposition = repository.findById(propositionId);
@@ -234,6 +240,10 @@ public class AnchorEngine {
      * @param anchorId the proposition node ID of the anchor to reinforce
      */
     public void reinforce(String anchorId) {
+        reinforce(anchorId, true, true);
+    }
+
+    public void reinforce(String anchorId, boolean rankMutationEnabled, boolean authorityPromotionEnabled) {
         repository.reinforceAnchor(anchorId);
 
         var nodeOpt = repository.findPropositionNodeById(anchorId);
@@ -244,11 +254,17 @@ public class AnchorEngine {
         var node = nodeOpt.get();
         var current = toAnchor(node);
         var previousTier = current.memoryTier();
-        int boost = reinforcementPolicy.calculateRankBoost(current);
-        int newRank = Anchor.clampRank(current.rank() + boost);
+        int newRank = current.rank();
+        if (rankMutationEnabled) {
+            int boost = reinforcementPolicy.calculateRankBoost(current);
+            newRank = Anchor.clampRank(current.rank() + boost);
+        }
         var newTier = computeTier(newRank);
 
-        if (reinforcementPolicy.shouldUpgradeAuthority(current)) {
+        var shouldUpgradeAuthority = authorityPromotionEnabled
+                && reinforcementPolicy.shouldUpgradeAuthority(current);
+
+        if (shouldUpgradeAuthority) {
             // Hook order (ALC1/ALC2): invariant → trust → mutation
             var allAnchors = findByContext(node.getContextId());
             var eval = evaluateInvariants(node.getContextId(), ProposedAction.AUTHORITY_CHANGE, allAnchors, current);
@@ -258,8 +274,10 @@ public class AnchorEngine {
             setInvariantSpanAttributes(eval, ProposedAction.AUTHORITY_CHANGE);
             if (eval.hasBlockingViolation()) {
                 logger.warn("Authority upgrade of anchor {} blocked by MUST invariant(s)", anchorId);
-                repository.updateRank(anchorId, newRank);
-                updateTierIfChanged(anchorId, previousTier, newTier, node.getContextId());
+                if (rankMutationEnabled) {
+                    repository.updateRank(anchorId, newRank);
+                    updateTierIfChanged(anchorId, previousTier, newTier, node.getContextId());
+                }
                 publish(AnchorLifecycleEvent.reinforced(
                         this, node.getContextId(), anchorId, current.rank(), newRank,
                         node.getReinforcementCount()));
@@ -273,28 +291,41 @@ public class AnchorEngine {
             }
             var postTrustNode = postTrustNodeOpt.get();
             var postTrustCurrent = toAnchor(postTrustNode);
-            var upgraded = nextAuthority(postTrustCurrent.authority());
-            repository.setAuthority(anchorId, upgraded.name());
-            repository.updateRank(anchorId, newRank);
-            updateTierIfChanged(anchorId, previousTier, newTier, postTrustNode.getContextId());
-            publish(AnchorLifecycleEvent.authorityChanged(
-                    this, postTrustNode.getContextId(),
-                    anchorId, postTrustCurrent.authority(), upgraded,
-                    AuthorityChangeDirection.PROMOTED, "reinforcement"));
+            var ceiling = parseAuthorityCeiling(postTrustNode.getAuthorityCeiling());
+            var upgraded = nextAuthority(postTrustCurrent.authority(), ceiling);
+            if (upgraded != postTrustCurrent.authority()) {
+                repository.setAuthority(anchorId, upgraded.name());
+                publish(AnchorLifecycleEvent.authorityChanged(
+                        this, postTrustNode.getContextId(),
+                        anchorId, postTrustCurrent.authority(), upgraded,
+                        AuthorityChangeDirection.PROMOTED, "reinforcement"));
+            }
+            if (rankMutationEnabled) {
+                repository.updateRank(anchorId, newRank);
+                updateTierIfChanged(anchorId, previousTier, newTier, postTrustNode.getContextId());
+            }
             publish(AnchorLifecycleEvent.reinforced(
                     this, postTrustNode.getContextId(),
                     anchorId, current.rank(), newRank,
                     postTrustNode.getReinforcementCount()));
-            logger.info("Reinforced anchor {} - rank {} -> {}, authority {} -> {}",
-                    anchorId, current.rank(), newRank, postTrustCurrent.authority(), upgraded);
+            if (upgraded != postTrustCurrent.authority()) {
+                logger.info("Reinforced anchor {} - rank {} -> {}, authority {} -> {}",
+                        anchorId, current.rank(), newRank, postTrustCurrent.authority(), upgraded);
+            } else {
+                logger.debug("Reinforced anchor {} - rank {} -> {}, authority remains {} (ceiling={})",
+                        anchorId, current.rank(), newRank, postTrustCurrent.authority(), ceiling);
+            }
         } else {
-            repository.updateRank(anchorId, newRank);
-            updateTierIfChanged(anchorId, previousTier, newTier, node.getContextId());
+            if (rankMutationEnabled) {
+                repository.updateRank(anchorId, newRank);
+                updateTierIfChanged(anchorId, previousTier, newTier, node.getContextId());
+            }
             publish(AnchorLifecycleEvent.reinforced(
                     this, node.getContextId(),
                     anchorId, current.rank(), newRank,
                     node.getReinforcementCount()));
-            logger.debug("Reinforced anchor {} - rank {} -> {}", anchorId, current.rank(), newRank);
+            logger.debug("Reinforced anchor {} - rank {} -> {} (authorityPromotionEnabled={})",
+                    anchorId, current.rank(), newRank, authorityPromotionEnabled);
         }
     }
 
@@ -510,14 +541,18 @@ public class AnchorEngine {
                 ? Authority.valueOf(currentAuthStr) : Authority.PROVISIONAL;
 
         var trustScore = trustPipeline.evaluate(node, node.getContextId());
-        var ceiling = trustScore.authorityCeiling();
+        var trustCeiling = trustScore.authorityCeiling();
+        var persistedCeiling = parseAuthorityCeiling(node.getAuthorityCeiling());
+        var ceiling = minimumAuthority(trustCeiling, persistedCeiling);
 
         Authority newAuthority;
         if (ceiling.level() < current.level()) {
             logger.info("Trust re-evaluation: anchor {} ceiling {} < current authority {} → demoting",
                     anchorId, ceiling, current);
             demote(anchorId, DemotionReason.TRUST_DEGRADATION);
-            newAuthority = current.previousLevel();
+            newAuthority = repository.findPropositionNodeById(anchorId)
+                    .map(this::authorityOf)
+                    .orElse(current.previousLevel());
         } else {
             logger.debug("Trust re-evaluation: anchor {} ceiling {} >= current authority {} — no change",
                     anchorId, ceiling, current);
@@ -566,10 +601,15 @@ public class AnchorEngine {
         var anchors = inject(contextId);
         var conflicts = conflictDetector.detect(incomingText, anchors);
         if (!conflicts.isEmpty()) {
+            var existingIds = conflicts.stream()
+                    .map(ConflictDetector.Conflict::existing)
+                    .filter(existing -> existing != null)
+                    .map(Anchor::id)
+                    .toList();
             publish(AnchorLifecycleEvent.conflictDetected(
                     this, contextId, incomingText,
                     conflicts.size(),
-                    conflicts.stream().map(conflict -> conflict.existing().id()).toList()));
+                    existingIds));
         }
         return conflicts;
     }
@@ -612,6 +652,15 @@ public class AnchorEngine {
      * @return the resolution decision
      */
     public ConflictResolver.Resolution resolveConflict(ConflictDetector.Conflict conflict) {
+        if (conflict.existing() == null) {
+            logger.warn("Received degraded conflict placeholder without existing anchor (incoming='{}')",
+                    conflict.incomingText());
+            var resolution = conflictResolver.resolve(conflict);
+            publish(AnchorLifecycleEvent.conflictResolved(
+                    this, "unknown", "unknown", resolution));
+            return resolution;
+        }
+
         var resolution = conflictResolver.resolve(conflict);
         var contextId = repository.findPropositionNodeById(conflict.existing().id())
                 .map(PropositionNode::getContextId)
@@ -798,12 +847,35 @@ public class AnchorEngine {
      * Return the next authority level above the given one.
      * CANON is never returned — RELIABLE is the ceiling for automatic promotion (A3a).
      */
-    private Authority nextAuthority(Authority current) {
-        return switch (current) {
+    private Authority nextAuthority(Authority current, Authority ceiling) {
+        var candidate = switch (current) {
             case PROVISIONAL -> Authority.UNRELIABLE;
             case UNRELIABLE -> Authority.RELIABLE;
             case RELIABLE, CANON -> Authority.RELIABLE;
         };
+        return candidate.level() <= ceiling.level() ? candidate : current;
+    }
+
+    private Authority parseAuthorityCeiling(@Nullable String persistedCeiling) {
+        if (persistedCeiling == null || persistedCeiling.isBlank()) {
+            return Authority.CANON;
+        }
+        try {
+            return Authority.valueOf(persistedCeiling);
+        } catch (IllegalArgumentException e) {
+            logger.warn("Unknown authority ceiling '{}' on persisted node; treating as unrestricted",
+                    persistedCeiling);
+            return Authority.CANON;
+        }
+    }
+
+    private Authority minimumAuthority(Authority first, Authority second) {
+        return first.level() <= second.level() ? first : second;
+    }
+
+    private Authority authorityOf(PropositionNode node) {
+        var authority = node.getAuthority();
+        return authority != null ? Authority.valueOf(authority) : Authority.PROVISIONAL;
     }
 
     private void publish(AnchorLifecycleEvent event) {

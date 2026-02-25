@@ -4,6 +4,7 @@ import dev.dunnam.diceanchors.DiceAnchorsProperties;
 import dev.dunnam.diceanchors.sim.engine.RunHistoryStore;
 import dev.dunnam.diceanchors.sim.engine.ScoringResult;
 import dev.dunnam.diceanchors.sim.engine.SimulationScenario;
+import dev.dunnam.diceanchors.sim.engine.SimulationRuntimeConfig;
 import dev.dunnam.diceanchors.sim.engine.SimulationService;
 import io.micrometer.observation.annotation.Observed;
 import io.opentelemetry.api.trace.Span;
@@ -142,6 +143,8 @@ public class BenchmarkRunner {
         currentSpan.setAttribute("benchmark.scenario_id", scenario.id());
         currentSpan.setAttribute("benchmark.run_count", runCount);
         currentSpan.setAttribute("benchmark.condition", condition.name());
+        currentSpan.setAttribute("benchmark.rank_mutation_enabled", condition.rankMutationEnabled());
+        currentSpan.setAttribute("benchmark.authority_promotion_enabled", condition.authorityPromotionEnabled());
 
         var parallelism = properties.sim().benchmarkParallelism();
         logger.info("Starting benchmark: scenario='{}', runCount={}, condition='{}', parallelism={}",
@@ -166,6 +169,9 @@ public class BenchmarkRunner {
                         if (cancelRequested.get()) return null;
                         logger.info("Benchmark run {}/{} for scenario '{}' [{}]",
                                 runIndex, runCount, scenario.id(), condition.name());
+                        var runtimeConfig = new SimulationRuntimeConfig(
+                                condition.rankMutationEnabled(),
+                                condition.authorityPromotionEnabled());
                         simulationService.runSimulation(conditionedScenario, maxTurns,
                                 effectiveInjectionSupplier, tokenBudgetSupplier,
                                 progress -> {
@@ -179,7 +185,7 @@ public class BenchmarkRunner {
                                         onProgress.accept(new BenchmarkProgress(
                                                 completed, runCount, progress.scoringResult()));
                                     }
-                                });
+                                }, runtimeConfig);
                     } finally {
                         semaphore.release();
                     }

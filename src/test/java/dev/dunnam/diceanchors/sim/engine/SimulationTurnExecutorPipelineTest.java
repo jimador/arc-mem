@@ -22,6 +22,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -64,7 +65,7 @@ class SimulationTurnExecutorPipelineTest {
                 List.of(injectedAnchor),
                 List.of(reinforcedAnchor, promotedAnchor));
         when(extractionService.extract("sim-ctx", "DM response text"))
-                .thenReturn(new ExtractionResult(2, 1, List.of("Newly promoted fact")));
+                .thenReturn(new ExtractionResult(2, 1, 0, List.of("Newly promoted fact")));
 
         var result = executor.executeTurnFull(
                 "sim-ctx",
@@ -84,7 +85,7 @@ class SimulationTurnExecutorPipelineTest {
                 null,
                 new java.util.HashMap<>());
 
-        verify(anchorEngine).reinforce("a1");
+        verify(anchorEngine).reinforce("a1", true, true);
 
         assertThat(result.turn().contextTrace().propositionsExtracted()).isEqualTo(2);
         assertThat(result.turn().contextTrace().propositionsPromoted()).isEqualTo(1);
@@ -257,7 +258,7 @@ class SimulationTurnExecutorPipelineTest {
                 new SimulationScenario.DormancyConfig(0.2, 0.1, 1),
                 new java.util.HashMap<>());
 
-        verify(anchorEngine, never()).reinforce(any());
+        verify(anchorEngine, never()).reinforce(any(), anyBoolean(), anyBoolean());
         verify(anchorEngine).applyDecay(eq("a1"), eq(400));
         assertThat(result.turn().anchorEvents())
                 .extracting(SimulationTurn.AnchorEvent::eventType)

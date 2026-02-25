@@ -1,12 +1,12 @@
-# dice-anchors
+# Anchors for DICE
 
 Anchors resist adversarial prompt drift — a working reference for DICE + Embabel Agent integration.
 
-## What is dice-anchors?
+## What are Anchors?
 
 Large language models forget. Over a multi-turn conversation, established facts silently erode: an attacker reframes a detail, the model accommodates, and ground truth drifts. In agentic systems where the LLM drives decisions, this drift has real consequences.
 
-**dice-anchors** demonstrates a defense: **Anchors** — enriched [DICE](https://github.com/embabel/dice) Propositions with rank, authority, and budget management that are injected into every LLM prompt as a ranked reference block. When incoming text contradicts an anchor, the system detects the conflict and resolves it based on authority. Budget constraints (max 20 active anchors) force eviction of the weakest, keeping the context window focused on the most important facts.
+**Anchors** demonstrates a defense. They enriched [DICE](https://github.com/embabel/dice) Propositions with rank, authority, and budget management that are injected into every LLM prompt as a ranked reference block. When incoming text contradicts an anchor, the system detects the conflict and resolves it based on authority. Budget constraints (max 20 active anchors) force eviction of the weakest, keeping the context window focused on the most important facts.
 
 The project includes a D&D-themed adversarial simulation harness that stress-tests anchor stability. An attacker (controlled by the LLM) tries to reframe or contradict ground-truth facts using tactics like subtle reframing, detail flooding, or false authority claims. The system evaluates drift per turn — how far anchors have strayed from ground truth — and a benchmarking framework measures resilience across ablation conditions.
 

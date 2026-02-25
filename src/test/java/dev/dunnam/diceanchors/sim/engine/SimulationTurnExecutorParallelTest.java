@@ -88,7 +88,7 @@ class SimulationTurnExecutorParallelTest {
                     List.of(injectedAnchor),
                     List.of(injectedAnchor));
             when(extractionService.extract("ctx", "The dungeon stretches ahead."))
-                    .thenReturn(new ExtractionResult(1, 0, List.of("The dungeon stretches ahead.")));
+                    .thenReturn(new ExtractionResult(1, 0, 0, List.of("The dungeon stretches ahead.")));
 
             var result = executor.executeTurnFull(
                     "ctx", 1, "What do I see?", TurnType.ESTABLISH, null,
@@ -137,7 +137,7 @@ class SimulationTurnExecutorParallelTest {
 
             when(anchorEngine.inject("ctx")).thenReturn(List.of(), List.of());
             when(extractionService.extract("ctx", "DM: The king still lives."))
-                    .thenReturn(new ExtractionResult(1, 1, List.of("The king still lives.")));
+                    .thenReturn(new ExtractionResult(1, 1, 0, List.of("The king still lives.")));
 
             var groundTruth = List.of(new SimulationScenario.GroundTruth("f1", "The king is alive"));
 
@@ -173,7 +173,7 @@ class SimulationTurnExecutorParallelTest {
 
             when(anchorEngine.inject("ctx")).thenReturn(List.of(), List.of());
             when(extractionService.extract("ctx", "The tavern is warm and inviting."))
-                    .thenReturn(new ExtractionResult(2, 0, List.of("The tavern is warm.", "The tavern is inviting.")));
+                    .thenReturn(new ExtractionResult(2, 0, 0, List.of("The tavern is warm.", "The tavern is inviting.")));
 
             var result = executor.executeTurnFull(
                     "ctx", 1, "Describe the tavern.", TurnType.ESTABLISH, null,
@@ -263,7 +263,7 @@ class SimulationTurnExecutorParallelTest {
                     List.of(existingAnchor),
                     List.of(existingAnchor));
             when(extractionService.extract("ctx", "Ancient ruins hide many secrets."))
-                    .thenReturn(new ExtractionResult(3, 2, List.of("fact1", "fact2", "fact3")));
+                    .thenReturn(new ExtractionResult(3, 2, 0, List.of("fact1", "fact2", "fact3")));
 
             var result = executor.executeTurnFull(
                     "ctx", 1, "Tell me about ruins.", TurnType.ESTABLISH, null,

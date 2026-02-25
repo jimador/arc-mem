@@ -166,7 +166,7 @@ All proposed interfaces default to no-op implementations so existing DICE adopte
 2. **No temporal validity primitives.** DICE propositions have no `validFrom`/`validTo` semantics. Anchors cannot represent "this was true then but not now" without application-level workarounds.
 3. **No shared audit schema.** Anchor lifecycle events (`anchor/event/`) and DICE extraction events use different structures. Unified observability requires schema alignment.
 4. **Text-keyed batch maps.** Trust pipeline and promotion paths key by proposition text rather than stable DICE proposition ID, risking collisions on normalization edge cases.
-5. **Fail-open parse paths.** Duplicate detection and conflict detection default to permissive behavior on LLM parse failures, creating adversarial attack surface.
+5. **Degraded parse handling still requires review workflows.** Duplicate/conflict parse failures now quarantine or degrade to review instead of auto-accept, but operator handling paths remain implementation-specific.
 
 **Risks:**
 1. **Semantic drift from DICE upstream.** If DICE evolves its own memory tiering, `dice-anchors` patterns may diverge. Option B mitigates this by maintaining adapter boundaries.
@@ -180,7 +180,7 @@ All proposed interfaces default to no-op implementations so existing DICE adopte
 | **Intent**      | Demonstrate working-memory anchoring as a composable layer over DICE extraction, with evidence for upstream adoption                                                                                      |
 | **Current fit** | DICE provides extraction; Anchors consumes output and adds lifecycle governance. Integration is functional but loosely coupled (no shared hooks)                                                          |
 | **Known gaps**  | No DICE lifecycle hooks, no temporal primitives, text-keyed maps, fail-open parse paths                                                                                                                   |
-| **Next steps**  | (1) Fix P0 gate issues, (2) persist authority ceilings, (3) propose `MemoryTierClassifier`/`MemoryTierPolicy`/`MemoryMutationAudit` SPIs to DICE upstream, (4) add temporal metadata to persistence model |
+| **Next steps**  | (1) propose `MemoryTierClassifier`/`MemoryTierPolicy`/`MemoryMutationAudit` SPIs to DICE upstream, (2) add temporal metadata to persistence model, (3) publish deterministic ablation manifests |
 
 ## 5. Positioning Against Related Work
 

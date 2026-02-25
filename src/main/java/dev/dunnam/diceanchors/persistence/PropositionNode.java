@@ -137,6 +137,13 @@ public class PropositionNode {
     private @Nullable String memoryTier;
 
     /**
+     * Maximum authority level this anchor may reach via automatic promotion.
+     * Null means unrestricted (legacy records). Typical values:
+     * PROVISIONAL, UNRELIABLE, RELIABLE, CANON (unrestricted marker).
+     */
+    private @Nullable String authorityCeiling;
+
+    /**
      * Valid-time start: when the anchor's fact became true.
      * Set at promotion time. Null for legacy nodes (treated as {@code created}).
      */
@@ -197,7 +204,8 @@ public class PropositionNode {
             @JsonProperty("transactionStart") @Nullable Instant transactionStart,
             @JsonProperty("transactionEnd") @Nullable Instant transactionEnd,
             @JsonProperty("supersededBy") @Nullable String supersededBy,
-            @JsonProperty("supersedes") @Nullable String supersedes) {
+            @JsonProperty("supersedes") @Nullable String supersedes,
+            @JsonProperty("authorityCeiling") @Nullable String authorityCeiling) {
         this.id = id != null ? id : UUID.randomUUID().toString();
         this.contextId = contextId != null ? contextId : "default";
         this.text = text;
@@ -224,6 +232,40 @@ public class PropositionNode {
         this.transactionEnd = transactionEnd;
         this.supersededBy = supersededBy;
         this.supersedes = supersedes;
+        this.authorityCeiling = authorityCeiling;
+    }
+
+    public PropositionNode(
+            String id,
+            String contextId,
+            String text,
+            double confidence,
+            double decay,
+            @Nullable String reasoning,
+            List<String> grounding,
+            Instant created,
+            Instant revised,
+            PropositionStatus status,
+            @Nullable String uri,
+            List<String> sourceIds,
+            int rank,
+            @Nullable String authority,
+            boolean pinned,
+            @Nullable String decayType,
+            @Nullable Instant lastReinforced,
+            int reinforcementCount,
+            double importance,
+            @Nullable String memoryTier,
+            @Nullable Instant validFrom,
+            @Nullable Instant validTo,
+            @Nullable Instant transactionStart,
+            @Nullable Instant transactionEnd,
+            @Nullable String supersededBy,
+            @Nullable String supersedes) {
+        this(id, contextId, text, confidence, decay, reasoning, grounding, created, revised,
+                status, uri, sourceIds, rank, authority, pinned, decayType, lastReinforced,
+                reinforcementCount, importance, memoryTier, validFrom, validTo,
+                transactionStart, transactionEnd, supersededBy, supersedes, null);
     }
 
     /**
@@ -234,14 +276,14 @@ public class PropositionNode {
                            PropositionStatus status, @Nullable String uri, List<String> sourceIds) {
         this(id, contextId, text, confidence, decay, reasoning, grounding, created, revised,
              status, uri, sourceIds, 0, null, false, null, null, 0, 0.0, null,
-             null, null, null, null, null, null);
+             null, null, null, null, null, null, null);
     }
 
     public PropositionNode(String text, double confidence) {
         this(UUID.randomUUID().toString(), "default", text, confidence, 0.0, null, List.of(),
              Instant.now(), Instant.now(), PropositionStatus.ACTIVE, null, List.of(),
              0, null, false, null, null, 0, 0.0, null,
-             null, null, null, null, null, null);
+             null, null, null, null, null, null, null);
     }
 
     // --- Standard proposition getters and setters ---
@@ -414,6 +456,14 @@ public class PropositionNode {
 
     public void setMemoryTier(@Nullable String memoryTier) {
         this.memoryTier = memoryTier;
+    }
+
+    public @Nullable String getAuthorityCeiling() {
+        return authorityCeiling;
+    }
+
+    public void setAuthorityCeiling(@Nullable String authorityCeiling) {
+        this.authorityCeiling = authorityCeiling;
     }
 
     // --- Bi-temporal validity getters and setters ---

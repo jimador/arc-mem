@@ -23,6 +23,33 @@ class ScoringServiceTest {
         );
     }
 
+    private static SimulationRunRecord.TurnSnapshot snapshotWithDegradedCount(
+            int turnNumber, int degradedConflictCount, List<EvalVerdict> verdicts) {
+        var trace = new ContextTrace(
+                turnNumber,
+                0,
+                0,
+                List.of(),
+                true,
+                "",
+                "",
+                "",
+                false,
+                0,
+                0,
+                0,
+                degradedConflictCount,
+                List.of(),
+                0,
+                0,
+                0);
+        return new SimulationRunRecord.TurnSnapshot(
+                turnNumber, TurnType.ATTACK, List.of(),
+                "player message", "dm response",
+                List.of(), trace, verdicts, true, null
+        );
+    }
+
     private static SimulationScenario.GroundTruth fact(String id, String text) {
         return new SimulationScenario.GroundTruth(id, text);
     }
@@ -248,6 +275,18 @@ class ScoringServiceTest {
             assertThat(result.meanTurnsToFirstDrift()).isNaN();
             assertThat(result.anchorAttributionCount()).isZero();
             assertThat(result.strategyEffectiveness()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("degraded conflict counts aggregate from context traces")
+        void degradedConflictCountsAggregateFromContextTraces() {
+            var snapshots = List.of(
+                    snapshotWithDegradedCount(1, 2, List.of()),
+                    snapshotWithDegradedCount(2, 1, List.of(
+                            EvalVerdict.confirmed("f1", "ok")))
+            );
+            var result = service.score(snapshots, List.of(fact("f1", "The king is alive")));
+            assertThat(result.degradedConflictCount()).isEqualTo(3);
         }
 
         @Test

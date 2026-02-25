@@ -3,6 +3,7 @@ package dev.dunnam.diceanchors.anchor;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Strategy interface for detecting conflicts between an incoming proposition and existing anchors.
@@ -49,7 +50,7 @@ public interface ConflictDetector {
      * @param detectionQuality how reliably the detection was performed; {@code DEGRADED}
      *                         means the result is a placeholder, not a confirmed conflict
      */
-    record Conflict(Anchor existing, String incomingText, double confidence, String reason,
+    record Conflict(@Nullable Anchor existing, String incomingText, double confidence, String reason,
                     DetectionQuality detectionQuality) {
 
         /** Convenience constructor for full-quality detections (backward-compatible). */

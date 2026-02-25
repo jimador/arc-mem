@@ -5,6 +5,7 @@ import dev.dunnam.diceanchors.sim.engine.RunHistoryStore;
 import dev.dunnam.diceanchors.sim.engine.ScoringResult;
 import dev.dunnam.diceanchors.sim.engine.SimulationProgress;
 import dev.dunnam.diceanchors.sim.engine.SimulationProgress.SimulationPhase;
+import dev.dunnam.diceanchors.sim.engine.SimulationRuntimeConfig;
 import dev.dunnam.diceanchors.sim.engine.SimulationScenario;
 import dev.dunnam.diceanchors.sim.engine.SimulationService;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.quality.Strictness;
@@ -112,7 +114,7 @@ class BenchmarkRunnerTest {
                 Consumer<SimulationProgress> callback = invocation.getArgument(4);
                 callback.accept(completeProgress(SAMPLE_RESULT));
                 return null;
-            }).when(simulationService).runSimulation(any(), anyInt(), any(), any(), any());
+            }).when(simulationService).runSimulation(any(), anyInt(), any(), any(), any(), any(SimulationRuntimeConfig.class));
 
             var expectedReport = new BenchmarkReport(
                     "bench-abc", "test-scenario", Instant.now(), runCount, 1000L,
@@ -121,7 +123,7 @@ class BenchmarkRunnerTest {
 
             runner.runBenchmark(scenario, 10, runCount, () -> true, () -> 4000, p -> {});
 
-            verify(simulationService, times(runCount)).runSimulation(any(), anyInt(), any(), any(), any());
+            verify(simulationService, times(runCount)).runSimulation(any(), anyInt(), any(), any(), any(), any(SimulationRuntimeConfig.class));
         }
 
         @Test
@@ -135,7 +137,7 @@ class BenchmarkRunnerTest {
                 Consumer<SimulationProgress> callback = invocation.getArgument(4);
                 callback.accept(completeProgress(SAMPLE_RESULT));
                 return null;
-            }).when(simulationService).runSimulation(any(), anyInt(), any(), any(), any());
+            }).when(simulationService).runSimulation(any(), anyInt(), any(), any(), any(), any(SimulationRuntimeConfig.class));
 
             var expectedReport = new BenchmarkReport(
                     "bench-abc", "test-scenario", Instant.now(), runCount, 1000L,
@@ -175,7 +177,7 @@ class BenchmarkRunnerTest {
                 Consumer<SimulationProgress> callback = invocation.getArgument(4);
                 callback.accept(completeProgress(SAMPLE_RESULT));
                 return null;
-            }).when(simulationService).runSimulation(any(), anyInt(), any(), any(), any());
+            }).when(simulationService).runSimulation(any(), anyInt(), any(), any(), any(), any(SimulationRuntimeConfig.class));
 
             var expectedReport = new BenchmarkReport(
                     "bench-abc", "test-scenario", Instant.now(), 2, 1000L,
@@ -211,7 +213,7 @@ class BenchmarkRunnerTest {
                 Consumer<SimulationProgress> callback = invocation.getArgument(4);
                 callback.accept(completeProgress(SAMPLE_RESULT));
                 return null;
-            }).when(simulationService).runSimulation(any(), anyInt(), any(), any(), any());
+            }).when(simulationService).runSimulation(any(), anyInt(), any(), any(), any(), any(SimulationRuntimeConfig.class));
 
             var expectedReport = new BenchmarkReport(
                     "bench-abc", "test-scenario", Instant.now(), 4, 1000L,
@@ -221,6 +223,43 @@ class BenchmarkRunnerTest {
             runner.runBenchmark(scenario, 10, 4, () -> true, () -> 4000, p -> {});
 
             assertThat(maxConcurrent.get()).isLessThanOrEqualTo(2);
+        }
+
+        @Test
+        @DisplayName("passes ablation mutation flags into simulation runtime config")
+        void passesAblationMutationFlagsIntoRuntimeConfig() {
+            var scenario = minimalScenario();
+            var runCount = 2;
+
+            doAnswer(invocation -> {
+                @SuppressWarnings("unchecked")
+                Consumer<SimulationProgress> callback = invocation.getArgument(4);
+                callback.accept(completeProgress(SAMPLE_RESULT));
+                return null;
+            }).when(simulationService).runSimulation(any(), anyInt(), any(), any(), any(), any(SimulationRuntimeConfig.class));
+
+            var expectedReport = new BenchmarkReport(
+                    "bench-abc", "test-scenario", Instant.now(), runCount, 1000L,
+                    Map.of(), Map.of(), List.of(), null, null);
+            when(aggregator.aggregate(any(), any(), any(), anyLong())).thenReturn(expectedReport);
+
+            runner.runBenchmark(
+                    scenario,
+                    10,
+                    runCount,
+                    () -> true,
+                    () -> 4000,
+                    p -> {},
+                    AblationCondition.NO_RANK_DIFFERENTIATION);
+
+            var configCaptor = ArgumentCaptor.forClass(SimulationRuntimeConfig.class);
+            verify(simulationService, times(runCount)).runSimulation(
+                    any(), anyInt(), any(), any(), any(), configCaptor.capture());
+            assertThat(configCaptor.getAllValues())
+                    .allSatisfy(cfg -> {
+                        assertThat(cfg.rankMutationEnabled()).isFalse();
+                        assertThat(cfg.authorityPromotionEnabled()).isTrue();
+                    });
         }
     }
 

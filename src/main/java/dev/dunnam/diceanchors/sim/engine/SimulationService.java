@@ -114,7 +114,23 @@ public class SimulationService {
             Supplier<Boolean> injectionStateSupplier,
             Supplier<Integer> tokenBudgetSupplier,
             Consumer<SimulationProgress> onProgress) {
+        runSimulation(
+                scenario,
+                maxTurns,
+                injectionStateSupplier,
+                tokenBudgetSupplier,
+                onProgress,
+                SimulationRuntimeConfig.fullAnchors());
+    }
 
+    @Observed(name = "simulation.run")
+    public void runSimulation(
+            SimulationScenario scenario,
+            int maxTurns,
+            Supplier<Boolean> injectionStateSupplier,
+            Supplier<Integer> tokenBudgetSupplier,
+            Consumer<SimulationProgress> onProgress,
+            SimulationRuntimeConfig runtimeConfig) {
         var runId = UUID.randomUUID().toString().substring(0, 8);
         var contextId = "sim-" + runId;
         var ctx = new SimulationRunContext(contextId, runId);
@@ -181,7 +197,9 @@ public class SimulationService {
                         compactedContextProvider, scenario.compactionConfig(),
                         true, // extraction always enabled for scene-setting
                         scenario.dormancyConfig(),
-                        dormancyState);
+                        dormancyState,
+                        runtimeConfig.rankMutationEnabled(),
+                        runtimeConfig.authorityPromotionEnabled());
 
                 var sceneTurn = sceneResult.turn();
                 var scenePlayerMessage = "Set the scene for us. Describe what we see and what we know.";
@@ -293,7 +311,9 @@ public class SimulationService {
                         compactedContextProvider, scenario.compactionConfig(),
                         scenario.isExtractionEnabled(),
                         scenario.dormancyConfig(),
-                        dormancyState);
+                        dormancyState,
+                        runtimeConfig.rankMutationEnabled(),
+                        runtimeConfig.authorityPromotionEnabled());
                 long turnDurationMs = System.currentTimeMillis() - turnStart;
 
                 var turn = result.turn();
@@ -348,6 +368,8 @@ public class SimulationService {
 
             var runSpan = Span.current();
             runSpan.setAttribute("sim.total_degraded_conflicts", scoringResult.degradedConflictCount());
+            runSpan.setAttribute("sim.rank_mutation_enabled", runtimeConfig.rankMutationEnabled());
+            runSpan.setAttribute("sim.authority_promotion_enabled", runtimeConfig.authorityPromotionEnabled());
             var totalInvariantViolations = countInvariantViolations(contextId);
             runSpan.setAttribute("sim.total_invariant_violations", totalInvariantViolations);
 

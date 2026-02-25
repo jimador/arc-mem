@@ -59,7 +59,7 @@ When the conflict detector cannot parse LLM output, the system must not auto-acc
 1. **Signal collection** -- `TrustSignal` implementations evaluate source authority (string-contains heuristic at lines 141-145), consistency, and corroboration.
 2. **Batch evaluation** -- `TrustPipeline` (`src/main/java/.../anchor/TrustPipeline.java`) runs signals in batch. Results are keyed by proposition text (line 52), which risks collision on identical text from different propositions. Migration to proposition-ID keys is tracked.
 3. **Profile-gated decision** -- Three domain profiles (`BALANCED`, `SECURE`, `NARRATIVE`) apply thresholds. These are manually tuned; no calibration dataset exists yet.
-4. **Authority ceiling** -- Passed into `AnchorEngine.promote()` but enforcement of ceiling on subsequent upgrades is a known gap (see P0-1 in external assessment).
+4. **Authority ceiling** -- Persisted on promotion (`PropositionNode.authorityCeiling`) and enforced during reinforcement-driven upgrades. Effective re-evaluation ceiling is `min(trustCeiling, persistedCeiling)`.
 
 ### Audit Records
 

@@ -120,13 +120,17 @@ public class SimulationExtractionService {
             var tagged = anchorRepository.tagSourceIds(propositionIds, "dm");
             logger.debug("Tagged {} propositions with 'dm' source for context {}", tagged, contextId);
 
-            var promoted = promoter.batchEvaluateAndPromote(contextId, propositions);
+            var promotionOutcome = promoter.batchEvaluateAndPromoteWithOutcome(contextId, propositions);
 
             var extractedTexts = propositions.stream()
                     .map(Proposition::getText)
                     .toList();
 
-            return new ExtractionResult(propositions.size(), promoted, extractedTexts);
+            return new ExtractionResult(
+                    propositions.size(),
+                    promotionOutcome.promotedCount(),
+                    promotionOutcome.degradedConflictCount(),
+                    extractedTexts);
         } catch (Exception e) {
             logger.error("DICE extraction failed for context {}: {}", contextId, e.getMessage(), e);
             return ExtractionResult.empty();

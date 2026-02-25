@@ -16,6 +16,7 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -158,5 +159,31 @@ class DuplicateDetectorTest {
 
         assertThat(detector.isDuplicate(CONTEXT_ID, "anything")).isFalse();
         verify(chatModel, never()).call(any(org.springframework.ai.chat.prompt.Prompt.class));
+    }
+
+    @Test
+    @DisplayName("batch parse failures quarantine candidates as duplicates")
+    void batchParseFailuresQuarantineCandidates() {
+        var detector = detectorWithStrategy("LLM_ONLY");
+        when(engine.inject(CONTEXT_ID)).thenReturn(singleAnchor("The king is dead"));
+        when(llmCallService.callBatched(any(), any())).thenReturn("not-json");
+
+        var result = detector.batchIsDuplicate(CONTEXT_ID, List.of("A", "B"));
+
+        assertThat(result).isEqualTo(Map.of("A", true, "B", true));
+    }
+
+    @Test
+    @DisplayName("batch omissions quarantine missing candidates as duplicates")
+    void batchOmissionsQuarantineMissingCandidates() {
+        var detector = detectorWithStrategy("LLM_ONLY");
+        when(engine.inject(CONTEXT_ID)).thenReturn(singleAnchor("The king is dead"));
+        when(llmCallService.callBatched(any(), any())).thenReturn("""
+                {"results":[{"candidate":"A","isDuplicate":false}]}
+                """);
+
+        var result = detector.batchIsDuplicate(CONTEXT_ID, List.of("A", "B"));
+
+        assertThat(result).isEqualTo(Map.of("A", false, "B", true));
     }
 }

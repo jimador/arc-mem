@@ -1141,12 +1141,18 @@ public class AnchorRepository implements PropositionRepository {
      */
     @Transactional
     public void promoteToAnchor(@NonNull String propositionId, int rank, @NonNull String authority) {
-        promoteToAnchor(propositionId, rank, authority, null);
+        promoteToAnchor(propositionId, rank, authority, null, null);
     }
 
     @Transactional
     public void promoteToAnchor(@NonNull String propositionId, int rank, @NonNull String authority,
                                 @Nullable String memoryTier) {
+        promoteToAnchor(propositionId, rank, authority, memoryTier, null);
+    }
+
+    @Transactional
+    public void promoteToAnchor(@NonNull String propositionId, int rank, @NonNull String authority,
+                                @Nullable String memoryTier, @Nullable String authorityCeiling) {
         int clamped = Math.max(100, Math.min(900, rank));
         var cypher = """
                 MATCH (p:Proposition {id: $id})
@@ -1155,6 +1161,7 @@ public class AnchorRepository implements PropositionRepository {
                     p.status = 'ACTIVE',
                     p.lastReinforced = $now,
                     p.memoryTier = $memoryTier,
+                    p.authorityCeiling = $authorityCeiling,
                     p.validFrom = $now,
                     p.transactionStart = $now
                 """;
@@ -1164,9 +1171,11 @@ public class AnchorRepository implements PropositionRepository {
         params.put("authority", authority);
         params.put("now", Instant.now().toString());
         params.put("memoryTier", memoryTier);
+        params.put("authorityCeiling", authorityCeiling);
         try {
             persistenceManager.execute(QuerySpecification.withStatement(cypher).bind(params));
-            logger.debug("Promoted proposition {} to anchor with rank={} authority={} tier={}", propositionId, clamped, authority, memoryTier);
+            logger.debug("Promoted proposition {} to anchor with rank={} authority={} tier={} ceiling={}",
+                    propositionId, clamped, authority, memoryTier, authorityCeiling);
         } catch (Exception e) {
             logger.error("Failed to promote proposition {} to anchor: {}", propositionId, e.getMessage(), e);
         }
