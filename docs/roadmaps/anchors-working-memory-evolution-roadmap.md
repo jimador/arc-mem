@@ -36,16 +36,16 @@ Normative roadmap statements SHOULD use RFC 2119 keywords (`MUST`, `SHOULD`, `MA
 
 ## Proposal Waves
 
-| Wave | Feature ID | Feature Slug                           | Priority | Depends On              | Visibility         | OpenSpec Change Slug                   |
-|------|------------|----------------------------------------|----------|-------------------------|--------------------|----------------------------------------|
-| 1    | F01        | working-memory-tiering-core            | MUST     | none                    | UI + Observability | working-memory-tiering-core            |
-| 1    | F02        | conflict-detection-calibration-core    | MUST     | F01                     | UI + Observability | conflict-detection-calibration-core    |
-| 1    | F03        | retrieval-quality-gate-toolishrag      | MUST     | F02                     | UI + Observability | retrieval-quality-gate-toolishrag      |
-| 2    | F04        | bi-temporal-validity-and-supersession  | SHOULD   | F01, F02                | UI + Observability | bi-temporal-validity-and-supersession  |
-| 2    | F05        | compaction-recovery-guardrails         | MUST     | none                    | UI + Observability | compaction-recovery-guardrails         |
-| 3    | F06        | benchmarking-and-statistical-rigor     | SHOULD   | F01, F02, F03, F04, F05 | UI + Observability | benchmarking-and-statistical-rigor     |
-| 3    | F07        | operator-invariants-api-and-governance | MAY      | F01, F02                | UI + Observability | operator-invariants-api-and-governance |
-| 4    | F08        | dice-framework-fit-upstream-proposal   | MUST     | F01, F02, F03           | UI + Observability | dice-framework-fit-upstream-proposal   |
+| Wave | Feature ID | Feature Slug                           | Priority | Depends On              | Visibility         | OpenSpec Change Slug                   | Spec Coverage |
+|------|------------|----------------------------------------|----------|-------------------------|--------------------|----------------------------------------|---|
+| 1    | F01        | working-memory-tiering-core            | MUST     | none                    | UI + Observability | working-memory-tiering-core            | ✓ Covered by `memory-tiering`, `tier-aware-decay`, `tier-aware-assembly` specs |
+| 1    | F02        | conflict-detection-calibration-core    | MUST     | F01                     | UI + Observability | conflict-detection-calibration-core    | ✓ Covered by `conflict-detection`, `conflict-calibration`, `semantic-conflict-detection`, `anchor-conflict` specs |
+| 1    | F03        | retrieval-quality-gate-toolishrag      | MUST     | F02                     | UI + Observability | retrieval-quality-gate-toolishrag      | ✓ Covered by `retrieval-quality-gate`, `anchor-trust`, `trust-scoring` specs |
+| 2    | F04        | bi-temporal-validity-and-supersession  | SHOULD   | F01, F02                | UI + Observability | bi-temporal-validity-and-supersession  | ✓ Covered by `bi-temporal-validity`, `anchor-supersession`, `anchor-lifecycle` specs |
+| 2    | F05        | compaction-recovery-guardrails         | MUST     | none                    | UI + Observability | compaction-recovery-guardrails         | ✓ Covered by `compaction`, `compaction-recovery` specs |
+| 3    | F06        | benchmarking-and-statistical-rigor     | SHOULD   | F01, F02, F03, F04, F05 | UI + Observability | benchmarking-and-statistical-rigor     | ✓ Covered by `benchmark-runner`, `benchmark-statistics`, `benchmark-report`, `ablation-conditions`, `cross-condition-statistics` specs |
+| 3    | F07        | operator-invariants-api-and-governance | MAY      | F01, F02                | UI + Observability | operator-invariants-api-and-governance | ✓ Covered by `operator-invariants`, `invariant-inspector`, `canonization-gate` specs |
+| 4    | F08        | dice-framework-fit-upstream-proposal   | MUST     | F01, F02, F03           | UI + Observability | dice-framework-fit-upstream-proposal   | ◐ Partially covered by `anchor-lifecycle`, `anchor-extraction`, `anchor-llm-tools` specs |
 
 ## Research Backlog (Optional)
 

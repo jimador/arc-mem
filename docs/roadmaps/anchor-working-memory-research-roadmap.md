@@ -54,13 +54,13 @@ Multi-agent anchor governance — extending the trust/authority model to agent-t
 
 ## Proposal Waves
 
-| Wave | Feature ID | Feature Slug                      | Priority | Depends On                                | Visibility         | OpenSpec Change Slug        |
-|------|------------|---------------t--------------------|----------|-------------------------------------------|--------------------|-----------------------------|
-| 1    | F01        | experiment-framework              | MUST     | benchmarking-and-statistical-rigor (done) | UI + Observability | experiment-framework        |
-| 2    | F02        | first-class-benchmarking-ui       | MUST     | F01                                       | UI + Observability | first-class-benchmarking-ui |
-| 2    | F03        | resilience-evaluation-report      | MUST     | F01, F02                                  | Observability      | —                           |
-| 3    | F04        | serendipitous-knowledge-retrieval | MAY      | none (independent)                        | UI + Observability | —                           |
-| 3    | F05        | multi-agent-anchor-governance     | MAY      | none (independent)                        | UI + Observability | —                           |
+| Wave | Feature ID | Feature Slug                      | Priority | Depends On                                | Visibility         | OpenSpec Change Slug        | Spec Coverage |
+|------|------------|---------------t--------------------|----------|-------------------------------------------|--------------------|-----------------------------|---|
+| 1    | F01        | experiment-framework              | MUST     | benchmarking-and-statistical-rigor (done) | UI + Observability | experiment-framework        | ✓ Covered by `ablation-conditions`, `experiment-execution`, `cross-condition-statistics`, `experiment-persistence`, `experiment-progress-monitor` specs |
+| 2    | F02        | first-class-benchmarking-ui       | MUST     | F01                                       | UI + Observability | first-class-benchmarking-ui | ✓ Covered by `benchmark-ui`, `benchmark-view-routing`, `experiment-config-ux`, `experiment-history-panel`, `fact-drill-down`, `condition-comparison-view` specs |
+| 2    | F03        | resilience-evaluation-report      | MUST     | F01, F02                                  | Observability      | —                           | ✓ Covered by `resilience-report`, `resilience-score`, `benchmark-report`, `benchmark-statistics` specs |
+| 3    | F04        | serendipitous-knowledge-retrieval | MAY      | none (independent)                        | UI + Observability | —                           | — No spec yet (future work) |
+| 3    | F05        | multi-agent-anchor-governance     | MAY      | none (independent)                        | UI + Observability | —                           | — No spec yet (future work) |
 
 ## Research Backlog
 
