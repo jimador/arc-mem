@@ -27,13 +27,13 @@ import java.util.concurrent.atomic.AtomicInteger;
  * emitted as the {@code retrieval.tool_call_count} OTEL span attribute on each call.
  */
 @MatryoshkaTools(name = "anchor-retrieval",
-    description = "Tools for retrieving relevant established facts by topic or question")
+        description = "Tools for retrieving relevant established facts by topic or question")
 public record AnchorRetrievalTools(
-    AnchorEngine engine,
-    RelevanceScorer scorer,
-    String contextId,
-    RetrievalConfig config,
-    AtomicInteger toolCallCounter
+        AnchorEngine engine,
+        RelevanceScorer scorer,
+        String contextId,
+        RetrievalConfig config,
+        AtomicInteger toolCallCounter
 ) {
     public AnchorRetrievalTools(AnchorEngine engine, RelevanceScorer scorer,
                                 String contextId, RetrievalConfig config) {
@@ -42,11 +42,12 @@ public record AnchorRetrievalTools(
 
     private static final Logger logger = LoggerFactory.getLogger(AnchorRetrievalTools.class);
 
-    @LlmTool(description = "Retrieve established facts (anchors) most relevant to a specific "
-        + "topic or question. Returns anchors scored and ranked by relevance to your query. "
-        + "Use this when you need grounding on a specific topic that may not be in your "
-        + "baseline context. Each result includes the fact text, authority level, memory tier, "
-        + "and a relevance score (0.0-1.0).")
+    @LlmTool(description = """
+            Retrieve established facts (anchors) most relevant to a specific \
+            topic or question. Returns anchors scored and ranked by relevance to your query. \
+            Use this when you need grounding on a specific topic that may not be in your \
+            baseline context. Each result includes the fact text, authority level, memory tier, \
+            and a relevance score (0.0-1.0).""")
     public List<ScoredAnchor> retrieveAnchors(String query) {
         logger.info("LLM tool call: retrieveAnchors with query={}", query);
         var anchors = engine.inject(contextId);
@@ -64,9 +65,9 @@ public record AnchorRetrievalTools(
 
         // Apply quality gate and top-k
         var results = scored.stream()
-                .filter(sa -> sa.relevanceScore() >= minRelevance)
-                .limit(topK)
-                .toList();
+                            .filter(sa -> sa.relevanceScore() >= minRelevance)
+                            .limit(topK)
+                            .toList();
 
         // Track cumulative tool call count via OTEL span attribute
         var callCount = toolCallCounter.incrementAndGet();
@@ -74,7 +75,7 @@ public record AnchorRetrievalTools(
         span.setAttribute("retrieval.tool_call_count", callCount);
 
         logger.info("Tool result: retrieveAnchors returned {} results (top-k={}, minRelevance={})",
-                results.size(), topK, minRelevance);
+                    results.size(), topK, minRelevance);
         return results;
     }
 }

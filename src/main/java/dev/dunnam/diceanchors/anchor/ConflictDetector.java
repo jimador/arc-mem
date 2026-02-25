@@ -18,20 +18,45 @@ import java.util.Map;
  * <h2>Error handling</h2>
  * Implementations MUST return an empty list (never null, never throw) if detection fails.
  * Callers rely on an empty list to mean "no conflicts detected".
+ *
+ * <h2>Detection quality (ACON1)</h2>
+ * When parse or LLM failures occur, implementations MUST set
+ * {@link DetectionQuality#DEGRADED} on returned {@link Conflict} records rather than
+ * silently returning an empty list. Callers and reports use this to surface degraded
+ * conflict detection counts.
  */
 public interface ConflictDetector {
 
     /**
+     * Quality of the detection that produced a {@link Conflict}.
+     * <ul>
+     *   <li>{@code FULL} — normal detection path with structured LLM or lexical response</li>
+     *   <li>{@code FALLBACK} — LLM parse failed but keyword heuristic found a signal</li>
+     *   <li>{@code DEGRADED} — detection could not complete; result is a placeholder
+     *       marking the candidate as needing manual review</li>
+     * </ul>
+     */
+    enum DetectionQuality { FULL, FALLBACK, DEGRADED }
+
+    /**
      * Represents a detected conflict between an existing anchor and an incoming proposition.
      *
-     * @param existing     the existing anchor that conflicts with the incoming text
-     * @param incomingText the text of the incoming proposition that triggered the conflict
-     * @param confidence   confidence that a real conflict exists (0.0 = uncertain, 1.0 = certain);
-     *                     used by {@link ConflictResolver} to choose a resolution
-     * @param reason       human-readable description of why the conflict was detected
-     *                     (e.g., "negation", "contradiction", "partial overlap")
+     * @param existing         the existing anchor that conflicts with the incoming text
+     * @param incomingText     the text of the incoming proposition that triggered the conflict
+     * @param confidence       confidence that a real conflict exists (0.0 = uncertain, 1.0 = certain);
+     *                         used by {@link ConflictResolver} to choose a resolution
+     * @param reason           human-readable description of why the conflict was detected
+     * @param detectionQuality how reliably the detection was performed; {@code DEGRADED}
+     *                         means the result is a placeholder, not a confirmed conflict
      */
-    record Conflict(Anchor existing, String incomingText, double confidence, String reason) {}
+    record Conflict(Anchor existing, String incomingText, double confidence, String reason,
+                    DetectionQuality detectionQuality) {
+
+        /** Convenience constructor for full-quality detections (backward-compatible). */
+        public Conflict(Anchor existing, String incomingText, double confidence, String reason) {
+            this(existing, incomingText, confidence, reason, DetectionQuality.FULL);
+        }
+    }
 
     /**
      * Detect conflicts between an incoming statement and the provided existing anchors.

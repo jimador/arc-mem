@@ -34,5 +34,15 @@ public record BenchmarkReport(
         Map<String, BenchmarkStatistics> strategyStatistics,
         List<String> runIds,
         @Nullable String baselineReportId,
-        @Nullable Map<String, Double> baselineDeltas
-) {}
+        @Nullable Map<String, Double> baselineDeltas,
+        @Nullable String modelId
+) {
+    public BenchmarkReport(
+            String reportId, String scenarioId, Instant createdAt, int runCount,
+            long totalDurationMs, Map<String, BenchmarkStatistics> metricStatistics,
+            Map<String, BenchmarkStatistics> strategyStatistics, List<String> runIds,
+            @Nullable String baselineReportId, @Nullable Map<String, Double> baselineDeltas) {
+        this(reportId, scenarioId, createdAt, runCount, totalDurationMs, metricStatistics,
+                strategyStatistics, runIds, baselineReportId, baselineDeltas, null);
+    }
+}

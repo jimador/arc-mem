@@ -369,10 +369,12 @@ public class SimulationTurnExecutor {
                 turnNumber, playerMessage, dmResponse,
                 turnType, attackStrategies, initialTrace, verdicts, List.of());
 
-        return buildResult(
+        var turnResult = buildResult(
                 contextId, turnNumber, playerMessage, turn, extractionResult,
                 injectionEnabled, previousAnchorState, compactionProvider,
                 compactionConfig, dormancyConfig, mutableDormancyState);
+        setTurnObservabilityAttributes(currentSpan, contextId, turnResult);
+        return turnResult;
     }
 
     /**
@@ -414,10 +416,12 @@ public class SimulationTurnExecutor {
                     turnNumber, extractionResult.extractedCount(), extractionResult.promotedCount());
         }
 
-        return buildResult(
+        var turnResult = buildResult(
                 contextId, turnNumber, playerMessage, turn, extractionResult,
                 injectionEnabled, previousAnchorState, compactionProvider,
                 compactionConfig, dormancyConfig, mutableDormancyState);
+        setTurnObservabilityAttributes(Span.current(), contextId, turnResult);
+        return turnResult;
     }
 
     /**
@@ -829,5 +833,16 @@ public class SimulationTurnExecutor {
             parts.add(propositionBlock.strip());
         }
         return String.join("\n\n", parts);
+    }
+
+    /**
+     * Set observability attributes on the turn span for invariant and degraded-decision tracking.
+     * Evaluates invariants against the post-turn anchor state to capture the summary violation count.
+     */
+    private void setTurnObservabilityAttributes(Span span, String contextId, TurnExecutionResult result) {
+        var anchors = anchorEngine.findByContext(contextId);
+        var eval = anchorEngine.evaluateInvariantSummary(contextId, anchors);
+        var violationCount = eval != null ? eval.violations().size() : 0;
+        span.setAttribute("sim.invariant_violations", (long) violationCount);
     }
 }

@@ -197,6 +197,41 @@ class AuthorityConflictResolverTest {
     }
 
     @Nested
+    @DisplayName("DEGRADED detection quality")
+    class DegradedDetectionQuality {
+
+        @Test
+        @DisplayName("DEGRADED conflict returns KEEP_EXISTING regardless of authority or confidence")
+        void degradedConflictReturnsKeepExisting() {
+            var conflict = new ConflictDetector.Conflict(
+                    Anchor.withoutTrust("1", "Provisional fact", 300, Authority.PROVISIONAL, false, 0.5, 0),
+                    "Any counter", 0.95, "degraded detection",
+                    ConflictDetector.DetectionQuality.DEGRADED);
+            assertThat(resolver.resolve(conflict)).isEqualTo(ConflictResolver.Resolution.KEEP_EXISTING);
+        }
+
+        @Test
+        @DisplayName("DEGRADED conflict with RELIABLE anchor still returns KEEP_EXISTING")
+        void degradedReliableAnchorStillKeepsExisting() {
+            var conflict = new ConflictDetector.Conflict(
+                    Anchor.withoutTrust("1", "Reliable fact", 700, Authority.RELIABLE, false, 0.9, 3),
+                    "Counter", 0.99, "degraded detection",
+                    ConflictDetector.DetectionQuality.DEGRADED);
+            assertThat(resolver.resolve(conflict)).isEqualTo(ConflictResolver.Resolution.KEEP_EXISTING);
+        }
+
+        @Test
+        @DisplayName("FALLBACK quality does NOT trigger degraded short-circuit")
+        void fallbackQualityResolvedNormally() {
+            var conflict = new ConflictDetector.Conflict(
+                    Anchor.withoutTrust("1", "Provisional fact", 300, Authority.PROVISIONAL, false, 0.5, 0),
+                    "Counter", 0.9, "fallback detection",
+                    ConflictDetector.DetectionQuality.FALLBACK);
+            assertThat(resolver.resolve(conflict)).isEqualTo(ConflictResolver.Resolution.REPLACE);
+        }
+    }
+
+    @Nested
     @DisplayName("confidenceBand")
     class ConfidenceBand {
 

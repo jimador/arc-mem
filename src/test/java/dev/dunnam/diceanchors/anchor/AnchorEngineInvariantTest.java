@@ -220,9 +220,67 @@ class AnchorEngineInvariantTest {
         }
     }
 
-    // ========================================================================
+    @Nested
+    @DisplayName("Reinforce hook order: invariant before authority upgrade")
+    class ReinforceHookOrder {
+
+        @Test
+        @DisplayName("reinforce with blocking invariant still updates rank but skips authority upgrade")
+        void reinforceBlockedByInvariantUpdatesRankButSkipsAuthority() {
+            var node = anchorNode("a5", Authority.UNRELIABLE);
+            node.setRank(500);
+            node.setReinforcementCount(7);
+            when(repository.findPropositionNodeById("a5")).thenReturn(Optional.of(node));
+            when(repository.findActiveAnchors(CONTEXT_ID)).thenReturn(List.of(node));
+            when(reinforcementPolicy.calculateRankBoost(any())).thenReturn(50);
+            when(reinforcementPolicy.shouldUpgradeAuthority(any())).thenReturn(true);
+
+            var violation = new InvariantViolationData(
+                    "ahk-1", InvariantStrength.MUST, ProposedAction.AUTHORITY_CHANGE,
+                    "Authority upgrade blocked by invariant", "a5");
+            var blockedEval = new InvariantEvaluation(List.of(violation), 1);
+            when(invariantEvaluator.evaluate(eq(CONTEXT_ID), eq(ProposedAction.AUTHORITY_CHANGE), any(), any()))
+                    .thenReturn(blockedEval);
+
+            engine.reinforce("a5");
+
+            // Rank is updated despite the blocked authority upgrade
+            verify(repository).updateRank("a5", 550);
+            // Authority is NOT upgraded
+            verify(repository, never()).setAuthority(eq("a5"), anyString());
+            // InvariantViolation event is published
+            verify(eventPublisher).publishEvent(any(AnchorLifecycleEvent.InvariantViolation.class));
+            // Reinforced event still fires (with updated rank)
+            verify(eventPublisher).publishEvent(any(AnchorLifecycleEvent.Reinforced.class));
+        }
+
+        @Test
+        @DisplayName("reinforce without blocking invariant proceeds with authority upgrade")
+        void reinforceWithoutBlockingInvariantUpgradesAuthority() {
+            var node = anchorNode("a6", Authority.UNRELIABLE);
+            node.setRank(500);
+            node.setReinforcementCount(7);
+            when(repository.findPropositionNodeById("a6")).thenReturn(Optional.of(node));
+            when(repository.findActiveAnchors(CONTEXT_ID)).thenReturn(List.of(node));
+            when(reinforcementPolicy.calculateRankBoost(any())).thenReturn(50);
+            when(reinforcementPolicy.shouldUpgradeAuthority(any())).thenReturn(true);
+
+            var cleanEval = new InvariantEvaluation(List.of(), 1);
+            when(invariantEvaluator.evaluate(eq(CONTEXT_ID), eq(ProposedAction.AUTHORITY_CHANGE), any(), any()))
+                    .thenReturn(cleanEval);
+
+            var trustScore = new TrustScore(0.9, Authority.RELIABLE,
+                    PromotionZone.AUTO_PROMOTE, java.util.Map.of(), java.time.Instant.now());
+            when(trustPipeline.evaluate(any(), any())).thenReturn(trustScore);
+
+            engine.reinforce("a6");
+
+            verify(repository).setAuthority("a6", Authority.RELIABLE.name());
+            verify(repository).updateRank("a6", 550);
+        }
+    }
+
     // Helpers
-    // ========================================================================
 
     private PropositionNode anchorNode(String id, Authority authority) {
         var node = new PropositionNode("anchor text " + id, 0.9);

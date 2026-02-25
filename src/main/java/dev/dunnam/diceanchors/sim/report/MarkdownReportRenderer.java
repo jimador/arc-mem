@@ -51,6 +51,9 @@ public final class MarkdownReportRenderer {
         sb.append("| Conditions | ").append(String.join(", ", report.conditions())).append(" |\n");
         sb.append("| Scenarios | ").append(String.join(", ", report.scenarioIds())).append(" |\n");
         sb.append("| Repetitions | ").append(report.repetitionsPerCell()).append(" per cell |\n");
+        if (report.modelId() != null) {
+            sb.append("| Model | ").append(report.modelId()).append(" |\n");
+        }
         sb.append("\n");
 
         if (report.cancelled()) {

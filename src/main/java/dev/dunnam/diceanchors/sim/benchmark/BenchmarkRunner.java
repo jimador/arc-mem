@@ -217,7 +217,21 @@ public class BenchmarkRunner {
             return report;
         }
 
-        var report = aggregator.aggregate(List.copyOf(scoringResults), scenario.id(), List.copyOf(runIds), durationMs);
+        var baseReport = aggregator.aggregate(List.copyOf(scoringResults), scenario.id(), List.copyOf(runIds), durationMs);
+
+        String modelId = null;
+        if (!runIds.isEmpty()) {
+            var firstRun = runHistoryStore.load(runIds.getFirst());
+            if (firstRun.isPresent()) {
+                modelId = firstRun.get().modelId();
+            }
+        }
+        var report = new BenchmarkReport(
+                baseReport.reportId(), baseReport.scenarioId(), baseReport.createdAt(),
+                baseReport.runCount(), baseReport.totalDurationMs(), baseReport.metricStatistics(),
+                baseReport.strategyStatistics(), baseReport.runIds(),
+                baseReport.baselineReportId(), baseReport.baselineDeltas(), modelId);
+
         currentSpan.setAttribute("benchmark.mean_survival_rate",
                 report.metricStatistics().containsKey("factSurvivalRate")
                         ? report.metricStatistics().get("factSurvivalRate").mean()

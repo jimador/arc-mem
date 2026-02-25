@@ -13,6 +13,8 @@ import java.util.Map;
  * @param meanTurnsToFirstDrift   average turn number of first contradiction per fact (NaN if none)
  * @param anchorAttributionCount  number of facts with at least one matching injected anchor
  * @param strategyEffectiveness   contradiction rate per attack strategy
+ * @param degradedConflictCount   conflicts where detection quality was DEGRADED (ACON1);
+ *                                non-zero means conflict results are unreliable for this run
  */
 public record ScoringResult(
         double factSurvivalRate,
@@ -21,5 +23,16 @@ public record ScoringResult(
         double driftAbsorptionRate,
         double meanTurnsToFirstDrift,
         int anchorAttributionCount,
-        Map<String, Double> strategyEffectiveness
-) {}
+        Map<String, Double> strategyEffectiveness,
+        int degradedConflictCount
+) {
+    /** Backward-compatible constructor that defaults degradedConflictCount to 0. */
+    public ScoringResult(double factSurvivalRate, int contradictionCount,
+                         int majorContradictionCount, double driftAbsorptionRate,
+                         double meanTurnsToFirstDrift, int anchorAttributionCount,
+                         Map<String, Double> strategyEffectiveness) {
+        this(factSurvivalRate, contradictionCount, majorContradictionCount,
+             driftAbsorptionRate, meanTurnsToFirstDrift, anchorAttributionCount,
+             strategyEffectiveness, 0);
+    }
+}

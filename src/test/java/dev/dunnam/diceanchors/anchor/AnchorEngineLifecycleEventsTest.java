@@ -311,6 +311,81 @@ class AnchorEngineLifecycleEventsTest {
         }
     }
 
+    @Nested
+    @DisplayName("Trust audit records")
+    class TrustAuditRecords {
+
+        @Test
+        @DisplayName("reinforce with authority upgrade produces audit record with trigger 'reinforcement'")
+        void reinforceProducesAuditRecordWithReinforcementTrigger() {
+            var node = anchorNode("a1", 500, Authority.UNRELIABLE, 7);
+            when(repository.findPropositionNodeById("a1")).thenReturn(Optional.of(node));
+            when(reinforcementPolicy.calculateRankBoost(any())).thenReturn(50);
+            when(reinforcementPolicy.shouldUpgradeAuthority(any())).thenReturn(true);
+            var trustScore = new TrustScore(0.9, Authority.RELIABLE,
+                    PromotionZone.AUTO_PROMOTE, Map.of("signal1", 0.8), Instant.now());
+            when(trustPipeline.evaluate(any(), any())).thenReturn(trustScore);
+
+            enabledEngine.reinforce("a1");
+
+            var records = enabledEngine.trustAuditLog(CONTEXT_ID);
+            assertThat(records).hasSize(1);
+            assertThat(records.getFirst().anchorId()).isEqualTo("a1");
+            assertThat(records.getFirst().contextId()).isEqualTo(CONTEXT_ID);
+            assertThat(records.getFirst().triggerReason()).isEqualTo("reinforcement");
+            assertThat(records.getFirst().newTrustScore()).isEqualTo(0.9);
+        }
+
+        @Test
+        @DisplayName("reEvaluateTrust produces audit record with trigger 'explicit'")
+        void reEvaluateTrustProducesAuditRecordWithExplicitTrigger() {
+            var node = anchorNode("a2", 600, Authority.RELIABLE, 5);
+            when(repository.findPropositionNodeById("a2")).thenReturn(Optional.of(node));
+            var trustScore = new TrustScore(0.85, Authority.RELIABLE,
+                    PromotionZone.AUTO_PROMOTE, Map.of("signal1", 0.7), Instant.now());
+            when(trustPipeline.evaluate(any(), any())).thenReturn(trustScore);
+
+            enabledEngine.reEvaluateTrust("a2");
+
+            var records = enabledEngine.trustAuditLog(CONTEXT_ID);
+            assertThat(records).hasSize(1);
+            assertThat(records.getFirst().triggerReason()).isEqualTo("explicit");
+            assertThat(records.getFirst().priorAuthority()).isEqualTo(Authority.RELIABLE);
+        }
+
+        @Test
+        @DisplayName("trust audit log filters by contextId")
+        void trustAuditLogFiltersByContextId() {
+            var node1 = anchorNode("a1", 500, Authority.UNRELIABLE, 7);
+            when(repository.findPropositionNodeById("a1")).thenReturn(Optional.of(node1));
+            var trustScore = new TrustScore(0.9, Authority.RELIABLE,
+                    PromotionZone.AUTO_PROMOTE, Map.of(), Instant.now());
+            when(trustPipeline.evaluate(any(), any())).thenReturn(trustScore);
+
+            enabledEngine.reEvaluateTrust("a1");
+
+            assertThat(enabledEngine.trustAuditLog(CONTEXT_ID)).hasSize(1);
+            assertThat(enabledEngine.trustAuditLog("other-ctx")).isEmpty();
+            assertThat(enabledEngine.trustAuditLog(null)).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("clearTrustAuditLog removes entries for specified context only")
+        void clearTrustAuditLogRemovesEntriesForContext() {
+            var node = anchorNode("a1", 500, Authority.UNRELIABLE, 7);
+            when(repository.findPropositionNodeById("a1")).thenReturn(Optional.of(node));
+            var trustScore = new TrustScore(0.9, Authority.RELIABLE,
+                    PromotionZone.AUTO_PROMOTE, Map.of(), Instant.now());
+            when(trustPipeline.evaluate(any(), any())).thenReturn(trustScore);
+
+            enabledEngine.reEvaluateTrust("a1");
+            assertThat(enabledEngine.trustAuditLog(CONTEXT_ID)).hasSize(1);
+
+            enabledEngine.clearTrustAuditLog(CONTEXT_ID);
+            assertThat(enabledEngine.trustAuditLog(CONTEXT_ID)).isEmpty();
+        }
+    }
+
     private static PropositionNode anchorNode(String id, int rank, Authority authority, int reinforcementCount) {
         var node = new PropositionNode("text", 0.9);
         node.setId(id);

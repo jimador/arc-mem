@@ -45,6 +45,8 @@ public class BenchmarkAggregator {
                 computeStats(results.stream().mapToDouble(ScoringResult::driftAbsorptionRate).toArray()));
         metricStats.put("anchorAttributionCount",
                 computeStats(results.stream().mapToDouble(ScoringResult::anchorAttributionCount).toArray()));
+        metricStats.put("degradedConflictCount",
+                computeStats(results.stream().mapToDouble(ScoringResult::degradedConflictCount).toArray()));
 
         // meanTurnsToFirstDrift: filter NaN values
         var mtfd = results.stream()

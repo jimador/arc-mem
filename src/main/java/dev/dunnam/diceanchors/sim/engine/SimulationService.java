@@ -18,6 +18,7 @@ import dev.dunnam.diceanchors.sim.engine.adversary.AttackOutcome;
 import dev.dunnam.diceanchors.sim.engine.adversary.AttackPlan;
 import dev.dunnam.diceanchors.sim.engine.adversary.TieredEscalationStrategy;
 import io.micrometer.observation.annotation.Observed;
+import io.opentelemetry.api.trace.Span;
 import org.drivine.manager.CascadeType;
 import org.drivine.manager.GraphObjectManager;
 import org.slf4j.Logger;
@@ -345,13 +346,19 @@ public class SimulationService {
             var groundTruth = scenario.groundTruth() != null ? scenario.groundTruth() : List.<SimulationScenario.GroundTruth> of();
             var scoringResult = scoringService.score(List.copyOf(turnSnapshots), groundTruth);
 
+            var runSpan = Span.current();
+            runSpan.setAttribute("sim.total_degraded_conflicts", scoringResult.degradedConflictCount());
+            var totalInvariantViolations = countInvariantViolations(contextId);
+            runSpan.setAttribute("sim.total_invariant_violations", totalInvariantViolations);
+
             var runRecord = new SimulationRunRecord(
                     runId, scenario.id(), startedAt, Instant.now(),
                     List.copyOf(turnSnapshots), 0, finalAnchors,
                     Boolean.TRUE.equals(injectionStateSupplier.get()),
                     tokenBudgetSupplier.get() != null ? Math.max(0, tokenBudgetSupplier.get()) : properties.assembly().promptTokenBudget(),
                     assertionResults,
-                    scoringResult);
+                    scoringResult,
+                    chatModel.getActiveModelName());
             runStore.save(runRecord);
             logger.info("Saved run record {} for scenario '{}'", runId, scenario.id());
 
@@ -483,6 +490,7 @@ public class SimulationService {
             return List.of();
         }
         return anchorEngine.detectConflicts(contextId, lastPlayerMsg).stream()
+                .filter(c -> c.existing() != null)
                 .map(c -> c.existing())
                 .toList();
     }
@@ -543,6 +551,12 @@ public class SimulationService {
                         scenario.id(), e.getMessage());
             return List.of(AssertionResult.fail("assertion-framework", "Evaluation failed: " + e.getMessage()));
         }
+    }
+
+    private long countInvariantViolations(String contextId) {
+        var anchors = anchorEngine.findByContext(contextId);
+        var eval = anchorEngine.evaluateInvariantSummary(contextId, anchors);
+        return eval.violations().size();
     }
 
     private SimulationProgress progress(

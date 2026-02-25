@@ -22,8 +22,17 @@ public record SimulationRunRecord(
         boolean injectionEnabled,
         int tokenBudget,
         @Nullable List<AssertionResult> assertionResults,
-        @Nullable ScoringResult scoringResult
+        @Nullable ScoringResult scoringResult,
+        @Nullable String modelId
 ) {
+    public SimulationRunRecord(
+            String runId, String scenarioId, Instant startedAt, Instant completedAt,
+            List<TurnSnapshot> turnSnapshots, int interventionCount, List<Anchor> finalAnchorState,
+            boolean injectionEnabled, int tokenBudget,
+            @Nullable List<AssertionResult> assertionResults, @Nullable ScoringResult scoringResult) {
+        this(runId, scenarioId, startedAt, completedAt, turnSnapshots, interventionCount,
+                finalAnchorState, injectionEnabled, tokenBudget, assertionResults, scoringResult, null);
+    }
     /**
      * Per-turn snapshot capturing state at that point in the simulation.
      */

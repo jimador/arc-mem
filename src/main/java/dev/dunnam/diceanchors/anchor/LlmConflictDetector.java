@@ -112,12 +112,22 @@ public class LlmConflictDetector implements ConflictDetector {
             candidates.forEach(c -> result.putIfAbsent(c, List.of()));
             return result;
         } catch (Exception e) {
-            logger.warn("Failed to parse batch conflict response — falling back to no-conflict for all {} candidates (response truncated to 200 chars: '{}'): {}",
-                    candidates.size(),
-                    responseText != null ? responseText.substring(0, Math.min(200, responseText.length())) : "<null>",
-                    e.getMessage());
-            return candidates.stream().collect(Collectors.toMap(c -> c, c -> List.of()));
+            logger.warn("Batch conflict parse failed — marking {} candidates as DEGRADED (ACON1): {}",
+                    candidates.size(), e.getMessage());
+            return markDegraded(candidates);
         }
+    }
+
+    /**
+     * Return a degraded placeholder for each candidate so callers know detection
+     * could not complete (ACON1: never silently fail-open on parse errors).
+     */
+    private Map<String, List<Conflict>> markDegraded(List<String> candidates) {
+        return candidates.stream().collect(Collectors.toMap(
+                c -> c,
+                c -> List.of(new Conflict(null, c, 0.0,
+                        "conflict detection degraded — parse failure",
+                        DetectionQuality.DEGRADED))));
     }
 
     private Conflict evaluatePair(String incomingText, Anchor anchor) {
@@ -142,15 +152,16 @@ public class LlmConflictDetector implements ConflictDetector {
             }
             return null;
         } catch (Exception e) {
-            logger.warn("LLM conflict response parse failed for anchor {} — falling back to text scan (response truncated to 200 chars: '{}'): {}",
-                    anchor.id(),
-                    raw != null ? raw.substring(0, Math.min(200, raw.length())) : "<null>",
-                    e.getMessage());
+            logger.warn("LLM conflict parse failed for anchor {} — falling back to text scan: {}",
+                    anchor.id(), e.getMessage());
             if (raw != null && raw.toLowerCase().contains("true")) {
                 return new Conflict(anchor, incomingText, llmConfidence,
-                                    "LLM indicated contradiction (fallback parse)");
+                        "LLM indicated contradiction (fallback parse)",
+                        DetectionQuality.FALLBACK);
             }
-            return null;
+            return new Conflict(anchor, incomingText, 0.0,
+                    "conflict detection degraded — parse failure",
+                    DetectionQuality.DEGRADED);
         }
     }
 

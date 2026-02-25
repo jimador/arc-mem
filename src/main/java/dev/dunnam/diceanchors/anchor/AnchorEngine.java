@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Facade coordinating all anchor lifecycle operations: promotion, reinforcement,
@@ -63,6 +64,9 @@ public class AnchorEngine {
     private final TrustPipeline trustPipeline;
     private final CanonizationGate canonizationGate;
     private final InvariantEvaluator invariantEvaluator;
+
+    /** Trust re-evaluation audit log (ATR1). Thread-safe, in-memory for demo. */
+    private final List<TrustAuditRecord> trustAuditLog = new CopyOnWriteArrayList<>();
 
     public AnchorEngine(
             AnchorRepository repository,
@@ -245,8 +249,23 @@ public class AnchorEngine {
         var newTier = computeTier(newRank);
 
         if (reinforcementPolicy.shouldUpgradeAuthority(current)) {
-            // Re-evaluate trust before authority upgrade; re-read after potential demotion
-            reEvaluateTrust(anchorId);
+            // Hook order (ALC1/ALC2): invariant → trust → mutation
+            var allAnchors = findByContext(node.getContextId());
+            var eval = evaluateInvariants(node.getContextId(), ProposedAction.AUTHORITY_CHANGE, allAnchors, current);
+            for (var violation : eval.violations()) {
+                publish(AnchorLifecycleEvent.invariantViolation(this, node.getContextId(), violation));
+            }
+            setInvariantSpanAttributes(eval, ProposedAction.AUTHORITY_CHANGE);
+            if (eval.hasBlockingViolation()) {
+                logger.warn("Authority upgrade of anchor {} blocked by MUST invariant(s)", anchorId);
+                repository.updateRank(anchorId, newRank);
+                updateTierIfChanged(anchorId, previousTier, newTier, node.getContextId());
+                publish(AnchorLifecycleEvent.reinforced(
+                        this, node.getContextId(), anchorId, current.rank(), newRank,
+                        node.getReinforcementCount()));
+                return;
+            }
+            reEvaluateTrust(anchorId, "reinforcement");
             var postTrustNodeOpt = repository.findPropositionNodeById(anchorId);
             if (postTrustNodeOpt.isEmpty()) {
                 logger.warn("Anchor {} not found after trust re-evaluation; skipping authority upgrade", anchorId);
@@ -476,6 +495,10 @@ public class AnchorEngine {
      * @param anchorId the proposition node ID of the anchor to re-evaluate
      */
     public void reEvaluateTrust(String anchorId) {
+        reEvaluateTrust(anchorId, "explicit");
+    }
+
+    private void reEvaluateTrust(String anchorId, String triggerReason) {
         var nodeOpt = repository.findPropositionNodeById(anchorId);
         if (nodeOpt.isEmpty()) {
             logger.warn("Cannot re-evaluate trust for anchor {} — not found", anchorId);
@@ -489,13 +512,40 @@ public class AnchorEngine {
         var trustScore = trustPipeline.evaluate(node, node.getContextId());
         var ceiling = trustScore.authorityCeiling();
 
+        Authority newAuthority;
         if (ceiling.level() < current.level()) {
             logger.info("Trust re-evaluation: anchor {} ceiling {} < current authority {} → demoting",
                     anchorId, ceiling, current);
             demote(anchorId, DemotionReason.TRUST_DEGRADATION);
+            newAuthority = current.previousLevel();
         } else {
             logger.debug("Trust re-evaluation: anchor {} ceiling {} >= current authority {} — no change",
                     anchorId, ceiling, current);
+            newAuthority = current;
+        }
+
+        trustAuditLog.add(new TrustAuditRecord(
+                anchorId, node.getContextId(), current, newAuthority,
+                Double.NaN, trustScore.score(), triggerReason,
+                Map.copyOf(trustScore.signalAudit()), trustScore.evaluatedAt()));
+    }
+
+    /** Return trust audit records, optionally filtered by context. */
+    public List<TrustAuditRecord> trustAuditLog(@Nullable String contextId) {
+        if (contextId == null) {
+            return List.copyOf(trustAuditLog);
+        }
+        return trustAuditLog.stream()
+                .filter(r -> contextId.equals(r.contextId()))
+                .toList();
+    }
+
+    /** Clear audit log entries for a context (called on simulation cleanup). */
+    public void clearTrustAuditLog(@Nullable String contextId) {
+        if (contextId == null) {
+            trustAuditLog.clear();
+        } else {
+            trustAuditLog.removeIf(r -> contextId.equals(r.contextId()));
         }
     }
 
@@ -766,6 +816,14 @@ public class AnchorEngine {
             logger.warn("Failed to publish lifecycle event {}: {}",
                     event.getClass().getSimpleName(), e.getMessage());
         }
+    }
+
+    /**
+     * Evaluate all invariant rules for a context without targeting a specific action.
+     * Used for observability summaries (e.g., turn-level span attributes).
+     */
+    public InvariantEvaluation evaluateInvariantSummary(String contextId, List<Anchor> anchors) {
+        return evaluateInvariants(contextId, ProposedAction.EVICT, anchors, null);
     }
 
     private InvariantEvaluation evaluateInvariants(String contextId, ProposedAction action,

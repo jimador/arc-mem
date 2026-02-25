@@ -28,17 +28,6 @@ public class ResilienceReportBuilder {
 
     private static final Logger logger = LoggerFactory.getLogger(ResilienceReportBuilder.class);
 
-    private static final String POSITIONING = """
-            DICE Anchors focuses on trust- and authority-governed working memory with \
-            adversarial drift resistance. Unlike MemGPT/Letta (OS-style paging for unbounded \
-            context), Zep/Graphiti (temporal knowledge graphs for long-term recall), \
-            ShardMemo (sharded retrieval across conversation segments), or Core Anchor Memory \
-            (static context anchoring without governance), this system enforces ranked, \
-            authority-stratified propositions under active adversarial pressure. The evaluation \
-            measures fact survival, contradiction resistance, and drift absorption under \
-            controlled multi-strategy attacks—capabilities not directly addressed by paging, \
-            temporal KG, or sharded retrieval architectures.""";
-
     private final RunHistoryStore runHistoryStore;
     private final ScenarioLoader scenarioLoader;
 
@@ -84,6 +73,12 @@ public class ResilienceReportBuilder {
 
         var strategySection = new StrategySection(report.strategyDeltas());
 
+        var modelId = report.cellReports().values().stream()
+                .map(BenchmarkReport::modelId)
+                .filter(id -> id != null && !"default".equals(id))
+                .findFirst()
+                .orElse(null);
+
         return new ResilienceReport(
                 "DICE Anchors Resilience Report",
                 Instant.now(),
@@ -96,7 +91,8 @@ public class ResilienceReportBuilder {
                 scoresByCondition,
                 List.copyOf(scenarioSections),
                 strategySection,
-                POSITIONING);
+                null,
+                modelId);
     }
 
     private ResilienceScore computeOverallScore(Map<String, ResilienceScore> scoresByCondition) {
@@ -167,12 +163,23 @@ public class ResilienceReportBuilder {
         }
     }
 
-    private String generateNarrative(
+    String generateNarrative(
             List<ConditionSummary> conditionSummaries,
             List<EffectSizeSummary> effectSizes,
             List<FactSurvivalRow> factSurvivalRows) {
 
         var sb = new StringBuilder();
+
+        if (conditionSummaries.size() < 2) {
+            sb.append("**Provisional:** Single-condition run without ablation controls. ")
+              .append("Comparative claims cannot be made.\n\n");
+        }
+
+        var totalDegradedRuns = countDegradedRuns(conditionSummaries);
+        if (totalDegradedRuns > 0) {
+            sb.append("**Provisional:** %d degraded conflict detection(s) occurred. ".formatted(totalDegradedRuns))
+              .append("Contradiction counts may be unreliable.\n\n");
+        }
 
         String bestCondition = null;
         var bestSurvival = -1.0;
@@ -231,5 +238,16 @@ public class ResilienceReportBuilder {
         }
 
         return sb.toString();
+    }
+
+    private int countDegradedRuns(List<ConditionSummary> conditionSummaries) {
+        var total = 0;
+        for (var summary : conditionSummaries) {
+            var stat = summary.metrics().get("degradedConflictCount");
+            if (stat != null && stat.mean() > 0) {
+                total += (int) Math.round(stat.mean() * stat.sampleCount());
+            }
+        }
+        return total;
     }
 }

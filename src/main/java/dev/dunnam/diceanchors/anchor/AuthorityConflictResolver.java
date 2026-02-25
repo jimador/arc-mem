@@ -34,6 +34,10 @@ public class AuthorityConflictResolver implements ConflictResolver {
 
     @Override
     public ConflictResolver.Resolution resolve(ConflictDetector.Conflict conflict) {
+        if (conflict.detectionQuality() == ConflictDetector.DetectionQuality.DEGRADED) {
+            setSpanAttributes(null, conflict.confidence(), null, Resolution.KEEP_EXISTING);
+            return Resolution.KEEP_EXISTING;
+        }
         var existingAuthority = conflict.existing().authority();
         var confidence = conflict.confidence();
 
@@ -76,7 +80,8 @@ public class AuthorityConflictResolver implements ConflictResolver {
     private void setSpanAttributes(Authority existingAuthority, double confidence,
                                     MemoryTier existingTier, Resolution resolution) {
         var span = Span.current();
-        span.setAttribute("conflict.existing_authority", existingAuthority.name());
+        span.setAttribute("conflict.existing_authority",
+                existingAuthority != null ? existingAuthority.name() : "DEGRADED");
         span.setAttribute("conflict.incoming_confidence_band", confidenceBand(confidence));
         span.setAttribute("conflict.existing_tier", existingTier != null ? existingTier.name() : "UNKNOWN");
         span.setAttribute("conflict.resolution", resolution.name());

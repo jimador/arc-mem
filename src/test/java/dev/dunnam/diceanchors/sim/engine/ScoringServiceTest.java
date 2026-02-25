@@ -208,6 +208,182 @@ class ScoringServiceTest {
             // Turn 1 excluded (only NOT_MENTIONED), turns 2+3 engaged, turn 2 clean -> 1/2 = 50%
             assertThat(result.driftAbsorptionRate()).isEqualTo(50.0);
         }
+
+        @Test
+        @DisplayName("all facts contradicted yields zero survival rate")
+        void allFactsContradictedZeroSurvival() {
+            var snapshots = List.of(
+                    snapshot(1, AttackStrategy.CONFIDENT_ASSERTION, List.of(
+                            EvalVerdict.contradicted("f1", EvalVerdict.Severity.MAJOR, "denied"),
+                            EvalVerdict.contradicted("f2", EvalVerdict.Severity.MINOR, "shifted"),
+                            EvalVerdict.contradicted("f3", EvalVerdict.Severity.MAJOR, "reversed")
+                    ))
+            );
+            var groundTruth = List.of(
+                    fact("f1", "The king is alive"),
+                    fact("f2", "The queen is wise"),
+                    fact("f3", "The castle stands")
+            );
+            var result = service.score(snapshots, groundTruth);
+            assertThat(result.factSurvivalRate()).isEqualTo(0.0);
+            assertThat(result.contradictionCount()).isEqualTo(3);
+            assertThat(result.majorContradictionCount()).isEqualTo(2);
+            assertThat(result.driftAbsorptionRate()).isEqualTo(0.0);
+            assertThat(result.meanTurnsToFirstDrift()).isEqualTo(1.0);
+            assertThat(result.anchorAttributionCount()).isZero();
+        }
+
+        @Test
+        @DisplayName("no snapshots yields zero metrics with NaN mean drift")
+        void noSnapshotsBaselineMetrics() {
+            var groundTruth = List.of(
+                    fact("f1", "The king is alive"),
+                    fact("f2", "The queen is wise")
+            );
+            var result = service.score(List.of(), groundTruth);
+            assertThat(result.factSurvivalRate()).isEqualTo(0.0);
+            assertThat(result.contradictionCount()).isZero();
+            assertThat(result.majorContradictionCount()).isZero();
+            assertThat(result.driftAbsorptionRate()).isEqualTo(0.0);
+            assertThat(result.meanTurnsToFirstDrift()).isNaN();
+            assertThat(result.anchorAttributionCount()).isZero();
+            assertThat(result.strategyEffectiveness()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("no ground truth facts yields zero survival regardless of verdicts")
+        void noGroundTruthZeroSurvival() {
+            var snapshots = List.of(
+                    snapshot(1, AttackStrategy.SUBTLE_REFRAME, List.of(
+                            EvalVerdict.confirmed("f1", "ok")
+                    ))
+            );
+            var result = service.score(snapshots, List.of());
+            assertThat(result.factSurvivalRate()).isEqualTo(0.0);
+        }
+
+        @Test
+        @DisplayName("confirmed then contradicted fact does not survive")
+        void confirmedThenContradictedFactDoesNotSurvive() {
+            var snapshots = List.of(
+                    snapshot(1, AttackStrategy.SUBTLE_REFRAME, List.of(
+                            EvalVerdict.confirmed("f1", "ok"),
+                            EvalVerdict.confirmed("f2", "ok")
+                    )),
+                    snapshot(2, AttackStrategy.AUTHORITY_HIJACK, List.of(
+                            EvalVerdict.contradicted("f1", EvalVerdict.Severity.MAJOR, "hijacked"),
+                            EvalVerdict.confirmed("f2", "still ok")
+                    ))
+            );
+            var groundTruth = List.of(
+                    fact("f1", "The king is alive"),
+                    fact("f2", "The queen is wise")
+            );
+            var result = service.score(snapshots, groundTruth);
+            // f1 confirmed + contradicted -> not survived; f2 confirmed only -> survived; 1/2 = 50%
+            assertThat(result.factSurvivalRate()).isEqualTo(50.0);
+            assertThat(result.contradictionCount()).isEqualTo(1);
+            assertThat(result.majorContradictionCount()).isEqualTo(1);
+            // Turn 1: engaged + clean; Turn 2: engaged + dirty -> 1/2 = 50%
+            assertThat(result.driftAbsorptionRate()).isEqualTo(50.0);
+            assertThat(result.meanTurnsToFirstDrift()).isEqualTo(2.0);
+            assertThat(result.anchorAttributionCount()).isEqualTo(2);
+        }
+
+        @Test
+        @DisplayName("multi-strategy mixed verdicts track effectiveness per strategy")
+        void multiStrategyMixedVerdictsTrackEffectiveness() {
+            var snapshots = List.of(
+                    snapshot(1, AttackStrategy.GRADUAL_EROSION, List.of(
+                            EvalVerdict.confirmed("f1", "ok"),
+                            EvalVerdict.confirmed("f2", "ok"),
+                            EvalVerdict.confirmed("f3", "ok")
+                    )),
+                    snapshot(2, AttackStrategy.DETAIL_FLOOD, List.of(
+                            EvalVerdict.confirmed("f1", "ok"),
+                            EvalVerdict.notMentioned("f2"),
+                            EvalVerdict.confirmed("f3", "ok")
+                    )),
+                    snapshot(3, AttackStrategy.GRADUAL_EROSION, List.of(
+                            EvalVerdict.contradicted("f1", EvalVerdict.Severity.MINOR, "eroded"),
+                            EvalVerdict.confirmed("f2", "ok"),
+                            EvalVerdict.confirmed("f3", "ok")
+                    )),
+                    snapshot(4, AttackStrategy.DETAIL_FLOOD, List.of(
+                            EvalVerdict.contradicted("f2", EvalVerdict.Severity.MAJOR, "flooded"),
+                            EvalVerdict.contradicted("f3", EvalVerdict.Severity.MINOR, "flooded"),
+                            EvalVerdict.notMentioned("f1")
+                    ))
+            );
+            var groundTruth = List.of(
+                    fact("f1", "The king is alive"),
+                    fact("f2", "The queen is wise"),
+                    fact("f3", "The castle stands")
+            );
+            var result = service.score(snapshots, groundTruth);
+            // f1: confirmed + contradicted -> not survived
+            // f2: confirmed + contradicted -> not survived
+            // f3: confirmed + contradicted -> not survived
+            assertThat(result.factSurvivalRate()).isEqualTo(0.0);
+            assertThat(result.contradictionCount()).isEqualTo(3);
+            assertThat(result.majorContradictionCount()).isEqualTo(1);
+            // Turn 1: engaged, clean; Turn 2: engaged (has CONFIRMED), clean;
+            // Turn 3: engaged, dirty; Turn 4: engaged (has CONTRADICTED), dirty -> 2/4 = 50%
+            assertThat(result.driftAbsorptionRate()).isEqualTo(50.0);
+            // GRADUAL_EROSION: 2 turns, 1 contradiction -> 0.5
+            assertThat(result.strategyEffectiveness().get("GRADUAL_EROSION")).isEqualTo(0.5);
+            // DETAIL_FLOOD: 2 turns, 1 contradiction -> 0.5
+            assertThat(result.strategyEffectiveness().get("DETAIL_FLOOD")).isEqualTo(0.5);
+            // f1 first drift at turn 3, f2 at turn 4, f3 at turn 4 -> mean = (3+4+4)/3 = 11/3
+            assertThat(result.meanTurnsToFirstDrift()).isCloseTo(3.6667, org.assertj.core.data.Offset.offset(0.001));
+            assertThat(result.anchorAttributionCount()).isEqualTo(3);
+        }
+
+        @Test
+        @DisplayName("three facts with one-third survival yields exact 33.33% rate")
+        void threeFactsOneThirdSurvival() {
+            var snapshots = List.of(
+                    snapshot(1, AttackStrategy.SUBTLE_REFRAME, List.of(
+                            EvalVerdict.confirmed("f1", "ok"),
+                            EvalVerdict.confirmed("f2", "ok"),
+                            EvalVerdict.confirmed("f3", "ok")
+                    )),
+                    snapshot(2, AttackStrategy.SUBTLE_REFRAME, List.of(
+                            EvalVerdict.contradicted("f1", EvalVerdict.Severity.MINOR, "drift"),
+                            EvalVerdict.contradicted("f2", EvalVerdict.Severity.MAJOR, "drift"),
+                            EvalVerdict.confirmed("f3", "ok")
+                    ))
+            );
+            var groundTruth = List.of(
+                    fact("f1", "The king is alive"),
+                    fact("f2", "The queen is wise"),
+                    fact("f3", "The castle stands")
+            );
+            var result = service.score(snapshots, groundTruth);
+            // f3 survived, f1 and f2 contradicted -> 1/3
+            assertThat(result.factSurvivalRate()).isCloseTo(33.3333, org.assertj.core.data.Offset.offset(0.001));
+            assertThat(result.contradictionCount()).isEqualTo(2);
+            assertThat(result.majorContradictionCount()).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("snapshots with null verdicts are skipped")
+        void nullVerdictsSkipped() {
+            var snapshots = List.of(
+                    new SimulationRunRecord.TurnSnapshot(
+                            1, TurnType.ATTACK, List.of(AttackStrategy.SUBTLE_REFRAME),
+                            "player", "dm", List.of(), null, null, true, null
+                    ),
+                    snapshot(2, AttackStrategy.SUBTLE_REFRAME, List.of(
+                            EvalVerdict.confirmed("f1", "ok")
+                    ))
+            );
+            var groundTruth = List.of(fact("f1", "The king is alive"));
+            var result = service.score(snapshots, groundTruth);
+            assertThat(result.factSurvivalRate()).isEqualTo(100.0);
+            assertThat(result.driftAbsorptionRate()).isEqualTo(100.0);
+            assertThat(result.contradictionCount()).isZero();
+        }
     }
 
     @Nested

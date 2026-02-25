@@ -77,8 +77,8 @@ class LlmConflictDetectorTest {
         }
 
         @Test
-        @DisplayName("handles JSON parse failure with fallback to keyword check")
-        void handlesJsonParseFailureWithFallback() {
+        @DisplayName("falls back to keyword check with FALLBACK quality on parse failure")
+        void fallsBackToKeywordCheckWithFallbackQuality() {
             mockLlmResponse("Yes, these statements are contradictory. The answer is true.");
             var anchors = List.of(
                     Anchor.withoutTrust("1", "The bridge is intact", 500, Authority.PROVISIONAL, false, 0.8, 0)
@@ -86,17 +86,22 @@ class LlmConflictDetectorTest {
             var conflicts = detector().detect("The bridge has collapsed", anchors);
             assertThat(conflicts).hasSize(1);
             assertThat(conflicts.getFirst().reason()).contains("fallback");
+            assertThat(conflicts.getFirst().detectionQuality())
+                    .isEqualTo(ConflictDetector.DetectionQuality.FALLBACK);
         }
 
         @Test
-        @DisplayName("handles JSON parse failure returning empty when no true keyword")
-        void handlesJsonParseFailureNoTrueKeyword() {
+        @DisplayName("marks detection as DEGRADED when parse fails without true keyword (ACON1)")
+        void marksDegradedWhenParseFailsWithoutTrueKeyword() {
             mockLlmResponse("I cannot determine the relationship between these statements.");
             var anchors = List.of(
                     Anchor.withoutTrust("1", "The bridge is intact", 500, Authority.PROVISIONAL, false, 0.8, 0)
             );
             var conflicts = detector().detect("The bridge has collapsed", anchors);
-            assertThat(conflicts).isEmpty();
+            assertThat(conflicts).hasSize(1);
+            assertThat(conflicts.getFirst().detectionQuality())
+                    .isEqualTo(ConflictDetector.DetectionQuality.DEGRADED);
+            assertThat(conflicts.getFirst().confidence()).isEqualTo(0.0);
         }
 
         @Test
