@@ -9,8 +9,6 @@ package dev.dunnam.diceanchors.sim.engine;
  * on aggressiveness, tier caps, and strategic preferences.
  */
 public enum AttackStrategy {
-    // BASIC tier - Single-turn techniques, low sophistication
-
     /**
      * Synonym or adjective substitution that shifts meaning of established fact.
      */
@@ -46,8 +44,6 @@ public enum AttackStrategy {
      */
     DETAIL_FLOOD,
 
-    // INTERMEDIATE tier - Higher sophistication, some multi-turn
-
     /**
      * Slowly shifts a fact over multiple turns through imperceptible variations.
      */
@@ -78,8 +74,6 @@ public enum AttackStrategy {
      */
     RETROACTIVE_JUSTIFICATION,
 
-    // ADVANCED tier - Sophisticated single-turn techniques
-
     /**
      * Claims other party members or NPCs agree with false version.
      */
@@ -104,8 +98,6 @@ public enum AttackStrategy {
      * Shifts temporal framing to make current fact seem historical or vice versa.
      */
     TENSE_MANIPULATION,
-
-    // EXPERT tier - Multi-turn chains, highest sophistication
 
     /**
      * Tricks DM into agreeing with minor premise, then chains to contradictory conclusion.

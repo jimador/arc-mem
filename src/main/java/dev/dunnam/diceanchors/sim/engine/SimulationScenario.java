@@ -94,9 +94,7 @@ public record SimulationScenario(
 
     /**
      * Factual statement that the adversary will attempt to corrupt or drift in ATTACK/DISPLACEMENT/DRIFT/RECALL_PROBE turns.
-     *
-     * @param id   unique identifier for this ground truth fact
-     * @param text the actual fact text (evaluated against DM responses for drift)
+     * Evaluated against DM responses to measure drift.
      */
     public record GroundTruth(String id, @JsonAlias("fact") String text) {}
 

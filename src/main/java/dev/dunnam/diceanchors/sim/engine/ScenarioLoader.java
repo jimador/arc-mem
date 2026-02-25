@@ -57,9 +57,7 @@ public class ScenarioLoader {
     }
 
     /**
-     * Filter scenarios by category.
-     *
-     * @param category the category to filter by (e.g., "adversarial", "trust", "baseline")
+     * Filter scenarios by category (e.g., "adversarial", "trust", "baseline").
      *
      * @return scenarios matching the given category; empty list if none match
      */
@@ -70,9 +68,7 @@ public class ScenarioLoader {
     }
 
     /**
-     * Load a single scenario by ID.
-     *
-     * @param id the scenario ID as declared in the YAML file
+     * Load a single scenario by ID (as declared in the YAML file).
      *
      * @throws IllegalArgumentException if no scenario with that ID is found
      */

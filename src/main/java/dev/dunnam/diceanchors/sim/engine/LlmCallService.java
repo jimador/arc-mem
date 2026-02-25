@@ -40,11 +40,7 @@ public class LlmCallService {
      * Calls the LLM with the given system and user prompts.
      * Blocks until a response is received or the per-call timeout elapses.
      *
-     * @param systemPrompt the system message
-     * @param userPrompt   the user message
-     * @return the LLM response text
      * @throws LlmCallTimeoutException if the call exceeds the configured timeout
-     * @throws RuntimeException        if the LLM call fails
      */
     public String call(String systemPrompt, String userPrompt) {
         logger.debug("LLM call (timeout={}s)", callTimeout.toSeconds());
@@ -55,11 +51,7 @@ public class LlmCallService {
      * Calls the LLM with a prompt that semantically contains multiple items (a batch).
      * Uses 2× the standard timeout to allow for the larger expected processing time.
      *
-     * @param systemPrompt the system message
-     * @param userPrompt   the user message containing batched content
-     * @return the LLM response text
      * @throws LlmCallTimeoutException if the call exceeds the batch timeout
-     * @throws RuntimeException        if the LLM call fails
      */
     public String callBatched(String systemPrompt, String userPrompt) {
         logger.debug("LLM batched call (timeout={}s)", batchCallTimeout.toSeconds());

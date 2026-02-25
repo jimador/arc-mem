@@ -62,10 +62,6 @@ public class SimulationExtractionService {
 
     /**
      * Extract propositions from a DM response, persist them, and evaluate for promotion.
-     *
-     * @param contextId      the simulation-scoped context ID
-     * @param dmResponseText the DM's response text to extract propositions from
-     * @return extraction results including counts and extracted texts
      */
     public ExtractionResult extract(String contextId, String dmResponseText) {
         if (dmResponseText == null || dmResponseText.isBlank()) {
@@ -124,7 +120,6 @@ public class SimulationExtractionService {
             var tagged = anchorRepository.tagSourceIds(propositionIds, "dm");
             logger.debug("Tagged {} propositions with 'dm' source for context {}", tagged, contextId);
 
-            // Evaluate for anchor promotion
             var promoted = promoter.batchEvaluateAndPromote(contextId, propositions);
 
             var extractedTexts = propositions.stream()

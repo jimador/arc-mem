@@ -123,7 +123,6 @@ public class SimulationService {
         var startedAt = Instant.now();
 
         try {
-            // Phase: SETUP — clean state and seed anchors
             onProgress.accept(progress(
                     SimulationProgress.SimulationPhase.SETUP, null, 0, maxTurns,
                     "Seeding anchors and preparing context...", List.of(),
@@ -138,7 +137,6 @@ public class SimulationService {
                 logger.info("Seeded {} anchors for context {}", scenario.seedAnchors().size(), contextId);
             }
 
-            // Register scenario-scoped invariant rules
             if (scenario.invariants() != null && !scenario.invariants().isEmpty()) {
                 var scenarioRules = scenario.invariants().stream()
                         .map(def -> InvariantRuleProvider.toRule(new DiceAnchorsProperties.InvariantRuleDefinition(
@@ -153,7 +151,6 @@ public class SimulationService {
                 logger.info("Registered {} invariant rules for context {}", scenarioRules.size(), contextId);
             }
 
-            // Turn loop
             var conversationHistory = new ArrayList<String>();
             var completedTurns = new ArrayList<SimulationTurn>();
             var turnSnapshots = new ArrayList<SimulationRunRecord.TurnSnapshot>();
@@ -161,8 +158,8 @@ public class SimulationService {
             Map<String, Anchor> previousAnchorState = new HashMap<>();
             var dormancyState = new HashMap<String, Integer>();
 
-            // Phase: SCENE_SET — DM narrates the setting, extraction captures initial propositions.
-            // This mirrors a real campaign where the DM introduces the scene before players act.
+            // DM narrates the setting before turn 1; extraction captures initial propositions,
+            // mirroring a real campaign where the DM introduces the scene before players act.
             if (scenario.setting() != null && !scenario.setting().isBlank()
                 && scenario.isExtractionEnabled()) {
                 var injectionEnabled = Boolean.TRUE.equals(injectionStateSupplier.get());
@@ -193,7 +190,6 @@ public class SimulationService {
                         "DM", sceneTurn.dmResponse()));
                 previousAnchorState = new HashMap<>(sceneResult.currentAnchorState());
 
-                // Deliver turn 0 to UI so the conversation panel shows the DM's narration
                 var sceneAnchors = currentAnchors(contextId);
                 var sceneAnchorEvents = sceneTurn.anchorEvents() != null
                         ? sceneTurn.anchorEvents() : List.<SimulationTurn.AnchorEvent> of();
@@ -214,7 +210,6 @@ public class SimulationService {
                         sceneResult.currentAnchorState().size());
             }
 
-            // Task 4.1: Per-run adaptive adversary state
             var attackHistory = new AttackHistory();
             var isAdaptive = "adaptive".equals(scenario.effectiveAdversaryMode());
             var tieredStrategy = isAdaptive
@@ -224,7 +219,6 @@ public class SimulationService {
                     ? new AdaptiveAttackPrompter(chatModel, STRATEGY_CATALOG)
                     : null;
 
-            // Main simulation loop: process up to maxTurns, respecting pause/cancel requests
             for (int i = 0; i < maxTurns && !ctx.isCancelRequested(); i++) {
                 awaitResumeOrCancel(ctx);
                 if (ctx.isCancelRequested()) {
@@ -234,14 +228,12 @@ public class SimulationService {
                 var turnNumber = i + 1;
                 var scripted = i < scriptedTurns.size() ? scriptedTurns.get(i) : null;
 
-                // Determine player message and classification
                 String playerMessage;
                 TurnType turnType;
                 List<AttackStrategy> attackStrategies = List.of();
                 AttackPlan currentPlan = null;
 
                 if (scripted != null) {
-                    // Task 4.5: scripted path is unmodified
                     playerMessage = scripted.prompt();
                     turnType = scripted.type() != null
                             ? TurnType.fromString(scripted.type())
@@ -259,13 +251,11 @@ public class SimulationService {
                     var lastAttackTurn = attackHistory.lastAttackTurn();
 
                     if (turnNumber <= lastAttackTurn + cooldown) {
-                        // Rest turn — continue organic roleplay without a direct factual attack
                         playerMessage = adaptivePrompter.generateConversation(
                                 scenario.persona(), scenario.setting(), conversationHistory);
                         turnType = TurnType.ESTABLISH;
-                        // currentPlan stays null; outcome recording guard at line ~227 handles this
+                        // currentPlan stays null; outcome recording guard below skips recording
                     } else {
-                        // Attack turn — LLM selects strategies from the full catalog guided by tier hint
                         var activeAnchors = currentAnchors(contextId);
                         var conflictedAnchors = detectConflictedAnchors(contextId, conversationHistory);
                         var planHint = tieredStrategy.selectAttack(activeAnchors, conflictedAnchors, attackHistory);
@@ -281,16 +271,12 @@ public class SimulationService {
                     turnType = scenario.adversarial() ? TurnType.ATTACK : TurnType.ESTABLISH;
                 }
 
-                // Determine UI phase
                 var phase = toPhase(turnType);
-
-                // Evaluate injection state per-turn (supports mid-run toggling)
                 var injectionEnabled = Boolean.TRUE.equals(injectionStateSupplier.get());
                 var configuredBudget = properties.assembly().promptTokenBudget();
                 var overrideBudget = tokenBudgetSupplier.get();
                 var tokenBudget = overrideBudget != null ? Math.max(0, overrideBudget) : configuredBudget;
 
-                // Signal turn start to UI (thinking indicator)
                 onProgress.accept(new SimulationProgress(
                         phase, turnType, attackStrategies, turnNumber, maxTurns,
                         playerMessage, null,
@@ -298,7 +284,6 @@ public class SimulationService {
                         "Turn %d/%d — thinking...".formatted(turnNumber, maxTurns),
                         injectionEnabled, null, null, List.of(), null, 0L, null, null, null));
 
-                // Execute the turn with state diffing, optional compaction, and optional extraction
                 long turnStart = System.currentTimeMillis();
                 var result = turnExecutor.executeTurnFull(
                         contextId, turnNumber, playerMessage, turnType, attackStrategies,
@@ -314,7 +299,6 @@ public class SimulationService {
                 completedTurns.add(turn);
                 previousAnchorState = new HashMap<>(result.currentAnchorState());
 
-                // Task 4.4: Record adaptive attack outcome
                 if (isAdaptive && currentPlan != null) {
                     var verdictSeverity = computeVerdictSeverity(turn);
                     attackHistory.recordOutcome(new AttackOutcome(turnNumber, currentPlan, verdictSeverity));
@@ -322,18 +306,12 @@ public class SimulationService {
                             turnNumber, verdictSeverity, attackHistory.size());
                 }
 
-                // Append to conversation history
                 conversationHistory.add(SimulationTurnExecutor.formatConversationLine("Player", playerMessage));
                 conversationHistory.add(SimulationTurnExecutor.formatConversationLine("DM", turn.dmResponse()));
 
-                // Snapshot active anchors as rich Anchor objects
                 var activeAnchors = currentAnchors(contextId);
-
-                // Pass full verdicts list (not just worst)
                 var turnVerdicts = turn.verdicts() != null ? turn.verdicts() : List.<EvalVerdict> of();
                 var anchorEvents = turn.anchorEvents() != null ? turn.anchorEvents() : List.<SimulationTurn.AnchorEvent> of();
-
-                // Collect active invariant rules for this context
                 var activeRules = invariantRuleProvider.rulesForContext(contextId);
 
                 onProgress.accept(new SimulationProgress(
@@ -355,7 +333,6 @@ public class SimulationService {
                         injectionEnabled, result.compactionResult()));
             }
 
-            // Evaluate assertions against completed run
             var finalAnchors = anchorEngine.inject(contextId);
             var groundTruthTexts = scenario.groundTruth() != null
                     ? scenario.groundTruth().stream().map(SimulationScenario.GroundTruth::text).toList()
@@ -365,11 +342,9 @@ public class SimulationService {
                     Boolean.TRUE.equals(injectionStateSupplier.get()));
             var assertionResults = evaluateAssertions(scenario, simResult);
 
-            // Compute aggregate scoring metrics
             var groundTruth = scenario.groundTruth() != null ? scenario.groundTruth() : List.<SimulationScenario.GroundTruth> of();
             var scoringResult = scoringService.score(List.copyOf(turnSnapshots), groundTruth);
 
-            // Save run record to history store
             var runRecord = new SimulationRunRecord(
                     runId, scenario.id(), startedAt, Instant.now(),
                     List.copyOf(turnSnapshots), 0, finalAnchors,
@@ -380,7 +355,6 @@ public class SimulationService {
             runStore.save(runRecord);
             logger.info("Saved run record {} for scenario '{}'", runId, scenario.id());
 
-            // Final progress update
             var finalPhase = ctx.isCancelRequested()
                     ? SimulationProgress.SimulationPhase.CANCELLED
                     : SimulationProgress.SimulationPhase.COMPLETE;
@@ -456,12 +430,7 @@ public class SimulationService {
         return runStore;
     }
 
-    // -------------------------------------------------------------------------
-    // Internals
-    // -------------------------------------------------------------------------
-
     /**
-     * Seed a single anchor by saving it as a PropositionNode and then promoting it.
      * Uses the GraphObjectManager directly to bypass the DICE Proposition constructor.
      */
     private void seedAnchor(String contextId, SimulationScenario.SeedAnchor seed) {

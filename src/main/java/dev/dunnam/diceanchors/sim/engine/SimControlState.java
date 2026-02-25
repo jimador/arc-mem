@@ -25,13 +25,6 @@ public enum SimControlState {
     PAUSED,
     COMPLETED;
 
-    /**
-     * Validate that a state transition is legal.
-     *
-     * @param target the desired next state
-     *
-     * @return true if the transition is valid
-     */
     public boolean canTransitionTo(SimControlState target) {
         return switch (this) {
             case IDLE -> target == RUNNING;

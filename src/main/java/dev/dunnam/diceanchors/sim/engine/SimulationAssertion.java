@@ -6,12 +6,5 @@ package dev.dunnam.diceanchors.sim.engine;
  */
 public interface SimulationAssertion {
 
-    /**
-     * Evaluate this assertion against a completed simulation.
-     *
-     * @param result the simulation result to check
-     *
-     * @return the assertion outcome with pass/fail and details
-     */
     AssertionResult evaluate(SimulationResult result);
 }

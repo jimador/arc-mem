@@ -95,17 +95,8 @@ public class SimulationTurnExecutor {
     /**
      * Execute one full turn of the simulation.
      *
-     * @param contextId           the simulation-scoped context ID (unique per run)
-     * @param turnNumber          1-based turn counter
-     * @param playerMessage       the player's input for this turn
-     * @param turnType            semantic type of this turn
-     * @param attackStrategies      attack techniques when turnType is ATTACK; empty list if none
-     * @param setting             campaign setting description for the system prompt
-     * @param injectionEnabled    whether anchor context should be injected
-     * @param groundTruth         facts to evaluate against; may be null or empty
-     * @param conversationHistory previous Player/DM message pairs
-     *
-     * @return the completed turn record
+     * @param attackStrategies attack techniques when turnType is ATTACK; empty list if none
+     * @param groundTruth      facts to evaluate against; may be null or empty
      */
     @Observed(name = "simulation.turn")
     public SimulationTurn executeTurn(
@@ -120,7 +111,6 @@ public class SimulationTurnExecutor {
             List<SimulationScenario.GroundTruth> groundTruth,
             List<String> conversationHistory) {
 
-        // OTEL span enrichment
         var currentSpan = Span.current();
         currentSpan.setAttribute("sim.turn", turnNumber);
         currentSpan.setAttribute("sim.turn_type", turnType.name());
@@ -129,7 +119,6 @@ public class SimulationTurnExecutor {
                     attackStrategies.stream().map(Enum::name).collect(java.util.stream.Collectors.joining(",")));
         }
 
-        // 1. Assemble prompt context blocks
         var anchorRef = new AnchorsLlmReference(
                 anchorEngine,
                 contextId,
@@ -146,7 +135,6 @@ public class SimulationTurnExecutor {
                 properties.anchor().budget());
         List<Anchor> anchors = anchorRef.getAnchors();
 
-        // Tier distribution
         var hotCount = (int) anchors.stream().filter(a -> a.memoryTier() == MemoryTier.HOT).count();
         var warmCount = (int) anchors.stream().filter(a -> a.memoryTier() == MemoryTier.WARM).count();
         var coldCount = (int) anchors.stream().filter(a -> a.memoryTier() == MemoryTier.COLD).count();
@@ -158,14 +146,12 @@ public class SimulationTurnExecutor {
         var propositionBlock = injectionEnabled ? propositionRef.getContent() : "";
         var injectedContextBlock = combineInjectedBlocks(anchorBlock, propositionBlock);
 
-        // 2. Build prompts
         var systemPrompt = buildSystemPrompt(setting, anchorBlock, propositionBlock);
         var userPrompt = buildUserPrompt(playerMessage, conversationHistory);
 
-        // 3. Generate DM response
         var dmResponse = callLlm(systemPrompt, userPrompt);
 
-        // 4. Build context trace (token estimates: ~4 chars per token)
+        // token estimates: ~4 chars per token
         var anchorTokens = injectedContextBlock.length() / 4;
         var totalTokens = (systemPrompt.length() + userPrompt.length() + dmResponse.length()) / 4;
         var trace = new ContextTrace(
@@ -175,7 +161,6 @@ public class SimulationTurnExecutor {
                 tokenBudget > 0,
                 anchorRef.getLastBudgetResult().excluded().size());
 
-        // 5. Drift evaluation — only on adversarial turns with ground truth
         var verdicts = shouldEvaluate(turnType, groundTruth)
                 ? evaluateDrift(dmResponse, groundTruth, playerMessage)
                 : List.<EvalVerdict> of();
@@ -203,23 +188,13 @@ public class SimulationTurnExecutor {
      * When {@code parallelPostResponse} is false, the original sequential execution
      * path is preserved for debugging and test reproducibility.
      *
-     * @param contextId           simulation-scoped context ID
-     * @param turnNumber          1-based turn counter
-     * @param playerMessage       the player's input for this turn
-     * @param turnType            semantic type of this turn
-     * @param attackStrategies      attack techniques when turnType is ATTACK; empty list if none
-     * @param setting             campaign setting description for the system prompt
-     * @param injectionEnabled    whether anchor context should be injected
+     * @param attackStrategies    attack techniques when turnType is ATTACK; empty list if none
      * @param groundTruth         facts to evaluate against; may be null or empty
-     * @param conversationHistory previous Player/DM message pairs
      * @param previousAnchorState anchor state from end of previous turn (keyed by id)
-     * @param compactionProvider  compaction provider; null to skip compaction
-     * @param compactionConfig    compaction configuration; null to skip compaction
-     * @param extractionEnabled   whether DICE extraction should run on the DM response
-     * @param dormancyConfig      scenario dormancy lifecycle configuration; null disables decay/archive
+     * @param compactionProvider  null to skip compaction
+     * @param compactionConfig    null to skip compaction
+     * @param dormancyConfig      null disables decay/archive
      * @param dormancyState       mutable per-anchor dormancy counters carried across turns
-     *
-     * @return the full execution result with diffed anchor events and optional compaction
      */
     public TurnExecutionResult executeTurnFull(
             String contextId,
@@ -253,10 +228,6 @@ public class SimulationTurnExecutor {
                 extractionEnabled, dormancyConfig, dormancyState);
     }
 
-    // -------------------------------------------------------------------------
-    // Parallel execution path (parallelPostResponse=true)
-    // -------------------------------------------------------------------------
-
     /**
      * Parallel execution: DM response is generated first (sequential), then
      * Branch A (drift evaluation) and Branch B (extraction + promotion) run
@@ -282,7 +253,6 @@ public class SimulationTurnExecutor {
 
         var mutableDormancyState = dormancyState != null ? dormancyState : new HashMap<String, Integer>();
 
-        // OTEL span enrichment
         var currentSpan = Span.current();
         currentSpan.setAttribute("sim.turn", turnNumber);
         currentSpan.setAttribute("sim.turn_type", turnType.name());
@@ -291,7 +261,6 @@ public class SimulationTurnExecutor {
                     attackStrategies.stream().map(Enum::name).collect(java.util.stream.Collectors.joining(",")));
         }
 
-        // 1. Assemble prompt context blocks (sequential — needed before DM call)
         var anchorRef = new AnchorsLlmReference(
                 anchorEngine,
                 contextId,
@@ -308,7 +277,6 @@ public class SimulationTurnExecutor {
                 properties.anchor().budget());
         List<Anchor> anchors = anchorRef.getAnchors();
 
-        // Tier distribution
         var hotCount = (int) anchors.stream().filter(a -> a.memoryTier() == MemoryTier.HOT).count();
         var warmCount = (int) anchors.stream().filter(a -> a.memoryTier() == MemoryTier.WARM).count();
         var coldCount = (int) anchors.stream().filter(a -> a.memoryTier() == MemoryTier.COLD).count();
@@ -320,14 +288,13 @@ public class SimulationTurnExecutor {
         var propositionBlock = injectionEnabled ? propositionRef.getContent() : "";
         var injectedContextBlock = combineInjectedBlocks(anchorBlock, propositionBlock);
 
-        // 2. Build prompts
         var systemPrompt = buildSystemPrompt(setting, anchorBlock, propositionBlock);
         var userPrompt = buildUserPrompt(playerMessage, conversationHistory);
 
-        // 3. Generate DM response (sequential — must complete before forking)
+        // sequential — must complete before forking
         var dmResponse = callLlm(systemPrompt, userPrompt);
 
-        // 4. Build initial context trace
+        // token estimates: ~4 chars per token
         var anchorTokens = injectedContextBlock.length() / 4;
         var totalTokens = (systemPrompt.length() + userPrompt.length() + dmResponse.length()) / 4;
         var initialTrace = new ContextTrace(
@@ -337,17 +304,14 @@ public class SimulationTurnExecutor {
                 tokenBudget > 0,
                 anchorRef.getLastBudgetResult().excluded().size());
 
-        // Capture final values for use inside lambdas (effectively-final requirement)
+        // effectively-final captures for lambdas
         final var finalDmResponse = dmResponse;
         final var finalGroundTruth = groundTruth;
         final var finalPlayerMessage = playerMessage;
 
-        // 5. Fork Branch A (drift eval) and Branch B (extraction) concurrently.
-        // AtomicReferences hold each branch's result; lambdas return Void so the
-        // scope can use a single homogeneous Joiner<Void, Void>.
-        // Parallel execution: Branch A performs drift evaluation against ground truth;
-        // Branch B runs DICE extraction and anchor promotion. Both execute concurrently
-        // via StructuredTaskScope; if either fails, the sibling is cancelled and the exception propagates.
+        // Branch A: drift evaluation; Branch B: DICE extraction + promotion.
+        // AtomicReferences carry results; lambdas return Void for a homogeneous Joiner.
+        // If either branch fails, the sibling is cancelled and the exception propagates.
         final List<EvalVerdict> verdicts;
         final ExtractionResult extractionResult;
 
@@ -358,7 +322,6 @@ public class SimulationTurnExecutor {
                 StructuredTaskScope.Joiner.<Void>awaitAllSuccessfulOrThrow(),
                 cfg -> cfg.withTimeout(PARALLEL_BRANCH_TIMEOUT))) {
 
-            // Branch A: drift evaluation — only on turns that require it
             scope.fork(() -> {
                 if (shouldEvaluate(turnType, finalGroundTruth)) {
                     verdictsRef.set(evaluateDrift(finalDmResponse, finalGroundTruth, finalPlayerMessage));
@@ -366,9 +329,7 @@ public class SimulationTurnExecutor {
                 return null;
             });
 
-            // Branch B: DICE extraction + promotion — only when enabled.
-            // SimulationExtractionService is stateless (no shared mutable fields);
-            // all state is passed as parameters or created locally per call.
+            // SimulationExtractionService is stateless; all state passed as parameters.
             scope.fork(() -> {
                 if (extractionEnabled) {
                     extractionRef.set(extractionService.extract(contextId, finalDmResponse));
@@ -393,7 +354,6 @@ public class SimulationTurnExecutor {
             throw new RuntimeException("Turn executor interrupted during parallel branches", e);
         }
 
-        // Log branch results
         if (extractionEnabled) {
             currentSpan.setAttribute("sim.propositions_extracted", extractionResult.extractedCount());
             currentSpan.setAttribute("sim.propositions_promoted", extractionResult.promotedCount());
@@ -405,21 +365,15 @@ public class SimulationTurnExecutor {
                 truncate(playerMessage, 50), truncate(dmResponse, 50),
                 anchors.size(), verdicts.size());
 
-        // Build initial turn with verdicts from Branch A
         var turn = new SimulationTurn(
                 turnNumber, playerMessage, dmResponse,
                 turnType, attackStrategies, initialTrace, verdicts, List.of());
 
-        // 6. Post-join sequential operations: reinforce, dormancy, state diff, compaction
         return buildResult(
                 contextId, turnNumber, playerMessage, turn, extractionResult,
                 injectionEnabled, previousAnchorState, compactionProvider,
                 compactionConfig, dormancyConfig, mutableDormancyState);
     }
-
-    // -------------------------------------------------------------------------
-    // Sequential execution path (parallelPostResponse=false)
-    // -------------------------------------------------------------------------
 
     /**
      * Original sequential execution path, preserved for testing and debugging.
@@ -466,17 +420,10 @@ public class SimulationTurnExecutor {
                 compactionConfig, dormancyConfig, mutableDormancyState);
     }
 
-    // -------------------------------------------------------------------------
-    // Shared post-response sequential operations
-    // -------------------------------------------------------------------------
-
     /**
      * Applies reinforce, dormancy lifecycle, state diff, and optional compaction
      * after both parallel branches (or sequential extraction) have completed.
-     * This method is shared by both the parallel and sequential execution paths.
-     *
-     * @param turn             the turn record produced by the DM call (verdicts already set)
-     * @param extractionResult proposition extraction result (empty if extraction was disabled)
+     * Shared by both parallel and sequential execution paths.
      */
     private TurnExecutionResult buildResult(
             String contextId,
@@ -491,7 +438,6 @@ public class SimulationTurnExecutor {
             SimulationScenario.DormancyConfig dormancyConfig,
             Map<String, Integer> mutableDormancyState) {
 
-        // Reinforce anchors that were actually injected for this turn.
         var reinforcedAnchorIds = new HashSet<String>();
         if (injectionEnabled && originalTraceHasAnchors(turn.contextTrace())) {
             for (var injectedAnchor : turn.contextTrace().injectedAnchors()) {
@@ -500,7 +446,6 @@ public class SimulationTurnExecutor {
             }
         }
 
-        // Refresh active anchors after extraction/promotion/reinforcement.
         var currentAnchors = anchorEngine.inject(contextId);
         var dormancyLifecycleEnabled = dormancyConfig != null
                                        && dormancyConfig.decayRate() > 0
@@ -517,7 +462,6 @@ public class SimulationTurnExecutor {
         }
         pruneDormancyState(mutableDormancyState, currentAnchors);
 
-        // Update context trace with extraction metadata (8.7: merge both branch results)
         var originalTrace = turn.contextTrace();
         var enrichedTrace = new ContextTrace(
                 originalTrace.turnNumber(), originalTrace.anchorTokens(), originalTrace.totalTokens(),
@@ -533,7 +477,6 @@ public class SimulationTurnExecutor {
                 turn.turnType(), turn.attackStrategies(), enrichedTrace,
                 turn.verdicts(), turn.anchorEvents());
 
-        // Diff anchor state to produce events
         var anchorEvents = diffAnchorState(previousAnchorState, currentAnchors, turnNumber, dormancyArchivedAnchorIds);
 
         var enrichedTurn = new SimulationTurn(
@@ -541,13 +484,11 @@ public class SimulationTurnExecutor {
                 turn.turnType(), turn.attackStrategies(), turn.contextTrace(),
                 turn.verdicts(), anchorEvents);
 
-        // Build current state map for next turn
         var currentState = new HashMap<String, Anchor>();
         for (var anchor : currentAnchors) {
             currentState.put(anchor.id(), anchor);
         }
 
-        // Compaction handling
         CompactionResult compactionResult = null;
         if (compactionProvider != null && compactionConfig != null
             && compactionConfig.enabled()) {
@@ -569,12 +510,7 @@ public class SimulationTurnExecutor {
     /**
      * Diff previous and current anchor state to detect lifecycle events.
      *
-     * @param previous   anchor state from end of previous turn (keyed by id)
-     * @param current    current active anchors
-     * @param turnNumber 1-based turn counter for event attribution
      * @param archivedAnchorIds anchor IDs archived this turn via dormancy lifecycle
-     *
-     * @return list of detected anchor events
      */
     static List<SimulationTurn.AnchorEvent> diffAnchorState(
             Map<String, Anchor> previous,
@@ -588,7 +524,6 @@ public class SimulationTurnExecutor {
             currentById.put(anchor.id(), anchor);
         }
 
-        // Detect CREATED, rank transitions, and authority upgrades.
         for (var anchor : current) {
             var prev = previous.get(anchor.id());
             if (prev == null) {
@@ -616,7 +551,6 @@ public class SimulationTurnExecutor {
             }
         }
 
-        // Detect archived/evicted anchors (present previously, missing now).
         for (var entry : previous.entrySet()) {
             if (!currentById.containsKey(entry.getKey())) {
                 var evicted = entry.getValue();
@@ -719,9 +653,6 @@ public class SimulationTurnExecutor {
         return Math.max(0.0, Math.min(1.0, value));
     }
 
-    /**
-     * Convert scenario compaction config to assembly compaction config.
-     */
     private static dev.dunnam.diceanchors.assembly.CompactionConfig toAssemblyConfig(
             SimulationScenario.CompactionConfig scenarioConfig) {
         return new dev.dunnam.diceanchors.assembly.CompactionConfig(

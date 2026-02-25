@@ -20,11 +20,6 @@ public class ScoringService {
 
     /**
      * Score a simulation run against its ground truth facts.
-     *
-     * @param snapshots   turn-by-turn snapshots from the run
-     * @param groundTruth the scenario's ground truth definitions
-     *
-     * @return aggregate scoring metrics
      */
     public ScoringResult score(List<SimulationRunRecord.TurnSnapshot> snapshots,
                                List<SimulationScenario.GroundTruth> groundTruth) {
