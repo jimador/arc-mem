@@ -49,9 +49,6 @@ public class ResilienceReportBuilder {
 
     /**
      * Build a complete resilience report from an experiment report.
-     *
-     * @param report the completed experiment report
-     * @return self-contained resilience report
      */
     public ResilienceReport build(ExperimentReport report) {
         logger.info("Building resilience report for experiment '{}'", report.experimentName());
@@ -102,10 +99,6 @@ public class ResilienceReportBuilder {
                 POSITIONING);
     }
 
-    // -------------------------------------------------------------------------
-    // Score computation
-    // -------------------------------------------------------------------------
-
     private ResilienceScore computeOverallScore(Map<String, ResilienceScore> scoresByCondition) {
         if (scoresByCondition.isEmpty()) {
             return new ResilienceScore(0.0, 0.0, 0.0, 0.0, 0.0);
@@ -119,10 +112,6 @@ public class ResilienceReportBuilder {
                 .max(java.util.Comparator.comparingDouble(ResilienceScore::overall))
                 .orElse(new ResilienceScore(0.0, 0.0, 0.0, 0.0, 0.0));
     }
-
-    // -------------------------------------------------------------------------
-    // Condition summaries
-    // -------------------------------------------------------------------------
 
     private List<ConditionSummary> buildConditionSummaries(ExperimentReport report, String scenarioId) {
         var summaries = new ArrayList<ConditionSummary>();
@@ -140,10 +129,6 @@ public class ResilienceReportBuilder {
         }
         return List.copyOf(summaries);
     }
-
-    // -------------------------------------------------------------------------
-    // Effect sizes
-    // -------------------------------------------------------------------------
 
     private List<EffectSizeSummary> buildEffectSizes(ExperimentReport report) {
         var summaries = new ArrayList<EffectSizeSummary>();
@@ -172,10 +157,6 @@ public class ResilienceReportBuilder {
         return List.copyOf(summaries);
     }
 
-    // -------------------------------------------------------------------------
-    // Scenario title resolution
-    // -------------------------------------------------------------------------
-
     private String resolveScenarioTitle(String scenarioId) {
         try {
             var scenario = scenarioLoader.load(scenarioId);
@@ -186,10 +167,6 @@ public class ResilienceReportBuilder {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Narrative generation
-    // -------------------------------------------------------------------------
-
     private String generateNarrative(
             List<ConditionSummary> conditionSummaries,
             List<EffectSizeSummary> effectSizes,
@@ -197,7 +174,6 @@ public class ResilienceReportBuilder {
 
         var sb = new StringBuilder();
 
-        // Find the condition with the highest mean factSurvivalRate
         String bestCondition = null;
         var bestSurvival = -1.0;
         for (var summary : conditionSummaries) {
@@ -213,7 +189,6 @@ public class ResilienceReportBuilder {
                     bestCondition, bestSurvival));
         }
 
-        // Mention large or medium effect sizes
         for (var es : effectSizes) {
             if ("large".equals(es.interpretation()) || "medium".equals(es.interpretation())) {
                 sb.append(" A %s effect size (d=%.2f) was observed between '%s' and '%s' on %s.".formatted(
@@ -223,7 +198,6 @@ public class ResilienceReportBuilder {
             }
         }
 
-        // Note universally contradicted facts (survived=0 across all conditions)
         var contradictedFacts = new ArrayList<String>();
         for (var row : factSurvivalRows) {
             var universallyContradicted = true;
@@ -242,7 +216,6 @@ public class ResilienceReportBuilder {
                     contradictedFacts.size(), String.join(", ", contradictedFacts)));
         }
 
-        // Warn about high variance
         for (var summary : conditionSummaries) {
             for (var metricEntry : summary.metrics().entrySet()) {
                 if (metricEntry.getValue().isHighVariance()) {

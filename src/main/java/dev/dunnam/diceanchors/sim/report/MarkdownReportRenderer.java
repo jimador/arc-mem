@@ -27,9 +27,6 @@ public final class MarkdownReportRenderer {
 
     /**
      * Renders the given resilience report as a Markdown document string.
-     *
-     * @param report the resilience report to render
-     * @return complete Markdown document
      */
     public static String render(ResilienceReport report) {
         var sb = new StringBuilder();
@@ -75,7 +72,6 @@ public final class MarkdownReportRenderer {
         sb.append("| Strategy Resistance (15%) | ").append("%.2f".formatted(score.strategyResistanceComponent())).append(" |\n");
         sb.append("\n");
 
-        // Per-condition breakdown
         if (report.conditionScores() != null && report.conditionScores().size() > 1) {
             sb.append("### Per-Condition Scores\n\n");
             sb.append("| Condition | Overall | Survival | Drift | Contradiction | Strategy |\n");
@@ -128,21 +124,18 @@ public final class MarkdownReportRenderer {
                 .sorted()
                 .toList();
 
-        // Header row
         sb.append("| Metric |");
         for (var cond : conditionNames) {
             sb.append(" ").append(cond).append(" |");
         }
         sb.append("\n");
 
-        // Separator row
         sb.append("|--------|");
         for (int i = 0; i < conditionNames.size(); i++) {
             sb.append("-----|");
         }
         sb.append("\n");
 
-        // Data rows
         for (var metric : metricKeys) {
             sb.append("| ").append(metric).append(" |");
             for (var summary : summaries) {
@@ -192,21 +185,18 @@ public final class MarkdownReportRenderer {
 
         sb.append("### Per-Fact Survival\n\n");
 
-        // Header row
         sb.append("| Fact |");
         for (var cond : conditions) {
             sb.append(" ").append(cond).append(" |");
         }
         sb.append("\n");
 
-        // Separator row
         sb.append("|------|");
         for (int i = 0; i < conditions.size(); i++) {
             sb.append("-----|");
         }
         sb.append("\n");
 
-        // Data rows
         for (var row : rows) {
             var truncatedText = truncate(row.factText(), FACT_TEXT_MAX_LENGTH);
             sb.append("| ").append(truncatedText).append(" |");
@@ -270,21 +260,18 @@ public final class MarkdownReportRenderer {
 
         sb.append("## Strategy Effectiveness\n\n");
 
-        // Header row
         sb.append("| Strategy |");
         for (var cond : conditions) {
             sb.append(" ").append(cond).append(" |");
         }
         sb.append("\n");
 
-        // Separator row
         sb.append("|----------|");
         for (int i = 0; i < conditions.size(); i++) {
             sb.append("-----|");
         }
         sb.append("\n");
 
-        // Data rows
         for (var entry : section.strategies().entrySet()) {
             sb.append("| ").append(entry.getKey()).append(" |");
             var condValues = entry.getValue();

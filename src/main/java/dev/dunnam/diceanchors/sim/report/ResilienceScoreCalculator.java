@@ -36,10 +36,6 @@ public final class ResilienceScoreCalculator {
 
     /**
      * Compute a single {@link ResilienceScore} for a given condition across all scenarios.
-     *
-     * @param report             the full experiment report
-     * @param referenceCondition the condition name to evaluate
-     * @return composite resilience score for the condition
      */
     public static ResilienceScore compute(ExperimentReport report, String referenceCondition) {
         var survivalValues = new ArrayList<Double>();
@@ -94,9 +90,6 @@ public final class ResilienceScoreCalculator {
 
     /**
      * Compute resilience scores for all conditions in the experiment.
-     *
-     * @param report the full experiment report
-     * @return map of condition name to resilience score
      */
     public static Map<String, ResilienceScore> computeComparative(ExperimentReport report) {
         var results = new LinkedHashMap<String, ResilienceScore>();

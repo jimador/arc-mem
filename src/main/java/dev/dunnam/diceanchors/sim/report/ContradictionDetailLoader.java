@@ -34,9 +34,6 @@ public final class ContradictionDetailLoader {
     /**
      * Load per-fact contradiction details for every scenario in the given experiment report.
      *
-     * @param report         the completed experiment report
-     * @param store          run history store for loading individual run records
-     * @param scenarioLoader scenario loader for resolving ground truth text
      * @return map of scenarioId to ordered list of {@link FactContradictionGroup}
      */
     public static Map<String, List<FactContradictionGroup>> loadContradictionDetails(
@@ -57,7 +54,6 @@ public final class ContradictionDetailLoader {
             ExperimentReport report, RunHistoryStore store,
             String scenarioId, Map<String, String> factIdToText) {
 
-        // factId -> mutable list of details
         var detailsByFact = new LinkedHashMap<String, List<ContradictionDetail>>();
 
         for (var condition : report.conditions()) {
@@ -80,7 +76,6 @@ public final class ContradictionDetailLoader {
             }
         }
 
-        // Build groups in ground truth order, only for facts that have contradictions
         var groups = new ArrayList<FactContradictionGroup>();
         for (var entry : factIdToText.entrySet()) {
             var factId = entry.getKey();

@@ -40,9 +40,6 @@ public final class FactSurvivalLoader {
     /**
      * Load per-fact survival data for every scenario in the given experiment report.
      *
-     * @param report         the completed experiment report
-     * @param store          run history store for loading individual run records
-     * @param scenarioLoader scenario loader for resolving ground truth text
      * @return map of scenarioId to ordered list of {@link FactSurvivalRow}, one per ground truth fact
      */
     public static Map<String, List<FactSurvivalRow>> loadFactSurvival(
@@ -58,10 +55,6 @@ public final class FactSurvivalLoader {
 
         return result;
     }
-
-    // -------------------------------------------------------------------------
-    // Ground truth resolution
-    // -------------------------------------------------------------------------
 
     /**
      * Build a factId -> display text index from the scenario's ground truth list.
@@ -84,13 +77,6 @@ public final class FactSurvivalLoader {
         return index;
     }
 
-    // -------------------------------------------------------------------------
-    // Run record loading
-    // -------------------------------------------------------------------------
-
-    /**
-     * Load run records for a given cell key from the experiment report.
-     */
     private static List<SimulationRunRecord> loadCellRecords(
             String cellKey, ExperimentReport report, RunHistoryStore store) {
         try {
@@ -108,10 +94,6 @@ public final class FactSurvivalLoader {
             return List.of();
         }
     }
-
-    // -------------------------------------------------------------------------
-    // Contradiction / drift extraction
-    // -------------------------------------------------------------------------
 
     /**
      * Collect the earliest turn number at which each factId received a
@@ -156,10 +138,6 @@ public final class FactSurvivalLoader {
         return confirmed;
     }
 
-    // -------------------------------------------------------------------------
-    // Aggregation
-    // -------------------------------------------------------------------------
-
     /**
      * Compute survival rows for a single scenario across all conditions.
      */
@@ -167,7 +145,6 @@ public final class FactSurvivalLoader {
             ExperimentReport report, RunHistoryStore store,
             String scenarioId, Map<String, String> factIdToText) {
 
-        // condition -> factId -> mutable stats
         var statsByCondition = new HashMap<String, Map<String, MutableFactStats>>();
 
         for (var condition : report.conditions()) {
@@ -198,7 +175,6 @@ public final class FactSurvivalLoader {
             }
         }
 
-        // Assemble rows in ground truth order
         var rows = new ArrayList<FactSurvivalRow>();
         for (var entry : factIdToText.entrySet()) {
             var factId = entry.getKey();
