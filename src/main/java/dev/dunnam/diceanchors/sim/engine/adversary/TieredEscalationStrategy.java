@@ -60,10 +60,6 @@ public class TieredEscalationStrategy implements AdversaryStrategy {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Sequence detection
-    // -------------------------------------------------------------------------
-
     /**
      * Returns the last outcome if we are mid-sequence (SETUP or BUILD), else null.
      * Returns null when: history is empty, last attack was standalone, or last phase was PAYOFF.
@@ -76,17 +72,13 @@ public class TieredEscalationStrategy implements AdversaryStrategy {
         var lastOutcome = recent.get(0);
         var seq = lastOutcome.plan().sequence();
         if (seq == null) {
-            return null; // standalone attack — no active sequence
+            return null;
         }
         if (seq.phase().equals(AttackSequence.PAYOFF)) {
-            return null; // sequence complete
+            return null;
         }
-        return lastOutcome; // in SETUP or BUILD — continue it
+        return lastOutcome;
     }
-
-    // -------------------------------------------------------------------------
-    // Sequence continuation
-    // -------------------------------------------------------------------------
 
     /**
      * Advance an in-progress sequence: SETUP → BUILD at tier+1, BUILD → PAYOFF at maxEscalationTier.
@@ -118,19 +110,11 @@ public class TieredEscalationStrategy implements AdversaryStrategy {
         return new AttackPlan(targets, strategies, nextTier, rationale, new AttackSequence(sequenceId, nextPhase));
     }
 
-    // -------------------------------------------------------------------------
-    // New attack planning
-    // -------------------------------------------------------------------------
-
-    /**
-     * Full planning path when no active sequence exists.
-     */
     private AttackPlan planNewAttack(List<Anchor> active, List<Anchor> conflicted, AttackHistory history) {
         var targets = selectTargets(active, conflicted, history);
         var tier = determineTier(history);
         var strategies = preferredStrategies(tier);
 
-        // Check whether the first strategy is a multi-turn strategy
         var firstStrategy = strategies.get(0);
         var isMultiTurn = catalog.findById(firstStrategy.name())
                 .map(DriftStrategyDefinition::multiTurn)
@@ -152,10 +136,6 @@ public class TieredEscalationStrategy implements AdversaryStrategy {
         logger.debug("Standalone attack hint: tier={}, targets={}", tier, targets);
         return new AttackPlan(targets, strategies, tier, rationale, null);
     }
-
-    // -------------------------------------------------------------------------
-    // Target selection
-    // -------------------------------------------------------------------------
 
     /**
      * Select attack targets from active anchors.
@@ -211,10 +191,6 @@ public class TieredEscalationStrategy implements AdversaryStrategy {
         return filtered.isEmpty() ? eligible : filtered;
     }
 
-    // -------------------------------------------------------------------------
-    // Tier determination
-    // -------------------------------------------------------------------------
-
     /**
      * Determine the preferred strategy tier for this attack based on how many attacks
      * have already occurred in this run. More attacks → higher tier preference, capped
@@ -239,10 +215,6 @@ public class TieredEscalationStrategy implements AdversaryStrategy {
         logger.debug("Preferred tier {} (attackCount={})", tier, attackCount);
         return tier;
     }
-
-    // -------------------------------------------------------------------------
-    // Preferred-strategy hint
-    // -------------------------------------------------------------------------
 
     /**
      * Return all catalog strategies at the given tier as the preference hint for the LLM.
@@ -274,10 +246,6 @@ public class TieredEscalationStrategy implements AdversaryStrategy {
                 .toList();
         return fallback.isEmpty() ? List.of(AttackStrategy.SUBTLE_REFRAME) : fallback;
     }
-
-    // -------------------------------------------------------------------------
-    // Utility
-    // -------------------------------------------------------------------------
 
     private static StrategyTier tierFromLevel(int level) {
         for (var t : StrategyTier.values()) {

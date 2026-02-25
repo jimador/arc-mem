@@ -115,10 +115,6 @@ public class AdaptiveAttackPrompter {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Prompt construction
-    // -------------------------------------------------------------------------
-
     private String buildConversationSystemPrompt(SimulationScenario.PersonaConfig persona, String setting) {
         var sb = new StringBuilder();
         sb.append("You are roleplaying as ").append(persona.name()).append(".\n");
@@ -232,10 +228,6 @@ public class AdaptiveAttackPrompter {
         sb.append("{\"strategies\":[\"STRATEGY_ID\",...],\"message\":\"your in-character dialogue\"}");
         return sb.toString();
     }
-
-    // -------------------------------------------------------------------------
-    // Response parsing
-    // -------------------------------------------------------------------------
 
     private GeneratedAttack parseResponse(String raw, AttackPlan planHint) {
         try {

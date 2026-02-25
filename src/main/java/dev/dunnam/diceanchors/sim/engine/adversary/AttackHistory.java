@@ -17,7 +17,6 @@ public class AttackHistory {
 
     private final List<AttackOutcome> outcomes = new ArrayList<>();
 
-    /** Record the outcome of an adaptive adversary turn. */
     public void recordOutcome(AttackOutcome outcome) {
         outcomes.add(outcome);
     }
@@ -48,7 +47,6 @@ public class AttackHistory {
                 .collect(Collectors.toUnmodifiableSet());
     }
 
-    /** Total number of outcomes recorded so far. */
     public int size() {
         return outcomes.size();
     }
