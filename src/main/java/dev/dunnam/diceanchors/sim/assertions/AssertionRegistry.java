@@ -33,8 +33,6 @@ public class AssertionRegistry {
      * @param type   the assertion type key (e.g. "anchor-count")
      * @param params parameter map from YAML config; may be null
      *
-     * @return the instantiated assertion
-     *
      * @throws IllegalArgumentException if the type is unknown
      */
     public SimulationAssertion resolve(String type, Map<String, Object> params) {
@@ -48,9 +46,8 @@ public class AssertionRegistry {
     /**
      * Resolve all assertions from a scenario's assertion config list.
      *
-     * @param configs the list of assertion configs from the scenario YAML
-     *
-     * @return list of instantiated assertions; empty list if configs is null or empty
+     * @param configs assertion configs from the scenario YAML
+     * @return instantiated assertions; empty list if configs is null or empty
      */
     public List<SimulationAssertion> resolveAll(List<SimulationScenario.AssertionConfig> configs) {
         if (configs == null || configs.isEmpty()) {
