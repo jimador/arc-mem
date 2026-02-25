@@ -1,3 +1,7 @@
+> **Migrated:** This content has been consolidated into [`docs/dev/related-work.md`](../dev/related-work.md). This file is retained as a transitional pointer and will be removed in a future cleanup.
+
+---
+
 # ANCHORS TECH REPORT
 
 ## 1. Abstract

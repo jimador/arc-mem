@@ -1,3 +1,7 @@
+> **Migrated:** This content has been consolidated into [`docs/dev/implementation-notes.md`](../dev/implementation-notes.md) and [`docs/dev/evaluation.md`](../dev/evaluation.md). This file is retained as a transitional pointer and will be removed in a future cleanup.
+
+---
+
 # HARNESS GAP ANALYSIS
 
 ## Scope

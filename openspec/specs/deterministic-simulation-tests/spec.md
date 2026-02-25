@@ -74,3 +74,21 @@ A deterministic simulation test class SHALL load scenarios from `deterministic-s
 - **I3**: Turn-number lookup MUST match exactly; missing turns MUST fail fast
 - **I4**: Each scenario MUST define expected-final-metrics for validation
 - **I5**: Metrics comparison MUST use string operators (>, <, ==, etc.)
+- **DST1**: Deterministic tests SHALL act as a hard guardrail for claim-grade reproducibility.
+
+## Added Requirements (initial-community-review-readiness)
+
+### Requirement: Expected metrics validation (reproducibility)
+
+Deterministic simulation tests SHALL validate metric reproducibility, not just point correctness. For a fixed deterministic scenario and fixed model/test harness configuration, repeated runs SHALL produce identical primary metrics and identical contradiction verdict sequences.
+
+#### Scenario: Repeated deterministic runs are identical
+- **GIVEN** a deterministic scenario with fixed harness configuration
+- **WHEN** the test executes the scenario multiple times
+- **THEN** primary metrics SHALL be identical across runs
+- **AND** contradiction verdict sequences SHALL be identical across runs
+
+#### Scenario: Drift in deterministic output fails regression test
+- **GIVEN** a deterministic baseline snapshot
+- **WHEN** a new run deviates in primary metrics or verdict sequence
+- **THEN** the deterministic regression test SHALL fail

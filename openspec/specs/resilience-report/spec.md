@@ -171,3 +171,30 @@ The system SHALL provide a `MarkdownReportRenderer` class in `sim.report` with a
 - **RR1**: `ResilienceReport` SHALL be fully constructible from an `ExperimentReport` without any additional user input.
 - **RR2**: `MarkdownReportRenderer.render()` SHALL be a pure function with no side effects.
 - **RR3**: Per-fact survival data in the report SHALL be consistent with the data shown by `FactDrillDownPanel` for the same experiment.
+- **RER1**: Resilience report narrative SHALL NOT overstate conclusions beyond validated evidence grade.
+
+## Added Requirements (initial-community-review-readiness)
+
+### Requirement: Narrative generation (evidence-bound)
+
+Narrative generation SHALL remain evidence-bound and SHALL include confidence qualifiers. When stability gates are unmet, required ablations are missing, or degraded runs materially affect results, the report SHALL use provisional language and SHALL explicitly block material-robustness claims.
+
+#### Scenario: Missing ablation forces provisional narrative
+- **GIVEN** a resilience report generated without all required ablations
+- **WHEN** narrative text is composed
+- **THEN** the narrative SHALL state that results are provisional
+- **AND** material robustness claims SHALL be marked unsupported
+
+#### Scenario: Stable claim-grade evidence allows non-provisional summary
+- **GIVEN** a resilience report with required ablations, stability checks, and no blocking degradations
+- **WHEN** narrative text is composed
+- **THEN** the summary SHALL indicate claim-grade readiness
+
+### Requirement: MarkdownReportRenderer (evidence grade metadata)
+
+Markdown rendering SHALL include evidence-grade metadata and degraded-run indicators in the report header or summary blocks so reviewers can quickly assess evidence quality.
+
+#### Scenario: Rendered report shows evidence grade and degraded-run indicators
+- **GIVEN** a generated resilience report with degraded runs
+- **WHEN** markdown is rendered
+- **THEN** the output SHALL show evidence grade and degraded-run indicators in summary sections

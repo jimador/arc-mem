@@ -1,3 +1,7 @@
+> **Migrated:** This content has been consolidated into [`docs/dev/design-rationale.md`](dev/design-rationale.md). This file is retained as a transitional pointer and will be removed in a future cleanup.
+
+---
+
 # Anchors as Working Memory
 
 ## The Core Tension

@@ -1,3 +1,7 @@
+> **Migrated:** This content has been consolidated into [`docs/dev/known-issues.md`](dev/known-issues.md). This file is retained as a transitional pointer and will be removed in a future cleanup.
+
+---
+
 # Known Limitations
 
 This document is an explicit list of current gaps and deferred work. `dice-anchors` is an exploration-quality demo, not a production-hardened memory system.

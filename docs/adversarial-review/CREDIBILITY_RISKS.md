@@ -1,3 +1,7 @@
+> **Migrated:** This content has been consolidated into [`docs/dev/known-issues.md`](../dev/known-issues.md). This file is retained as a transitional pointer and will be removed in a future cleanup.
+
+---
+
 # CREDIBILITY RISKS
 
 Assumption audit for the current adversarial harness and reporting stack.

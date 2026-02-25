@@ -1,3 +1,7 @@
+> **Migrated:** This content has been consolidated into [`docs/dev/implementation-notes.md`](dev/implementation-notes.md). This file is retained as a transitional pointer and will be removed in a future cleanup.
+
+---
+
 # Anchor Engine Survey (Tor -> dice-anchors)
 
 ## Applied in this pass

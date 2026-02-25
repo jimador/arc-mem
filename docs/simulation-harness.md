@@ -1,3 +1,7 @@
+> **Migrated:** This content has been consolidated into [`docs/dev/evaluation.md`](dev/evaluation.md) and [`docs/dev/reproducibility.md`](dev/reproducibility.md). This file is retained as a transitional pointer and will be removed in a future cleanup.
+
+---
+
 # Simulation Harness
 
 ## Purpose

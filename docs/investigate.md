@@ -1,3 +1,7 @@
+> **Archived:** This file has been archived. See [`docs/dev/migration-tracker.md`](dev/migration-tracker.md) for details. This file is retained as a transitional pointer and will be removed in a future cleanup.
+
+---
+
 # Research Investigation Notes
 
 ## Research Papers

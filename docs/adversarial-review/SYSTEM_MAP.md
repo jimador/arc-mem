@@ -1,3 +1,7 @@
+> **Migrated:** This content has been consolidated into [`docs/dev/architecture.md`](../dev/architecture.md). This file is retained as a transitional pointer and will be removed in a future cleanup.
+
+---
+
 # SYSTEM MAP
 
 ## 1) Runtime Topology

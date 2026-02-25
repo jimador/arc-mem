@@ -166,3 +166,24 @@ The `Anchor` record SHALL be extended with two new fields:
 - **GIVEN** a PropositionNode without importance or decay fields set
 - **WHEN** `toAnchor()` converts it to an Anchor record
 - **THEN** the Anchor has diceImportance=0.0 and diceDecay=1.0 (preserving existing decay behavior)
+
+## Added Requirements (initial-community-review-readiness)
+
+### Requirement: Trust re-evaluation trigger (audit records)
+
+Trust re-evaluation SHALL occur when an anchor is reinforced, when contradictory evidence is introduced, and when trust-profile context changes. Every re-evaluation SHALL persist a trust decision record containing prior trust score, new trust score, trigger reason, and applied profile.
+
+#### Scenario: Reinforcement triggers trust re-evaluation with audit record
+- **GIVEN** an existing anchor that receives reinforcement
+- **WHEN** reinforcement processing completes
+- **THEN** trust SHALL be re-evaluated
+- **AND** an audit record SHALL capture prior score, new score, trigger reason, and profile
+
+#### Scenario: Profile change triggers trust re-evaluation
+- **GIVEN** an anchor evaluated under profile A
+- **WHEN** the profile changes to profile B for the same context
+- **THEN** trust SHALL be re-evaluated under profile B
+
+## Invariants (initial-community-review-readiness)
+
+- **ATR1**: Trust decisions used in claim-grade evidence SHALL be auditable and reproducible.
