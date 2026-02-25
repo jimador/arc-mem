@@ -117,7 +117,6 @@ public class DriftSummaryPanel extends VerticalLayout implements SimulationProgr
 
         var scoring = progress.scoringResult();
 
-        // Compute metrics — prefer ScoringResult, fall back to inline
         var survivalRate = scoring != null
                 ? scoring.factSurvivalRate()
                 : (seedAnchorCount > 0
@@ -158,7 +157,6 @@ public class DriftSummaryPanel extends VerticalLayout implements SimulationProgr
                 ? (double) (totalTurns - contradictionTurns.size()) / totalTurns * 100.0
                 : 100.0);
 
-        // Render metrics grid
         metricsGrid.add(
                 metricCard("Survival Rate", "%.0f%%".formatted(survivalRate),
                            survivalRate >= 80 ? "good" : survivalRate >= 50 ? "warn" : "bad"),
@@ -177,13 +175,11 @@ public class DriftSummaryPanel extends VerticalLayout implements SimulationProgr
                            absorptionRate >= 80 ? "good" : absorptionRate >= 50 ? "warn" : "bad")
         );
 
-        // Strategy effectiveness breakdown (8.3)
         if (scoring != null && scoring.strategyEffectiveness() != null
             && !scoring.strategyEffectiveness().isEmpty()) {
             renderStrategyBreakdown(scoring.strategyEffectiveness());
         }
 
-        // Render assertion results
         if (progress.assertionResults() != null && !progress.assertionResults().isEmpty()) {
             var assertionTitle = new H4("Assertion Results");
             assertionTitle.addClassName("ar-section-title--inner");
@@ -219,10 +215,6 @@ public class DriftSummaryPanel extends VerticalLayout implements SimulationProgr
     public void setSeedAnchorCount(int count) {
         this.seedAnchorCount = count;
     }
-
-    // -------------------------------------------------------------------------
-    // Private rendering helpers
-    // -------------------------------------------------------------------------
 
     /**
      * Render per-strategy contradiction rate breakdown for adversarial scenarios.
@@ -318,7 +310,7 @@ public class DriftSummaryPanel extends VerticalLayout implements SimulationProgr
     }
 
     private int countMajorDrifts() {
-        // Major drift = consecutive contradictions (2+ in a row)
+        // Counts consecutive contradictions (2+ in a row) as "major"
         int major = 0;
         int consecutive = 0;
         for (var verdict : allVerdicts) {

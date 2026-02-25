@@ -69,7 +69,6 @@ public class ContextInspectorPanel extends VerticalLayout implements SimulationP
         setPadding(false);
         setSpacing(false);
 
-        // Tab headers
         anchorsTab = new Tab("Anchors");
         verdictsTab = new Tab("Verdicts");
         promptTab = new Tab("Prompt");
@@ -78,7 +77,6 @@ public class ContextInspectorPanel extends VerticalLayout implements SimulationP
         var tabs = new Tabs(anchorsTab, verdictsTab, promptTab, compactionTab, invariantsTab);
         tabs.setWidthFull();
 
-        // Badge labels inside tab headers
         anchorCountBadge = tabBadge("0", "data-injection", "on");       // cyan / primary
         verdictCountBadge = tabBadge("0", "data-verdict", "contradicted"); // error (overridden per-render)
         extractionCountBadge = tabBadge("", "data-event-type", "extracted"); // teal
@@ -88,7 +86,6 @@ public class ContextInspectorPanel extends VerticalLayout implements SimulationP
         verdictsTab.add(verdictCountBadge);
         invariantsTab.add(invariantBadge);
 
-        // Content panels
         anchorsContent = new VerticalLayout();
         anchorsContent.setPadding(true);
         anchorsContent.setSpacing(true);
@@ -200,16 +197,6 @@ public class ContextInspectorPanel extends VerticalLayout implements SimulationP
         showPlaceholder(invariantsContent, "No invariant rules configured.");
     }
 
-    /**
-     * Update the compaction tab with compaction event data for the current turn.
-     *
-     * @param triggerReason  why compaction was triggered (e.g., "token threshold", "forced turn")
-     * @param tokenSavings   tokens saved by compaction
-     * @param protectedItems list of protected content descriptions
-     * @param summaryPreview first 200 chars of the compaction summary
-     * @param durationMs     compaction duration in milliseconds
-     * @param lossEvents     anchors lost during compaction (may be null or empty)
-     */
     public void updateCompaction(String triggerReason, int tokenSavings,
                                  List<String> protectedItems, String summaryPreview,
                                  long durationMs,
@@ -222,7 +209,6 @@ public class ContextInspectorPanel extends VerticalLayout implements SimulationP
 
         compactionContent.add(reasonRow, savingsRow, durationRow);
 
-        // Lost facts section
         if (lossEvents != null && !lossEvents.isEmpty()) {
             var lossSection = new VerticalLayout();
             lossSection.setPadding(false);
@@ -248,7 +234,6 @@ public class ContextInspectorPanel extends VerticalLayout implements SimulationP
             compactionContent.add(lossSection);
         }
 
-        // Protected content list
         if (protectedItems != null && !protectedItems.isEmpty()) {
             var protectedSection = new VerticalLayout();
             protectedSection.setPadding(false);
@@ -266,7 +251,6 @@ public class ContextInspectorPanel extends VerticalLayout implements SimulationP
             compactionContent.add(protectedSection);
         }
 
-        // Summary preview
         if (summaryPreview != null && !summaryPreview.isBlank()) {
             var preview = truncate(summaryPreview, 200);
             var summaryLabel = new Span("Summary Preview");
@@ -280,8 +264,6 @@ public class ContextInspectorPanel extends VerticalLayout implements SimulationP
     /**
      * Set a callback invoked when the user clicks "Browse" on an anchor card.
      * The callback receives the anchor text for cross-panel filtering.
-     *
-     * @param callback consumer that receives the anchor text
      */
     public void setBrowseCallback(@Nullable Consumer<String> callback) {
         this.browseCallback = callback;
@@ -349,7 +331,6 @@ public class ContextInspectorPanel extends VerticalLayout implements SimulationP
             invariantBadge.getElement().setAttribute("data-invariant-status", "clean");
         }
 
-        // Active rules section
         if (!safeRules.isEmpty()) {
             var rulesLabel = new Span("Active Rules (%d)".formatted(safeRules.size()));
             rulesLabel.addClassName("ar-invariant-section-label");
@@ -360,7 +341,6 @@ public class ContextInspectorPanel extends VerticalLayout implements SimulationP
             }
         }
 
-        // Violations section
         if (!safeViolations.isEmpty()) {
             var violationsLabel = new Span("Violations (%d)".formatted(safeViolations.size()));
             violationsLabel.addClassName("ar-invariant-section-label");
@@ -381,11 +361,9 @@ public class ContextInspectorPanel extends VerticalLayout implements SimulationP
         header.setSpacing(true);
         header.setWidthFull();
 
-        // Rule ID
         var idSpan = new Span(rule.id());
         idSpan.addClassName("ar-fact-id");
 
-        // Type badge
         var typeName = switch (rule) {
             case InvariantRule.AuthorityFloor ignored -> "AuthorityFloor";
             case InvariantRule.EvictionImmunity ignored -> "EvictionImmunity";
@@ -396,18 +374,15 @@ public class ContextInspectorPanel extends VerticalLayout implements SimulationP
         typeBadge.addClassName("ar-badge");
         typeBadge.getElement().setAttribute("data-invariant-type", typeName.toLowerCase());
 
-        // Strength badge
         var strengthBadge = invariantStrengthBadge(rule.strength());
 
         header.add(idSpan, typeBadge, strengthBadge);
         card.add(header);
 
-        // Scope
         var scopeText = rule.contextId() != null ? rule.contextId() : "Global";
         var scopeRow = metadataRow("Scope", scopeText);
         card.add(scopeRow);
 
-        // Constraint description
         var description = describeRule(rule);
         var descRow = metadataRow("Constraint", description);
         card.add(descRow);
@@ -475,10 +450,6 @@ public class ContextInspectorPanel extends VerticalLayout implements SimulationP
         };
     }
 
-    // -------------------------------------------------------------------------
-    // Private rendering helpers
-    // -------------------------------------------------------------------------
-
     private void renderPrompt(ContextTrace trace) {
         if (trace.fullSystemPrompt() != null && !trace.fullSystemPrompt().isBlank()) {
             var systemLabel = new Span("System Prompt");
@@ -515,7 +486,6 @@ public class ContextInspectorPanel extends VerticalLayout implements SimulationP
         var anchors = trace.injectedAnchors();
         anchorCountBadge.setText(String.valueOf(anchors.size()));
 
-        // Extraction badge
         if (trace.propositionsExtracted() > 0) {
             extractionCountBadge.setText("%d extracted, %d promoted".formatted(
                     trace.propositionsExtracted(), trace.propositionsPromoted()));
@@ -524,7 +494,6 @@ public class ContextInspectorPanel extends VerticalLayout implements SimulationP
             extractionCountBadge.setVisible(false);
         }
 
-        // Token summary
         var tokenSummaryText = "Token budget: %d injected-context tokens / %d total tokens"
                 .formatted(trace.anchorTokens(), trace.totalTokens());
         if (trace.budgetApplied()) {
@@ -534,7 +503,6 @@ public class ContextInspectorPanel extends VerticalLayout implements SimulationP
         tokenSummary.addClassName("ar-token-summary");
         anchorsContent.add(tokenSummary);
 
-        // Extraction summary when propositions were extracted this turn
         if (trace.propositionsExtracted() > 0) {
             var extractionSection = new VerticalLayout();
             extractionSection.setPadding(false);
@@ -562,7 +530,6 @@ public class ContextInspectorPanel extends VerticalLayout implements SimulationP
         var card = new Div();
         card.addClassName("ar-anchor-card");
 
-        // Header row: authority badge + anchor text
         var header = new HorizontalLayout();
         header.setAlignItems(HorizontalLayout.Alignment.CENTER);
         header.setSpacing(true);
@@ -598,7 +565,6 @@ public class ContextInspectorPanel extends VerticalLayout implements SimulationP
 
         card.add(header);
 
-        // Rank progress bar
         var rankRow = new HorizontalLayout();
         rankRow.setAlignItems(HorizontalLayout.Alignment.CENTER);
         rankRow.setSpacing(true);
@@ -618,7 +584,6 @@ public class ContextInspectorPanel extends VerticalLayout implements SimulationP
         rankRow.add(rankLabel, bar, reinforceLabel);
         card.add(rankRow);
 
-        // Trust score display (9.5)
         if (anchor.trustScore() != null) {
             card.add(trustScoreSection(anchor.trustScore()));
         }
@@ -626,14 +591,10 @@ public class ContextInspectorPanel extends VerticalLayout implements SimulationP
         return card;
     }
 
-    /**
-     * Render trust score section: composite score %, zone badge, and expandable signal audit.
-     */
     private Div trustScoreSection(TrustScore trust) {
         var section = new Div();
         section.addClassName("ar-trust-section");
 
-        // Score + zone row
         var scoreRow = new HorizontalLayout();
         scoreRow.setAlignItems(HorizontalLayout.Alignment.CENTER);
         scoreRow.setSpacing(true);
@@ -646,7 +607,6 @@ public class ContextInspectorPanel extends VerticalLayout implements SimulationP
         scoreRow.add(scoreLabel, zoneBadge);
         section.add(scoreRow);
 
-        // Expandable signal audit
         if (trust.signalAudit() != null && !trust.signalAudit().isEmpty()) {
             var auditContent = new VerticalLayout();
             auditContent.setPadding(false);

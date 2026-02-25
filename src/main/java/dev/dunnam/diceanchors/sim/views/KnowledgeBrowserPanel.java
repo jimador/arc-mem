@@ -42,10 +42,8 @@ public class KnowledgeBrowserPanel extends VerticalLayout implements SimulationP
     private final AnchorEngine anchorEngine;
     private final AnchorRepository anchorRepository;
 
-    // State
     private @Nullable String contextId;
 
-    // Tabs
     private final Tabs tabs;
     private final Tab propositionsTab;
     private final Tab anchorsTab;
@@ -55,16 +53,13 @@ public class KnowledgeBrowserPanel extends VerticalLayout implements SimulationP
     private final VerticalLayout graphContent;
     private final VerticalLayout searchResultsContent;
 
-    // Proposition filters
     private final Select<String> statusFilter;
     private final NumberField minConfidenceFilter;
 
-    // Anchor filters
     private final Select<String> authorityFilter;
     private final NumberField minRankFilter;
     private final NumberField maxRankFilter;
 
-    // Graph filters
     private final NumberField minEdgeWeightFilter;
     private final Select<String> entityTypeFilter;
     private final Select<String> graphScopeFilter;
@@ -73,10 +68,8 @@ public class KnowledgeBrowserPanel extends VerticalLayout implements SimulationP
     private EntityMentionGraph latestGraph = EntityMentionGraph.empty();
     private boolean updatingGraphFilters;
 
-    // Search
     private final TextField searchField;
 
-    // Grids
     private final Grid<PropositionRow> propositionGrid;
     private final Grid<AnchorRow> anchorGrid;
 
@@ -87,7 +80,6 @@ public class KnowledgeBrowserPanel extends VerticalLayout implements SimulationP
         setPadding(false);
         setSpacing(false);
 
-        // --- Semantic search field ---
         searchField = new TextField();
         searchField.setPlaceholder("Semantic search (min 3 chars)...");
         searchField.setWidthFull();
@@ -102,14 +94,12 @@ public class KnowledgeBrowserPanel extends VerticalLayout implements SimulationP
         searchResultsContent.setVisible(false);
         searchResultsContent.addClassName("ar-scrollable");
 
-        // --- Tab headers ---
         propositionsTab = new Tab("Propositions");
         anchorsTab = new Tab("Anchors");
         graphTab = new Tab("Graph");
         tabs = new Tabs(propositionsTab, anchorsTab, graphTab);
         tabs.setWidthFull();
 
-        // --- Propositions content ---
         statusFilter = new Select<>();
         statusFilter.setLabel("Status");
         statusFilter.setItems("ALL", "ACTIVE", "SUPERSEDED", "CONTRADICTED", "PROMOTED");
@@ -143,7 +133,6 @@ public class KnowledgeBrowserPanel extends VerticalLayout implements SimulationP
         propositionsContent.setFlexGrow(1, propositionGrid);
         propositionsContent.addClassName("ar-scrollable");
 
-        // --- Anchors content ---
         authorityFilter = new Select<>();
         authorityFilter.setLabel("Authority");
         authorityFilter.setItems("ALL", "PROVISIONAL", "UNRELIABLE", "RELIABLE", "CANON");
@@ -187,7 +176,6 @@ public class KnowledgeBrowserPanel extends VerticalLayout implements SimulationP
         anchorsContent.addClassName("ar-scrollable");
         anchorsContent.setVisible(false);
 
-        // --- Graph content ---
         minEdgeWeightFilter = new NumberField("Min Edge Weight");
         minEdgeWeightFilter.setMin(1);
         minEdgeWeightFilter.setMax(20);
@@ -232,7 +220,6 @@ public class KnowledgeBrowserPanel extends VerticalLayout implements SimulationP
         graphContent.addClassName("ar-graph-content");
         graphContent.setVisible(false);
 
-        // --- Tab switching ---
         tabs.addSelectedChangeListener(event -> {
             var selected = event.getSelectedTab();
             propositionsContent.setVisible(selected == propositionsTab);
@@ -243,7 +230,6 @@ public class KnowledgeBrowserPanel extends VerticalLayout implements SimulationP
             }
         });
 
-        // --- Assembly ---
         add(searchField, searchResultsContent, tabs, propositionsContent, anchorsContent, graphContent);
         setFlexGrow(1, propositionsContent);
         setFlexGrow(1, anchorsContent);
@@ -328,10 +314,6 @@ public class KnowledgeBrowserPanel extends VerticalLayout implements SimulationP
         clearSearchResults();
         showEmptyState();
     }
-
-    // -------------------------------------------------------------------------
-    // Data loading
-    // -------------------------------------------------------------------------
 
     private void refreshPropositions() {
         if (contextId == null) {
@@ -433,10 +415,6 @@ public class KnowledgeBrowserPanel extends VerticalLayout implements SimulationP
         graphContent.setVisible(true);
     }
 
-    // -------------------------------------------------------------------------
-    // Semantic search
-    // -------------------------------------------------------------------------
-
     private void onSearchChanged(String query) {
         if (query == null || query.length() < SEARCH_MIN_LENGTH) {
             clearSearchResults();
@@ -498,10 +476,6 @@ public class KnowledgeBrowserPanel extends VerticalLayout implements SimulationP
         anchorGrid.setItems(List.of());
         entityMentionNetworkView.setGraph(EntityMentionGraph.empty());
     }
-
-    // -------------------------------------------------------------------------
-    // Row records for grids
-    // -------------------------------------------------------------------------
 
     record PropositionRow(String id, String text, String status, double confidence, String created) {}
 

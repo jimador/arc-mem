@@ -101,10 +101,6 @@ public class AnchorBrowseController {
         return ResponseEntity.ok(history);
     }
 
-    // -------------------------------------------------------------------------
-    // DTOs
-    // -------------------------------------------------------------------------
-
     /**
      * Anchor summary for list/search responses.
      */
@@ -118,9 +114,6 @@ public class AnchorBrowseController {
             int reinforcementCount
     ) {}
 
-    /**
-     * Anchor with full history details.
-     */
     public record AnchorHistoryDto(
             String id,
             String text,
@@ -133,10 +126,6 @@ public class AnchorBrowseController {
             String lastReinforced,
             String decayType
     ) {}
-
-    // -------------------------------------------------------------------------
-    // Mapping helpers
-    // -------------------------------------------------------------------------
 
     private static AnchorDto toDto(Anchor anchor) {
         return new AnchorDto(

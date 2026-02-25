@@ -30,23 +30,19 @@ import static dev.dunnam.diceanchors.sim.views.BenchmarkRenderUtils.METRIC_LABEL
  */
 public class BenchmarkPanel extends VerticalLayout {
 
-    // Controls
     private final IntegerField runCountField;
     private final Button runButton;
     private final Button cancelButton;
     private final Button saveBaselineButton;
 
-    // Progress
     private final HorizontalLayout progressLayout;
     private final Span progressLabel;
     private final ProgressBar progressBar;
 
-    // Content sections
     private final Div metricsGrid;
     private final VerticalLayout strategySection;
     private final VerticalLayout baselineSection;
 
-    // Callbacks
     private Consumer<Integer> runBenchmarkCallback;
     private Runnable cancelCallback;
     private Runnable saveBaselineCallback;
@@ -57,7 +53,6 @@ public class BenchmarkPanel extends VerticalLayout {
         setSpacing(true);
         setWidthFull();
 
-        // --- Controls ---
         runCountField = new IntegerField("Run Count");
         runCountField.setValue(5);
         runCountField.setMin(2);
@@ -95,7 +90,6 @@ public class BenchmarkPanel extends VerticalLayout {
         controlsLayout.setSpacing(true);
         controlsLayout.addClassName("ar-bench-controls");
 
-        // --- Progress ---
         progressLabel = new Span();
         progressLabel.addClassName("ar-bench-progress-label");
 
@@ -110,7 +104,6 @@ public class BenchmarkPanel extends VerticalLayout {
         progressLayout.addClassName("ar-bench-progress");
         progressLayout.setFlexGrow(1, progressBar);
 
-        // --- Content ---
         var title = new H4("Benchmark Results");
         title.addClassName("ar-section-title");
 
@@ -129,10 +122,6 @@ public class BenchmarkPanel extends VerticalLayout {
         setVisible(true);
     }
 
-    // -------------------------------------------------------------------------
-    // Public API
-    // -------------------------------------------------------------------------
-
     /**
      * Render a completed benchmark report with metric cards, strategy bars,
      * and baseline comparison badges.
@@ -143,7 +132,6 @@ public class BenchmarkPanel extends VerticalLayout {
         baselineSection.removeAll();
         saveBaselineButton.setEnabled(true);
 
-        // Metric cards
         for (var entry : report.metricStatistics().entrySet()) {
             var metricName = entry.getKey();
             var stats = entry.getValue();
@@ -153,7 +141,6 @@ public class BenchmarkPanel extends VerticalLayout {
             metricsGrid.add(BenchmarkRenderUtils.metricCard(label, stats, health, delta, metricName));
         }
 
-        // Strategy effectiveness bars with confidence bounds
         if (!report.strategyStatistics().isEmpty()) {
             renderStrategyBreakdown(report.strategyStatistics());
         }
@@ -219,10 +206,6 @@ public class BenchmarkPanel extends VerticalLayout {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Private rendering helpers
-    // -------------------------------------------------------------------------
-
     /**
      * Render per-strategy effectiveness bars with confidence bounds (mean +/- 1 stddev).
      */
@@ -236,7 +219,6 @@ public class BenchmarkPanel extends VerticalLayout {
             var stats = entry.getValue();
             strategySection.add(BenchmarkRenderUtils.strategyBar(strategy, stats));
 
-            // High-variance warning for strategy
             if (stats.isHighVariance()) {
                 var warningSpan = new Span("high variance (CV=%.2f)".formatted(stats.coefficientOfVariation()));
                 warningSpan.addClassName("ar-bench-warning-badge");

@@ -53,12 +53,10 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
 
     private final RunHistoryStore runStore;
 
-    // State
     private @Nullable SimulationRunRecord primaryRun;
     private @Nullable SimulationRunRecord compareRun;
     private int selectedTurnIndex = -1;
 
-    // UI components
     private final VerticalLayout mainContent;
     private final VerticalLayout errorContent;
 
@@ -131,7 +129,6 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
             return;
         }
 
-        // Header
         var title = compareRun != null
                 ? "Comparing: %s vs %s".formatted(primaryRun.scenarioId(), compareRun.scenarioId())
                 : "Run Inspector: %s".formatted(primaryRun.scenarioId());
@@ -144,7 +141,6 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
                 primaryRun.resilienceRate() * 100));
         subtitle.addClassName("ar-run-subtitle");
 
-        // Sidebar: turn list with verdict indicator
         var turnListBox = new ListBox<TurnSnapshot>();
         turnListBox.setItems(primaryRun.turnSnapshots());
         turnListBox.setRenderer(new ComponentRenderer<>(snap -> {
@@ -153,7 +149,6 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
             row.setAlignItems(Alignment.CENTER);
             row.addClassName("ar-run-turn-row");
 
-            // Verdict indicator dot
             var dot = new Span();
             dot.addClassName("ar-turn-dot");
             var worst = snap.worstVerdict();
@@ -190,7 +185,6 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
         sidebar.add(turnScroller);
         sidebar.setFlexGrow(1, turnScroller);
 
-        // Main tabs
         var tabSheet = new TabSheet();
         tabSheet.setSizeFull();
 
@@ -215,15 +209,10 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
         mainContent.add(header, subtitle, splitLayout);
         mainContent.setFlexGrow(1, splitLayout);
 
-        // Select first turn
         if (!primaryRun.turnSnapshots().isEmpty()) {
             turnListBox.setValue(primaryRun.turnSnapshots().getFirst());
         }
     }
-
-    // -------------------------------------------------------------------------
-    // Tabs
-    // -------------------------------------------------------------------------
 
     private VerticalLayout conversationContent;
 
@@ -282,10 +271,6 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
         return comparisonTabContent;
     }
 
-    // -------------------------------------------------------------------------
-    // Tab updates on turn selection
-    // -------------------------------------------------------------------------
-
     private void updateTabs() {
         if (primaryRun == null || selectedTurnIndex < 0
             || selectedTurnIndex >= primaryRun.turnSnapshots().size()) {
@@ -311,19 +296,16 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
         turnHeader.addClassName("ar-run-turn-header");
         conversationContent.add(turnHeader);
 
-        // Player message
         if (snap.playerMessage() != null) {
             var playerBubble = messageBubble("Player", snap.playerMessage(), "player");
             conversationContent.add(playerBubble);
         }
 
-        // DM response
         if (snap.dmResponse() != null) {
             var dmBubble = messageBubble("DM", snap.dmResponse(), "dm");
             conversationContent.add(dmBubble);
         }
 
-        // Verdict badges for current turn
         var worst = snap.worstVerdict();
         if (worst != null) {
             var verdictRow = new HorizontalLayout();
@@ -338,7 +320,6 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
             conversationContent.add(verdictRow);
         }
 
-        // Context up to this turn
         conversationContent.add(new Span(""));
         var historyHeader = new Span("Conversation up to turn %d:".formatted(snap.turnNumber()));
         historyHeader.addClassName("ar-run-history-header");
@@ -362,7 +343,6 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
                 bubble.addClassName("ar-run-bubble--flex-grow");
                 dmRow.add(bubble);
 
-                // Worst verdict badge for this historical turn
                 var prevWorst = prev.worstVerdict();
                 if (prevWorst != null) {
                     var badge = verdictBadge(prevWorst.verdict());
@@ -474,7 +454,6 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
 
         var compareSnap = compareTurnOpt.get();
 
-        // Side-by-side layout
         var leftPanel = new VerticalLayout();
         leftPanel.setPadding(true);
         leftPanel.setSpacing(true);
@@ -486,7 +465,6 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
         rightPanel.setSpacing(true);
         rightPanel.add(new Span("Run: %s".formatted(compareRun.scenarioId())));
 
-        // Player messages
         if (primarySnap.playerMessage() != null) {
             leftPanel.add(messageBubble("Player", primarySnap.playerMessage(), "player"));
         }
@@ -494,7 +472,6 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
             rightPanel.add(messageBubble("Player", compareSnap.playerMessage(), "player"));
         }
 
-        // DM responses
         if (primarySnap.dmResponse() != null) {
             leftPanel.add(messageBubble("DM", primarySnap.dmResponse(), "dm"));
         }
@@ -502,7 +479,6 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
             rightPanel.add(messageBubble("DM", compareSnap.dmResponse(), "dm"));
         }
 
-        // Verdicts for primary
         if (primarySnap.verdicts() != null && !primarySnap.verdicts().isEmpty()) {
             var primaryVerdictHeader = styledLabel("Verdicts (worst: %s)".formatted(
                                                            primarySnap.worstVerdict() != null ? primarySnap.worstVerdict().verdict().name() : "none"),
@@ -513,7 +489,6 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
             }
         }
 
-        // Verdicts for compare
         if (compareSnap.verdicts() != null && !compareSnap.verdicts().isEmpty()) {
             var compareVerdictHeader = styledLabel("Verdicts (worst: %s)".formatted(
                                                            compareSnap.worstVerdict() != null ? compareSnap.worstVerdict().verdict().name() : "none"),
@@ -530,16 +505,11 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
         sideBySide.setFlexGrow(1, rightPanel);
         comparisonTabContent.add(sideBySide);
 
-        // Anchor diff between runs at this turn
         comparisonTabContent.add(new H4("Anchor Diff at Turn %d".formatted(primarySnap.turnNumber())));
         renderAnchorDiff(comparisonTabContent,
                          primarySnap.activeAnchors(), compareSnap.activeAnchors(),
                          primaryRun.scenarioId(), compareRun.scenarioId());
     }
-
-    // -------------------------------------------------------------------------
-    // Anchor diff rendering
-    // -------------------------------------------------------------------------
 
     /**
      * Render a diff between two anchor lists, showing added, removed, and changed anchors.
@@ -565,7 +535,6 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
         var common = new HashSet<>(fromKeys);
         common.retainAll(toKeys);
 
-        // Added
         if (!added.isEmpty()) {
             var addedHeader = styledLabel("+ Added (%d)".formatted(added.size()), "success");
             container.add(addedHeader);

@@ -41,7 +41,6 @@ public class BenchmarkView extends VerticalLayout {
     private final ExperimentRunner experimentRunner;
     private final RunHistoryStore runHistoryStore;
 
-    // --- Panels ---
     private final ExperimentConfigPanel configPanel;
     private final ExperimentProgressPanel progressPanel;
     private final ConditionComparisonPanel comparisonPanel;
@@ -63,7 +62,6 @@ public class BenchmarkView extends VerticalLayout {
         setPadding(false);
         setSpacing(false);
 
-        // --- Header ---
         var title = new H2("Anchor Benchmarks");
         title.addClassName("ar-sim-title");
 
@@ -77,12 +75,10 @@ public class BenchmarkView extends VerticalLayout {
         headerRow.setAlignItems(HorizontalLayout.Alignment.CENTER);
         headerRow.addClassName("ar-header-row");
 
-        // --- Error banner ---
         errorBanner = new Div();
         errorBanner.addClassName("ar-cancelled-banner");
         errorBanner.setVisible(false);
 
-        // --- Panels ---
         configPanel = new ExperimentConfigPanel(scenarioLoader.listScenarios());
         progressPanel = new ExperimentProgressPanel();
         drillDownPanel = new FactDrillDownPanel(runHistoryStore, scenarioLoader);
@@ -91,13 +87,11 @@ public class BenchmarkView extends VerticalLayout {
         comparisonPanel.setReportBuilder(reportBuilder);
         historyPanel = new ExperimentHistoryPanel(runHistoryStore);
 
-        // --- Wire callbacks (tasks 8.1, 8.2, 8.3) ---
         configPanel.setOnRunExperiment(this::onRunExperiment);
         progressPanel.setCancelCallback(this::onCancelExperiment);
         historyPanel.setLoadCallback(this::onLoadExperiment);
         historyPanel.setDeleteCallback(this::onDeleteExperiment);
 
-        // --- Layout ---
         var content = new VerticalLayout(
                 errorBanner,
                 configPanel,
@@ -111,20 +105,13 @@ public class BenchmarkView extends VerticalLayout {
 
         add(headerRow, content);
 
-        // Initial state: CONFIG
         historyPanel.refresh();
         applyPanelVisibility();
     }
 
-    // -------------------------------------------------------------------------
-    // State machine
-    // -------------------------------------------------------------------------
-
     /**
      * Transition the view to {@code target} if the current state allows it.
      * Controls panel visibility per design D2.
-     *
-     * @param target the desired next state
      */
     private void transitionTo(BenchmarkViewState target) {
         if (!viewState.canTransitionTo(target)) {
@@ -136,9 +123,6 @@ public class BenchmarkView extends VerticalLayout {
         applyPanelVisibility();
     }
 
-    /**
-     * Show/hide panels based on the current {@link #viewState}.
-     */
     private void applyPanelVisibility() {
         errorBanner.setVisible(false);
 
@@ -163,10 +147,6 @@ public class BenchmarkView extends VerticalLayout {
             }
         }
     }
-
-    // -------------------------------------------------------------------------
-    // Task 8.1: Run experiment async
-    // -------------------------------------------------------------------------
 
     private void onRunExperiment(dev.dunnam.diceanchors.sim.benchmark.ExperimentDefinition definition) {
         transitionTo(BenchmarkViewState.RUNNING);
@@ -202,19 +182,11 @@ public class BenchmarkView extends VerticalLayout {
         errorBanner.setVisible(true);
     }
 
-    // -------------------------------------------------------------------------
-    // Task 8.2: Cancel experiment
-    // -------------------------------------------------------------------------
-
     private void onCancelExperiment() {
         experimentRunner.cancel();
         // The experiment will complete the current cell and return a report with cancelled=true.
         // showResults() will handle the cancelled banner via ConditionComparisonPanel.
     }
-
-    // -------------------------------------------------------------------------
-    // Task 8.3: Load experiment from history
-    // -------------------------------------------------------------------------
 
     private void onLoadExperiment(ExperimentReport report) {
         showResults(report);

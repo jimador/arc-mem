@@ -50,10 +50,6 @@ public class FactDrillDownPanel {
         this.loadedRows.clear();
     }
 
-    // -------------------------------------------------------------------------
-    // Public API: drill-down rendering
-    // -------------------------------------------------------------------------
-
     /**
      * Render the per-fact survival table for a given metric and scenario into the
      * provided content area. Called lazily by {@link ConditionComparisonPanel} when
@@ -82,10 +78,6 @@ public class FactDrillDownPanel {
         contentArea.add(buildSurvivalTable(rows, currentReport.conditions()));
     }
 
-    // -------------------------------------------------------------------------
-    // Private: survival table rendering
-    // -------------------------------------------------------------------------
-
     /**
      * Build a CSS-grid table showing survived/total counts and first-drift turn
      * per fact per condition. Each condition gets two columns: survival count and
@@ -106,7 +98,6 @@ public class FactDrillDownPanel {
                 "display: grid; grid-template-columns: 2fr repeat(%d, 1fr auto)"
                         .formatted(conditions.size()));
 
-        // Header row
         var factHeader = new Div();
         factHeader.addClassName("ar-survival-header");
         factHeader.setText("Fact");
@@ -125,7 +116,6 @@ public class FactDrillDownPanel {
             table.add(driftHeader);
         }
 
-        // Data rows
         for (var row : rows) {
             var factCell = new Div();
             factCell.addClassName("ar-survival-fact");

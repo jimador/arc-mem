@@ -57,7 +57,6 @@ public class ExperimentProgressPanel extends VerticalLayout {
         var progressTitle = new H4("Experiment Progress");
         progressTitle.addClassName("ar-section-title");
 
-        // --- Cell and run labels ---
         cellLabel = new Span();
         cellLabel.addClassName("ar-bench-progress-label");
 
@@ -68,7 +67,6 @@ public class ExperimentProgressPanel extends VerticalLayout {
         labelRow.setSpacing(true);
         labelRow.setAlignItems(HorizontalLayout.Alignment.CENTER);
 
-        // --- Progress bar ---
         progressBar = new ProgressBar(0, 1, 0);
         progressBar.setWidthFull();
 
@@ -82,7 +80,6 @@ public class ExperimentProgressPanel extends VerticalLayout {
         progressRow.setFlexGrow(1, progressBar);
         progressRow.addClassName("ar-bench-progress");
 
-        // --- Completed cell log ---
         var logTitle = new H4("Completed Cells");
         logTitle.addClassName("ar-section-title--inner");
 
@@ -91,7 +88,6 @@ public class ExperimentProgressPanel extends VerticalLayout {
         completedCellLog.setSpacing(false);
         completedCellLog.addClassName("ar-experiment-cell-log");
 
-        // --- Cancel button ---
         cancelButton = new Button("Cancel Experiment");
         cancelButton.addThemeVariants(ButtonVariant.LUMO_ERROR);
         cancelButton.addClickListener(e -> {
@@ -104,10 +100,6 @@ public class ExperimentProgressPanel extends VerticalLayout {
 
         add(progressTitle, labelRow, progressRow, logTitle, completedCellLog, cancelButton);
     }
-
-    // -------------------------------------------------------------------------
-    // Public API
-    // -------------------------------------------------------------------------
 
     /**
      * Update all display components from a progress snapshot.
@@ -182,10 +174,6 @@ public class ExperimentProgressPanel extends VerticalLayout {
     public void setCancelCallback(Runnable callback) {
         this.cancelCallback = callback;
     }
-
-    // -------------------------------------------------------------------------
-    // Private helpers
-    // -------------------------------------------------------------------------
 
     // Limitation: completed-cell log does not include factSurvivalRate because ExperimentProgress
     // is intentionally lightweight and does not carry per-metric results.

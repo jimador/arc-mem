@@ -63,7 +63,6 @@ public class ExperimentConfigPanel extends VerticalLayout {
         setSpacing(true);
         setWidthFull();
 
-        // --- Ablation Conditions ---
         var conditionsTitle = new H4("Ablation Conditions");
         conditionsTitle.addClassName("ar-section-title");
 

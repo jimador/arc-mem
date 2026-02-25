@@ -116,10 +116,6 @@ public class ConditionComparisonPanel extends VerticalLayout {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Private: report generation
-    // -------------------------------------------------------------------------
-
     /**
      * Build a "Generate Report" button that triggers async report generation
      * and Markdown download via {@link StreamResource}.
@@ -129,7 +125,7 @@ public class ConditionComparisonPanel extends VerticalLayout {
         generateBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         generateBtn.addClassName("ar-generate-report-btn");
 
-        // Hidden download anchor — programmatically clicked after report generation
+        // Vaadin Anchor cannot be navigated programmatically without this hidden element trick
         var downloadAnchor = new Anchor();
         downloadAnchor.getElement().setAttribute("download", true);
         downloadAnchor.getStyle().set("display", "none");
@@ -171,10 +167,6 @@ public class ConditionComparisonPanel extends VerticalLayout {
         return row;
     }
 
-    // -------------------------------------------------------------------------
-    // Private: per-metric Details rows
-    // -------------------------------------------------------------------------
-
     /**
      * Build one {@link Details} component per metric. Each Details summary shows
      * the horizontal card row (condition cards + delta badges) for a single metric.
@@ -192,7 +184,6 @@ public class ConditionComparisonPanel extends VerticalLayout {
         for (var metricKey : metricKeys) {
             var label = METRIC_LABELS.getOrDefault(metricKey, metricKey);
 
-            // Summary row: condition cards + deltas for this single metric
             var summaryRow = new HorizontalLayout();
             summaryRow.setSpacing(false);
             summaryRow.setWidthFull();
@@ -219,7 +210,6 @@ public class ConditionComparisonPanel extends VerticalLayout {
 
                 summaryRow.add(condWrapper);
 
-                // Delta between this condition and the next
                 if (i < conditions.size() - 1) {
                     var nextCondName = conditions.get(i + 1);
                     var nextCell = cellsByCondition.get(nextCondName);
@@ -228,7 +218,6 @@ public class ConditionComparisonPanel extends VerticalLayout {
                 }
             }
 
-            // Drill-down content area (lazily populated on expand)
             var contentArea = new VerticalLayout();
             contentArea.setPadding(false);
             contentArea.setSpacing(true);
@@ -283,7 +272,6 @@ public class ConditionComparisonPanel extends VerticalLayout {
         metricDeltaWrapper.addClassName("ar-delta-metric-wrapper");
         metricDeltaWrapper.add(BenchmarkRenderUtils.deltaBadge(delta, higherIsBetter));
 
-        // Effect size
         var effectKey = condA.compareTo(condB) <= 0
                 ? condA + ":" + condB
                 : condB + ":" + condA;
@@ -304,10 +292,6 @@ public class ConditionComparisonPanel extends VerticalLayout {
         deltaColumn.add(metricDeltaWrapper);
         return deltaColumn;
     }
-
-    // -------------------------------------------------------------------------
-    // Private: heatmap
-    // -------------------------------------------------------------------------
 
     /**
      * Build a CSS grid heatmap: rows = conditions, columns = metrics.
@@ -364,10 +348,6 @@ public class ConditionComparisonPanel extends VerticalLayout {
 
         return heatmap;
     }
-
-    // -------------------------------------------------------------------------
-    // Private: strategy effectiveness table
-    // -------------------------------------------------------------------------
 
     /**
      * Build the strategy effectiveness table showing each strategy's mean effectiveness
@@ -430,10 +410,6 @@ public class ConditionComparisonPanel extends VerticalLayout {
         return section;
     }
 
-    // -------------------------------------------------------------------------
-    // Private: helpers
-    // -------------------------------------------------------------------------
-
     /**
      * Group cell reports by scenario ID, preserving encounter order via LinkedHashMap.
      * The map value is keyed by condition name.
@@ -456,9 +432,6 @@ public class ConditionComparisonPanel extends VerticalLayout {
         return result;
     }
 
-    /**
-     * Return a zero-value statistics instance used when a cell is missing.
-     */
     private static BenchmarkStatistics emptyStats() {
         return new BenchmarkStatistics(Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, Double.NaN, 0);
     }

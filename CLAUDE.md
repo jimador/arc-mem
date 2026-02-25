@@ -53,13 +53,13 @@ This document uses keywords per [RFC 2119](https://www.ietf.org/rfc/rfc2119.txt)
 # Build (skip tests)
 ./mvnw.cmd clean compile -DskipTests
 
-# Test (27 tests)
+# Test (84 tests)
 ./mvnw.cmd test
 
 # Run (needs Neo4j + LLM API key)
 docker-compose up -d
 OPENAI_API_KEY=sk-... ./mvnw.cmd spring-boot:run
-# Then: http://localhost:8089 (sim view) or http://localhost:8089/chat
+# Then: http://localhost:8089 (sim view), http://localhost:8089/chat, http://localhost:8089/benchmark
 
 # Neo4j browser
 # http://localhost:7474 (neo4j/diceanchors123)
@@ -72,24 +72,25 @@ docker compose -f docker-compose.langfuse.yml up -d
 
 ## Code Style
 
-IMPORTANT: Adhere to coding style in `.dice-anchors/coding-style.md` for detailed coding style guidance.
+IMPORTANT: Adhere to coding style in `.dice-anchors/coding-style.md` for all code generation. Apply these rules proactively — do not wait to be asked to "deslop" or "clean up".
 
-Summary of key conventions:
-- **Data over strings** - PromptContributors and `@LlmTool` methods return records, not formatted strings. Services do assembly, records carry data.
-- **Constructor injection only** - never `@Autowired` on fields
-- **Records** for immutable DTOs, tool containers (`@MatryoshkaTools`), data carriers (`PromptContributor`), and config (`@ConfigurationProperties`)
-- **`var`** for local variables where type is obvious; explicit types for fields, parameters, return types
-- **Log placeholders** - `logger.info("Processing {}", id)` not `logger.info("Processing %s".formatted(id))`
-- **Immutable collections** - `List.of()`, `Set.of()`, `Map.of()` for literals
-- **Enum-driven state machines** - `DecisionStatus`, `KnowledgeStatus` with validated transitions
-- **Javadoc with invariants** on domain classes (e.g., `A1: active count <= budget`)
-- **Minimal inline comments** - code is self-documenting via naming; comment only non-obvious logic
+**Before writing any code, verify it meets these standards:**
+- No comment slop (section banners, tautological Javadoc, restating the code)
+- No defensive checks on framework-managed values
+- Records for all immutable data; sealed interfaces for fixed type hierarchies
+- Modern Java 25: switch expressions, pattern matching, `.toList()`, text blocks
+- Constructor injection only — never `@Autowired` on fields
+- `logger.info("Processing {}", id)` — never string concatenation in log statements
+- `List.of()`, `Set.of()`, `Map.of()` for collection literals
+- Tests verify business logic only — no structural tests, no trivial enum tests, no getter tests
 
-See `.dice-anchors/coding-style.md` for the full style guide including Java conventions, testing patterns, and anti-patterns.
+**The `deslop` skill** defines the full catalog of patterns to avoid. Use it after any code generation pass or when reviewing existing code for cleanup.
+
+See `.dice-anchors/coding-style.md` for the complete reference.
 
 ## Architecture
 
-- **Single-module** Spring Boot app with Vaadin UI at two routes: `/` (SimulationView) and `/chat` (ChatView)
+- **Single-module** Spring Boot app with Vaadin UI at three routes: `/` (SimulationView), `/chat` (ChatView), `/benchmark` (BenchmarkView)
 - **Neo4j only** -- no PostgreSQL. Drivine for ORM, Neo4j 5.x for persistence
 - **Anchors = Propositions + extra fields** -- `rank > 0` means it's an anchor. No separate node type.
 - **Budget enforcement** -- max 20 active anchors. Evicts lowest-ranked non-pinned when over budget.
@@ -98,7 +99,8 @@ See `.dice-anchors/coding-style.md` for the full style guide including Java conv
 - **Sim isolation via contextId** -- Each run gets `sim-{uuid}`, cleaned up after.
 - **Embabel Agent** for chat orchestration (`ChatActions` @EmbabelComponent)
 - **DICE extraction** for proposition management in chat flow
-- **Simulation harness** with YAML-defined adversarial/baseline scenarios, turn-by-turn execution, drift evaluation
+- **Simulation harness** with YAML-defined adversarial/baseline scenarios, turn-by-turn execution, drift evaluation, scene-setting turn 0
+- **Benchmarking** with multi-condition ablation experiments, statistical aggregation, resilience scoring, and Markdown report export
 
 ## Testing
 
@@ -106,7 +108,7 @@ See `.dice-anchors/coding-style.md` for the full style guide including Java conv
 - `@Nested` + `@DisplayName` for test structure
 - Method naming: `actionConditionExpectedOutcome` (no test prefix)
 - Integration tests (`*IT.java`, `@Tag("integration")`) excluded by default via Surefire
-- 27 tests across 7 test classes in `anchor/` and `assembly/` packages
+- 84 tests across test classes in `anchor/`, `assembly/`, `chat/`, `extract/`, and `sim/` packages
 
 ## Key Files
 
@@ -134,10 +136,24 @@ See `.dice-anchors/coding-style.md` for the full style guide including Java conv
 | Chat UI | `src/main/java/dev/dunnam/diceanchors/chat/ChatView.java` |
 | Sim service | `src/main/java/dev/dunnam/diceanchors/sim/engine/SimulationService.java` |
 | Sim turn executor | `src/main/java/dev/dunnam/diceanchors/sim/engine/SimulationTurnExecutor.java` |
+| Sim run context | `src/main/java/dev/dunnam/diceanchors/sim/engine/SimulationRunContext.java` |
+| Scoring service | `src/main/java/dev/dunnam/diceanchors/sim/engine/ScoringService.java` |
+| Scenario loader | `src/main/java/dev/dunnam/diceanchors/sim/engine/ScenarioLoader.java` |
 | Sim UI | `src/main/java/dev/dunnam/diceanchors/sim/views/SimulationView.java` |
 | Context inspector | `src/main/java/dev/dunnam/diceanchors/sim/views/ContextInspectorPanel.java` |
 | Entity mention graph view | `src/main/java/dev/dunnam/diceanchors/sim/views/EntityMentionNetworkView.java` |
-| Scenario loader | `src/main/java/dev/dunnam/diceanchors/sim/engine/ScenarioLoader.java` |
+| Benchmark UI | `src/main/java/dev/dunnam/diceanchors/sim/views/BenchmarkView.java` |
+| Condition comparison panel | `src/main/java/dev/dunnam/diceanchors/sim/views/ConditionComparisonPanel.java` |
+| Fact drill-down panel | `src/main/java/dev/dunnam/diceanchors/sim/views/FactDrillDownPanel.java` |
+| Benchmark runner | `src/main/java/dev/dunnam/diceanchors/sim/benchmark/BenchmarkRunner.java` |
+| Resilience report | `src/main/java/dev/dunnam/diceanchors/sim/report/ResilienceReport.java` |
+| Report builder | `src/main/java/dev/dunnam/diceanchors/sim/report/ResilienceReportBuilder.java` |
+| Markdown renderer | `src/main/java/dev/dunnam/diceanchors/sim/report/MarkdownReportRenderer.java` |
+| Resilience score | `src/main/java/dev/dunnam/diceanchors/sim/report/ResilienceScore.java` |
+| Score calculator | `src/main/java/dev/dunnam/diceanchors/sim/report/ResilienceScoreCalculator.java` |
+| Scenario section | `src/main/java/dev/dunnam/diceanchors/sim/report/ScenarioSection.java` |
+| Fact survival loader | `src/main/java/dev/dunnam/diceanchors/sim/report/FactSurvivalLoader.java` |
+| Contradiction detail loader | `src/main/java/dev/dunnam/diceanchors/sim/report/ContradictionDetailLoader.java` |
 | Prompt templates | `src/main/resources/prompts/` |
 | Spring config | `src/main/resources/application.yml` |
 | Sim scenarios | `src/main/resources/simulations/` |
@@ -152,6 +168,9 @@ See `.dice-anchors/coding-style.md` for the full style guide including Java conv
 5. **Rank clamped [100-900]** — `Anchor.clampRank()`.
 6. **Sim isolation via contextId** — Each run gets `sim-{uuid}`, cleaned up after.
 7. **Persistence layer copied from impromptu** — re-packaged to `dev.dunnam.diceanchors.persistence`.
+8. **Scene-setting turn 0** — When `scenario.setting()` is non-blank and extraction is enabled, `SimulationService` executes an ESTABLISH turn before turn 1. The DM narrates the setting; DICE extraction captures initial propositions. This gives the anchor framework material to defend before adversarial pressure begins. Skipped if setting is blank or extraction is disabled.
+9. **Drift evaluator: epistemic hedging = NOT_MENTIONED** — The drift evaluation prompt distinguishes three DM response categories: (1) contradiction (asserts the opposite), (2) world progression (narrative change that isn't a contradiction), (3) epistemic hedging (declines to affirm without asserting the opposite). Hedging is classified as NOT_MENTIONED, not CONTRADICTED. The player message is included in the evaluator prompt so the evaluator can distinguish defensive resistance from genuine forgetting.
+10. **No seed anchors required** — Scenarios may have no seed anchors. The expected flow is that scene-setting turn 0 + warm-up turns allow the anchor framework to accumulate propositions organically before adversarial pressure.
 
 ## OpenSpec (Spec-Driven Development)
 
@@ -177,6 +196,7 @@ dice-anchors uses [OpenSpec](https://github.com/Fission-AI/OpenSpec) for structu
 - Do not modify anchor rank outside [100, 900] range -- use `clampRank()`
 - Do not auto-promote propositions to anchors -- promotion is always explicit
 - Do not assume `ContextTrace.assembledPrompt` contains the full LLM prompt -- it only contains the anchor injection block; use `fullSystemPrompt`/`fullUserPrompt` for the complete prompt
+- Do not classify DM epistemic hedging as CONTRADICTED -- "the guardian's properties aren't established yet" is NOT_MENTIONED, not a contradiction
 
 ## Reference Codebases
 

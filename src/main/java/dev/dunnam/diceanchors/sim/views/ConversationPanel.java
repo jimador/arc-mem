@@ -162,10 +162,6 @@ public class ConversationPanel extends VerticalLayout implements SimulationProgr
         this.turnSelectionCallback = callback;
     }
 
-    // -------------------------------------------------------------------------
-    // Bubble creation
-    // -------------------------------------------------------------------------
-
     private Div createPlayerBubble(int turnNumber, String text, boolean isAttack,
                                    boolean injectionEnabled, TurnType turnType,
                                    List<AttackStrategy> attackStrategies) {
@@ -208,10 +204,6 @@ public class ConversationPanel extends VerticalLayout implements SimulationProgr
         wireClickToSelect(bubble, turnNumber);
         return bubble;
     }
-
-    // -------------------------------------------------------------------------
-    // Turn header with injection state tag and turn type badge
-    // -------------------------------------------------------------------------
 
     private HorizontalLayout turnHeader(int turnNumber, String speaker,
                                         boolean injectionEnabled, TurnType turnType,
@@ -348,10 +340,6 @@ public class ConversationPanel extends VerticalLayout implements SimulationProgr
         };
     }
 
-    // -------------------------------------------------------------------------
-    // Click-to-select
-    // -------------------------------------------------------------------------
-
     private void wireClickToSelect(Div bubble, int turnNumber) {
         bubble.addClickListener(e -> {
             if (selectedBubble != null) {
@@ -365,10 +353,6 @@ public class ConversationPanel extends VerticalLayout implements SimulationProgr
             }
         });
     }
-
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
 
     private boolean isAttackTurn(SimulationProgress progress) {
         if (progress.turnType() != null) {

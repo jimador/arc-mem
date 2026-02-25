@@ -31,8 +31,6 @@ import java.util.function.Consumer;
  */
 public class AnchorTimelinePanel extends VerticalLayout implements SimulationProgressListener {
 
-    // ── Strip/track components ────────────────────────────────────────────────
-
     /** 4 px injection strip: one Div cell per turn. */
     private final HorizontalLayout injectionStrip;
 
@@ -45,8 +43,6 @@ public class AnchorTimelinePanel extends VerticalLayout implements SimulationPro
     /** Shared horizontal scroll wrapper for all three bands. */
     private final Div scrollContainer;
 
-    // ── Data ─────────────────────────────────────────────────────────────────
-
     private final List<TurnData> turnDataList = new ArrayList<>();
 
     /** anchorId → anchor metadata (first-seen text + authority). */
@@ -58,8 +54,6 @@ public class AnchorTimelinePanel extends VerticalLayout implements SimulationPro
     private @Nullable Consumer<Integer> turnSelectionListener;
     private int selectedTurn = -1;
 
-    // ── Inner types ───────────────────────────────────────────────────────────
-
     private record TurnData(
             int turnNumber,
             boolean injectionEnabled,
@@ -70,7 +64,6 @@ public class AnchorTimelinePanel extends VerticalLayout implements SimulationPro
 
     private record AnchorMeta(String text, String authority) {}
 
-    /** Event types for per-anchor rows. */
     public enum AnchorEventType {
         CREATED,
         CREATED_EXTRACTED,
@@ -84,31 +77,25 @@ public class AnchorTimelinePanel extends VerticalLayout implements SimulationPro
 
     private record AnchorEvent(int turnNumber, AnchorEventType eventType, String reason) {}
 
-    // ── Constructor ───────────────────────────────────────────────────────────
-
     public AnchorTimelinePanel() {
         setSizeFull();
         setPadding(true);
         setSpacing(true);
 
-        // Injection strip (4 px height, no extra padding)
         injectionStrip = new HorizontalLayout();
         injectionStrip.setSpacing(false);
         injectionStrip.setPadding(false);
         injectionStrip.addClassName("ar-injection-strip");
 
-        // Drift-marker track
         driftTrack = new HorizontalLayout();
         driftTrack.setSpacing(false);
         driftTrack.setPadding(false);
         driftTrack.addClassName("ar-drift-track");
 
-        // Anchor event rows
         anchorRowsContainer = new VerticalLayout();
         anchorRowsContainer.setPadding(false);
         anchorRowsContainer.setSpacing(false);
 
-        // Shared scroll container
         scrollContainer = new Div();
         scrollContainer.addClassName("ar-timeline-scroll");
         scrollContainer.add(injectionStrip, driftTrack, anchorRowsContainer);
@@ -122,8 +109,6 @@ public class AnchorTimelinePanel extends VerticalLayout implements SimulationPro
         showPlaceholder("Run a simulation to see the anchor timeline.");
     }
 
-    // ── SimulationProgressListener ──────────────────────────────────────────
-
     @Override
     public void onTurnCompleted(SimulationProgress progress) {
         appendTurn(progress);
@@ -131,8 +116,6 @@ public class AnchorTimelinePanel extends VerticalLayout implements SimulationPro
             appendAnchorEvents(progress.turnNumber(), progress.anchorEvents());
         }
     }
-
-    // ── Public API (unchanged) ────────────────────────────────────────────────
 
     /** Register a listener for turn selection events from the timeline. */
     public void setTurnSelectionListener(Consumer<Integer> listener) {
@@ -220,8 +203,6 @@ public class AnchorTimelinePanel extends VerticalLayout implements SimulationPro
         showPlaceholder("Run a simulation to see the anchor timeline.");
     }
 
-    // ── Injection strip rendering ─────────────────────────────────────────────
-
     private Div buildInjectionCell(TurnData data) {
         var cell = new Div();
         cell.addClassName("injection-strip-cell");
@@ -255,8 +236,6 @@ public class AnchorTimelinePanel extends VerticalLayout implements SimulationPro
             injectionStrip.add(buildInjectionCell(data));
         }
     }
-
-    // ── Drift marker track rendering ──────────────────────────────────────────
 
     private Span buildDriftMarker(TurnData data) {
         var marker = new Span(driftSymbol(data));
@@ -316,8 +295,6 @@ public class AnchorTimelinePanel extends VerticalLayout implements SimulationPro
         }
     }
 
-    // ── Per-anchor event rows ─────────────────────────────────────────────────
-
     private void updateAnchorEventsFromTrace(SimulationProgress progress) {
         if (progress.contextTrace() == null) {
             return;
@@ -369,7 +346,6 @@ public class AnchorTimelinePanel extends VerticalLayout implements SimulationPro
             row.setAlignItems(HorizontalLayout.Alignment.CENTER);
             row.addClassName("ar-anchor-row");
 
-            // Header: authority badge + truncated anchor text
             var header = new Span();
             header.addClassName("anchor-row-header");
             if (meta != null) {
@@ -387,7 +363,6 @@ public class AnchorTimelinePanel extends VerticalLayout implements SimulationPro
             }
             row.add(header);
 
-            // Event badges: flex-wrap
             var badges = new FlexLayout();
             badges.addClassName("ar-anchor-badges");
 
@@ -413,8 +388,6 @@ public class AnchorTimelinePanel extends VerticalLayout implements SimulationPro
 
         return badge;
     }
-
-    // ── Event type helpers ────────────────────────────────────────────────────
 
     private AnchorEventType mapEventType(String engineEventType) {
         return switch (engineEventType) {
@@ -456,8 +429,6 @@ public class AnchorTimelinePanel extends VerticalLayout implements SimulationPro
         };
     }
 
-    // ── Authority display helpers ─────────────────────────────────────────────
-
     private String authorityAbbrev(String authority) {
         if (authority == null) return "?";
         return switch (authority.toUpperCase()) {
@@ -468,8 +439,6 @@ public class AnchorTimelinePanel extends VerticalLayout implements SimulationPro
             default -> authority.substring(0, 1).toUpperCase();
         };
     }
-
-    // ── Misc helpers ──────────────────────────────────────────────────────────
 
     private String truncate(String s, int maxLen) {
         if (s == null) return "";

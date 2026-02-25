@@ -45,10 +45,6 @@ public class ExperimentHistoryPanel extends VerticalLayout {
         addClassName("ar-experiment-history-panel");
     }
 
-    // -------------------------------------------------------------------------
-    // Public API
-    // -------------------------------------------------------------------------
-
     /**
      * Reload the experiment list from the store and re-render all rows.
      * Rows are displayed newest-first (RunHistoryStore.listExperimentReports() is
@@ -95,14 +91,6 @@ public class ExperimentHistoryPanel extends VerticalLayout {
         this.deleteCallback = callback;
     }
 
-    // -------------------------------------------------------------------------
-    // Private: row construction
-    // -------------------------------------------------------------------------
-
-    /**
-     * Build a single experiment history row containing metadata, primary metric,
-     * and action buttons.
-     */
     private Div buildRow(ExperimentReport report) {
         var row = new Div();
         row.addClassName("ar-experiment-row");
@@ -120,9 +108,6 @@ public class ExperimentHistoryPanel extends VerticalLayout {
         return row;
     }
 
-    /**
-     * Build the left-hand metadata column with name, date, config summary, and primary metric.
-     */
     private VerticalLayout buildMetaColumn(ExperimentReport report) {
         var meta = new VerticalLayout();
         meta.setPadding(false);
@@ -159,9 +144,6 @@ public class ExperimentHistoryPanel extends VerticalLayout {
         return meta;
     }
 
-    /**
-     * Build the Load and Delete action buttons for a row.
-     */
     private HorizontalLayout buildActionButtons(ExperimentReport report) {
         var loadButton = new Button("Load");
         loadButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
@@ -181,10 +163,6 @@ public class ExperimentHistoryPanel extends VerticalLayout {
         return buttons;
     }
 
-    /**
-     * Open a {@link ConfirmDialog} and, on confirmation, invoke the delete callback
-     * and refresh the list.
-     */
     private void openDeleteConfirmation(ExperimentReport report) {
         var dialog = new ConfirmDialog();
         dialog.setHeader("Delete experiment?");
@@ -202,10 +180,6 @@ public class ExperimentHistoryPanel extends VerticalLayout {
 
         dialog.open();
     }
-
-    // -------------------------------------------------------------------------
-    // Private: metric helpers
-    // -------------------------------------------------------------------------
 
     /**
      * Compute the grand-mean {@code factSurvivalRate} across all cell reports.

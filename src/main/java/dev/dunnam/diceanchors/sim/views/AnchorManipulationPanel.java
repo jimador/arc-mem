@@ -86,23 +86,19 @@ public class AnchorManipulationPanel extends VerticalLayout {
         setSpacing(true);
         addClassName("ar-manipulation-scroll");
 
-        // --- Active anchors section ---
         anchorsListContainer = new VerticalLayout();
         anchorsListContainer.setPadding(false);
         anchorsListContainer.setSpacing(true);
 
-        // --- Inject form section ---
         injectFormContainer = new VerticalLayout();
         injectFormContainer.setPadding(false);
         injectFormContainer.setSpacing(true);
         buildInjectForm();
 
-        // --- Conflict queue section ---
         conflictQueueContainer = new VerticalLayout();
         conflictQueueContainer.setPadding(false);
         conflictQueueContainer.setSpacing(true);
 
-        // --- Intervention log section ---
         interventionLogContainer = new VerticalLayout();
         interventionLogContainer.setPadding(false);
         interventionLogContainer.setSpacing(true);
@@ -171,21 +167,15 @@ public class AnchorManipulationPanel extends VerticalLayout {
         return interventionLog.size();
     }
 
-    // -------------------------------------------------------------------------
-    // Anchor edit card (10.1)
-    // -------------------------------------------------------------------------
-
     private Div buildAnchorEditCard(PropositionNode node) {
         var card = new Div();
         card.addClassName("ar-card");
         card.addClassName("ar-card--padded");
 
-        // Text
         var textSpan = new Span(node.getText());
         textSpan.addClassName("ar-text-block");
         card.add(textSpan);
 
-        // Authority + status badges
         var authorityValue = node.getAuthority() != null ? node.getAuthority() : "PROVISIONAL";
         var authorityBadge = new Span(authorityValue);
         authorityBadge.addClassName("ar-badge");
@@ -197,7 +187,6 @@ public class AnchorManipulationPanel extends VerticalLayout {
         statusBadge.getElement().setAttribute("data-status",
                 status.equals("ACTIVE") ? "active" : "other");
 
-        // Rank slider
         var rankField = new IntegerField("Rank");
         rankField.setMin(Anchor.MIN_RANK);
         rankField.setMax(Anchor.MAX_RANK);
@@ -225,7 +214,6 @@ public class AnchorManipulationPanel extends VerticalLayout {
         var rankRow = new HorizontalLayout(rankField, applyRank);
         rankRow.setAlignItems(HorizontalLayout.Alignment.BASELINE);
 
-        // Pin toggle
         var pinToggle = new Checkbox("Pinned", node.isPinned());
         pinToggle.addValueChangeListener(e -> {
             anchorRepository.updatePinned(node.getId(), e.getValue());
@@ -233,7 +221,6 @@ public class AnchorManipulationPanel extends VerticalLayout {
                                String.valueOf(!e.getValue()), String.valueOf(e.getValue()));
         });
 
-        // Enable/Disable button
         var isActive = node.getStatus() == PropositionStatus.ACTIVE;
         var toggleButton = new Button(isActive ? "Disable" : "Enable");
         toggleButton.addThemeVariants(ButtonVariant.LUMO_SMALL, isActive
@@ -285,10 +272,6 @@ public class AnchorManipulationPanel extends VerticalLayout {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Inject form (10.2)
-    // -------------------------------------------------------------------------
-
     private void buildInjectForm() {
         var textArea = new TextArea("Anchor Text");
         textArea.setWidthFull();
@@ -325,7 +308,6 @@ public class AnchorManipulationPanel extends VerticalLayout {
             var rank = rankField.getValue() != null ? rankField.getValue() : 500;
             var authority = authorityCombo.getValue() != null ? authorityCombo.getValue() : "PROVISIONAL";
 
-            // Create a PropositionNode and save it, then promote
             var node = new PropositionNode(
                     UUID.randomUUID().toString(),
                     currentContextId,
@@ -355,7 +337,6 @@ public class AnchorManipulationPanel extends VerticalLayout {
                     null
             );
 
-            // Save then promote
             anchorRepository.saveNode(node);
             anchorRepository.promoteToAnchor(node.getId(), Anchor.clampRank(rank), authority);
 
@@ -374,10 +355,6 @@ public class AnchorManipulationPanel extends VerticalLayout {
 
         injectFormContainer.add(textArea, formRow);
     }
-
-    // -------------------------------------------------------------------------
-    // Conflict queue (10.3)
-    // -------------------------------------------------------------------------
 
     private void refreshConflictQueue(String contextId) {
         conflictQueueContainer.removeAll();
@@ -452,10 +429,6 @@ public class AnchorManipulationPanel extends VerticalLayout {
         card.add(existingLabel, incomingLabel, recommendationLabel, actions);
         return card;
     }
-
-    // -------------------------------------------------------------------------
-    // Intervention log (10.4)
-    // -------------------------------------------------------------------------
 
     private void recordIntervention(ActionType actionType, String targetId,
                                     String beforeValue, String afterValue) {
