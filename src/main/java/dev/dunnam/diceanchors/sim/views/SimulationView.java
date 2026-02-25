@@ -70,7 +70,6 @@ public class SimulationView extends VerticalLayout {
     private final BenchmarkRunner benchmarkRunner;
     private final RunHistoryStore runHistoryStore;
 
-    // Controls
     private final ComboBox<SimulationScenario> scenarioCombo;
     private final Checkbox injectionToggle;
     private final IntegerField tokenBudgetField;
@@ -87,11 +86,9 @@ public class SimulationView extends VerticalLayout {
     private final VerticalLayout scenarioBriefHighlights;
     private final Paragraph scenarioBriefSetting;
 
-    // Progress
     private final ProgressBar progressBar;
     private final Span statusLabel;
 
-    // Panels
     private final ConversationPanel conversationPanel;
     private final ContextInspectorPanel inspectorPanel;
     private final DriftSummaryPanel driftSummaryPanel;
@@ -101,7 +98,6 @@ public class SimulationView extends VerticalLayout {
     private final KnowledgeBrowserPanel knowledgeBrowserPanel;
     private final BenchmarkPanel benchmarkPanel;
 
-    // TabSheet and manipulation tab reference for visibility control
     private final TabSheet rightTabSheet;
     private final Tab manipulationTab;
     private final Tab knowledgeBrowserTab;
@@ -109,11 +105,9 @@ public class SimulationView extends VerticalLayout {
     private final RunHistoryDialog runHistoryDialog;
     private final ProgressDispatcher dispatcher;
 
-    // Theme toggle
     private final Button themeToggleButton;
     private String currentTheme = "dark";
 
-    // State
     private SimControlState controlState = SimControlState.IDLE;
     private int anchorCountBeforePause;
 
@@ -135,7 +129,6 @@ public class SimulationView extends VerticalLayout {
         setPadding(true);
         setSpacing(false);
 
-        // --- Header ---
         var title = new H2("Anchor Drift Simulator");
         title.addClassName("ar-sim-title");
 
@@ -207,7 +200,6 @@ public class SimulationView extends VerticalLayout {
         controls.setAlignItems(HorizontalLayout.Alignment.BASELINE);
         controls.setSpacing(true);
 
-        // --- Scenario brief ---
         scenarioBriefTitle = new Span("Scenario Brief");
         scenarioBriefTitle.addClassName("ar-scenario-brief-title");
 
@@ -237,10 +229,8 @@ public class SimulationView extends VerticalLayout {
         scenarioBriefPanel.setOpened(true);
         scenarioBriefPanel.addClassName("ar-scenario-brief");
 
-        // --- Intervention impact banner ---
         interventionBanner = new InterventionImpactBanner();
 
-        // --- Left column: Conversation + DriftSummary ---
         conversationPanel = new ConversationPanel();
         conversationPanel.setTurnSelectionCallback(this::onTurnSelected);
 
@@ -253,16 +243,13 @@ public class SimulationView extends VerticalLayout {
         leftColumn.add(new H4("Conversation"), conversationPanel, driftSummaryPanel);
         leftColumn.setFlexGrow(1, conversationPanel);
 
-        // --- Right column: TabSheet with panels ---
         inspectorPanel = new ContextInspectorPanel();
         timelinePanel = new AnchorTimelinePanel();
         manipulationPanel = new AnchorManipulationPanel(anchorRepository, anchorEngine);
         knowledgeBrowserPanel = new KnowledgeBrowserPanel(anchorEngine, anchorRepository);
 
-        // Wire cross-panel turn selection (10.7)
         timelinePanel.setTurnSelectionListener(this::onTurnSelected);
 
-        // Wire progress dispatcher
         dispatcher = new ProgressDispatcher();
         dispatcher.addListener(conversationPanel);
         dispatcher.addListener(driftSummaryPanel);
@@ -284,10 +271,8 @@ public class SimulationView extends VerticalLayout {
         // Manipulation tab visible only when PAUSED
         manipulationTab.setVisible(false);
 
-        // Wire cross-panel browse linking (13.3): anchor Browse -> Knowledge Browser filter
         inspectorPanel.setBrowseCallback(anchorText -> {
             knowledgeBrowserPanel.filterByAnchorText(anchorText);
-            // Auto-switch to Knowledge Browser tab
             rightTabSheet.setSelectedTab(knowledgeBrowserTab);
         });
         inspectorPanel.setBrowseGraphCallback(anchorText -> {
@@ -301,12 +286,10 @@ public class SimulationView extends VerticalLayout {
         rightWrapper.setSizeFull();
         rightWrapper.add(rightTabSheet);
 
-        // --- Split layout ---
         var splitLayout = new SplitLayout(leftColumn, rightWrapper);
         splitLayout.setSizeFull();
         splitLayout.setSplitterPosition(55);
 
-        // --- Status bar ---
         statusLabel = new Span("Select a scenario and click Run.");
         statusLabel.addClassName("ar-status-label");
 
@@ -320,7 +303,6 @@ public class SimulationView extends VerticalLayout {
         statusBar.setWidthFull();
         statusBar.addClassName("ar-status-bar");
 
-        // --- Assembly ---
         add(headerRow, controls, scenarioBriefPanel, interventionBanner, splitLayout, statusBar);
         setFlexGrow(1, splitLayout);
         updateScenarioContext(null);
@@ -332,10 +314,6 @@ public class SimulationView extends VerticalLayout {
         loadScenarios();
         initTheme();
     }
-
-    // -------------------------------------------------------------------------
-    // State machine (10.9)
-    // -------------------------------------------------------------------------
 
     /**
      * Transition the UI to a new control state, applying all visibility and enable
@@ -375,14 +353,12 @@ public class SimulationView extends VerticalLayout {
                 stopButton.setEnabled(true);
                 manipulationTab.setVisible(true);
 
-                // Load anchors into manipulation panel
                 var contextId = simulationService.getCurrentContextId();
                 if (contextId != null) {
                     anchorCountBeforePause = anchorEngine.activeCount(contextId);
                     manipulationPanel.loadAnchors(contextId);
                 }
 
-                // Auto-switch to Manipulation tab
                 rightTabSheet.setSelectedTab(manipulationTab);
             }
             case COMPLETED -> {
@@ -397,10 +373,6 @@ public class SimulationView extends VerticalLayout {
             }
         }
     }
-
-    // -------------------------------------------------------------------------
-    // Wiring
-    // -------------------------------------------------------------------------
 
     private void wireButtons() {
         scenarioCombo.addValueChangeListener(e -> {
@@ -428,7 +400,6 @@ public class SimulationView extends VerticalLayout {
         resumeButton.addClickListener(e -> {
             simulationService.resume();
 
-            // Show intervention impact banner (10.8)
             var contextId = simulationService.getCurrentContextId();
             if (contextId != null) {
                 int currentCount = anchorEngine.activeCount(contextId);
@@ -454,7 +425,6 @@ public class SimulationView extends VerticalLayout {
         try {
             var scenarios = scenarioLoader.listScenarios();
 
-            // Group scenarios by category if categories exist (13.3)
             var hasCategories = scenarios.stream()
                                          .anyMatch(s -> s.category() != null && !s.category().isBlank());
             if (hasCategories) {
@@ -479,10 +449,6 @@ public class SimulationView extends VerticalLayout {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Benchmark wiring
-    // -------------------------------------------------------------------------
-
     private void wireBenchmarkPanel() {
         var lastReportRef = new AtomicReference<BenchmarkReport>();
 
@@ -503,7 +469,6 @@ public class SimulationView extends VerticalLayout {
                             injectionToggle::getValue, this::resolveTokenBudget,
                             progress -> ui.access(() -> benchmarkPanel.showProgress(progress)))
             ).thenAccept(report -> ui.access(() -> {
-                // Check for baseline and compute deltas
                 var displayReport = report;
                 var baseline = runHistoryStore.loadBaseline(report.scenarioId()).orElse(null);
                 if (baseline != null && !baseline.reportId().equals(report.reportId())) {
@@ -544,7 +509,6 @@ public class SimulationView extends VerticalLayout {
             statusLabel.setText("Saved report '%s' as baseline for scenario '%s'.".formatted(
                     report.reportId(), report.scenarioId()));
 
-            // Reload with baseline deltas
             var baseline = runHistoryStore.loadBaseline(report.scenarioId()).orElse(null);
             if (baseline != null && !baseline.reportId().equals(report.reportId())) {
                 var aggregator = new dev.dunnam.diceanchors.sim.benchmark.BenchmarkAggregator();
@@ -560,10 +524,6 @@ public class SimulationView extends VerticalLayout {
         });
     }
 
-    // -------------------------------------------------------------------------
-    // Simulation lifecycle
-    // -------------------------------------------------------------------------
-
     private void startSimulation(SimulationScenario scenario) {
         var maxTurns = maxTurnsField.getValue() != null ? Math.max(1, maxTurnsField.getValue()) : scenario.maxTurns();
         transitionTo(SimControlState.RUNNING);
@@ -576,7 +536,6 @@ public class SimulationView extends VerticalLayout {
         knowledgeBrowserPanel.reset();
         interventionBanner.dismiss();
 
-        // Set seed anchor count for survival rate calculation
         var seedCount = scenario.seedAnchors() != null ? scenario.seedAnchors().size() : 0;
         driftSummaryPanel.setSeedAnchorCount(seedCount);
 
@@ -605,7 +564,6 @@ public class SimulationView extends VerticalLayout {
         statusLabel.setText(progress.statusMessage());
         interventionBanner.dismiss();
 
-        // Lazy contextId init for KnowledgeBrowserPanel
         if (knowledgeBrowserPanel.getContextId() == null) {
             knowledgeBrowserPanel.setContextId(simulationService.getCurrentContextId());
         }
@@ -618,25 +576,16 @@ public class SimulationView extends VerticalLayout {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Cross-panel turn selection (10.7)
-    // -------------------------------------------------------------------------
-
     /**
      * Handle turn selection from any panel (ConversationPanel, AnchorTimelinePanel).
      * Updates all panels that support turn-based inspection.
      */
     private void onTurnSelected(int turnNumber) {
-        // Highlight in timeline
         timelinePanel.selectTurn(turnNumber);
 
         // ContextInspectorPanel shows latest state; historical turn inspection
         // would require storing per-turn context traces (future enhancement).
     }
-
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
 
     private Integer resolveTokenBudget() {
         var value = tokenBudgetField.getValue();
@@ -693,10 +642,6 @@ public class SimulationView extends VerticalLayout {
         return normalized.substring(0, 220) + "...";
     }
 
-    // -------------------------------------------------------------------------
-    // Turn timing
-    // -------------------------------------------------------------------------
-
     /**
      * Format a turn duration in milliseconds to a human-readable string.
      * Returns "Xs", "XXs", or "Xm Ys" depending on magnitude.
@@ -713,10 +658,6 @@ public class SimulationView extends VerticalLayout {
         long remainingSeconds = seconds % 60;
         return minutes + "m " + remainingSeconds + "s";
     }
-
-    // -------------------------------------------------------------------------
-    // Theme toggle
-    // -------------------------------------------------------------------------
 
     private void initTheme() {
         UI.getCurrent().getPage().executeJs("""

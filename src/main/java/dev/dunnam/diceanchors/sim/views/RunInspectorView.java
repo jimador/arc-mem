@@ -544,7 +544,6 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
             }
         }
 
-        // Removed
         if (!removed.isEmpty()) {
             var removedHeader = styledLabel("- Removed (%d)".formatted(removed.size()), "error");
             container.add(removedHeader);
@@ -554,7 +553,6 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
             }
         }
 
-        // Changed (same text, different rank or authority)
         var changed = new ArrayList<String>();
         for (var key : common) {
             var fa = fromMap.get(key);
@@ -597,10 +595,6 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
         return map;
     }
 
-    // -------------------------------------------------------------------------
-    // UI helper methods
-    // -------------------------------------------------------------------------
-
     private Div messageBubble(String role, String text, String dataRole) {
         var bubble = new Div();
         bubble.addClassName("ar-run-bubble");
@@ -622,7 +616,6 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
         var card = new Div();
         card.addClassName("ar-card");
 
-        // Top row: authority badge + text + pinned indicator
         var topRow = new HorizontalLayout();
         topRow.setSpacing(true);
         topRow.setAlignItems(Alignment.CENTER);
@@ -645,7 +638,6 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
 
         card.add(topRow);
 
-        // Rank progress bar
         var rankRow = new HorizontalLayout();
         rankRow.setSpacing(true);
         rankRow.setAlignItems(Alignment.CENTER);
@@ -678,7 +670,6 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
         rankRow.add(rankLabel, barOuter);
         card.add(rankRow);
 
-        // Bottom row: reinforcement count + trust score
         var bottomRow = new HorizontalLayout();
         bottomRow.setSpacing(true);
         bottomRow.addClassName("ar-run-bottom-row");
