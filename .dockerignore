@@ -1,0 +1,36 @@
+# Build artifacts
+target/
+**/target/
+
+# IDE
+.idea/
+*.iml
+
+# Git
+.git/
+.gitignore
+
+# Node / Vaadin generated
+node_modules/
+**/node_modules/
+.vaadin/
+**/frontend/generated/
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Claude / AI
+.claude/
+.dice-anchors/
+
+# OpenSpec
+openspec/
+
+# OS
+.DS_Store
+*.log
+
+# Worktrees
+.worktrees/

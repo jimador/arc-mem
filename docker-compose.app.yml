@@ -1,0 +1,224 @@
+# Full stack: Neo4j + Langfuse observability + dice-anchors app.
+#
+# Usage:
+#   OPENAI_API_KEY=sk-... docker compose -f docker-compose.app.yml up -d
+#
+# With observability:
+#   OPENAI_API_KEY=sk-... TRACING_ENABLED=true OBSERVABILITY_ENABLED=true \
+#     docker compose -f docker-compose.app.yml up -d
+
+services:
+
+  # ── Neo4j ──────────────────────────────────────────────────────────
+  neo4j:
+    image: neo4j:5-community
+    container_name: dice-anchors-neo4j
+    ports:
+      - "127.0.0.1:7687:7687"
+      - "127.0.0.1:7474:7474"
+    environment:
+      - NEO4J_AUTH=neo4j/diceanchors123
+      - NEO4J_PLUGINS=["apoc"]
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    networks:
+      - dice-anchors-net
+    healthcheck:
+      test: ["CMD", "cypher-shell", "-u", "neo4j", "-p", "diceanchors123", "RETURN 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Langfuse backing services ──────────────────────────────────────
+  langfuse-db:
+    image: postgres:16
+    container_name: dice-anchors-langfuse-db
+    environment:
+      POSTGRES_DB: langfuse
+      POSTGRES_USER: langfuse
+      POSTGRES_PASSWORD: langfuse
+    volumes:
+      - langfuse_pg_data:/var/lib/postgresql/data
+    networks:
+      - dice-anchors-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U langfuse -d langfuse"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  langfuse-clickhouse:
+    image: clickhouse/clickhouse-server
+    container_name: dice-anchors-langfuse-clickhouse
+    user: "101:101"
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: clickhouse
+      CLICKHOUSE_PASSWORD: clickhouse
+    volumes:
+      - langfuse_clickhouse_data:/var/lib/clickhouse
+      - langfuse_clickhouse_logs:/var/log/clickhouse-server
+    ports:
+      - "127.0.0.1:8123:8123"
+      - "127.0.0.1:9000:9000"
+    networks:
+      - dice-anchors-net
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 1s
+
+  langfuse-minio:
+    image: cgr.dev/chainguard/minio
+    container_name: dice-anchors-langfuse-minio
+    entrypoint: sh
+    command: -c 'mkdir -p /data/langfuse && minio server --address ":9000" --console-address ":9001" /data'
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: miniosecret
+    ports:
+      - "127.0.0.1:9090:9000"
+      - "127.0.0.1:9091:9001"
+    volumes:
+      - langfuse_minio_data:/data
+    networks:
+      - dice-anchors-net
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 1s
+      timeout: 5s
+      retries: 5
+      start_period: 1s
+
+  langfuse-redis:
+    image: redis:7
+    container_name: dice-anchors-langfuse-redis
+    command: >
+      --requirepass langfuse-redis-dev
+      --maxmemory-policy noeviction
+    ports:
+      - "127.0.0.1:6379:6379"
+    networks:
+      - dice-anchors-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "langfuse-redis-dev", "ping"]
+      interval: 3s
+      timeout: 10s
+      retries: 10
+
+  # ── Langfuse application ───────────────────────────────────────────
+  langfuse-worker:
+    image: langfuse/langfuse-worker:3
+    container_name: dice-anchors-langfuse-worker
+    depends_on: &langfuse-depends-on
+      langfuse-db:
+        condition: service_healthy
+      langfuse-clickhouse:
+        condition: service_healthy
+      langfuse-minio:
+        condition: service_healthy
+      langfuse-redis:
+        condition: service_healthy
+    environment: &langfuse-env
+      DATABASE_URL: postgresql://langfuse:langfuse@langfuse-db:5432/langfuse
+      NEXTAUTH_URL: http://localhost:3000
+      SALT: dice-anchors-dev-salt
+      ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
+      TELEMETRY_ENABLED: "false"
+      CLICKHOUSE_MIGRATION_URL: clickhouse://langfuse-clickhouse:9000
+      CLICKHOUSE_URL: http://langfuse-clickhouse:8123
+      CLICKHOUSE_USER: clickhouse
+      CLICKHOUSE_PASSWORD: clickhouse
+      CLICKHOUSE_CLUSTER_ENABLED: "false"
+      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: minio
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: miniosecret
+      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://langfuse-minio:9000
+      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_EVENT_UPLOAD_PREFIX: "events/"
+      LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_MEDIA_UPLOAD_REGION: auto
+      LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: minio
+      LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: miniosecret
+      LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://langfuse-minio:9000
+      LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: "media/"
+      LANGFUSE_S3_BATCH_EXPORT_ENABLED: "false"
+      REDIS_HOST: langfuse-redis
+      REDIS_PORT: "6379"
+      REDIS_AUTH: langfuse-redis-dev
+    ports:
+      - "127.0.0.1:3030:3030"
+    networks:
+      - dice-anchors-net
+
+  langfuse:
+    image: langfuse/langfuse:3
+    container_name: dice-anchors-langfuse
+    depends_on: *langfuse-depends-on
+    environment:
+      <<: *langfuse-env
+      NEXTAUTH_SECRET: dice-anchors-dev-secret
+      LANGFUSE_INIT_ORG_ID: dice-anchors-dev
+      LANGFUSE_INIT_ORG_NAME: Dice Anchors Dev
+      LANGFUSE_INIT_PROJECT_ID: dice-anchors
+      LANGFUSE_INIT_PROJECT_NAME: Dice Anchors
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: pk-lf-dev-public
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: sk-lf-dev-secret
+      LANGFUSE_INIT_USER_EMAIL: dev@diceanchors.dev
+      LANGFUSE_INIT_USER_NAME: dev
+      LANGFUSE_INIT_USER_PASSWORD: Welcome1!
+    ports:
+      - "127.0.0.1:3000:3000"
+    networks:
+      - dice-anchors-net
+
+  # ── dice-anchors application ───────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+        ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    container_name: dice-anchors-app
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      langfuse:
+        condition: service_started
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      NEO4J_HOST: neo4j
+      VAADIN_LAUNCH_BROWSER: "false"
+      LANGFUSE_ENDPOINT: http://langfuse:3000/api/public/otel
+      TRACING_ENABLED: ${TRACING_ENABLED:-false}
+      OBSERVABILITY_ENABLED: ${OBSERVABILITY_ENABLED:-false}
+    ports:
+      - "127.0.0.1:8089:8089"
+    networks:
+      - dice-anchors-net
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8089/"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+
+networks:
+  dice-anchors-net:
+    driver: bridge
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
+  langfuse_pg_data:
+  langfuse_clickhouse_data:
+  langfuse_clickhouse_logs:
+  langfuse_minio_data:
