@@ -1,61 +1,67 @@
 # Anchors for DICE
 
-Anchors add a trust-governed working memory layer on top of DICE + Embabel to resist long-horizon conversational drift.
+Anchors add a trust-governed working memory layer on top of DICE + Embabel so long-running chats don’t silently drift.
+
+![simulation](docs/images/anchor-sim-attack.png)
 
 ## What are Anchors?
 
-Large language models are good at continuation, not persistence. In long-running conversations, established facts can silently degrade as new turns reweight attention. That behavior is useful for creativity, but dangerous when parts of the context are supposed to remain stable.
+LLMs are great at continuation, not persistence. In long-running conversations, facts that *should* stay stable slowly degrade as new turns reweight attention. That’s fine for creativity; it’s a problem when you’re trying to preserve rules, world state, decisions, or any other “we already settled this” constraints.
 
-**Anchors** are promoted [DICE](https://github.com/embabel/dice) propositions with additional control fields:
-- **Rank**: importance under memory pressure
-- **Authority**: trust level (PROVISIONAL → UNRELIABLE → RELIABLE → CANON)
-- **Authority ceiling**: maximum auto-promotion level allowed by trust provenance
-- **Budget membership**: explicit participation in a bounded working set (default max 20 active anchors)
+**Anchors** are promoted [DICE](https://github.com/embabel/dice) propositions with extra control fields:
 
-At runtime, anchors are injected into every prompt as a ranked reference block. This turns memory from an implicit side effect into an explicit, governed mechanism:
+- **Rank** — importance under memory pressure
+- **Authority** — trust level (PROVISIONAL → UNRELIABLE → RELIABLE → CANON)
+- **Authority ceiling** — the highest level this fact can auto-reach based on provenance
+- **Budget membership** — explicit inclusion in a bounded working set (default: max 20 active anchors)
+
+At runtime, anchors are injected into every prompt as a ranked reference block. That makes memory an explicit, governed mechanism instead of an accidental side effect:
+
 - conflict checks gate contradictory updates
 - trust scoring gates promotion and authority movement
 - budget enforcement evicts low-value anchors first
 - reinforcement/decay updates importance over time
 
-Knowledge graphs answer “what facts exist.” Anchors answer “what must stay salient and trusted right now.” That distinction is the core motivation.
+Knowledge graphs answer “what facts exist.” Anchors answer “what must stay salient and trusted *right now*.” That distinction is the whole point.
 
 ## Why DICE + Embabel?
 
-This project is intentionally an extension layer, not a replacement stack:
-- **DICE** provides proposition extraction, grounding, and graph persistence primitives.
-- **Embabel** provides agent orchestration and prompt/action lifecycle integration.
-- **Anchors** adds trust/authority governance and bounded working-memory control where base proposition systems are intentionally neutral.
+This repo is an extension layer, not a replacement stack:
 
-Practically: DICE/Embabel handle information acquisition and agent flow; Anchors handles memory prioritization, trust-constrained mutation, and drift resistance.
+- **DICE** handles proposition extraction, grounding, and graph persistence.
+- **Embabel** handles agent orchestration plus prompt/action lifecycle integration.
+- **Anchors** adds trust/authority governance and bounded working-memory control (where base proposition systems are intentionally neutral).
+
+Practically: DICE/Embabel handle acquisition and flow; Anchors handles memory prioritization, trust-constrained mutation, and drift resistance.
 
 ## Why D&D as the proving ground?
 
-D&D/TTRPG scenarios are a high-signal benchmark for this problem:
+TTRPGs are a brutally good benchmark for this problem:
+
 - long-horizon narrative state
 - mixed hard constraints (rules, world facts) and soft constraints (style, pacing)
-- strong need for LLM freedom within guardrails
-- adversarial opportunities (reframing, false authority, lore poisoning)
+- a real need for freedom *inside* guardrails
+- plenty of adversarial surface area (reframing, false authority, lore poisoning)
 
-That makes TTRPG simulation a useful stress environment for evaluating whether a governed memory layer can preserve world integrity without flattening generative quality. The same pattern generalizes to other domains that need trusted working memory (audit, compliance, operations support, etc.).
+If a governed memory layer can hold up here without flattening the fun, it generalizes cleanly to other domains that need trusted working memory (audit, compliance, operations support, etc.).
 
 ## Architecture Overview
 
 ### Core Packages
 
-| Package        | Purpose                                                                                                                                                                                                                                                                                                     |
-|----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `anchor/`      | Anchor lifecycle: AnchorEngine (budget + promotion), conflict detection/resolution, trust pipeline, reinforcement and decay policies, memory tiers, invariant evaluation                                                                                                                                    |
-| `assembly/`    | Prompt assembly: AnchorsLlmReference (inject anchors into prompts), PromptBudgetEnforcer (token limits), CompactedContextProvider (context summarization), AnchorContextLock (multi-request safety)                                                                                                         |
-| `chat/`        | Chat flow: ChatView (Vaadin UI), ChatActions (Embabel Agent @EmbabelComponent), AnchorTools                                                                                                                                                                                                                 |
-| `extract/`     | DICE integration: DuplicateDetector (find near-dupes), AnchorPromoter (promote extracted propositions to anchors)                                                                                                                                                                                           |
-| `persistence/` | Neo4j repository layer: AnchorRepository, PropositionNode (Drivine ORM)                                                                                                                                                                                                                                     |
-| `prompt/`      | Prompt templates: PromptTemplates, PromptPathConstants, Jinja2 template files                                                                                                                                                                                                                               |
-| `sim/`         | Simulation harness: engine (orchestration, LLM calls, scoring, adversary strategies), views (SimulationView, RunInspectorView, BenchmarkView, ContextInspectorPanel), benchmark (BenchmarkRunner, ablation conditions), report (ResilienceReport, MarkdownReportRenderer), assertions (post-run validation) |
+| Package        | Purpose |
+|----------------|---------|
+| `anchor/`      | Anchor lifecycle: `AnchorEngine` (budget + promotion), conflict detection/resolution, trust pipeline, reinforcement/decay policies, memory tiers, invariant evaluation |
+| `assembly/`    | Prompt assembly: `AnchorsLlmReference` (inject anchors into prompts), `PromptBudgetEnforcer` (token limits), `CompactedContextProvider` (context summarization), `AnchorContextLock` (multi-request safety) |
+| `chat/`        | Chat flow: `ChatView` (Vaadin UI), `ChatActions` (Embabel Agent `@EmbabelComponent`), `AnchorTools` |
+| `extract/`     | DICE integration: `DuplicateDetector` (near-dupes), `AnchorPromoter` (promotion) |
+| `persistence/` | Neo4j repository layer: `AnchorRepository`, `PropositionNode` (Drivine ORM) |
+| `prompt/`      | Prompt templates: `PromptTemplates`, `PromptPathConstants`, Jinja2 template files |
+| `sim/`         | Simulation harness: engine (orchestration, LLM calls, scoring, adversary strategies), views (`SimulationView`, `RunInspectorView`, `BenchmarkView`, `ContextInspectorPanel`), benchmark (`BenchmarkRunner`, ablation conditions), report (`ResilienceReport`, `MarkdownReportRenderer`), assertions (post-run validation) |
 
 ### Chat Flow
 
-```
+```text
 ChatView (user types)
   → ChatActions (Embabel @EmbabelComponent)
   → AnchorsLlmReference (inject anchors into system prompt)
@@ -68,7 +74,7 @@ ChatView (user types)
 
 ### Simulation Flow
 
-```
+```text
 SimulationView (user selects scenario and hits "Run")
   → SimulationService (load scenario YAML, seed anchors, phase state machine)
   → SimulationTurnExecutor (per turn):
@@ -87,49 +93,49 @@ SimulationView (user selects scenario and hits "Run")
 
 ### Anchor Lifecycle
 
-An **Anchor** is a fact promoted to special status in the LLM's context:
+An **Anchor** is a fact promoted to special status in the LLM’s context:
 
-- **Rank** [100-900]: numerical importance; higher rank = more influence on the LLM
-- **Authority**: lifecycle stage from PROVISIONAL → UNRELIABLE → RELIABLE → CANON (upgrade-only; CANON never auto-assigned)
-- **Reinforcement tracking**: each successful reuse boosts rank and may upgrade authority
-- **Decay**: unused anchors decay exponentially; eventually auto-archived at MIN_RANK
-- **Budget enforcement**: max 20 active anchors; evicts lowest-ranked non-pinned when exceeded
+- **Rank** `[100–900]` — higher rank = more influence under budget pressure
+- **Authority** — PROVISIONAL → UNRELIABLE → RELIABLE → CANON (upgrade-only; CANON is never auto-assigned)
+- **Reinforcement tracking** — reuse boosts rank and may upgrade authority
+- **Decay** — unused anchors decay exponentially; eventually auto-archived at `MIN_RANK`
+- **Budget enforcement** — max 20 active anchors; evicts lowest-ranked non-pinned when exceeded
 
 ### Trust Pipeline
 
 `TrustPipeline` evaluates propositions through multiple trust signals before promotion:
 
-- Source authority assessment
-- Extraction confidence scoring
-- Reinforcement history tracking
+- source authority assessment
+- extraction confidence scoring
+- reinforcement history tracking
 - `TrustAuditRecord` captures the decision trail
-- Domain-specific invariant rules via `InvariantEvaluator`
+- domain-specific invariant rules via `InvariantEvaluator`
 - `CanonizationGate` controls CANON assignment (always explicit, never automatic)
 
 ### Adversarial Simulation
 
 The simulation harness runs scenarios with turn-by-turn execution and drift evaluation:
 
-- **Drift verdicts**: each ground-truth fact is evaluated as CONTRADICTED, CONFIRMED, or NOT_MENTIONED per turn
-- **Epistemic hedging** (DM declines to affirm without asserting the opposite) is classified as NOT_MENTIONED, not CONTRADICTED
-- **Scene-setting turn 0**: when `setting` is non-blank and extraction is enabled, an ESTABLISH turn executes before turn 1 to seed initial propositions organically
-- **Adversary modes**: scripted (explicit player messages in YAML) or adaptive (strategy selection based on anchor state and attack history)
+- **Drift verdicts** — each ground-truth fact is evaluated as `CONTRADICTED`, `CONFIRMED`, or `NOT_MENTIONED` per turn
+- **Epistemic hedging** — DM declines to affirm without asserting the opposite → `NOT_MENTIONED`, not `CONTRADICTED`
+- **Scene-setting turn 0** — when `setting` is non-blank and extraction is enabled, an `ESTABLISH` turn runs before turn 1 to seed initial propositions organically
+- **Adversary modes** — scripted (explicit player messages in YAML) or adaptive (strategy selection based on anchor state and attack history)
 
 ### Context Compaction
 
-`CompactedContextProvider` summarizes older context when token thresholds are exceeded. `CompactionValidator` ensures protected facts survive compaction. Memory tiers (`T0_INVARIANT`, `T1_WORKING`, `T2_EPISODIC`) influence decay rates and eviction priority.
+`CompactedContextProvider` summarizes older context when token thresholds are exceeded. `CompactionValidator` ensures protected facts survive compaction. Memory tiers (`COLD`, `WARM`, `HOT`) influence decay rates and eviction priority.
 
 ## Getting Started
 
 ### Prerequisites
 
-| Requirement    | Version | Notes                                       |
-|----------------|---------|---------------------------------------------|
-| Java           | 25      | Required by the project                     |
-| Docker         | Recent  | For Neo4j container                         |
-| Docker Compose | v2+     | Bundled with Docker Desktop                 |
-| LLM API Key    | --      | OpenAI key required for simulation and chat |
-| Maven          | Bundled | Use the included `./mvnw` wrapper           |
+| Requirement    | Version | Notes |
+|----------------|---------|-------|
+| Java           | 25      | Required by the project |
+| Docker         | Recent  | For Neo4j container |
+| Docker Compose | v2+     | Bundled with Docker Desktop |
+| LLM API Key    | —       | OpenAI key required for simulation and chat |
+| Maven          | Bundled | Use the included `./mvnw` wrapper |
 
 ### Quick Start
 
@@ -150,18 +156,19 @@ OPENAI_API_KEY=sk-... ./mvnw spring-boot:run
 
 ### Application Routes
 
-| Route                             | View             | Purpose                             |
-|-----------------------------------|------------------|-------------------------------------|
-| `http://localhost:8089`           | SimulationView   | Adversarial simulation harness      |
-| `http://localhost:8089/chat`      | ChatView         | Interactive anchor demo             |
+| Route                             | View             | Purpose |
+|-----------------------------------|------------------|---------|
+| `http://localhost:8089`           | SimulationView   | Adversarial simulation harness |
+| `http://localhost:8089/chat`      | ChatView         | Interactive anchor demo |
 | `http://localhost:8089/benchmark` | BenchmarkView    | Multi-condition ablation benchmarks |
-| `http://localhost:8089/run`       | RunInspectorView | Detailed run inspection             |
+| `http://localhost:8089/run`       | RunInspectorView | Detailed run inspection |
 
 ## Running Simulations
 
-Navigate to `http://localhost:8089` (routes to SimulationView).
+Navigate to `http://localhost:8089` (routes to `SimulationView`).
 
 **UI Controls:**
+
 - **Scenario selector** — dropdown of all loaded scenarios from `src/main/resources/simulations/`
 - **Injection toggle** — enable/disable anchor injection mid-run
 - **Run / Pause / Resume / Cancel** — turn-boundary execution controls
@@ -179,11 +186,12 @@ Each run generates a unique `contextId` (`sim-{uuid}`) for Neo4j isolation.
 Navigate to `http://localhost:8089/benchmark`.
 
 **Configure the benchmark matrix:**
-- **Conditions**: `FULL_ANCHORS`, `NO_ANCHORS`, `FLAT_AUTHORITY` (and `NO_TRUST` once implemented)
-- **Scenario pack**: select deterministic claim pack for primary evidence, stochastic stress pack for secondary
-- **Repetitions**: 10-20 per cell for reliable results
 
-Reports are built by `ResilienceReportBuilder` and rendered by `MarkdownReportRenderer`. See [evaluation.md](docs/evaluation.md) for metrics definitions, integrity checks, and interpretation guidance.
+- **Conditions**: `FULL_ANCHORS`, `NO_ANCHORS`, `FLAT_AUTHORITY` (and `NO_TRUST` once implemented)
+- **Scenario pack**: select deterministic claim pack for primary evidence; stochastic stress pack for secondary
+- **Repetitions**: 10–20 per cell for reliable results
+
+Reports are built by `ResilienceReportBuilder` and rendered by `MarkdownReportRenderer`. See `docs/evaluation.md` for metrics definitions, integrity checks, and interpretation guidance.
 
 ## Scenario Configuration
 
@@ -191,20 +199,20 @@ Scenarios are YAML files in `src/main/resources/simulations/`. Each file defines
 
 **Key fields:**
 
-| Field                                             | Purpose                                                                          |
-|---------------------------------------------------|----------------------------------------------------------------------------------|
-| `id`, `category`, `adversarial`                   | Identification and classification                                                |
-| `persona`                                         | Player character (name, description, playStyle)                                  |
-| `model`, `temperature`, `maxTurns`, `warmUpTurns` | Execution parameters                                                             |
-| `setting`                                         | Multi-line campaign context injected into the DM system prompt                   |
-| `groundTruth`                                     | Facts to evaluate against (id + text)                                            |
-| `seedAnchors`                                     | Pre-seeded anchors (text, authority, rank)                                       |
-| `turns`                                           | Scripted player turns with type, strategy, prompt, targetFact                    |
+| Field                                             | Purpose |
+|---------------------------------------------------|---------|
+| `id`, `category`, `adversarial`                   | Identification and classification |
+| `persona`                                         | Player character (name, description, playStyle) |
+| `model`, `temperature`, `maxTurns`, `warmUpTurns` | Execution parameters |
+| `setting`                                         | Multi-line campaign context injected into the DM system prompt |
+| `groundTruth`                                     | Facts to evaluate against (id + text) |
+| `seedAnchors`                                     | Pre-seeded anchors (text, authority, rank) |
+| `turns`                                           | Scripted player turns with type, strategy, prompt, targetFact |
 | `assertions`                                      | Post-run validation (anchor-count, rank-distribution, kg-context-contains, etc.) |
-| `trustConfig`                                     | Optional trust profile and weight overrides                                      |
-| `compactionConfig`                                | Optional compaction triggers and thresholds                                      |
+| `trustConfig`                                     | Optional trust profile and weight overrides |
+| `compactionConfig`                                | Optional compaction triggers and thresholds |
 
-**Scene-setting turn 0**: when `setting` is non-blank and extraction is enabled, an ESTABLISH turn executes before turn 1. The DM narrates the setting; DICE extraction captures initial propositions as anchors.
+**Scene-setting turn 0:** when `setting` is non-blank and extraction is enabled, an `ESTABLISH` turn executes before turn 1. The DM narrates the setting; DICE extraction captures initial propositions as anchors.
 
 Current corpus: 24 scenarios, 357 scripted turns, 180 evaluated turns.
 
@@ -292,17 +300,17 @@ assertions:                       # Optional post-run validation
 
 ### Assertion Types
 
-| Type                     | Params                      | Validates                                         |
-|--------------------------|-----------------------------|---------------------------------------------------|
-| `anchor-count`           | `min`, `max`                | Final anchor count is within range                |
-| `rank-distribution`      | `minAbove`, `rankThreshold` | At least N anchors have rank above threshold      |
-| `trust-score-range`      | `min`, `max`                | All trust scores fall within range                |
-| `promotion-zone`         | `zone`, `minCount`          | At least N anchors are in the specified zone      |
-| `authority-at-most`      | `maxAuthority`              | No anchor exceeds the specified authority level   |
+| Type                     | Params                      | Validates |
+|--------------------------|-----------------------------|----------|
+| `anchor-count`           | `min`, `max`                | Final anchor count is within range |
+| `rank-distribution`      | `minAbove`, `rankThreshold` | At least N anchors have rank above threshold |
+| `trust-score-range`      | `min`, `max`                | All trust scores fall within range |
+| `promotion-zone`         | `zone`, `minCount`          | At least N anchors are in the specified zone |
+| `authority-at-most`      | `maxAuthority`              | No anchor exceeds the specified authority level |
 | `kg-context-contains`    | `patterns`                  | Final anchor texts contain all specified patterns |
-| `kg-context-empty`       | (none)                      | No active anchors remain                          |
-| `no-canon-auto-assigned` | (none)                      | No anchor has CANON authority                     |
-| `compaction-integrity`   | `requiredFacts`             | All required facts survive compaction             |
+| `kg-context-empty`       | (none)                      | No active anchors remain |
+| `no-canon-auto-assigned` | (none)                      | No anchor has CANON authority |
+| `compaction-integrity`   | `requiredFacts`             | All required facts survive compaction |
 
 ### Per-Turn Execution Sequence
 
@@ -323,9 +331,9 @@ Each turn executes through `SimulationTurnExecutor`:
 
 Configure via `dice-anchors.run-history.store` in `application.yml`:
 
-| Value              | Storage                       | Lifecycle                  |
-|--------------------|-------------------------------|----------------------------|
-| `memory` (default) | ConcurrentHashMap             | Lost on restart            |
+| Value              | Storage                       | Lifecycle |
+|--------------------|-------------------------------|-----------|
+| `memory` (default) | ConcurrentHashMap             | Lost on restart |
 | `neo4j`            | Neo4j nodes with JSON payload | Persistent across restarts |
 
 ## Running Tests
@@ -343,12 +351,12 @@ Configure via `dice-anchors.run-history.store` in `application.yml`:
 
 ## Neo4j Access
 
-| Property    | Value                   |
-|-------------|-------------------------|
+| Property    | Value |
+|-------------|-------|
 | Browser URL | `http://localhost:7474` |
-| Username    | `neo4j`                 |
-| Password    | `diceanchors123`        |
-| Bolt port   | `7687`                  |
+| Username    | `neo4j` |
+| Password    | `diceanchors123` |
+| Bolt port   | `7687` |
 
 Started via `docker-compose.yml`. Both chat and simulation use the same `AnchorRepository` (Drivine-backed, scoped by `contextId`).
 
@@ -360,36 +368,36 @@ Optional Langfuse stack for OTEL-based observability.
 docker compose -f docker-compose.langfuse.yml up -d
 ```
 
-| Property      | Value                                   |
-|---------------|-----------------------------------------|
-| UI URL        | `http://localhost:3000`                 |
-| Login         | `dev@diceanchors.dev` / `Welcome1!`     |
+| Property      | Value |
+|---------------|-------|
+| UI URL        | `http://localhost:3000` |
+| Login         | `dev@diceanchors.dev` / `Welcome1!` |
 | OTEL endpoint | `http://localhost:3000/api/public/otel` |
 
 ## Troubleshooting
 
-| Issue                          | Resolution                                                                                        |
-|--------------------------------|---------------------------------------------------------------------------------------------------|
-| Neo4j connection refused       | Verify `docker-compose up -d` completed; check `docker ps` for healthy container                  |
-| `OPENAI_API_KEY` errors        | Ensure the environment variable is set before `spring-boot:run`                                   |
-| Port 8089 in use               | Stop conflicting process or change `server.port` in `application.yml`                             |
+| Issue                          | Resolution |
+|--------------------------------|------------|
+| Neo4j connection refused       | Verify `docker-compose up -d` completed; check `docker ps` for healthy container |
+| `OPENAI_API_KEY` errors        | Ensure the environment variable is set before `spring-boot:run` |
+| Port 8089 in use               | Stop conflicting process or change `server.port` in `application.yml` |
 | Test failures on clean clone   | Run `./mvnw clean compile` first; integration tests (`*IT.java`) require a running Neo4j instance |
-| Langfuse not starting          | Ensure port 3000 is free; the Langfuse stack is independent of the main `docker-compose.yml`      |
-| Stale simulation data          | Each run uses an isolated `contextId`; stale data from previous runs does not affect new runs     |
-| Build failures on Java version | Java 25 is required; verify with `java -version`                                                  |
+| Langfuse not starting          | Ensure port 3000 is free; the Langfuse stack is independent of the main `docker-compose.yml` |
+| Stale simulation data          | Each run uses an isolated `contextId`; stale data from previous runs does not affect new runs |
+| Build failures on Java version | Java 25 is required; verify with `java -version` |
 
 ## Technology Stack
 
-| Component     | Version                          |
-|---------------|----------------------------------|
-| Java          | 25                               |
-| Spring Boot   | 3.5.10                           |
-| Embabel Agent | 0.3.5-SNAPSHOT                   |
-| DICE          | 0.1.0-SNAPSHOT                   |
-| Vaadin        | 24.6.4                           |
-| Neo4j         | 5.x (Drivine ORM)                |
+| Component     | Version |
+|---------------|---------|
+| Java          | 25 |
+| Spring Boot   | 3.5.10 |
+| Embabel Agent | 0.3.5-SNAPSHOT |
+| DICE          | 0.1.0-SNAPSHOT |
+| Vaadin        | 24.6.4 |
+| Neo4j         | 5.x (Drivine ORM) |
 | Jinja2        | All prompts use Jinja2 templates |
-| JUnit 5       | Testing framework                |
+| JUnit 5       | Testing framework |
 
 ## Development
 
@@ -399,7 +407,7 @@ Key conventions (see `.dice-anchors/coding-style.md` for full reference):
 
 - **Constructor injection only** — never `@Autowired` on fields
 - **Records** for all immutable data; sealed interfaces for fixed type hierarchies
-- **Modern Java 25**: switch expressions, pattern matching, `.toList()`, text blocks
+- **Modern Java 25** — switch expressions, pattern matching, `.toList()`, text blocks
 - **Immutable collections** — `List.of()`, `Set.of()`, `Map.of()`
 - **Minimal comments** — code is self-documenting; comment only non-obvious logic
 

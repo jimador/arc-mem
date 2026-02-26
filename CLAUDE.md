@@ -53,7 +53,7 @@ This document uses keywords per [RFC 2119](https://www.ietf.org/rfc/rfc2119.txt)
 # Build (skip tests)
 ./mvnw clean compile -DskipTests
 
-# Test (696 tests)
+# Test (689 tests)
 ./mvnw test
 
 # Run (needs Neo4j + LLM API key)
@@ -93,7 +93,7 @@ See `.dice-anchors/coding-style.md` for the complete reference.
 - **Single-module** Spring Boot app with Vaadin UI at four routes: `/` (SimulationView), `/chat` (ChatView), `/benchmark` (BenchmarkView), `/run` (RunInspectorView)
 - **Neo4j only** -- no PostgreSQL. Drivine for ORM, Neo4j 5.x for persistence
 - **Anchors = Propositions + extra fields** -- `rank > 0` means it's an anchor. No separate node type.
-- **Budget enforcement** -- max 20 active anchors. Evicts lowest-ranked non-pinned when over budget.
+- **Budget enforcement** -- configurable max active anchors (default 20). Evicts lowest-ranked non-pinned when over budget.
 - **Authority upgrade-only** -- PROVISIONAL -> UNRELIABLE -> RELIABLE -> CANON. Never downgrade. CANON never auto-assigned.
 - **Rank clamped [100-900]** -- `Anchor.clampRank()`
 - **Sim isolation via contextId** -- Each run gets `sim-{uuid}`, cleaned up after.
@@ -108,7 +108,7 @@ See `.dice-anchors/coding-style.md` for the complete reference.
 - `@Nested` + `@DisplayName` for test structure
 - Method naming: `actionConditionExpectedOutcome` (no test prefix)
 - Integration tests (`*IT.java`, `@Tag("integration")`) excluded by default via Surefire
-- 696 tests across test classes in `anchor/`, `assembly/`, `chat/`, `extract/`, `persistence/`, `prompt/`, and `sim/` packages
+- 689 tests across test classes in `anchor/`, `assembly/`, `chat/`, `extract/`, `persistence/`, `prompt/`, and `sim/` packages
 
 ## Key Files
 
@@ -185,7 +185,7 @@ See `.dice-anchors/coding-style.md` for the complete reference.
 
 1. **Anchors = Propositions + extra fields** — `rank > 0` means it's an anchor. No separate node type.
 2. **Neo4j everywhere** — Both chat and sim use the same `AnchorRepository` (Drivine-backed).
-3. **Budget enforcement** — max 20 active anchors. Evicts lowest-ranked non-pinned when over budget.
+3. **Budget enforcement** — configurable max active anchors (default 20). Evicts lowest-ranked non-pinned when over budget.
 4. **Authority upgrade-only** — PROVISIONAL -> UNRELIABLE -> RELIABLE -> CANON. Never downgrade. CANON never auto-assigned.
 5. **Rank clamped [100-900]** — `Anchor.clampRank()`.
 6. **Sim isolation via contextId** — Each run gets `sim-{uuid}`, cleaned up after.
@@ -197,7 +197,7 @@ See `.dice-anchors/coding-style.md` for the complete reference.
 12. **Trust pipeline** — `TrustPipeline` evaluates propositions through multiple trust signals (source authority, extraction confidence, reinforcement history) before promotion. `TrustAuditRecord` captures the decision trail.
 13. **Context compaction** — `CompactedContextProvider` summarizes older context when token thresholds are exceeded. `CompactionValidator` ensures protected facts survive compaction.
 14. **Simulation assertions** — Post-run validation via `sim/assertions/` package. Nine assertion types (anchor-count, rank-distribution, trust-score-range, promotion-zone, authority-at-most, kg-context-contains, kg-context-empty, no-canon-auto-assigned, compaction-integrity) declared in scenario YAML.
-15. **Memory tiers** — `MemoryTier` classifies propositions as `T0_INVARIANT`, `T1_WORKING`, or `T2_EPISODIC`. Tier influences decay rates and eviction priority.
+15. **Memory tiers** — `MemoryTier` classifies propositions as `COLD`, `WARM`, or `HOT`. Tier influences decay rates and eviction priority.
 16. **Invariant rules** — `InvariantEvaluator` checks propositions against domain-specific invariant rules provided by `InvariantRuleProvider`. Violations can block promotion or trigger alerts.
 17. **Canonization gating** — `CanonizationGate` controls CANON authority assignment. CANON is never auto-assigned; requires explicit operator action through the gate.
 

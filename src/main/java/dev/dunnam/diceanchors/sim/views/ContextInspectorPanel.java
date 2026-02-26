@@ -43,7 +43,7 @@ public class ContextInspectorPanel extends VerticalLayout implements SimulationP
 
     private static final int MAX_RANK = 900;
 
-    private static final int PROMPT_TRUNCATE_LENGTH = 2000;
+    private static final int PROMPT_TRUNCATE_LENGTH = 5000;
 
     private final VerticalLayout anchorsContent;
     private final VerticalLayout verdictsContent;

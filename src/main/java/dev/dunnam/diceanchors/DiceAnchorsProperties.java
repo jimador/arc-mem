@@ -2,57 +2,81 @@ package dev.dunnam.diceanchors;
 
 import com.embabel.common.ai.model.LlmOptions;
 import dev.dunnam.diceanchors.assembly.RetrievalMode;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.Positive;
 import org.jspecify.annotations.Nullable;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 import org.springframework.boot.context.properties.bind.DefaultValue;
+import org.springframework.validation.annotation.Validated;
 
 import java.util.List;
 
+@Validated
 @ConfigurationProperties(prefix = "dice-anchors")
 public record DiceAnchorsProperties(
-        @NestedConfigurationProperty AnchorConfig anchor,
+        @Valid @NestedConfigurationProperty AnchorConfig anchor,
         @NestedConfigurationProperty ChatConfig chat,
         @NestedConfigurationProperty MemoryConfig memory,
         @NestedConfigurationProperty PersistenceConfig persistence,
         @NestedConfigurationProperty SimConfig sim,
         @NestedConfigurationProperty ConflictDetectionConfig conflictDetection,
         @NestedConfigurationProperty RunHistoryConfig runHistory,
-        @NestedConfigurationProperty AssemblyConfig assembly,
-        @NestedConfigurationProperty ConflictConfig conflict,
-        @NestedConfigurationProperty RetrievalConfig retrieval
+        @Valid @NestedConfigurationProperty AssemblyConfig assembly,
+        @Valid @NestedConfigurationProperty ConflictConfig conflict,
+        @Valid @NestedConfigurationProperty RetrievalConfig retrieval
 ) {
 
     public record AnchorConfig(
-            @DefaultValue("20") int budget,
+            @Positive @DefaultValue("20") int budget,
             @DefaultValue("500") int initialRank,
-            @DefaultValue("100") int minRank,
-            @DefaultValue("900") int maxRank,
+            @Min(100) @Max(900) @DefaultValue("100") int minRank,
+            @Min(100) @Max(900) @DefaultValue("900") int maxRank,
             @DefaultValue("true") boolean autoActivate,
-            @DefaultValue("0.65") double autoActivateThreshold,
+            @DecimalMin("0.0") @DecimalMax("1.0") @DefaultValue("0.65") double autoActivateThreshold,
             @DefaultValue("FAST_THEN_LLM") String dedupStrategy,
             @DefaultValue("TIERED") String compliancePolicy,
             @DefaultValue("true") boolean lifecycleEventsEnabled,
             @DefaultValue("true") boolean canonizationGateEnabled,
             @DefaultValue("true") boolean autoApproveInSimulation,
-            @DefaultValue("0.6") double demoteThreshold,
+            @DecimalMin("0.0") @DecimalMax("1.0") @DefaultValue("0.6") double demoteThreshold,
             @DefaultValue("400") int reliableRankThreshold,
             @DefaultValue("200") int unreliableRankThreshold,
-            @NestedConfigurationProperty TierConfig tier,
+            @Valid @NestedConfigurationProperty TierConfig tier,
             @Nullable InvariantConfig invariants,
             @Nullable ChatSeedConfig chatSeed
-    ) {}
+    ) {
+        @AssertTrue(message = "minRank must be < maxRank")
+        public boolean isRankRangeValid() {
+            return minRank < maxRank;
+        }
+
+        @AssertTrue(message = "initialRank must be in [minRank, maxRank]")
+        public boolean isInitialRankInRange() {
+            return initialRank >= minRank && initialRank <= maxRank;
+        }
+    }
 
     public record TierConfig(
-            @DefaultValue("600") int hotThreshold,
-            @DefaultValue("350") int warmThreshold,
-            @DefaultValue("1.5") double hotDecayMultiplier,
-            @DefaultValue("1.0") double warmDecayMultiplier,
-            @DefaultValue("0.6") double coldDecayMultiplier
-    ) {}
+            @Min(100) @Max(900) @DefaultValue("600") int hotThreshold,
+            @Min(100) @Max(900) @DefaultValue("350") int warmThreshold,
+            @Positive @DefaultValue("1.5") double hotDecayMultiplier,
+            @Positive @DefaultValue("1.0") double warmDecayMultiplier,
+            @Positive @DefaultValue("0.6") double coldDecayMultiplier
+    ) {
+        @AssertTrue(message = "hotThreshold must be > warmThreshold")
+        public boolean isHotAboveWarm() {
+            return hotThreshold > warmThreshold;
+        }
+    }
 
     public record AssemblyConfig(
-            @DefaultValue("0") int promptTokenBudget
+            @Min(0) @DefaultValue("0") int promptTokenBudget
     ) {}
 
     public record ChatConfig(
@@ -94,32 +118,46 @@ public record DiceAnchorsProperties(
     ) {}
 
     public record ConflictConfig(
+            @DecimalMin(value = "0.0", inclusive = false) @DecimalMax("1.0")
             @DefaultValue("0.5") double negationOverlapThreshold,
+            @DecimalMin(value = "0.0", inclusive = false) @DecimalMax("1.0")
             @DefaultValue("0.9") double llmConfidence,
+            @DecimalMin(value = "0.0", inclusive = false) @DecimalMax("1.0")
             @DefaultValue("0.8") double replaceThreshold,
+            @DecimalMin(value = "0.0", inclusive = false) @DecimalMax("1.0")
             @DefaultValue("0.6") double demoteThreshold,
-            @NestedConfigurationProperty TierModifierConfig tier
-    ) {}
+            @Valid @NestedConfigurationProperty TierModifierConfig tier
+    ) {
+        @AssertTrue(message = "replaceThreshold must be > demoteThreshold")
+        public boolean isReplaceAboveDemote() {
+            return replaceThreshold > demoteThreshold;
+        }
+    }
 
     public record TierModifierConfig(
-            @DefaultValue("0.1") double hotDefenseModifier,
-            @DefaultValue("0.0") double warmDefenseModifier,
-            @DefaultValue("-0.1") double coldDefenseModifier
+            @DecimalMin("-0.5") @DecimalMax("0.5") @DefaultValue("0.1") double hotDefenseModifier,
+            @DecimalMin("-0.5") @DecimalMax("0.5") @DefaultValue("0.0") double warmDefenseModifier,
+            @DecimalMin("-0.5") @DecimalMax("0.5") @DefaultValue("-0.1") double coldDefenseModifier
     ) {}
 
     public record RetrievalConfig(
             @DefaultValue("HYBRID") RetrievalMode mode,
-            @DefaultValue("0.0") double minRelevance,
-            @DefaultValue("5") int baselineTopK,
-            @DefaultValue("5") int toolTopK,
-            @NestedConfigurationProperty ScoringConfig scoring
+            @DecimalMin("0.0") @DecimalMax("1.0") @DefaultValue("0.0") double minRelevance,
+            @Positive @DefaultValue("5") int baselineTopK,
+            @Positive @DefaultValue("5") int toolTopK,
+            @Valid @NestedConfigurationProperty ScoringConfig scoring
     ) {}
 
     public record ScoringConfig(
-            @DefaultValue("0.4") double authorityWeight,
-            @DefaultValue("0.3") double tierWeight,
-            @DefaultValue("0.3") double confidenceWeight
-    ) {}
+            @DecimalMin("0.0") @DecimalMax("1.0") @DefaultValue("0.4") double authorityWeight,
+            @DecimalMin("0.0") @DecimalMax("1.0") @DefaultValue("0.3") double tierWeight,
+            @DecimalMin("0.0") @DecimalMax("1.0") @DefaultValue("0.3") double confidenceWeight
+    ) {
+        @AssertTrue(message = "scoring weights must sum to 1.0")
+        public boolean isWeightSumValid() {
+            return Math.abs(authorityWeight + tierWeight + confidenceWeight - 1.0) <= 0.001;
+        }
+    }
 
     public record InvariantConfig(
             @DefaultValue("true") boolean enabled,
