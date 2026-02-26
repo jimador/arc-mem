@@ -1905,6 +1905,23 @@ html[theme~="light"] {
     background: rgba(0, 212, 255, 0.1);
 }
 
+.ar-category-badge {
+    font-size: 0.7rem;
+    font-family: var(--lumo-font-family);
+    color: var(--anchor-accent-amber);
+    background: rgba(255, 176, 32, 0.12);
+    padding: 1px 6px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.ar-scenario-item-title {
+    font-size: 0.85rem;
+    font-family: var(--lumo-font-family);
+}
+
 /* Drill-down Details accordion within ConditionComparisonPanel */
 .ar-drilldown-details {
     border: 1px solid rgba(0, 212, 255, 0.12);

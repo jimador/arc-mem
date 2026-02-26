@@ -6,8 +6,6 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
-import com.vaadin.flow.component.details.Details;
-import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Paragraph;
@@ -18,13 +16,14 @@ import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.component.splitlayout.SplitLayout;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.TabSheet;
+import com.vaadin.flow.component.textfield.IntegerField;
+import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouterLink;
 import dev.dunnam.diceanchors.anchor.AnchorEngine;
+import dev.dunnam.diceanchors.chat.ChatView;
 import dev.dunnam.diceanchors.persistence.AnchorRepository;
-import dev.dunnam.diceanchors.sim.benchmark.BenchmarkReport;
-import dev.dunnam.diceanchors.sim.benchmark.BenchmarkRunner;
 import dev.dunnam.diceanchors.sim.engine.RunHistoryStore;
 import dev.dunnam.diceanchors.sim.engine.ScenarioLoader;
 import dev.dunnam.diceanchors.sim.engine.SimControlState;
@@ -33,32 +32,11 @@ import dev.dunnam.diceanchors.sim.engine.SimulationScenario;
 import dev.dunnam.diceanchors.sim.engine.SimulationService;
 import org.jspecify.annotations.Nullable;
 
+import java.util.List;
+import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
-/**
- * Root Vaadin view for running and inspecting anchor drift simulations.
- * <p>
- * Layout (per design D1):
- * <pre>
- *   +-----------------------------------------------------------+
- *   |  Header: title + scenario selector + controls             |
- *   +-----------------------------------------------------------+
- *   |  InterventionImpactBanner (shown after resume)            |
- *   +------------------------------+----------------------------+
- *   |  Left Column:                |  Right Column (TabSheet):  |
- *   |  - ConversationPanel         |  - Context Inspector       |
- *   |  - DriftSummaryPanel         |  - Anchor Timeline         |
- *   |                              |  - Anchor Manipulation     |
- *   |                              |  - Knowledge Browser       |
- *   +------------------------------+----------------------------+
- *   |  Status bar + progress bar                                |
- *   +-----------------------------------------------------------+
- * </pre>
- * <p>
- * All panel visibility and enable states are driven by {@link SimControlState}
- * transitions via {@link #transitionTo(SimControlState)}.
- */
 @Route("")
 @PageTitle("Anchor Drift Simulator")
 public class SimulationView extends VerticalLayout {
@@ -67,9 +45,9 @@ public class SimulationView extends VerticalLayout {
     private final ScenarioLoader scenarioLoader;
     private final AnchorRepository anchorRepository;
     private final AnchorEngine anchorEngine;
-    private final BenchmarkRunner benchmarkRunner;
     private final RunHistoryStore runHistoryStore;
 
+    private final Select<String> categorySelect;
     private final ComboBox<SimulationScenario> scenarioCombo;
     private final Checkbox injectionToggle;
     private final IntegerField tokenBudgetField;
@@ -79,12 +57,13 @@ public class SimulationView extends VerticalLayout {
     private final Button resumeButton;
     private final Button stopButton;
     private final Button runHistoryButton;
-    private final Details scenarioBriefPanel;
-    private final Span scenarioBriefTitle;
-    private final Paragraph scenarioBriefObjective;
-    private final Paragraph scenarioBriefFocus;
-    private final VerticalLayout scenarioBriefHighlights;
-    private final Paragraph scenarioBriefSetting;
+
+    private final VerticalLayout scenarioDetailsContent;
+    private final Span scenarioDetailsTitle;
+    private final Paragraph scenarioDetailsObjective;
+    private final Paragraph scenarioDetailsFocus;
+    private final VerticalLayout scenarioDetailsHighlights;
+    private final Paragraph scenarioDetailsSetting;
 
     private final ProgressBar progressBar;
     private final Span statusLabel;
@@ -96,12 +75,13 @@ public class SimulationView extends VerticalLayout {
     private final AnchorTimelinePanel timelinePanel;
     private final InterventionImpactBanner interventionBanner;
     private final KnowledgeBrowserPanel knowledgeBrowserPanel;
-    private final BenchmarkPanel benchmarkPanel;
 
     private final TabSheet rightTabSheet;
+    private final Tab scenarioDetailsTab;
+    private final Tab contextInspectorTab;
     private final Tab manipulationTab;
     private final Tab knowledgeBrowserTab;
-    private final Tab benchmarkTab;
+    private final Tab resultsTab;
     private final RunHistoryDialog runHistoryDialog;
     private final ProgressDispatcher dispatcher;
 
@@ -110,49 +90,56 @@ public class SimulationView extends VerticalLayout {
 
     private SimControlState controlState = SimControlState.IDLE;
     private int anchorCountBeforePause;
+    private TreeMap<String, List<SimulationScenario>> scenariosByCategory = new TreeMap<>();
 
     public SimulationView(
             SimulationService simulationService,
             ScenarioLoader scenarioLoader,
             AnchorRepository anchorRepository,
             AnchorEngine anchorEngine,
-            BenchmarkRunner benchmarkRunner,
             RunHistoryStore runHistoryStore) {
         this.simulationService = simulationService;
         this.scenarioLoader = scenarioLoader;
         this.anchorRepository = anchorRepository;
         this.anchorEngine = anchorEngine;
-        this.benchmarkRunner = benchmarkRunner;
         this.runHistoryStore = runHistoryStore;
 
         setSizeFull();
         setPadding(true);
         setSpacing(false);
 
+        // --- Header row: title left, nav links + theme toggle right ---
         var title = new H2("Anchor Drift Simulator");
         title.addClassName("ar-sim-title");
 
-        themeToggleButton = new Button("\u2600 LIGHT");
-        themeToggleButton.addClickListener(e -> toggleTheme());
+        var chatLink = new RouterLink("Chat", ChatView.class);
+        chatLink.addClassName("ar-nav-link");
 
         var benchmarkLink = new RouterLink("Benchmark", BenchmarkView.class);
         benchmarkLink.addClassName("ar-nav-link");
 
-        var headerRow = new HorizontalLayout(title, themeToggleButton, benchmarkLink);
+        themeToggleButton = new Button("\u2600 LIGHT");
+        themeToggleButton.addClickListener(e -> toggleTheme());
+
+        var navGroup = new HorizontalLayout(chatLink, benchmarkLink, themeToggleButton);
+        navGroup.setSpacing(true);
+        navGroup.setAlignItems(HorizontalLayout.Alignment.CENTER);
+
+        var headerRow = new HorizontalLayout(title, navGroup);
         headerRow.setWidthFull();
         headerRow.setAlignItems(HorizontalLayout.Alignment.CENTER);
         headerRow.setJustifyContentMode(HorizontalLayout.JustifyContentMode.BETWEEN);
         headerRow.addClassName("ar-header-row");
 
+        // --- Controls: single row ---
+        categorySelect = new Select<>();
+        categorySelect.setLabel("Category");
+        categorySelect.setWidth("160px");
+        categorySelect.setPlaceholder("All categories");
+
         scenarioCombo = new ComboBox<>("Scenario");
-        scenarioCombo.setItemLabelGenerator(s -> {
-            var label = s.displayTitle() + (s.adversarial() ? " [adversarial]" : " [baseline]");
-            if (s.category() != null && !s.category().isBlank()) {
-                label = "[%s] %s".formatted(s.category(), label);
-            }
-            return label;
-        });
-        scenarioCombo.setWidth("280px");
+        scenarioCombo.setItemLabelGenerator(SimulationScenario::displayTitle);
+        scenarioCombo.setWidth("240px");
         scenarioCombo.setPlaceholder("Select a scenario...");
 
         injectionToggle = new Checkbox("Anchor Injection", true);
@@ -163,27 +150,27 @@ public class SimulationView extends VerticalLayout {
         tokenBudgetField.setMax(5000);
         tokenBudgetField.setStepButtonsVisible(true);
         tokenBudgetField.setValue(0);
-        tokenBudgetField.setWidth("190px");
+        tokenBudgetField.setWidth("170px");
 
         maxTurnsField = new IntegerField("Max Turns");
         maxTurnsField.setMin(1);
         maxTurnsField.setMax(200);
         maxTurnsField.setStepButtonsVisible(true);
         maxTurnsField.setValue(10);
-        maxTurnsField.setWidth("140px");
+        maxTurnsField.setWidth("120px");
 
         runButton = new Button("Run");
         runButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         runButton.setEnabled(false);
 
         pauseButton = new Button("Pause");
-        pauseButton.setEnabled(false);
+        pauseButton.setVisible(false);
 
         resumeButton = new Button("Resume");
-        resumeButton.setEnabled(false);
+        resumeButton.setVisible(false);
 
         stopButton = new Button("Stop");
-        stopButton.setEnabled(false);
+        stopButton.setVisible(false);
 
         runHistoryDialog = new RunHistoryDialog(simulationService.getRunStore());
 
@@ -196,53 +183,55 @@ public class SimulationView extends VerticalLayout {
         wireButtons();
 
         var controls = new HorizontalLayout(
-                scenarioCombo, injectionToggle, tokenBudgetField, maxTurnsField, runButton, pauseButton, resumeButton, stopButton, runHistoryButton);
+                categorySelect, scenarioCombo, tokenBudgetField, maxTurnsField,
+                runButton, pauseButton, resumeButton, stopButton, runHistoryButton);
         controls.setAlignItems(HorizontalLayout.Alignment.BASELINE);
         controls.setSpacing(true);
+        controls.setWidthFull();
 
-        scenarioBriefTitle = new Span("Scenario Brief");
-        scenarioBriefTitle.addClassName("ar-scenario-brief-title");
-
-        scenarioBriefObjective = new Paragraph("Select a scenario to view what it tests.");
-        scenarioBriefObjective.addClassName("ar-no-margin");
-
-        scenarioBriefFocus = new Paragraph("");
-        scenarioBriefFocus.addClassName("ar-scenario-brief-focus");
-
-        scenarioBriefHighlights = new VerticalLayout();
-        scenarioBriefHighlights.setPadding(false);
-        scenarioBriefHighlights.setSpacing(false);
-        scenarioBriefHighlights.addClassName("ar-brief-highlights");
-
-        scenarioBriefSetting = new Paragraph("");
-        scenarioBriefSetting.addClassName("ar-scenario-brief-setting");
-
-        var briefContent = new VerticalLayout(
-                scenarioBriefObjective,
-                scenarioBriefFocus,
-                scenarioBriefHighlights,
-                scenarioBriefSetting);
-        briefContent.setPadding(false);
-        briefContent.setSpacing(false);
-
-        scenarioBriefPanel = new Details(scenarioBriefTitle, briefContent);
-        scenarioBriefPanel.setOpened(true);
-        scenarioBriefPanel.addClassName("ar-scenario-brief");
-
+        // --- Intervention banner ---
         interventionBanner = new InterventionImpactBanner();
 
+        // --- Left column: conversation only ---
         conversationPanel = new ConversationPanel();
         conversationPanel.setTurnSelectionCallback(this::onTurnSelected);
-
-        driftSummaryPanel = new DriftSummaryPanel();
 
         var leftColumn = new VerticalLayout();
         leftColumn.setPadding(false);
         leftColumn.setSpacing(false);
         leftColumn.setSizeFull();
-        leftColumn.add(new H4("Conversation"), conversationPanel, driftSummaryPanel);
+        leftColumn.add(new H4("Conversation"), conversationPanel, injectionToggle);
         leftColumn.setFlexGrow(1, conversationPanel);
 
+        // --- Scenario Details tab content ---
+        scenarioDetailsTitle = new Span("Select a scenario");
+        scenarioDetailsTitle.addClassName("ar-scenario-brief-title");
+
+        scenarioDetailsObjective = new Paragraph("Select a scenario to view what it tests.");
+        scenarioDetailsObjective.addClassName("ar-no-margin");
+
+        scenarioDetailsFocus = new Paragraph("");
+        scenarioDetailsFocus.addClassName("ar-scenario-brief-focus");
+
+        scenarioDetailsHighlights = new VerticalLayout();
+        scenarioDetailsHighlights.setPadding(false);
+        scenarioDetailsHighlights.setSpacing(false);
+        scenarioDetailsHighlights.addClassName("ar-brief-highlights");
+
+        scenarioDetailsSetting = new Paragraph("");
+        scenarioDetailsSetting.addClassName("ar-scenario-brief-setting");
+
+        scenarioDetailsContent = new VerticalLayout(
+                scenarioDetailsTitle,
+                scenarioDetailsObjective,
+                scenarioDetailsFocus,
+                scenarioDetailsHighlights,
+                scenarioDetailsSetting);
+        scenarioDetailsContent.setPadding(true);
+        scenarioDetailsContent.setSpacing(false);
+
+        // --- Right panel: TabSheet ---
+        driftSummaryPanel = new DriftSummaryPanel();
         inspectorPanel = new ContextInspectorPanel();
         timelinePanel = new AnchorTimelinePanel();
         manipulationPanel = new AnchorManipulationPanel(anchorRepository, anchorEngine);
@@ -259,16 +248,12 @@ public class SimulationView extends VerticalLayout {
 
         rightTabSheet = new TabSheet();
         rightTabSheet.setSizeFull();
-        rightTabSheet.add("Context Inspector", inspectorPanel);
+        scenarioDetailsTab = rightTabSheet.add("Details", scenarioDetailsContent);
+        contextInspectorTab = rightTabSheet.add("Context Inspector", inspectorPanel);
         rightTabSheet.add("Timeline", timelinePanel);
-        manipulationTab = rightTabSheet.add("Manipulation", manipulationPanel);
         knowledgeBrowserTab = rightTabSheet.add("Knowledge Browser", knowledgeBrowserPanel);
-
-        benchmarkPanel = new BenchmarkPanel();
-        benchmarkTab = rightTabSheet.add("Benchmark", benchmarkPanel);
-        wireBenchmarkPanel();
-
-        // Manipulation tab visible only when PAUSED
+        resultsTab = rightTabSheet.add("Results", driftSummaryPanel);
+        manipulationTab = rightTabSheet.add("Manipulation", manipulationPanel);
         manipulationTab.setVisible(false);
 
         inspectorPanel.setBrowseCallback(anchorText -> {
@@ -290,6 +275,7 @@ public class SimulationView extends VerticalLayout {
         splitLayout.setSizeFull();
         splitLayout.setSplitterPosition(55);
 
+        // --- Status bar ---
         statusLabel = new Span("Select a scenario and click Run.");
         statusLabel.addClassName("ar-status-label");
 
@@ -303,7 +289,7 @@ public class SimulationView extends VerticalLayout {
         statusBar.setWidthFull();
         statusBar.addClassName("ar-status-bar");
 
-        add(headerRow, controls, scenarioBriefPanel, interventionBanner, splitLayout, statusBar);
+        add(headerRow, controls, interventionBanner, splitLayout, statusBar);
         setFlexGrow(1, splitLayout);
         updateScenarioContext(null);
     }
@@ -315,10 +301,6 @@ public class SimulationView extends VerticalLayout {
         initTheme();
     }
 
-    /**
-     * Transition the UI to a new control state, applying all visibility and enable
-     * changes dictated by the state machine.
-     */
     private void transitionTo(SimControlState target) {
         if (!controlState.canTransitionTo(target)) {
             return;
@@ -327,30 +309,39 @@ public class SimulationView extends VerticalLayout {
 
         switch (target) {
             case IDLE -> {
+                categorySelect.setEnabled(true);
                 scenarioCombo.setEnabled(true);
                 tokenBudgetField.setEnabled(true);
                 runButton.setEnabled(scenarioCombo.getValue() != null);
-                pauseButton.setEnabled(false);
-                resumeButton.setEnabled(false);
-                stopButton.setEnabled(false);
+                runButton.setVisible(true);
+                runHistoryButton.setVisible(true);
+                pauseButton.setVisible(false);
+                resumeButton.setVisible(false);
+                stopButton.setVisible(false);
                 progressBar.setVisible(false);
                 manipulationTab.setVisible(false);
             }
             case RUNNING -> {
+                categorySelect.setEnabled(false);
                 scenarioCombo.setEnabled(false);
                 tokenBudgetField.setEnabled(false);
-                runButton.setEnabled(false);
-                pauseButton.setEnabled(true);
-                resumeButton.setEnabled(false);
-                stopButton.setEnabled(true);
+                runButton.setVisible(false);
+                runHistoryButton.setVisible(false);
+                pauseButton.setVisible(true);
+                resumeButton.setVisible(false);
+                stopButton.setVisible(true);
                 manipulationTab.setVisible(false);
                 interventionBanner.dismiss();
+                rightTabSheet.setSelectedTab(contextInspectorTab);
             }
             case PAUSED -> {
+                categorySelect.setEnabled(false);
                 scenarioCombo.setEnabled(false);
-                pauseButton.setEnabled(false);
-                resumeButton.setEnabled(true);
-                stopButton.setEnabled(true);
+                runButton.setVisible(false);
+                runHistoryButton.setVisible(true);
+                pauseButton.setVisible(false);
+                resumeButton.setVisible(true);
+                stopButton.setVisible(true);
                 manipulationTab.setVisible(true);
 
                 var contextId = simulationService.getCurrentContextId();
@@ -362,14 +353,18 @@ public class SimulationView extends VerticalLayout {
                 rightTabSheet.setSelectedTab(manipulationTab);
             }
             case COMPLETED -> {
+                categorySelect.setEnabled(true);
                 scenarioCombo.setEnabled(true);
                 tokenBudgetField.setEnabled(true);
                 runButton.setEnabled(scenarioCombo.getValue() != null);
-                pauseButton.setEnabled(false);
-                resumeButton.setEnabled(false);
-                stopButton.setEnabled(false);
+                runButton.setVisible(true);
+                runHistoryButton.setVisible(true);
+                pauseButton.setVisible(false);
+                resumeButton.setVisible(false);
+                stopButton.setVisible(false);
                 progressBar.setVisible(false);
                 manipulationTab.setVisible(false);
+                rightTabSheet.setSelectedTab(resultsTab);
             }
         }
     }
@@ -380,6 +375,9 @@ public class SimulationView extends VerticalLayout {
             updateScenarioContext(e.getValue());
             if (e.getValue() != null) {
                 maxTurnsField.setValue(e.getValue().maxTurns());
+                if (canStartRun()) {
+                    rightTabSheet.setSelectedTab(scenarioDetailsTab);
+                }
             }
         });
 
@@ -425,103 +423,34 @@ public class SimulationView extends VerticalLayout {
         try {
             var scenarios = scenarioLoader.listScenarios();
 
-            var hasCategories = scenarios.stream()
-                                         .anyMatch(s -> s.category() != null && !s.category().isBlank());
-            if (hasCategories) {
-                var grouped = scenarios.stream()
-                                       .sorted((a, b) -> {
-                                           var catA = a.category() != null ? a.category() : "uncategorized";
-                                           var catB = b.category() != null ? b.category() : "uncategorized";
-                                           var cmp = catA.compareTo(catB);
-                                           return cmp != 0 ? cmp : a.id().compareTo(b.id());
-                                       })
-                                       .toList();
-                scenarioCombo.setItems(grouped);
-            } else {
-                scenarioCombo.setItems(scenarios);
-            }
+            scenariosByCategory = scenarios.stream()
+                    .collect(Collectors.groupingBy(
+                            s -> s.category() != null && !s.category().isBlank() ? s.category() : "adversarial",
+                            TreeMap::new,
+                            Collectors.collectingAndThen(
+                                    Collectors.toList(),
+                                    list -> list.stream()
+                                            .sorted((a, b) -> a.displayTitle().compareTo(b.displayTitle()))
+                                            .toList())));
 
-            if (!scenarios.isEmpty()) {
-                scenarioCombo.setValue(scenarios.getFirst());
-            }
+            categorySelect.setItems(scenariosByCategory.keySet());
+            categorySelect.addValueChangeListener(e -> {
+                var cat = e.getValue();
+                if (cat == null) {
+                    return;
+                }
+                var filtered = scenariosByCategory.getOrDefault(cat, List.of());
+                scenarioCombo.setItems(filtered);
+                if (!filtered.isEmpty()) {
+                    scenarioCombo.setValue(filtered.getFirst());
+                }
+            });
+
+            var firstCategory = scenariosByCategory.firstKey();
+            categorySelect.setValue(firstCategory);
         } catch (Exception e) {
             statusLabel.setText("Failed to load scenarios: " + e.getMessage());
         }
-    }
-
-    private void wireBenchmarkPanel() {
-        var lastReportRef = new AtomicReference<BenchmarkReport>();
-
-        benchmarkPanel.setRunBenchmarkCallback(runCount -> {
-            var scenario = scenarioCombo.getValue();
-            if (scenario == null) {
-                statusLabel.setText("Select a scenario before running benchmark.");
-                return;
-            }
-            var maxTurns = maxTurnsField.getValue() != null ? Math.max(1, maxTurnsField.getValue()) : scenario.maxTurns();
-            benchmarkPanel.setRunning(true);
-            benchmarkPanel.reset();
-            statusLabel.setText("Benchmark starting: %d runs of '%s'...".formatted(runCount, scenario.id()));
-
-            var ui = UI.getCurrent();
-            CompletableFuture.supplyAsync(() ->
-                    benchmarkRunner.runBenchmark(scenario, maxTurns, runCount,
-                            injectionToggle::getValue, this::resolveTokenBudget,
-                            progress -> ui.access(() -> benchmarkPanel.showProgress(progress)))
-            ).thenAccept(report -> ui.access(() -> {
-                var displayReport = report;
-                var baseline = runHistoryStore.loadBaseline(report.scenarioId()).orElse(null);
-                if (baseline != null && !baseline.reportId().equals(report.reportId())) {
-                    var agg = new dev.dunnam.diceanchors.sim.benchmark.BenchmarkAggregator();
-                    var deltas = agg.computeDeltas(report, baseline);
-                    displayReport = new BenchmarkReport(
-                            report.reportId(), report.scenarioId(), report.createdAt(),
-                            report.runCount(), report.totalDurationMs(),
-                            report.metricStatistics(), report.strategyStatistics(),
-                            report.runIds(), baseline.reportId(), deltas);
-                }
-                lastReportRef.set(displayReport);
-                benchmarkPanel.showReport(displayReport);
-                benchmarkPanel.setRunning(false);
-                statusLabel.setText("Benchmark complete: %d runs, report '%s'.".formatted(report.runCount(), report.reportId()));
-            })).exceptionally(ex -> {
-                ui.access(() -> {
-                    statusLabel.setText("Benchmark error: " + ex.getMessage());
-                    benchmarkPanel.setRunning(false);
-                });
-                return null;
-            });
-        });
-
-        benchmarkPanel.setCancelCallback(() -> {
-            benchmarkRunner.cancel();
-            benchmarkPanel.setRunning(false);
-            statusLabel.setText("Benchmark cancelled.");
-        });
-
-        benchmarkPanel.setSaveBaselineCallback(() -> {
-            var report = lastReportRef.get();
-            if (report == null) {
-                statusLabel.setText("No benchmark report to save as baseline.");
-                return;
-            }
-            runHistoryStore.saveAsBaseline(report.reportId(), report.scenarioId());
-            statusLabel.setText("Saved report '%s' as baseline for scenario '%s'.".formatted(
-                    report.reportId(), report.scenarioId()));
-
-            var baseline = runHistoryStore.loadBaseline(report.scenarioId()).orElse(null);
-            if (baseline != null && !baseline.reportId().equals(report.reportId())) {
-                var aggregator = new dev.dunnam.diceanchors.sim.benchmark.BenchmarkAggregator();
-                var deltas = aggregator.computeDeltas(report, baseline);
-                var updatedReport = new BenchmarkReport(
-                        report.reportId(), report.scenarioId(), report.createdAt(),
-                        report.runCount(), report.totalDurationMs(),
-                        report.metricStatistics(), report.strategyStatistics(),
-                        report.runIds(), baseline.reportId(), deltas);
-                lastReportRef.set(updatedReport);
-                benchmarkPanel.showReport(updatedReport);
-            }
-        });
     }
 
     private void startSimulation(SimulationScenario scenario) {
@@ -546,8 +475,8 @@ public class SimulationView extends VerticalLayout {
         var ui = UI.getCurrent();
 
         CompletableFuture.runAsync(() ->
-                                           simulationService.runSimulation(scenario, maxTurns, injectionToggle::getValue, this::resolveTokenBudget,
-                                                                           progress -> ui.access(() -> applyProgress(progress, scenario)))
+                simulationService.runSimulation(scenario, maxTurns, injectionToggle::getValue, this::resolveTokenBudget,
+                        progress -> ui.access(() -> applyProgress(progress, scenario)))
         ).exceptionally(ex -> {
             ui.access(() -> {
                 statusLabel.setText("Simulation error: " + ex.getMessage());
@@ -576,15 +505,8 @@ public class SimulationView extends VerticalLayout {
         }
     }
 
-    /**
-     * Handle turn selection from any panel (ConversationPanel, AnchorTimelinePanel).
-     * Updates all panels that support turn-based inspection.
-     */
     private void onTurnSelected(int turnNumber) {
         timelinePanel.selectTurn(turnNumber);
-
-        // ContextInspectorPanel shows latest state; historical turn inspection
-        // would require storing per-turn context traces (future enhancement).
     }
 
     private Integer resolveTokenBudget() {
@@ -597,27 +519,27 @@ public class SimulationView extends VerticalLayout {
     }
 
     private void updateScenarioContext(@Nullable SimulationScenario scenario) {
-        scenarioBriefHighlights.removeAll();
+        scenarioDetailsHighlights.removeAll();
         if (scenario == null) {
-            scenarioBriefTitle.setText("Scenario Brief");
-            scenarioBriefObjective.setText("Select a scenario to view what it tests.");
-            scenarioBriefFocus.setText("");
-            scenarioBriefSetting.setText("");
+            scenarioDetailsTitle.setText("Select a scenario");
+            scenarioDetailsObjective.setText("Select a scenario to view what it tests.");
+            scenarioDetailsFocus.setText("");
+            scenarioDetailsSetting.setText("");
             return;
         }
 
-        scenarioBriefTitle.setText(scenario.displayTitle());
-        scenarioBriefObjective.setText("Test objective: " + scenario.displayObjective());
-        scenarioBriefFocus.setText("Focus: " + scenario.displayTestFocus());
+        scenarioDetailsTitle.setText(scenario.displayTitle());
+        scenarioDetailsObjective.setText("Test objective: " + scenario.displayObjective());
+        scenarioDetailsFocus.setText("Focus: " + scenario.displayTestFocus());
 
         for (var highlight : scenario.displayHighlights()) {
             var line = new Span("- " + highlight);
             line.addClassName("ar-scenario-highlight");
-            scenarioBriefHighlights.add(line);
+            scenarioDetailsHighlights.add(line);
         }
 
         var settingPreview = summarizeSetting(scenario.setting());
-        scenarioBriefSetting.setText("Setting: " + settingPreview);
+        scenarioDetailsSetting.setText("Setting: " + settingPreview);
     }
 
     private String buildScenarioRunIntro(SimulationScenario scenario) {
@@ -642,10 +564,6 @@ public class SimulationView extends VerticalLayout {
         return normalized.substring(0, 220) + "...";
     }
 
-    /**
-     * Format a turn duration in milliseconds to a human-readable string.
-     * Returns "Xs", "XXs", or "Xm Ys" depending on magnitude.
-     */
     static String formatDuration(long ms) {
         if (ms <= 0) {
             return "";

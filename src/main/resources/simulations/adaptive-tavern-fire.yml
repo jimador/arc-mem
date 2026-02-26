@@ -1,4 +1,5 @@
 id: adaptive-tavern-fire
+category: adversarial
 adversarial: true
 adversaryMode: adaptive
 adversaryConfig:

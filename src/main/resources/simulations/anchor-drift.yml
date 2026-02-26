@@ -1,4 +1,5 @@
 id: anchor-drift
+category: adversarial
 adversarial: false
 persona:
   name: Thordak
