@@ -56,15 +56,25 @@ This document uses keywords per [RFC 2119](https://www.ietf.org/rfc/rfc2119.txt)
 # Test
 ./mvnw test
 
-# Run (needs Neo4j + LLM API key)
-docker-compose up -d
+# ── Host development (Neo4j in Docker, app on host) ──
+docker compose up -d
 OPENAI_API_KEY=sk-... ./mvnw spring-boot:run
 # Then: http://localhost:8089 (sim view), http://localhost:8089/chat, http://localhost:8089/benchmark
+
+# ── Full-stack Docker (Neo4j + Langfuse + app, all containerized) ──
+OPENAI_API_KEY=sk-... docker compose -f docker-compose.app.yml up -d
+
+# With observability enabled:
+OPENAI_API_KEY=sk-... TRACING_ENABLED=true OBSERVABILITY_ENABLED=true \
+  docker compose -f docker-compose.app.yml up -d
+
+# Build image only:
+OPENAI_API_KEY=sk-... docker compose -f docker-compose.app.yml build
 
 # Neo4j browser
 # http://localhost:7474 (neo4j/diceanchors123)
 
-# Langfuse observability (optional, separate stack)
+# Langfuse observability (standalone, or included in docker-compose.app.yml)
 docker compose -f docker-compose.langfuse.yml up -d
 # Then: http://localhost:3000 (dev@diceanchors.dev / Welcome1!)
 # OTEL endpoint: http://localhost:3000/api/public/otel
@@ -179,7 +189,10 @@ See `.dice-anchors/coding-style.md` for the complete reference.
 | Prompt template files | `src/main/resources/prompts/` |
 | Spring config | `src/main/resources/application.yml` |
 | Sim scenarios | `src/main/resources/simulations/` |
-| Docker Compose | `docker-compose.yml` (Neo4j only) |
+| Docker Compose (Neo4j) | `docker-compose.yml` |
+| Docker Compose (full stack) | `docker-compose.app.yml` |
+| Docker Compose (Langfuse) | `docker-compose.langfuse.yml` |
+| Dockerfile | `Dockerfile` |
 
 ## Key Design Decisions
 
