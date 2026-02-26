@@ -1,4 +1,4 @@
-# AGENTS.md instructions for C:\Users\james\Projects\dice-anchors
+# AGENTS.md instructions
 
 Follow `CLAUDE.md` for all project-level instructions.
 
