@@ -6,13 +6,13 @@ import java.util.List;
  * Per-scenario section of a resilience report containing condition summaries,
  * effect sizes, per-fact survival, contradiction details, and a narrative interpretation.
  *
- * @param scenarioId             scenario identifier
- * @param scenarioTitle          human-readable scenario title
- * @param conditionSummaries     per-condition metric summaries
- * @param effectSizes            pairwise effect size entries for this scenario
- * @param factSurvivalTable      per-fact survival across conditions
- * @param contradictionDetails   per-fact contradiction events with turn context
- * @param narrative              plain-English interpretation of results
+ * @param scenarioId           scenario identifier
+ * @param scenarioTitle        human-readable scenario title
+ * @param conditionSummaries   per-condition metric summaries
+ * @param effectSizes          pairwise effect size entries for this scenario
+ * @param factSurvivalTable    per-fact survival across conditions
+ * @param contradictionDetails per-fact contradiction events with turn context
+ * @param narrative            plain-English interpretation of results
  */
 public record ScenarioSection(
         String scenarioId,

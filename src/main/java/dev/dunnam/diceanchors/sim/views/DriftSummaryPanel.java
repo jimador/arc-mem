@@ -282,9 +282,12 @@ public class DriftSummaryPanel extends VerticalLayout implements SimulationProgr
             "Survival Rate", "Percentage of ground truth facts that were confirmed by the DM and never contradicted. Facts the DM never mentioned are not counted as survived.",
             "Contradictions", "Total number of individual contradiction verdicts across all evaluated turns.",
             "Major Contradictions", "Number of contradiction verdicts classified as major severity \u2014 direct, unambiguous reversals of established facts.",
-            "Absorption Rate", "Percentage of engaged turns (where the DM confirmed or contradicted at least one fact) that had zero contradictions. Turns where no facts were mentioned are excluded.",
+            "Absorption Rate",
+            "Percentage of engaged turns (where the DM confirmed or contradicted at least one fact) that had zero contradictions. Turns where no facts were mentioned are "
+            + "excluded.",
             "Attribution", "Number of distinct ground truth facts that received at least one CONFIRMED verdict, indicating the DM actively referenced them.",
-            "Mean First Drift", "Average turn number at which each contradicted fact was first contradicted. Higher means facts held longer before drifting. N/A if no contradictions occurred."
+            "Mean First Drift",
+            "Average turn number at which each contradicted fact was first contradicted. Higher means facts held longer before drifting. N/A if no contradictions occurred."
     );
 
     private Div assertionResultCard(AssertionResult result) {

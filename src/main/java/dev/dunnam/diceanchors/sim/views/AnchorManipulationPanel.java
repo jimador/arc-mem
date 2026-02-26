@@ -1,7 +1,6 @@
 package dev.dunnam.diceanchors.sim.views;
 
 import com.embabel.dice.proposition.PropositionStatus;
-import dev.dunnam.diceanchors.anchor.event.ArchiveReason;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -23,6 +22,7 @@ import dev.dunnam.diceanchors.anchor.ConflictResolver;
 import dev.dunnam.diceanchors.anchor.MutationDecision;
 import dev.dunnam.diceanchors.anchor.MutationRequest;
 import dev.dunnam.diceanchors.anchor.MutationSource;
+import dev.dunnam.diceanchors.anchor.event.ArchiveReason;
 import dev.dunnam.diceanchors.persistence.AnchorRepository;
 import dev.dunnam.diceanchors.persistence.PropositionNode;
 import org.jspecify.annotations.Nullable;
@@ -84,7 +84,7 @@ public class AnchorManipulationPanel extends VerticalLayout {
     }
 
     public AnchorManipulationPanel(AnchorRepository anchorRepository, AnchorEngine anchorEngine,
-                                    AnchorMutationStrategy mutationStrategy) {
+                                   AnchorMutationStrategy mutationStrategy) {
         this.anchorRepository = anchorRepository;
         this.anchorEngine = anchorEngine;
         this.mutationStrategy = mutationStrategy;
@@ -193,7 +193,7 @@ public class AnchorManipulationPanel extends VerticalLayout {
         var statusBadge = new Span(status);
         statusBadge.addClassName("ar-status-badge");
         statusBadge.getElement().setAttribute("data-status",
-                status.equals("ACTIVE") ? "active" : "other");
+                                              status.equals("ACTIVE") ? "active" : "other");
 
         var rankField = new IntegerField("Rank");
         rankField.setMin(Anchor.MIN_RANK);
@@ -266,12 +266,16 @@ public class AnchorManipulationPanel extends VerticalLayout {
         reviseButton.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_PRIMARY);
         reviseButton.addClickListener(e -> {
             var text = reviseField.getValue();
-            if (text == null || text.isBlank() || text.equals(node.getText())) return;
+            if (text == null || text.isBlank() || text.equals(node.getText())) {
+                return;
+            }
             var request = new MutationRequest(node.getId(), text, MutationSource.UI, "sim-operator");
             if (mutationStrategy.evaluate(request) instanceof MutationDecision.Allow) {
                 executeRevision(node, text);
                 recordIntervention(ActionType.REVISE, node.getId(), node.getText(), text);
-                if (currentContextId != null) loadAnchors(currentContextId);
+                if (currentContextId != null) {
+                    loadAnchors(currentContextId);
+                }
             }
         });
 

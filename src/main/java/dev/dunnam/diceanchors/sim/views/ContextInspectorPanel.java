@@ -304,8 +304,8 @@ public class ContextInspectorPanel extends VerticalLayout implements SimulationP
     private void updateInvariants(@Nullable List<InvariantRule> rules, @Nullable List<InvariantViolationData> violations) {
         invariantsContent.removeAll();
 
-        var safeRules = rules != null ? rules : List.<InvariantRule>of();
-        var safeViolations = violations != null ? violations : List.<InvariantViolationData>of();
+        var safeRules = rules != null ? rules : List.<InvariantRule> of();
+        var safeViolations = violations != null ? violations : List.<InvariantViolationData> of();
 
         if (safeRules.isEmpty() && safeViolations.isEmpty()) {
             showPlaceholder(invariantsContent, "No invariant rules configured.");
@@ -316,9 +316,9 @@ public class ContextInspectorPanel extends VerticalLayout implements SimulationP
 
         // Summary badge
         var mustViolations = safeViolations.stream()
-                .filter(v -> v.strength() == InvariantStrength.MUST).count();
+                                           .filter(v -> v.strength() == InvariantStrength.MUST).count();
         var shouldViolations = safeViolations.stream()
-                .filter(v -> v.strength() == InvariantStrength.SHOULD).count();
+                                             .filter(v -> v.strength() == InvariantStrength.SHOULD).count();
 
         if (mustViolations > 0) {
             invariantBadge.setText(String.valueOf(mustViolations));
@@ -431,22 +431,18 @@ public class ContextInspectorPanel extends VerticalLayout implements SimulationP
         var badge = new Span(strength.name());
         badge.addClassName("ar-badge");
         badge.getElement().setAttribute("data-invariant-status",
-                strength == InvariantStrength.MUST ? "must" : "should");
+                                        strength == InvariantStrength.MUST ? "must" : "should");
         return badge;
     }
 
     private String describeRule(InvariantRule rule) {
         return switch (rule) {
-            case InvariantRule.AuthorityFloor af ->
-                    "Anchors matching '%s' must have authority >= %s".formatted(
-                            af.anchorTextPattern(), af.minimumAuthority().name());
-            case InvariantRule.EvictionImmunity ei ->
-                    "Anchors matching '%s' cannot be evicted".formatted(ei.anchorTextPattern());
-            case InvariantRule.MinAuthorityCount mac ->
-                    "At least %d anchors must have authority >= %s".formatted(
-                            mac.minimumCount(), mac.minimumAuthority().name());
-            case InvariantRule.ArchiveProhibition ap ->
-                    "Anchors matching '%s' cannot be archived".formatted(ap.anchorTextPattern());
+            case InvariantRule.AuthorityFloor af -> "Anchors matching '%s' must have authority >= %s".formatted(
+                    af.anchorTextPattern(), af.minimumAuthority().name());
+            case InvariantRule.EvictionImmunity ei -> "Anchors matching '%s' cannot be evicted".formatted(ei.anchorTextPattern());
+            case InvariantRule.MinAuthorityCount mac -> "At least %d anchors must have authority >= %s".formatted(
+                    mac.minimumCount(), mac.minimumAuthority().name());
+            case InvariantRule.ArchiveProhibition ap -> "Anchors matching '%s' cannot be archived".formatted(ap.anchorTextPattern());
         };
     }
 

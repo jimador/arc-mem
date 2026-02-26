@@ -85,7 +85,7 @@ public class SimulationExtractionService {
             }
 
             logger.info("Extracted {} propositions from DM response for context {}",
-                    propositions.size(), contextId);
+                        propositions.size(), contextId);
 
             // Persist extracted propositions and entity links when available.
             // If full persist fails, degrade to proposition-only persistence so
@@ -96,7 +96,7 @@ public class SimulationExtractionService {
                     results.persist(propositionRepository, namedEntityRepository);
                 } catch (RuntimeException e) {
                     logger.warn("Full DICE persist failed for context {}, falling back to proposition-only save: {}",
-                            contextId, e.getMessage());
+                                contextId, e.getMessage());
                     propositionRepository.saveAll(propositions);
                 }
             } else {
@@ -123,8 +123,8 @@ public class SimulationExtractionService {
             var promotionOutcome = promoter.batchEvaluateAndPromoteWithOutcome(contextId, propositions);
 
             var extractedTexts = propositions.stream()
-                    .map(Proposition::getText)
-                    .toList();
+                                             .map(Proposition::getText)
+                                             .toList();
 
             return new ExtractionResult(
                     propositions.size(),

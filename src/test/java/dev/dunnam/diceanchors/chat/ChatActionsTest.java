@@ -5,6 +5,7 @@ import com.embabel.agent.api.common.Ai;
 import com.embabel.agent.api.common.PromptRunner;
 import com.embabel.agent.core.Blackboard;
 import com.embabel.agent.core.ProcessContext;
+import com.embabel.agent.core.ProcessOptions;
 import com.embabel.chat.AssistantMessage;
 import com.embabel.chat.Conversation;
 import dev.dunnam.diceanchors.DiceAnchorsProperties;
@@ -66,6 +67,9 @@ class ChatActionsTest {
     private Blackboard blackboard;
 
     @Mock
+    private ProcessOptions processOptions;
+
+    @Mock
     private Conversation triggeredConversation;
 
     @Mock
@@ -91,6 +95,8 @@ class ChatActionsTest {
         when(triggeredConversation.last(properties.memory().windowSize())).thenReturn(triggeredConversation);
         when(rendering.respondWithSystemPrompt(eq(triggeredConversation), anyMap())).thenReturn(assistantMessage);
         when(actionContext.getProcessContext()).thenReturn(processContext);
+        when(processContext.getProcessOptions()).thenReturn(processOptions);
+        when(processOptions.getContextIdString()).thenReturn("chat");
         when(processContext.getBlackboard()).thenReturn(blackboard);
         when(blackboard.objectsOfType(Conversation.class)).thenReturn(List.of(persistedConversation));
 
@@ -118,6 +124,8 @@ class ChatActionsTest {
         when(triggeredConversation.last(properties.memory().windowSize())).thenReturn(triggeredConversation);
         when(rendering.respondWithSystemPrompt(eq(triggeredConversation), anyMap())).thenReturn(assistantMessage);
         when(actionContext.getProcessContext()).thenReturn(processContext);
+        when(processContext.getProcessOptions()).thenReturn(processOptions);
+        when(processOptions.getContextIdString()).thenReturn("chat");
         when(processContext.getBlackboard()).thenReturn(blackboard);
         when(blackboard.objectsOfType(Conversation.class)).thenReturn(List.of());
 
@@ -163,6 +171,8 @@ class ChatActionsTest {
         var varsCaptor = ArgumentCaptor.forClass(Map.class);
         when(rendering.respondWithSystemPrompt(eq(triggeredConversation), varsCaptor.capture())).thenReturn(assistantMessage);
         when(actionContext.getProcessContext()).thenReturn(processContext);
+        when(processContext.getProcessOptions()).thenReturn(processOptions);
+        when(processOptions.getContextIdString()).thenReturn("chat");
         when(processContext.getBlackboard()).thenReturn(blackboard);
         when(blackboard.objectsOfType(Conversation.class)).thenReturn(List.of(triggeredConversation));
 

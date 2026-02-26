@@ -12,9 +12,10 @@ public record ConfidenceInterval(double lower, double upper) {
      * Computes a 95% CI from descriptive statistics.
      * Formula: mean ± 1.96 × sampleStddev / √n
      *
-     * @param mean          sample mean
-     * @param sampleStddev  sample standard deviation (N-1 denominator)
-     * @param n             sample count
+     * @param mean         sample mean
+     * @param sampleStddev sample standard deviation (N-1 denominator)
+     * @param n            sample count
+     *
      * @return the confidence interval, or (mean, mean) if n < 2
      */
     public static ConfidenceInterval of(double mean, double sampleStddev, int n) {

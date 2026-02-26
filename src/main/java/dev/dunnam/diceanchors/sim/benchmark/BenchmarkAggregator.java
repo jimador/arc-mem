@@ -25,7 +25,9 @@ public class BenchmarkAggregator {
      * @param scenarioId scenario that was benchmarked
      * @param runIds     identifiers for each individual run
      * @param durationMs wall-clock duration of the entire benchmark
+     *
      * @return aggregated benchmark report with per-metric and per-strategy statistics
+     *
      * @throws IllegalArgumentException if results is empty
      */
     public BenchmarkReport aggregate(List<ScoringResult> results, String scenarioId,
@@ -36,28 +38,28 @@ public class BenchmarkAggregator {
 
         var metricStats = new LinkedHashMap<String, BenchmarkStatistics>();
         metricStats.put("factSurvivalRate",
-                computeStats(results.stream().mapToDouble(ScoringResult::factSurvivalRate).toArray()));
+                        computeStats(results.stream().mapToDouble(ScoringResult::factSurvivalRate).toArray()));
         metricStats.put("contradictionCount",
-                computeStats(results.stream().mapToDouble(ScoringResult::contradictionCount).toArray()));
+                        computeStats(results.stream().mapToDouble(ScoringResult::contradictionCount).toArray()));
         metricStats.put("majorContradictionCount",
-                computeStats(results.stream().mapToDouble(ScoringResult::majorContradictionCount).toArray()));
+                        computeStats(results.stream().mapToDouble(ScoringResult::majorContradictionCount).toArray()));
         metricStats.put("driftAbsorptionRate",
-                computeStats(results.stream().mapToDouble(ScoringResult::driftAbsorptionRate).toArray()));
+                        computeStats(results.stream().mapToDouble(ScoringResult::driftAbsorptionRate).toArray()));
         metricStats.put("anchorAttributionCount",
-                computeStats(results.stream().mapToDouble(ScoringResult::anchorAttributionCount).toArray()));
+                        computeStats(results.stream().mapToDouble(ScoringResult::anchorAttributionCount).toArray()));
         metricStats.put("degradedConflictCount",
-                computeStats(results.stream().mapToDouble(ScoringResult::degradedConflictCount).toArray()));
+                        computeStats(results.stream().mapToDouble(ScoringResult::degradedConflictCount).toArray()));
 
         // meanTurnsToFirstDrift: filter NaN values
         var mtfd = results.stream()
-                .mapToDouble(ScoringResult::meanTurnsToFirstDrift)
-                .filter(d -> !Double.isNaN(d))
-                .toArray();
+                          .mapToDouble(ScoringResult::meanTurnsToFirstDrift)
+                          .filter(d -> !Double.isNaN(d))
+                          .toArray();
         metricStats.put("meanTurnsToFirstDrift", mtfd.length > 0
                 ? computeStats(mtfd)
                 : new BenchmarkStatistics(
-                        Double.NaN, Double.NaN, Double.NaN, Double.NaN,
-                        Double.NaN, Double.NaN, 0));
+                Double.NaN, Double.NaN, Double.NaN, Double.NaN,
+                Double.NaN, Double.NaN, 0));
 
         var allStrategies = new TreeSet<String>();
         for (var r : results) {
@@ -66,8 +68,8 @@ public class BenchmarkAggregator {
         var strategyStats = new LinkedHashMap<String, BenchmarkStatistics>();
         for (var strategy : allStrategies) {
             var values = results.stream()
-                    .mapToDouble(r -> r.strategyEffectiveness().getOrDefault(strategy, 0.0))
-                    .toArray();
+                                .mapToDouble(r -> r.strategyEffectiveness().getOrDefault(strategy, 0.0))
+                                .toArray();
             strategyStats.put(strategy, computeStats(values));
         }
 
@@ -83,6 +85,7 @@ public class BenchmarkAggregator {
      *
      * @param current  the report to compare
      * @param baseline the reference report
+     *
      * @return map of metric name to delta (current mean - baseline mean)
      */
     public Map<String, Double> computeDeltas(BenchmarkReport current, BenchmarkReport baseline) {

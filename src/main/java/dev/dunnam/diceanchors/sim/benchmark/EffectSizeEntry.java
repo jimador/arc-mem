@@ -19,9 +19,15 @@ public record EffectSizeEntry(
      */
     public static String interpret(double d) {
         var abs = Math.abs(d);
-        if (abs < 0.2) return "negligible";
-        if (abs < 0.5) return "small";
-        if (abs < 0.8) return "medium";
+        if (abs < 0.2) {
+            return "negligible";
+        }
+        if (abs < 0.5) {
+            return "small";
+        }
+        if (abs < 0.8) {
+            return "medium";
+        }
         return "large";
     }
 }

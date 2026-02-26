@@ -6,7 +6,6 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import dev.dunnam.diceanchors.sim.benchmark.ExperimentReport;
 import dev.dunnam.diceanchors.sim.engine.RunHistoryStore;
 import dev.dunnam.diceanchors.sim.engine.ScenarioLoader;
-import dev.dunnam.diceanchors.sim.report.FactConditionResult;
 import dev.dunnam.diceanchors.sim.report.FactSurvivalLoader;
 import dev.dunnam.diceanchors.sim.report.FactSurvivalRow;
 
@@ -29,7 +28,9 @@ public class FactDrillDownPanel {
     private final RunHistoryStore runHistoryStore;
     private final ScenarioLoader scenarioLoader;
 
-    /** Cached survival rows per scenario, populated on first expand. */
+    /**
+     * Cached survival rows per scenario, populated on first expand.
+     */
     private final Map<String, List<FactSurvivalRow>> loadedRows = new HashMap<>();
 
     private ExperimentReport currentReport;
@@ -67,8 +68,8 @@ public class FactDrillDownPanel {
         }
 
         var rows = loadedRows.computeIfAbsent(scenarioId,
-                k -> FactSurvivalLoader.loadFactSurvival(currentReport, runHistoryStore, scenarioLoader)
-                        .getOrDefault(k, List.of()));
+                                              k -> FactSurvivalLoader.loadFactSurvival(currentReport, runHistoryStore, scenarioLoader)
+                                                                     .getOrDefault(k, List.of()));
 
         if (rows.isEmpty()) {
             contentArea.add(new Span("Per-fact drill-down requires ground truth data."));

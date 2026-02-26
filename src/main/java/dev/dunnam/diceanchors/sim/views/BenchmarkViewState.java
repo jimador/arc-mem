@@ -15,19 +15,26 @@ package dev.dunnam.diceanchors.sim.views;
  */
 public enum BenchmarkViewState {
 
-    /** Initial state: experiment parameters are being configured. */
+    /**
+     * Initial state: experiment parameters are being configured.
+     */
     CONFIG,
 
-    /** An experiment run is in progress. */
+    /**
+     * An experiment run is in progress.
+     */
     RUNNING,
 
-    /** A completed result is being displayed. */
+    /**
+     * A completed result is being displayed.
+     */
     RESULTS;
 
     /**
      * Returns {@code true} if a transition from this state to {@code target} is permitted.
      *
      * @param target the desired next state
+     *
      * @return {@code true} if the transition is valid
      */
     public boolean canTransitionTo(BenchmarkViewState target) {

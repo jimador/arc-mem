@@ -3,8 +3,8 @@ package dev.dunnam.diceanchors.sim.benchmark;
 import dev.dunnam.diceanchors.DiceAnchorsProperties;
 import dev.dunnam.diceanchors.sim.engine.RunHistoryStore;
 import dev.dunnam.diceanchors.sim.engine.ScoringResult;
-import dev.dunnam.diceanchors.sim.engine.SimulationScenario;
 import dev.dunnam.diceanchors.sim.engine.SimulationRuntimeConfig;
+import dev.dunnam.diceanchors.sim.engine.SimulationScenario;
 import dev.dunnam.diceanchors.sim.engine.SimulationService;
 import io.micrometer.observation.annotation.Observed;
 import io.opentelemetry.api.trace.Span;
@@ -71,7 +71,9 @@ public class BenchmarkRunner {
      * @param injectionStateSupplier evaluated per-turn to determine anchor injection
      * @param tokenBudgetSupplier    per-turn token budget
      * @param onProgress             callback invoked after each run completes
+     *
      * @return the aggregated benchmark report
+     *
      * @throws IllegalArgumentException if runCount < 2
      */
     @Observed(name = "benchmark.run")
@@ -84,7 +86,7 @@ public class BenchmarkRunner {
             Consumer<BenchmarkProgress> onProgress) {
 
         return runBenchmark(scenario, maxTurns, runCount, injectionStateSupplier,
-                tokenBudgetSupplier, onProgress, AblationCondition.FULL_ANCHORS);
+                            tokenBudgetSupplier, onProgress, AblationCondition.FULL_ANCHORS);
     }
 
     /**
@@ -101,7 +103,9 @@ public class BenchmarkRunner {
      * @param tokenBudgetSupplier    per-turn token budget
      * @param onProgress             callback invoked after each run completes
      * @param condition              ablation condition to apply before each run
+     *
      * @return the aggregated benchmark report
+     *
      * @throws IllegalArgumentException if runCount < 2
      */
     public BenchmarkReport runBenchmark(
@@ -148,7 +152,7 @@ public class BenchmarkRunner {
 
         var parallelism = properties.sim().benchmarkParallelism();
         logger.info("Starting benchmark: scenario='{}', runCount={}, condition='{}', parallelism={}",
-                scenario.id(), runCount, condition.name(), parallelism);
+                    scenario.id(), runCount, condition.name(), parallelism);
 
         var completedCount = new AtomicInteger(0);
         var semaphore = new Semaphore(parallelism);
@@ -158,34 +162,38 @@ public class BenchmarkRunner {
         onProgress.accept(new BenchmarkProgress(0, runCount, null));
 
         try (var scope = StructuredTaskScope.open(
-                StructuredTaskScope.Joiner.<Void>awaitAllSuccessfulOrThrow())) {
+                StructuredTaskScope.Joiner.<Void> awaitAllSuccessfulOrThrow())) {
 
             for (int i = 0; i < runCount; i++) {
                 final int runIndex = i + 1;
                 scope.fork(() -> {
-                    if (cancelRequested.get()) return null;
+                    if (cancelRequested.get()) {
+                        return null;
+                    }
                     semaphore.acquire();
                     try {
-                        if (cancelRequested.get()) return null;
+                        if (cancelRequested.get()) {
+                            return null;
+                        }
                         logger.info("Benchmark run {}/{} for scenario '{}' [{}]",
-                                runIndex, runCount, scenario.id(), condition.name());
+                                    runIndex, runCount, scenario.id(), condition.name());
                         var runtimeConfig = new SimulationRuntimeConfig(
                                 condition.rankMutationEnabled(),
                                 condition.authorityPromotionEnabled());
                         simulationService.runSimulation(conditionedScenario, maxTurns,
-                                effectiveInjectionSupplier, tokenBudgetSupplier,
-                                progress -> {
-                                    if (progress.complete() && progress.scoringResult() != null) {
-                                        scoringResults.add(progress.scoringResult());
-                                        if (progress.runId() != null) {
-                                            runIds.add(progress.runId());
-                                        }
-                                        var completed = completedCount.incrementAndGet();
-                                        latestResult.set(progress.scoringResult());
-                                        onProgress.accept(new BenchmarkProgress(
-                                                completed, runCount, progress.scoringResult()));
-                                    }
-                                }, runtimeConfig);
+                                                        effectiveInjectionSupplier, tokenBudgetSupplier,
+                                                        progress -> {
+                                                            if (progress.complete() && progress.scoringResult() != null) {
+                                                                scoringResults.add(progress.scoringResult());
+                                                                if (progress.runId() != null) {
+                                                                    runIds.add(progress.runId());
+                                                                }
+                                                                var completed = completedCount.incrementAndGet();
+                                                                latestResult.set(progress.scoringResult());
+                                                                onProgress.accept(new BenchmarkProgress(
+                                                                        completed, runCount, progress.scoringResult()));
+                                                            }
+                                                        }, runtimeConfig);
                     } finally {
                         semaphore.release();
                     }
@@ -196,7 +204,9 @@ public class BenchmarkRunner {
         } catch (StructuredTaskScope.FailedException e) {
             var cause = e.getCause();
             logger.error("Benchmark run failed: {}", cause != null ? cause.getMessage() : e.getMessage(), cause);
-            if (cause instanceof RuntimeException re) throw re;
+            if (cause instanceof RuntimeException re) {
+                throw re;
+            }
             throw new RuntimeException("Benchmark run failed", cause != null ? cause : e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -239,13 +249,13 @@ public class BenchmarkRunner {
                 baseReport.baselineReportId(), baseReport.baselineDeltas(), modelId);
 
         currentSpan.setAttribute("benchmark.mean_survival_rate",
-                report.metricStatistics().containsKey("factSurvivalRate")
-                        ? report.metricStatistics().get("factSurvivalRate").mean()
-                        : 0.0);
+                                 report.metricStatistics().containsKey("factSurvivalRate")
+                                         ? report.metricStatistics().get("factSurvivalRate").mean()
+                                         : 0.0);
 
         runHistoryStore.saveBenchmarkReport(report);
         logger.info("Benchmark complete: scenario='{}', runs={}, duration={}ms, condition='{}', reportId='{}'",
-                scenario.id(), scoringResults.size(), durationMs, condition.name(), report.reportId());
+                    scenario.id(), scoringResults.size(), durationMs, condition.name(), report.reportId());
 
         return report;
     }

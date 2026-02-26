@@ -22,9 +22,12 @@ class BenchmarkRenderUtils {
             "factSurvivalRate", "Percentage of ground truth facts that were confirmed by the DM and never contradicted. Facts the DM never mentioned are not counted as survived.",
             "contradictionCount", "Total number of individual contradiction verdicts across all evaluated turns.",
             "majorContradictionCount", "Number of contradiction verdicts classified as major severity \u2014 direct, unambiguous reversals of established facts.",
-            "driftAbsorptionRate", "Percentage of engaged turns (where the DM confirmed or contradicted at least one fact) that had zero contradictions. Turns where no facts were mentioned are excluded.",
+            "driftAbsorptionRate",
+            "Percentage of engaged turns (where the DM confirmed or contradicted at least one fact) that had zero contradictions. Turns where no facts were mentioned are "
+            + "excluded.",
             "anchorAttributionCount", "Number of distinct ground truth facts that received at least one CONFIRMED verdict, indicating the DM actively referenced them.",
-            "meanTurnsToFirstDrift", "Average turn number at which each contradicted fact was first contradicted. Higher means facts held longer before drifting. N/A if no contradictions occurred."
+            "meanTurnsToFirstDrift",
+            "Average turn number at which each contradicted fact was first contradicted. Higher means facts held longer before drifting. N/A if no contradictions occurred."
     );
 
     static final Map<String, Boolean> HIGHER_IS_BETTER = Map.of(

@@ -45,9 +45,7 @@ public class SimulationView extends VerticalLayout {
 
     private final SimulationService simulationService;
     private final ScenarioLoader scenarioLoader;
-    private final AnchorRepository anchorRepository;
     private final AnchorEngine anchorEngine;
-    private final RunHistoryStore runHistoryStore;
 
     private final Select<String> categorySelect;
     private final ComboBox<SimulationScenario> scenarioCombo;
@@ -104,9 +102,7 @@ public class SimulationView extends VerticalLayout {
             SimToChatBridge simToChatBridge) {
         this.simulationService = simulationService;
         this.scenarioLoader = scenarioLoader;
-        this.anchorRepository = anchorRepository;
         this.anchorEngine = anchorEngine;
-        this.runHistoryStore = runHistoryStore;
 
         setSizeFull();
         setPadding(true);

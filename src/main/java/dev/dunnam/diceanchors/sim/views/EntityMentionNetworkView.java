@@ -58,7 +58,7 @@ public class EntityMentionNetworkView extends VerticalLayout {
                         document.head.appendChild(s);
                     });
                 }
-
+            
                 // Destroy previous instance
                 if (container._cy) {
                     container._cy.destroy();
@@ -68,16 +68,16 @@ public class EntityMentionNetworkView extends VerticalLayout {
                     container._themeObs.disconnect();
                     container._themeObs = null;
                 }
-
+            
                 var elements = JSON.parse(elementsJson);
                 if (!elements || elements.length === 0) return;
-
+            
                 // Detect dark/light theme
                 function isDark() {
                     var t = document.documentElement.getAttribute('theme') || '';
                     return !t.includes('light');
                 }
-
+            
                 function themeColors() {
                     var dark = isDark();
                     return {
@@ -90,9 +90,9 @@ public class EntityMentionNetworkView extends VerticalLayout {
                         fadedOpacity: 0.15
                     };
                 }
-
+            
                 var tc = themeColors();
-
+            
                 var cy = window.cytoscape({
                     container: container,
                     elements: elements,
@@ -175,10 +175,10 @@ public class EntityMentionNetworkView extends VerticalLayout {
                     maxZoom: 3,
                     wheelSensitivity: 0.3
                 });
-
+            
                 container._cy = cy;
                 container._serverRef = serverRef;
-
+            
                 // Click handler
                 cy.on('tap', 'node', function(evt) {
                     var nodeId = evt.target.id();
@@ -186,7 +186,7 @@ public class EntityMentionNetworkView extends VerticalLayout {
                         container._serverRef.$server.onNodeClicked(nodeId);
                     }
                 });
-
+            
                 // Background click clears selection
                 cy.on('tap', function(evt) {
                     if (evt.target === cy) {
@@ -195,12 +195,12 @@ public class EntityMentionNetworkView extends VerticalLayout {
                         }
                     }
                 });
-
+            
                 // Apply initial highlight if selectedId is set
                 if (selectedId) {
                     %s
                 }
-
+            
                 // Theme observer for live dark/light switching
                 var observer = new MutationObserver(function() {
                     var ntc = themeColors();
@@ -428,7 +428,7 @@ public class EntityMentionNetworkView extends VerticalLayout {
         var sel = selectedEntityId != null ? selectedEntityId : "";
 
         canvas.getElement().executeJs(CYTOSCAPE_RENDER_JS,
-                canvas.getElement(), elementsJson, sel, getElement());
+                                      canvas.getElement(), elementsJson, sel, getElement());
     }
 
     private String toElementsJson(List<EntityMentionNode> nodes, List<EntityMentionEdge> edges) {

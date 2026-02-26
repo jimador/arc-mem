@@ -143,7 +143,7 @@ public class ConditionComparisonPanel extends VerticalLayout {
                 var fileName = "resilience-report-%s.md".formatted(
                         report.experimentName().replaceAll("[^a-zA-Z0-9_-]", "_"));
                 var resource = new StreamResource(fileName,
-                        () -> new ByteArrayInputStream(markdown.getBytes(StandardCharsets.UTF_8)));
+                                                  () -> new ByteArrayInputStream(markdown.getBytes(StandardCharsets.UTF_8)));
                 resource.setContentType("text/markdown");
 
                 downloadAnchor.setHref(resource);

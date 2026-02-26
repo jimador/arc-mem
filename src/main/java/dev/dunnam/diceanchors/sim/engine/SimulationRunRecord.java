@@ -31,8 +31,9 @@ public record SimulationRunRecord(
             boolean injectionEnabled, int tokenBudget,
             @Nullable List<AssertionResult> assertionResults, @Nullable ScoringResult scoringResult) {
         this(runId, scenarioId, startedAt, completedAt, turnSnapshots, interventionCount,
-                finalAnchorState, injectionEnabled, tokenBudget, assertionResults, scoringResult, null);
+             finalAnchorState, injectionEnabled, tokenBudget, assertionResults, scoringResult, null);
     }
+
     /**
      * Per-turn snapshot capturing state at that point in the simulation.
      */

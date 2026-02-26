@@ -15,17 +15,20 @@ public interface SimulationProgressListener {
      * Called when a turn starts: player message is ready, DM is still thinking.
      * Typically used to show the player bubble and thinking indicator.
      */
-    default void onTurnStarted(SimulationProgress progress) {}
+    default void onTurnStarted(SimulationProgress progress) {
+    }
 
     /**
      * Called when a turn completes: DM response has arrived.
      * Typically used to show the DM bubble, update verdicts, refresh panels.
      */
-    default void onTurnCompleted(SimulationProgress progress) {}
+    default void onTurnCompleted(SimulationProgress progress) {
+    }
 
     /**
      * Called when the simulation ends (complete or cancelled).
      * Typically used to show final results or summary.
      */
-    default void onSimulationCompleted(SimulationProgress progress) {}
+    default void onSimulationCompleted(SimulationProgress progress) {
+    }
 }

@@ -31,12 +31,24 @@ public record DriftStrategyDefinition(
         String promptGuidance
 ) {
     public DriftStrategyDefinition {
-        if (id == null || id.isBlank()) throw new IllegalArgumentException("id must not be blank");
-        if (displayName == null || displayName.isBlank()) throw new IllegalArgumentException("displayName must not be blank");
-        if (description == null || description.isBlank()) throw new IllegalArgumentException("description must not be blank");
-        if (tier == null) throw new IllegalArgumentException("tier must not be null");
-        if (applicableCategories == null || applicableCategories.isEmpty()) throw new IllegalArgumentException("applicableCategories must not be empty");
-        if (promptGuidance == null || promptGuidance.isBlank()) throw new IllegalArgumentException("promptGuidance must not be blank");
+        if (id == null || id.isBlank()) {
+            throw new IllegalArgumentException("id must not be blank");
+        }
+        if (displayName == null || displayName.isBlank()) {
+            throw new IllegalArgumentException("displayName must not be blank");
+        }
+        if (description == null || description.isBlank()) {
+            throw new IllegalArgumentException("description must not be blank");
+        }
+        if (tier == null) {
+            throw new IllegalArgumentException("tier must not be null");
+        }
+        if (applicableCategories == null || applicableCategories.isEmpty()) {
+            throw new IllegalArgumentException("applicableCategories must not be empty");
+        }
+        if (promptGuidance == null || promptGuidance.isBlank()) {
+            throw new IllegalArgumentException("promptGuidance must not be blank");
+        }
         applicableCategories = Set.copyOf(applicableCategories);
     }
 }

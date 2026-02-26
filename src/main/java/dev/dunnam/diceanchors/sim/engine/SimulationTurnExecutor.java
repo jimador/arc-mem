@@ -4,9 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.dunnam.diceanchors.DiceAnchorsProperties;
 import dev.dunnam.diceanchors.anchor.Anchor;
 import dev.dunnam.diceanchors.anchor.AnchorEngine;
+import dev.dunnam.diceanchors.anchor.CompliancePolicy;
 import dev.dunnam.diceanchors.anchor.MemoryTier;
 import dev.dunnam.diceanchors.anchor.event.ArchiveReason;
-import dev.dunnam.diceanchors.anchor.CompliancePolicy;
 import dev.dunnam.diceanchors.assembly.AnchorsLlmReference;
 import dev.dunnam.diceanchors.assembly.CompactedContextProvider;
 import dev.dunnam.diceanchors.assembly.CompactionResult;
@@ -116,7 +116,7 @@ public class SimulationTurnExecutor {
         currentSpan.setAttribute("sim.turn_type", turnType.name());
         if (attackStrategies != null && !attackStrategies.isEmpty()) {
             currentSpan.setAttribute("sim.strategy",
-                    attackStrategies.stream().map(Enum::name).collect(java.util.stream.Collectors.joining(",")));
+                                     attackStrategies.stream().map(Enum::name).collect(java.util.stream.Collectors.joining(",")));
         }
 
         var anchorRef = new AnchorsLlmReference(
@@ -301,7 +301,7 @@ public class SimulationTurnExecutor {
         currentSpan.setAttribute("sim.turn_type", turnType.name());
         if (attackStrategies != null && !attackStrategies.isEmpty()) {
             currentSpan.setAttribute("sim.strategy",
-                    attackStrategies.stream().map(Enum::name).collect(java.util.stream.Collectors.joining(",")));
+                                     attackStrategies.stream().map(Enum::name).collect(java.util.stream.Collectors.joining(",")));
         }
 
         var anchorRef = new AnchorsLlmReference(
@@ -362,7 +362,7 @@ public class SimulationTurnExecutor {
         var extractionRef = new AtomicReference<>(ExtractionResult.empty());
 
         try (var scope = StructuredTaskScope.open(
-                StructuredTaskScope.Joiner.<Void>awaitAllSuccessfulOrThrow(),
+                StructuredTaskScope.Joiner.<Void> awaitAllSuccessfulOrThrow(),
                 cfg -> cfg.withTimeout(PARALLEL_BRANCH_TIMEOUT))) {
 
             scope.fork(() -> {
@@ -387,11 +387,13 @@ public class SimulationTurnExecutor {
 
         } catch (StructuredTaskScope.FailedException e) {
             var cause = e.getCause();
-            if (cause instanceof RuntimeException re) throw re;
+            if (cause instanceof RuntimeException re) {
+                throw re;
+            }
             throw new RuntimeException("Post-response parallel branch failed", cause != null ? cause : e);
         } catch (StructuredTaskScope.TimeoutException e) {
             throw new RuntimeException("Post-response parallel branches timed out after "
-                    + PARALLEL_BRANCH_TIMEOUT.toMinutes() + " minutes", e);
+                                       + PARALLEL_BRANCH_TIMEOUT.toMinutes() + " minutes", e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException("Turn executor interrupted during parallel branches", e);
@@ -402,13 +404,13 @@ public class SimulationTurnExecutor {
             currentSpan.setAttribute("sim.propositions_promoted", extractionResult.promotedCount());
             currentSpan.setAttribute("sim.degraded_conflict_count", extractionResult.degradedConflictCount());
             logger.info("Turn {} extraction: {} extracted, {} promoted, {} degraded conflict(s)",
-                    turnNumber, extractionResult.extractedCount(), extractionResult.promotedCount(),
-                    extractionResult.degradedConflictCount());
+                        turnNumber, extractionResult.extractedCount(), extractionResult.promotedCount(),
+                        extractionResult.degradedConflictCount());
         }
         logger.info("Turn {} [{}]: player='{}', dm='{}', anchors={}, verdicts={}",
-                turnNumber, turnType,
-                truncate(playerMessage, 50), truncate(dmResponse, 50),
-                anchors.size(), verdicts.size());
+                    turnNumber, turnType,
+                    truncate(playerMessage, 50), truncate(dmResponse, 50),
+                    anchors.size(), verdicts.size());
 
         var turn = new SimulationTurn(
                 turnNumber, playerMessage, dmResponse,
@@ -462,8 +464,8 @@ public class SimulationTurnExecutor {
             currentSpan.setAttribute("sim.propositions_promoted", extractionResult.promotedCount());
             currentSpan.setAttribute("sim.degraded_conflict_count", extractionResult.degradedConflictCount());
             logger.info("Turn {} extraction: {} extracted, {} promoted, {} degraded conflict(s)",
-                    turnNumber, extractionResult.extractedCount(), extractionResult.promotedCount(),
-                    extractionResult.degradedConflictCount());
+                        turnNumber, extractionResult.extractedCount(), extractionResult.promotedCount(),
+                        extractionResult.degradedConflictCount());
         }
 
         var turnResult = buildResult(
@@ -513,12 +515,12 @@ public class SimulationTurnExecutor {
                                        && dormancyConfig.dormancyTurns() > 0;
         var dormancyArchivedAnchorIds = dormancyLifecycleEnabled
                 ? applyDormancyLifecycle(
-                        currentAnchors,
-                        previousAnchorState,
-                        reinforcedAnchorIds,
-                        dormancyConfig,
-                        mutableDormancyState)
-                : Set.<String>of();
+                currentAnchors,
+                previousAnchorState,
+                reinforcedAnchorIds,
+                dormancyConfig,
+                mutableDormancyState)
+                : Set.<String> of();
 
         if (dormancyLifecycleEnabled) {
             currentAnchors = anchorEngine.inject(contextId);
@@ -591,7 +593,7 @@ public class SimulationTurnExecutor {
         for (var anchor : current) {
             var prev = previous.get(anchor.id());
             if (prev == null) {
-                    events.add(new SimulationTurn.AnchorEvent(
+                events.add(new SimulationTurn.AnchorEvent(
                         turnNumber, "CREATED", anchor.id(), anchor.text(),
                         anchor.authority().name(), anchor.rank(), 0, "sim_extraction"));
             } else {
@@ -738,7 +740,7 @@ public class SimulationTurnExecutor {
     }
 
     private String buildUserPrompt(String playerMessage, List<String> history) {
-        var recentHistory = List.<String>of();
+        var recentHistory = List.<String> of();
         if (history != null && !history.isEmpty()) {
             int start = Math.max(0, history.size() - 10);
             recentHistory = history.subList(start, history.size());
@@ -773,9 +775,9 @@ public class SimulationTurnExecutor {
             List<SimulationScenario.GroundTruth> groundTruth,
             String playerMessage) {
         var serializedGroundTruth = groundTruth.stream()
-                .filter(fact -> fact.text() != null && !fact.text().isBlank())
-                .map(fact -> Map.of("id", fact.id(), "text", fact.text()))
-                .toList();
+                                               .filter(fact -> fact.text() != null && !fact.text().isBlank())
+                                               .map(fact -> Map.of("id", fact.id(), "text", fact.text()))
+                                               .toList();
         var templateVars = new HashMap<String, Object>();
         templateVars.put("ground_truth", serializedGroundTruth);
         templateVars.put("dm_response", dmResponse != null ? dmResponse : "");

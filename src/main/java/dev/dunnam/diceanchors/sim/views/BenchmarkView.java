@@ -155,13 +155,13 @@ public class BenchmarkView extends VerticalLayout {
         var ui = UI.getCurrent();
 
         CompletableFuture.supplyAsync(() ->
-                experimentRunner.runExperiment(
-                        definition,
-                        () -> true,   // injection enabled by default
-                        () -> 4096,   // default token budget
-                        progress -> ui.access(() -> progressPanel.updateProgress(progress)))
+                                              experimentRunner.runExperiment(
+                                                      definition,
+                                                      () -> true,   // injection enabled by default
+                                                      () -> 4096,   // default token budget
+                                                      progress -> ui.access(() -> progressPanel.updateProgress(progress)))
         ).thenAccept(report ->
-                ui.access(() -> showResults(report))
+                             ui.access(() -> showResults(report))
         ).exceptionally(ex -> {
             ui.access(() -> showError(ex));
             return null;

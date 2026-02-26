@@ -1,7 +1,5 @@
 package dev.dunnam.diceanchors.sim.report;
 
-import dev.dunnam.diceanchors.sim.benchmark.BenchmarkReport;
-import dev.dunnam.diceanchors.sim.benchmark.BenchmarkStatistics;
 import dev.dunnam.diceanchors.sim.benchmark.ExperimentReport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,8 +74,8 @@ public final class ResilienceScoreCalculator {
         );
 
         logger.debug("Resilience score for condition '{}': overall={}, survival={}, drift={}, contradiction={}, strategy={}",
-                referenceCondition, overall, survivalComponent, driftResistanceComponent,
-                contradictionPenalty, strategyResistanceComponent);
+                     referenceCondition, overall, survivalComponent, driftResistanceComponent,
+                     contradictionPenalty, strategyResistanceComponent);
 
         return new ResilienceScore(
                 overall,

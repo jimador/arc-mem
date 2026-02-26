@@ -46,7 +46,7 @@ public record ContextTrace(
             String fullSystemPrompt,
             String fullUserPrompt) {
         this(turnNumber, anchorTokens, totalTokens, injectedAnchors, injectionEnabled,
-                assembledPrompt, fullSystemPrompt, fullUserPrompt, false, 0, 0, 0, 0, List.of(), 0, 0, 0);
+             assembledPrompt, fullSystemPrompt, fullUserPrompt, false, 0, 0, 0, 0, List.of(), 0, 0, 0);
     }
 
     /**
@@ -64,6 +64,6 @@ public record ContextTrace(
             boolean budgetApplied,
             int anchorsExcluded) {
         this(turnNumber, anchorTokens, totalTokens, injectedAnchors, injectionEnabled,
-                assembledPrompt, fullSystemPrompt, fullUserPrompt, budgetApplied, anchorsExcluded, 0, 0, 0, List.of(), 0, 0, 0);
+             assembledPrompt, fullSystemPrompt, fullUserPrompt, budgetApplied, anchorsExcluded, 0, 0, 0, List.of(), 0, 0, 0);
     }
 }

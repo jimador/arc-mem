@@ -1,8 +1,6 @@
 package dev.dunnam.diceanchors.sim.report;
 
 import dev.dunnam.diceanchors.sim.benchmark.BenchmarkReport;
-import dev.dunnam.diceanchors.sim.benchmark.BenchmarkStatistics;
-import dev.dunnam.diceanchors.sim.benchmark.EffectSizeEntry;
 import dev.dunnam.diceanchors.sim.benchmark.ExperimentReport;
 import dev.dunnam.diceanchors.sim.engine.RunHistoryStore;
 import dev.dunnam.diceanchors.sim.engine.ScenarioLoader;
@@ -74,10 +72,10 @@ public class ResilienceReportBuilder {
         var strategySection = new StrategySection(report.strategyDeltas());
 
         var modelId = report.cellReports().values().stream()
-                .map(BenchmarkReport::modelId)
-                .filter(id -> id != null && !"default".equals(id))
-                .findFirst()
-                .orElse(null);
+                            .map(BenchmarkReport::modelId)
+                            .filter(id -> id != null && !"default".equals(id))
+                            .findFirst()
+                            .orElse(null);
 
         return new ResilienceReport(
                 "DICE Anchors Resilience Report",
@@ -105,8 +103,8 @@ public class ResilienceReportBuilder {
             return fullAnchorsScore;
         }
         return scoresByCondition.values().stream()
-                .max(java.util.Comparator.comparingDouble(ResilienceScore::overall))
-                .orElse(new ResilienceScore(0.0, 0.0, 0.0, 0.0, 0.0));
+                                .max(java.util.Comparator.comparingDouble(ResilienceScore::overall))
+                                .orElse(new ResilienceScore(0.0, 0.0, 0.0, 0.0, 0.0));
     }
 
     private List<ConditionSummary> buildConditionSummaries(ExperimentReport report, String scenarioId) {

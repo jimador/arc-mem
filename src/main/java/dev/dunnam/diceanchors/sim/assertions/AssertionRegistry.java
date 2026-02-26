@@ -47,6 +47,7 @@ public class AssertionRegistry {
      * Resolve all assertions from a scenario's assertion config list.
      *
      * @param configs assertion configs from the scenario YAML
+     *
      * @return instantiated assertions; empty list if configs is null or empty
      */
     public List<SimulationAssertion> resolveAll(List<SimulationScenario.AssertionConfig> configs) {

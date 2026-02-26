@@ -44,6 +44,7 @@ public class EffectSizeCalculator {
      *
      * @param cellReports cell-level BenchmarkReports keyed by "conditionName:scenarioId"
      * @param conditions  the ablation conditions tested
+     *
      * @return effect size matrix keyed by "condA:condB" (alphabetical order) → metric name → entry
      */
     public Map<String, Map<String, EffectSizeEntry>> computeEffectSizes(
@@ -82,8 +83,8 @@ public class EffectSizeCalculator {
                     var d = computeCohensD(meanA, sampleSdA, nA, meanB, sampleSdB, nB);
                     var interpretation = EffectSizeEntry.interpret(d);
                     var lowConfidence = nA < 10 || nB < 10
-                            || statsA.stream().anyMatch(BenchmarkStatistics::isHighVariance)
-                            || statsB.stream().anyMatch(BenchmarkStatistics::isHighVariance);
+                                        || statsA.stream().anyMatch(BenchmarkStatistics::isHighVariance)
+                                        || statsB.stream().anyMatch(BenchmarkStatistics::isHighVariance);
 
                     metricEntries.put(metric, new EffectSizeEntry(d, interpretation, lowConfidence));
                 }
@@ -99,6 +100,7 @@ public class EffectSizeCalculator {
      * Computes 95% confidence intervals for each metric in each cell.
      *
      * @param cellReports cell-level BenchmarkReports keyed by "conditionName:scenarioId"
+     *
      * @return map of cell key → metric name → ConfidenceInterval
      */
     public Map<String, Map<String, ConfidenceInterval>> computeConfidenceIntervals(
@@ -130,6 +132,7 @@ public class EffectSizeCalculator {
      * For each strategy, extracts the mean effectiveness from each cell's strategyStatistics.
      *
      * @param cellReports cell-level BenchmarkReports keyed by "conditionName:scenarioId"
+     *
      * @return map of strategy name → condition name → mean effectiveness
      */
     public Map<String, Map<String, Double>> computeStrategyDeltas(
@@ -152,7 +155,7 @@ public class EffectSizeCalculator {
                 var stats = entry.getValue().strategyStatistics().get(strategy);
                 if (stats != null && !Double.isNaN(stats.mean())) {
                     conditionValues.computeIfAbsent(conditionName, k -> new ArrayList<>())
-                            .add(stats.mean());
+                                   .add(stats.mean());
                 }
             }
 
@@ -175,7 +178,7 @@ public class EffectSizeCalculator {
      */
     double computeCohensD(double mean1, double sd1, int n1, double mean2, double sd2, int n2) {
         var pooledVariance = ((n1 - 1) * sd1 * sd1 + (n2 - 1) * sd2 * sd2)
-                / (n1 + n2 - 2);
+                             / (n1 + n2 - 2);
         var pooledSd = Math.sqrt(pooledVariance);
 
         if (pooledSd == 0.0) {
@@ -212,10 +215,12 @@ public class EffectSizeCalculator {
 
     private double weightedMean(List<BenchmarkStatistics> stats) {
         var totalWeight = stats.stream().mapToInt(BenchmarkStatistics::sampleCount).sum();
-        if (totalWeight == 0) return Double.NaN;
+        if (totalWeight == 0) {
+            return Double.NaN;
+        }
         return stats.stream()
-                .mapToDouble(s -> s.mean() * s.sampleCount())
-                .sum() / totalWeight;
+                    .mapToDouble(s -> s.mean() * s.sampleCount())
+                    .sum() / totalWeight;
     }
 
     private double weightedSampleStddev(List<BenchmarkStatistics> stats) {
@@ -224,13 +229,15 @@ public class EffectSizeCalculator {
         }
         // Pool across multiple cells: convert each to sample variance, pool
         var totalN = totalSampleCount(stats);
-        if (totalN < 2) return 0.0;
+        if (totalN < 2) {
+            return 0.0;
+        }
         var pooledVariance = stats.stream()
-                .mapToDouble(s -> {
-                    var sampleSd = toSampleStddev(s.stddev(), s.sampleCount());
-                    return (s.sampleCount() - 1) * sampleSd * sampleSd;
-                })
-                .sum() / (totalN - stats.size());
+                                  .mapToDouble(s -> {
+                                      var sampleSd = toSampleStddev(s.stddev(), s.sampleCount());
+                                      return (s.sampleCount() - 1) * sampleSd * sampleSd;
+                                  })
+                                  .sum() / (totalN - stats.size());
         return Math.sqrt(Math.max(0, pooledVariance));
     }
 

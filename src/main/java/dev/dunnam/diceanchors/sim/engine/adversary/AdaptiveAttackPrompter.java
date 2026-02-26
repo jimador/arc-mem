@@ -52,6 +52,7 @@ public class AdaptiveAttackPrompter {
      * @param persona             the player persona to voice
      * @param conversationHistory prior turn lines formatted as "Role: text"
      * @param attackHistory       full attack history; used to show the LLM recently-used strategies
+     *
      * @return the LLM's chosen strategies bundled into an {@link AttackPlan}, plus the player message
      */
     public GeneratedAttack generateAttack(
@@ -64,7 +65,7 @@ public class AdaptiveAttackPrompter {
         var userPrompt = buildUserPrompt(planHint, conversationHistory, attackHistory);
 
         logger.debug("AdaptiveAttackPrompter: calling ChatModel for preferredTier={}, targets={}",
-                planHint.tier(), planHint.targetFacts().size());
+                     planHint.tier(), planHint.targetFacts().size());
 
         try {
             var response = chatModel.call(new Prompt(List.of(
@@ -90,6 +91,7 @@ public class AdaptiveAttackPrompter {
      * @param persona             the player persona to voice
      * @param setting             scenario setting description
      * @param conversationHistory prior turn lines formatted as "Role: text"
+     *
      * @return the generated player message text
      */
     public String generateConversation(
@@ -146,8 +148,8 @@ public class AdaptiveAttackPrompter {
             sb.append("establish your presence, show your character's personality, and engage the DM.");
         } else {
             var recentHistory = conversationHistory.stream()
-                    .skip(Math.max(0, conversationHistory.size() - 6))
-                    .collect(Collectors.joining("\n"));
+                                                   .skip(Math.max(0, conversationHistory.size() - 6))
+                                                   .collect(Collectors.joining("\n"));
             sb.append("Recent conversation:\n").append(recentHistory).append("\n\n");
             sb.append("Continue the conversation naturally. React to what the DM just said. ");
             sb.append("Ask a question, share a thought, or advance the scene — stay engaged.");
@@ -179,8 +181,8 @@ public class AdaptiveAttackPrompter {
 
         if (!conversationHistory.isEmpty()) {
             var recentHistory = conversationHistory.stream()
-                    .skip(Math.max(0, conversationHistory.size() - 6))
-                    .collect(Collectors.joining("\n"));
+                                                   .skip(Math.max(0, conversationHistory.size() - 6))
+                                                   .collect(Collectors.joining("\n"));
             sb.append("Recent conversation:\n").append(recentHistory).append("\n\n");
         }
 
@@ -193,7 +195,9 @@ public class AdaptiveAttackPrompter {
         sb.append("Available attack strategies — choose any combination:\n\n");
         for (var tier : StrategyTier.values()) {
             var tierStrategies = catalog.findByTier(tier);
-            if (tierStrategies.isEmpty()) continue;
+            if (tierStrategies.isEmpty()) {
+                continue;
+            }
 
             if (tier == planHint.tier()) {
                 sb.append("=== PREFERRED THIS TURN (").append(tier.name()).append(") ===\n");
@@ -274,7 +278,9 @@ public class AdaptiveAttackPrompter {
         }
     }
 
-    /** Extract the first JSON object from raw LLM output, stripping any markdown fences. */
+    /**
+     * Extract the first JSON object from raw LLM output, stripping any markdown fences.
+     */
     private static String extractJson(String raw) {
         var text = raw.replaceAll("```(?:json)?\\s*", "").replaceAll("```", "").trim();
         var start = text.indexOf('{');

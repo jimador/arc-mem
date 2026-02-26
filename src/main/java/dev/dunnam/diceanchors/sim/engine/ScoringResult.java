@@ -26,7 +26,9 @@ public record ScoringResult(
         Map<String, Double> strategyEffectiveness,
         int degradedConflictCount
 ) {
-    /** Backward-compatible constructor that defaults degradedConflictCount to 0. */
+    /**
+     * Backward-compatible constructor that defaults degradedConflictCount to 0.
+     */
     public ScoringResult(double factSurvivalRate, int contradictionCount,
                          int majorContradictionCount, double driftAbsorptionRate,
                          double meanTurnsToFirstDrift, int anchorAttributionCount,

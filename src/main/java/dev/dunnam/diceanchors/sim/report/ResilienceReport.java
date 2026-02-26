@@ -35,7 +35,7 @@ public record ResilienceReport(
             Map<String, ResilienceScore> conditionScores, List<ScenarioSection> scenarioSections,
             StrategySection strategySection, @Nullable String positioning) {
         this(title, generatedAt, experimentName, conditions, scenarioIds, repetitionsPerCell,
-                cancelled, overallScore, conditionScores, scenarioSections, strategySection,
-                positioning, null);
+             cancelled, overallScore, conditionScores, scenarioSections, strategySection,
+             positioning, null);
     }
 }

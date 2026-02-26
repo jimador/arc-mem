@@ -187,16 +187,16 @@ public class Neo4jRunHistoryStore implements RunHistoryStore {
     @Override
     public List<BenchmarkReport> listBenchmarkReports() {
         return benchmarkReports.values().stream()
-                .sorted(Comparator.comparing(BenchmarkReport::createdAt).reversed())
-                .toList();
+                               .sorted(Comparator.comparing(BenchmarkReport::createdAt).reversed())
+                               .toList();
     }
 
     @Override
     public List<BenchmarkReport> listBenchmarkReportsByScenario(String scenarioId) {
         return benchmarkReports.values().stream()
-                .filter(r -> r.scenarioId().equals(scenarioId))
-                .sorted(Comparator.comparing(BenchmarkReport::createdAt).reversed())
-                .toList();
+                               .filter(r -> r.scenarioId().equals(scenarioId))
+                               .sorted(Comparator.comparing(BenchmarkReport::createdAt).reversed())
+                               .toList();
     }
 
     @Override
@@ -239,8 +239,8 @@ public class Neo4jRunHistoryStore implements RunHistoryStore {
     @Override
     public List<ExperimentReport> listExperimentReports() {
         return experimentReports.values().stream()
-                .sorted(Comparator.comparing(ExperimentReport::createdAt).reversed())
-                .toList();
+                                .sorted(Comparator.comparing(ExperimentReport::createdAt).reversed())
+                                .toList();
     }
 
     @Override

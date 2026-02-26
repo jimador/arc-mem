@@ -30,11 +30,11 @@ import java.util.Objects;
  *   <li><strong>AC3</strong>: Conditions do not violate anchor invariants A1, A2, A3, A4.</li>
  * </ul>
  *
- * @param name                     unique display name for the condition
- * @param injectionEnabled         whether anchor context is injected into LLM prompts
- * @param authorityOverride        if non-null, all seed anchors receive this authority
- * @param rankOverride             if non-null, all seed anchors receive this rank (clamped to [100,900])
- * @param rankMutationEnabled      whether rank decay/reinforcement operates during the run
+ * @param name                      unique display name for the condition
+ * @param injectionEnabled          whether anchor context is injected into LLM prompts
+ * @param authorityOverride         if non-null, all seed anchors receive this authority
+ * @param rankOverride              if non-null, all seed anchors receive this rank (clamped to [100,900])
+ * @param rankMutationEnabled       whether rank decay/reinforcement operates during the run
  * @param authorityPromotionEnabled whether automatic authority promotion operates during the run
  */
 public record AblationCondition(
@@ -45,19 +45,27 @@ public record AblationCondition(
         boolean rankMutationEnabled,
         boolean authorityPromotionEnabled
 ) {
-    /** Control condition: all anchor subsystems active. */
+    /**
+     * Control condition: all anchor subsystems active.
+     */
     public static final AblationCondition FULL_ANCHORS = new AblationCondition(
             "FULL_ANCHORS", true, null, null, true, true);
 
-    /** Ablation: no anchor context injected into LLM prompts. */
+    /**
+     * Ablation: no anchor context injected into LLM prompts.
+     */
     public static final AblationCondition NO_ANCHORS = new AblationCondition(
             "NO_ANCHORS", false, null, null, false, false);
 
-    /** Ablation: all seed anchors set to RELIABLE authority, promotion disabled. */
+    /**
+     * Ablation: all seed anchors set to RELIABLE authority, promotion disabled.
+     */
     public static final AblationCondition FLAT_AUTHORITY = new AblationCondition(
             "FLAT_AUTHORITY", true, Authority.RELIABLE, null, true, false);
 
-    /** Ablation: all seed anchors set to rank 500, rank mutation disabled. */
+    /**
+     * Ablation: all seed anchors set to rank 500, rank mutation disabled.
+     */
     public static final AblationCondition NO_RANK_DIFFERENTIATION = new AblationCondition(
             "NO_RANK_DIFFERENTIATION", true, null, 500, false, true);
 
@@ -79,6 +87,7 @@ public record AblationCondition(
      * produces the same result.
      *
      * @param seedAnchors the original seed anchor definitions from the scenario
+     *
      * @return a new list with condition overrides applied
      */
     public List<SimulationScenario.SeedAnchor> applySeedAnchors(List<SimulationScenario.SeedAnchor> seedAnchors) {
@@ -86,11 +95,11 @@ public record AblationCondition(
             return List.of();
         }
         return seedAnchors.stream()
-                .map(seed -> new SimulationScenario.SeedAnchor(
-                        seed.text(),
-                        authorityOverride != null ? authorityOverride.name() : seed.authority(),
-                        rankOverride != null ? rankOverride : seed.rank()
-                ))
-                .toList();
+                          .map(seed -> new SimulationScenario.SeedAnchor(
+                                  seed.text(),
+                                  authorityOverride != null ? authorityOverride.name() : seed.authority(),
+                                  rankOverride != null ? rankOverride : seed.rank()
+                          ))
+                          .toList();
     }
 }

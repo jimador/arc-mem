@@ -117,8 +117,8 @@ public class TieredEscalationStrategy implements AdversaryStrategy {
 
         var firstStrategy = strategies.get(0);
         var isMultiTurn = catalog.findById(firstStrategy.name())
-                .map(DriftStrategyDefinition::multiTurn)
-                .orElse(false);
+                                 .map(DriftStrategyDefinition::multiTurn)
+                                 .orElse(false);
 
         if (isMultiTurn) {
             var sequenceId = UUID.randomUUID().toString().substring(0, 8);
@@ -146,23 +146,23 @@ public class TieredEscalationStrategy implements AdversaryStrategy {
         var conflictedIds = conflicted.stream().map(Anchor::id).collect(Collectors.toUnmodifiableSet());
 
         var eligible = active.stream()
-                .filter(a -> !conflictedIds.contains(a.id()))
-                .sorted(Comparator.comparingInt(Anchor::rank))
-                .toList();
+                             .filter(a -> !conflictedIds.contains(a.id()))
+                             .sorted(Comparator.comparingInt(Anchor::rank))
+                             .toList();
 
         var switched = applyTargetSwitching(eligible, history);
 
         if (switched.isEmpty()) {
             switched = active.stream()
-                    .sorted(Comparator.comparingInt(Anchor::rank))
-                    .toList();
+                             .sorted(Comparator.comparingInt(Anchor::rank))
+                             .toList();
         }
 
         int count = (int) Math.max(1, Math.ceil(config.aggressiveness() * switched.size()));
         return switched.stream()
-                .limit(count)
-                .map(Anchor::text)
-                .toList();
+                       .limit(count)
+                       .map(Anchor::text)
+                       .toList();
     }
 
     /**
@@ -173,20 +173,20 @@ public class TieredEscalationStrategy implements AdversaryStrategy {
         var all = history.lastN(Integer.MAX_VALUE);
 
         var filtered = eligible.stream()
-                .filter(anchor -> {
-                    var lastAttacksOnTarget = all.stream()
-                            .filter(o -> o.plan().targetFacts().contains(anchor.text()))
-                            .toList();
-                    if (lastAttacksOnTarget.size() < TARGET_SWITCH_THRESHOLD) {
-                        return true;
-                    }
-                    var lastTwo = lastAttacksOnTarget.subList(
-                            lastAttacksOnTarget.size() - TARGET_SWITCH_THRESHOLD,
-                            lastAttacksOnTarget.size()
-                    );
-                    return lastTwo.stream().anyMatch(AttackOutcome::succeeded);
-                })
-                .toList();
+                               .filter(anchor -> {
+                                   var lastAttacksOnTarget = all.stream()
+                                                                .filter(o -> o.plan().targetFacts().contains(anchor.text()))
+                                                                .toList();
+                                   if (lastAttacksOnTarget.size() < TARGET_SWITCH_THRESHOLD) {
+                                       return true;
+                                   }
+                                   var lastTwo = lastAttacksOnTarget.subList(
+                                           lastAttacksOnTarget.size() - TARGET_SWITCH_THRESHOLD,
+                                           lastAttacksOnTarget.size()
+                                   );
+                                   return lastTwo.stream().anyMatch(AttackOutcome::succeeded);
+                               })
+                               .toList();
 
         return filtered.isEmpty() ? eligible : filtered;
     }
@@ -206,10 +206,15 @@ public class TieredEscalationStrategy implements AdversaryStrategy {
     private StrategyTier determineTier(AttackHistory history) {
         var attackCount = history.size();
         int level;
-        if (attackCount < 3) level = 1;
-        else if (attackCount < 6) level = 2;
-        else if (attackCount < 10) level = 3;
-        else level = 4;
+        if (attackCount < 3) {
+            level = 1;
+        } else if (attackCount < 6) {
+            level = 2;
+        } else if (attackCount < 10) {
+            level = 3;
+        } else {
+            level = 4;
+        }
         var capped = Math.min(level, config.maxEscalationTier());
         var tier = tierFromLevel(capped);
         logger.debug("Preferred tier {} (attackCount={})", tier, attackCount);
@@ -227,23 +232,27 @@ public class TieredEscalationStrategy implements AdversaryStrategy {
         if (!preferred.isEmpty()) {
             var preferredSet = java.util.Set.copyOf(preferred);
             var matches = catalog.findByTier(tier).stream()
-                    .filter(d -> preferredSet.contains(d.id()))
-                    .map(d -> AttackStrategy.fromString(d.id()))
-                    .filter(s -> s != null)
-                    .toList();
-            if (!matches.isEmpty()) return matches;
+                                 .filter(d -> preferredSet.contains(d.id()))
+                                 .map(d -> AttackStrategy.fromString(d.id()))
+                                 .filter(s -> s != null)
+                                 .toList();
+            if (!matches.isEmpty()) {
+                return matches;
+            }
         }
 
         var atTier = catalog.findByTier(tier).stream()
-                .map(d -> AttackStrategy.fromString(d.id()))
-                .filter(s -> s != null)
-                .toList();
-        if (!atTier.isEmpty()) return atTier;
+                            .map(d -> AttackStrategy.fromString(d.id()))
+                            .filter(s -> s != null)
+                            .toList();
+        if (!atTier.isEmpty()) {
+            return atTier;
+        }
 
         var fallback = catalog.findByTierAtOrBelow(tier).stream()
-                .map(d -> AttackStrategy.fromString(d.id()))
-                .filter(s -> s != null)
-                .toList();
+                              .map(d -> AttackStrategy.fromString(d.id()))
+                              .filter(s -> s != null)
+                              .toList();
         return fallback.isEmpty() ? List.of(AttackStrategy.SUBTLE_REFRAME) : fallback;
     }
 

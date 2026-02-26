@@ -43,6 +43,6 @@ public record BenchmarkReport(
             Map<String, BenchmarkStatistics> strategyStatistics, List<String> runIds,
             @Nullable String baselineReportId, @Nullable Map<String, Double> baselineDeltas) {
         this(reportId, scenarioId, createdAt, runCount, totalDurationMs, metricStatistics,
-                strategyStatistics, runIds, baselineReportId, baselineDeltas, null);
+             strategyStatistics, runIds, baselineReportId, baselineDeltas, null);
     }
 }

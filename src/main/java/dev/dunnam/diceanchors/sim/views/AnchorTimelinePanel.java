@@ -31,24 +31,36 @@ import java.util.function.Consumer;
  */
 public class AnchorTimelinePanel extends VerticalLayout implements SimulationProgressListener {
 
-    /** 4 px injection strip: one Div cell per turn. */
+    /**
+     * 4 px injection strip: one Div cell per turn.
+     */
     private final HorizontalLayout injectionStrip;
 
-    /** Drift-marker track: one Span per turn with Unicode symbol + verdict color. */
+    /**
+     * Drift-marker track: one Span per turn with Unicode symbol + verdict color.
+     */
     private final HorizontalLayout driftTrack;
 
-    /** Per-anchor event rows (FlexLayout per anchor). */
+    /**
+     * Per-anchor event rows (FlexLayout per anchor).
+     */
     private final VerticalLayout anchorRowsContainer;
 
-    /** Shared horizontal scroll wrapper for all three bands. */
+    /**
+     * Shared horizontal scroll wrapper for all three bands.
+     */
     private final Div scrollContainer;
 
     private final List<TurnData> turnDataList = new ArrayList<>();
 
-    /** anchorId → anchor metadata (first-seen text + authority). */
+    /**
+     * anchorId → anchor metadata (first-seen text + authority).
+     */
     private final Map<String, AnchorMeta> anchorMetaMap = new LinkedHashMap<>();
 
-    /** anchorId → list of timeline events. */
+    /**
+     * anchorId → list of timeline events.
+     */
     private final Map<String, List<AnchorEvent>> anchorEventMap = new LinkedHashMap<>();
 
     private @Nullable Consumer<Integer> turnSelectionListener;
@@ -117,12 +129,16 @@ public class AnchorTimelinePanel extends VerticalLayout implements SimulationPro
         }
     }
 
-    /** Register a listener for turn selection events from the timeline. */
+    /**
+     * Register a listener for turn selection events from the timeline.
+     */
     public void setTurnSelectionListener(Consumer<Integer> listener) {
         this.turnSelectionListener = listener;
     }
 
-    /** Append a turn to the timeline. Called progressively during simulation. */
+    /**
+     * Append a turn to the timeline. Called progressively during simulation.
+     */
     public void appendTurn(SimulationProgress progress) {
         if (progress.lastDmResponse() == null) {
             // Pre-turn thinking event — nothing to add to timeline yet
@@ -166,9 +182,9 @@ public class AnchorTimelinePanel extends VerticalLayout implements SimulationPro
         for (var event : events) {
             // Store metadata on first encounter
             anchorMetaMap.computeIfAbsent(event.anchorId(),
-                    k -> new AnchorMeta(
-                            event.text() != null ? event.text() : event.anchorId(),
-                            event.authority() != null ? event.authority() : "?"));
+                                          k -> new AnchorMeta(
+                                                  event.text() != null ? event.text() : event.anchorId(),
+                                                  event.authority() != null ? event.authority() : "?"));
 
             var type = mapEventType(event.eventType());
             if (type == AnchorEventType.CREATED && "sim_extraction".equals(event.reason())) {
@@ -177,13 +193,15 @@ public class AnchorTimelinePanel extends VerticalLayout implements SimulationPro
 
             anchorEventMap.computeIfAbsent(event.anchorId(), k -> new ArrayList<>())
                           .add(new AnchorEvent(turnNumber, type,
-                                  event.reason() != null ? event.reason() : ""));
+                                               event.reason() != null ? event.reason() : ""));
         }
 
         rebuildAnchorRows();
     }
 
-    /** Highlight a specific turn in the timeline. */
+    /**
+     * Highlight a specific turn in the timeline.
+     */
     public void selectTurn(int turnNumber) {
         this.selectedTurn = turnNumber;
         rebuildInjectionStrip();
@@ -191,7 +209,9 @@ public class AnchorTimelinePanel extends VerticalLayout implements SimulationPro
         rebuildAnchorRows();
     }
 
-    /** Reset the panel to its initial empty state. */
+    /**
+     * Reset the panel to its initial empty state.
+     */
     public void reset() {
         turnDataList.clear();
         anchorMetaMap.clear();
@@ -213,10 +233,10 @@ public class AnchorTimelinePanel extends VerticalLayout implements SimulationPro
         }
 
         cell.getElement().setAttribute("title",
-                "T%d | %s | INJ %s".formatted(
-                        data.turnNumber(),
-                        data.turnType().name(),
-                        data.injectionEnabled() ? "ON" : "OFF"));
+                                       "T%d | %s | INJ %s".formatted(
+                                               data.turnNumber(),
+                                               data.turnType().name(),
+                                               data.injectionEnabled() ? "ON" : "OFF"));
 
         cell.addClickListener(e -> {
             selectedTurn = data.turnNumber();
@@ -250,11 +270,11 @@ public class AnchorTimelinePanel extends VerticalLayout implements SimulationPro
                 ? SimulationView.formatDuration(data.turnDurationMs())
                 : "—";
         marker.getElement().setAttribute("title",
-                "T%d | %s | %s | %s".formatted(
-                        data.turnNumber(),
-                        data.turnType().name(),
-                        data.worstVerdict() != null ? data.worstVerdict().name() : "NO_VERDICT",
-                        durationLabel));
+                                         "T%d | %s | %s | %s".formatted(
+                                                 data.turnNumber(),
+                                                 data.turnType().name(),
+                                                 data.worstVerdict() != null ? data.worstVerdict().name() : "NO_VERDICT",
+                                                 durationLabel));
 
         marker.addClickListener(e -> {
             selectedTurn = data.turnNumber();
@@ -307,9 +327,9 @@ public class AnchorTimelinePanel extends VerticalLayout implements SimulationPro
         int turn = progress.turnNumber();
         for (var anchor : anchors) {
             anchorMetaMap.computeIfAbsent(anchor.id(),
-                    k -> new AnchorMeta(
-                            anchor.text() != null ? truncate(anchor.text(), 28) : anchor.id(),
-                            anchor.authority() != null ? anchor.authority().name() : "?"));
+                                          k -> new AnchorMeta(
+                                                  anchor.text() != null ? truncate(anchor.text(), 28) : anchor.id(),
+                                                  anchor.authority() != null ? anchor.authority().name() : "?"));
 
             var events = anchorEventMap.computeIfAbsent(anchor.id(), k -> new ArrayList<>());
 
@@ -352,7 +372,7 @@ public class AnchorTimelinePanel extends VerticalLayout implements SimulationPro
                 var authorityBadge = new Span(authorityAbbrev(meta.authority()));
                 authorityBadge.addClassName("ar-authority-badge");
                 authorityBadge.getElement().setAttribute("data-authority",
-                        meta.authority() != null ? meta.authority().toLowerCase() : "provisional");
+                                                         meta.authority() != null ? meta.authority().toLowerCase() : "provisional");
                 header.add(authorityBadge);
 
                 var textSpan = new Span(truncate(meta.text(), 20));
@@ -381,10 +401,10 @@ public class AnchorTimelinePanel extends VerticalLayout implements SimulationPro
         badge.getElement().setAttribute("data-event-type", eventDataType(event.eventType()));
 
         badge.getElement().setAttribute("title",
-                "%s T%d%s".formatted(
-                        event.eventType().name(),
-                        event.turnNumber(),
-                        event.reason().isBlank() ? "" : " (" + event.reason() + ")"));
+                                        "%s T%d%s".formatted(
+                                                event.eventType().name(),
+                                                event.turnNumber(),
+                                                event.reason().isBlank() ? "" : " (" + event.reason() + ")"));
 
         return badge;
     }
@@ -430,7 +450,9 @@ public class AnchorTimelinePanel extends VerticalLayout implements SimulationPro
     }
 
     private String authorityAbbrev(String authority) {
-        if (authority == null) return "?";
+        if (authority == null) {
+            return "?";
+        }
         return switch (authority.toUpperCase()) {
             case "PROVISIONAL" -> "P";
             case "UNRELIABLE" -> "U";
@@ -441,7 +463,9 @@ public class AnchorTimelinePanel extends VerticalLayout implements SimulationPro
     }
 
     private String truncate(String s, int maxLen) {
-        if (s == null) return "";
+        if (s == null) {
+            return "";
+        }
         return s.length() <= maxLen ? s : s.substring(0, maxLen - 1) + "…";
     }
 

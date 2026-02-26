@@ -82,8 +82,8 @@ public final class ContradictionDetailLoader {
             var details = detailsByFact.get(factId);
             if (details != null && !details.isEmpty()) {
                 details.sort(Comparator.comparing(ContradictionDetail::condition)
-                        .thenComparingInt(ContradictionDetail::runIndex)
-                        .thenComparingInt(ContradictionDetail::turnNumber));
+                                       .thenComparingInt(ContradictionDetail::runIndex)
+                                       .thenComparingInt(ContradictionDetail::turnNumber));
                 groups.add(new FactContradictionGroup(factId, entry.getValue(), List.copyOf(details)));
             }
         }
@@ -101,8 +101,8 @@ public final class ContradictionDetailLoader {
             }
             for (var verdict : snapshot.verdicts()) {
                 if (verdict != null
-                        && verdict.verdict() == EvalVerdict.Verdict.CONTRADICTED
-                        && verdict.factId() != null) {
+                    && verdict.verdict() == EvalVerdict.Verdict.CONTRADICTED
+                    && verdict.factId() != null) {
 
                     var detail = ContradictionDetail.of(
                             verdict.factId(),
@@ -116,7 +116,7 @@ public final class ContradictionDetailLoader {
                             verdict.explanation());
 
                     detailsByFact.computeIfAbsent(verdict.factId(), k -> new ArrayList<>())
-                            .add(detail);
+                                 .add(detail);
                 }
             }
         }

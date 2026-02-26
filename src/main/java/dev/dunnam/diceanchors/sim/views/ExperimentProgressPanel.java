@@ -38,7 +38,9 @@ public class ExperimentProgressPanel extends VerticalLayout {
 
     private Runnable cancelCallback;
 
-    /** Wall-clock time in ms when the first progress update arrived. */
+    /**
+     * Wall-clock time in ms when the first progress update arrived.
+     */
     private long startTimeMs = -1L;
 
     /**

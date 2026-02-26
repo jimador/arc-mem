@@ -57,6 +57,7 @@ public class ExperimentRunner {
      * @param injectionStateSupplier base injection state (overridden by conditions)
      * @param tokenBudgetSupplier    per-turn token budget
      * @param onProgress             callback invoked after each run completes
+     *
      * @return the assembled experiment report
      */
     @Observed(name = "experiment.run")
@@ -78,8 +79,8 @@ public class ExperimentRunner {
         experimentSpan.setAttribute("experiment.repetitions", definition.repetitionsPerCell());
 
         logger.info("Starting experiment '{}': {} conditions x {} scenarios x {} reps = {} cells",
-                definition.name(), definition.conditions().size(), definition.scenarioIds().size(),
-                definition.repetitionsPerCell(), totalCells);
+                    definition.name(), definition.conditions().size(), definition.scenarioIds().size(),
+                    definition.repetitionsPerCell(), totalCells);
 
         var cellReports = new LinkedHashMap<String, BenchmarkReport>();
         var cellIndex = 0;
@@ -118,7 +119,9 @@ public class ExperimentRunner {
 
                 cellReports.put(cellKey, cellReport);
             }
-            if (cancelled) break;
+            if (cancelled) {
+                break;
+            }
         }
 
         var durationMs = System.currentTimeMillis() - startTime;
@@ -143,12 +146,14 @@ public class ExperimentRunner {
 
         runHistoryStore.saveExperimentReport(report);
         logger.info("Experiment '{}' complete: {} cells, {}ms, reportId='{}'",
-                definition.name(), cellReports.size(), durationMs, report.reportId());
+                    definition.name(), cellReports.size(), durationMs, report.reportId());
 
         return report;
     }
 
-    /** Request cancellation. Current cell completes before stopping. */
+    /**
+     * Request cancellation. Current cell completes before stopping.
+     */
     public void cancel() {
         cancelRequested.set(true);
     }

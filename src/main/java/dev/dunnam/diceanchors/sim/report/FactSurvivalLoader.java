@@ -109,8 +109,8 @@ public final class FactSurvivalLoader {
             }
             for (var verdict : snapshot.verdicts()) {
                 if (verdict != null
-                        && verdict.verdict() == EvalVerdict.Verdict.CONTRADICTED
-                        && verdict.factId() != null) {
+                    && verdict.verdict() == EvalVerdict.Verdict.CONTRADICTED
+                    && verdict.factId() != null) {
                     firstDrift.merge(verdict.factId(), snapshot.turnNumber(), Math::min);
                 }
             }
@@ -127,10 +127,12 @@ public final class FactSurvivalLoader {
     static Set<String> collectConfirmedFacts(SimulationRunRecord record) {
         var confirmed = new HashSet<String>();
         for (var snapshot : record.turnSnapshots()) {
-            if (snapshot.verdicts() == null) continue;
+            if (snapshot.verdicts() == null) {
+                continue;
+            }
             for (var verdict : snapshot.verdicts()) {
                 if (verdict != null && verdict.verdict() == EvalVerdict.Verdict.CONFIRMED
-                        && verdict.factId() != null) {
+                    && verdict.factId() != null) {
                     confirmed.add(verdict.factId());
                 }
             }
@@ -160,7 +162,7 @@ public final class FactSurvivalLoader {
 
                 for (var factId : factIdToText.keySet()) {
                     var current = factStatsMap.computeIfAbsent(factId,
-                            k -> new MutableFactStats());
+                                                               k -> new MutableFactStats());
 
                     var contradicted = firstDriftTurns.containsKey(factId);
                     var confirmed = confirmedFacts.contains(factId);

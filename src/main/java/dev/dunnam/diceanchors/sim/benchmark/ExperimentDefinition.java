@@ -10,11 +10,11 @@ import java.util.Optional;
  * The total number of cells is {@code conditions.size() × scenarioIds.size()},
  * and the total number of simulation runs is {@code cells × repetitionsPerCell}.
  *
- * @param name              human-readable experiment name
- * @param conditions        ablation conditions to test (non-empty)
- * @param scenarioIds       scenario IDs to run under each condition (non-empty)
+ * @param name               human-readable experiment name
+ * @param conditions         ablation conditions to test (non-empty)
+ * @param scenarioIds        scenario IDs to run under each condition (non-empty)
  * @param repetitionsPerCell number of runs per condition-scenario cell (>= 2)
- * @param evaluatorModel    optional override for the drift evaluator model
+ * @param evaluatorModel     optional override for the drift evaluator model
  */
 public record ExperimentDefinition(
         String name,
@@ -39,12 +39,16 @@ public record ExperimentDefinition(
         evaluatorModel = evaluatorModel != null ? evaluatorModel : Optional.empty();
     }
 
-    /** Total number of cells in the experiment matrix. */
+    /**
+     * Total number of cells in the experiment matrix.
+     */
     public int totalCells() {
         return conditions.size() * scenarioIds.size();
     }
 
-    /** Total number of simulation runs across all cells. */
+    /**
+     * Total number of simulation runs across all cells.
+     */
     public int totalRuns() {
         return totalCells() * repetitionsPerCell;
     }

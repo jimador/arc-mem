@@ -33,18 +33,22 @@ public class AttackHistory {
         return List.copyOf(outcomes.subList(start, outcomes.size()));
     }
 
-    /** Turn number of the most recent attack, or 0 if none recorded. */
+    /**
+     * Turn number of the most recent attack, or 0 if none recorded.
+     */
     public int lastAttackTurn() {
         var recent = lastN(1);
         return recent.isEmpty() ? 0 : recent.get(0).turn();
     }
 
-    /** Strategy IDs used in the most recent {@code n} attacks. */
+    /**
+     * Strategy IDs used in the most recent {@code n} attacks.
+     */
     public Set<String> recentStrategyIds(int n) {
         return lastN(n).stream()
-                .flatMap(o -> o.plan().strategies().stream())
-                .map(AttackStrategy::name)
-                .collect(Collectors.toUnmodifiableSet());
+                       .flatMap(o -> o.plan().strategies().stream())
+                       .map(AttackStrategy::name)
+                       .collect(Collectors.toUnmodifiableSet());
     }
 
     public int size() {

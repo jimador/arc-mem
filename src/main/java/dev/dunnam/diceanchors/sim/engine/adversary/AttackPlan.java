@@ -15,11 +15,11 @@ import java.util.List;
  *   <li>I2: {@code tier} matches the tier of every strategy in {@code strategies} per the catalog</li>
  * </ul>
  *
- * @param targetFacts       anchor texts the adversary intends to challenge or undermine
- * @param strategies        attack techniques to apply this turn
- * @param tier              difficulty tier of the chosen strategies
- * @param rationale         brief explanation of why this attack was selected (for debugging)
- * @param sequence          non-null when this turn is part of a multi-turn SETUP→BUILD→PAYOFF chain
+ * @param targetFacts anchor texts the adversary intends to challenge or undermine
+ * @param strategies  attack techniques to apply this turn
+ * @param tier        difficulty tier of the chosen strategies
+ * @param rationale   brief explanation of why this attack was selected (for debugging)
+ * @param sequence    non-null when this turn is part of a multi-turn SETUP→BUILD→PAYOFF chain
  */
 public record AttackPlan(
         List<String> targetFacts,

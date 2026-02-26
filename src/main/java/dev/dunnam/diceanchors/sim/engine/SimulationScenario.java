@@ -10,8 +10,8 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * YAML-loaded scenario definition for adversarial or baseline drift testing.
@@ -65,8 +65,8 @@ public record SimulationScenario(
     /**
      * Configuration for the adaptive adversary engine.
      *
-     * @param aggressiveness    0.0–1.0, controls how many anchors to target per turn
-     * @param maxEscalationTier 1–4, caps the strategy tier (maps to StrategyTier ordinal + 1)
+     * @param aggressiveness      0.0–1.0, controls how many anchors to target per turn
+     * @param maxEscalationTier   1–4, caps the strategy tier (maps to StrategyTier ordinal + 1)
      * @param preferredStrategies optional list of strategy IDs from the catalog to prefer
      */
     @JsonIgnoreProperties(ignoreUnknown = true)
@@ -82,7 +82,9 @@ public record SimulationScenario(
             preferredStrategies = preferredStrategies != null ? List.copyOf(preferredStrategies) : List.of();
         }
 
-        /** Min turns that must pass between attacks. Defaults to 2 if not configured. */
+        /**
+         * Min turns that must pass between attacks. Defaults to 2 if not configured.
+         */
         public int effectiveAttackCooldown() {
             return attackCooldown != null ? Math.max(0, attackCooldown) : 2;
         }

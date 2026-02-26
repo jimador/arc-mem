@@ -267,10 +267,10 @@ public class ConversationPanel extends VerticalLayout implements SimulationProgr
 
     private Span turnTypeBadge(TurnType turnType, List<AttackStrategy> attackStrategies) {
         var strategyLabel = attackStrategies.stream()
-                .map(s -> STRATEGY_CATALOG.findById(s.name())
-                        .map(DriftStrategyDefinition::displayName)
-                        .orElse(s.name().replace('_', ' ')))
-                .collect(Collectors.joining(", "));
+                                            .map(s -> STRATEGY_CATALOG.findById(s.name())
+                                                                      .map(DriftStrategyDefinition::displayName)
+                                                                      .orElse(s.name().replace('_', ' ')))
+                                            .collect(Collectors.joining(", "));
         var text = strategyLabel.isEmpty()
                 ? turnType.name()
                 : turnType.name() + " · " + strategyLabel;

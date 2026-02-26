@@ -1,13 +1,10 @@
 package dev.dunnam.diceanchors.sim.report;
 
-import dev.dunnam.diceanchors.sim.benchmark.BenchmarkStatistics;
+import dev.dunnam.diceanchors.sim.engine.AttackStrategy;
 
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import dev.dunnam.diceanchors.sim.engine.AttackStrategy;
-
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -66,7 +63,7 @@ public final class MarkdownReportRenderer {
 
         var score = report.overallScore();
         sb.append("**Overall: ").append("%.2f".formatted(score.overall()))
-                .append("/100 — ").append(score.interpretation()).append("**\n\n");
+          .append("/100 — ").append(score.interpretation()).append("**\n\n");
         sb.append("| Component | Score |\n");
         sb.append("|-----------|-------|\n");
         sb.append("| Fact Survival (40%) | ").append("%.2f".formatted(score.survivalComponent())).append(" |\n");
@@ -82,19 +79,19 @@ public final class MarkdownReportRenderer {
             for (var entry : report.conditionScores().entrySet()) {
                 var cs = entry.getValue();
                 sb.append("| ").append(entry.getKey())
-                        .append(" | ").append("%.1f".formatted(cs.overall()))
-                        .append(" | ").append("%.1f".formatted(cs.survivalComponent()))
-                        .append(" | ").append("%.1f".formatted(cs.driftResistanceComponent()))
-                        .append(" | ").append("%.1f".formatted(cs.contradictionPenalty()))
-                        .append(" | ").append("%.1f".formatted(cs.strategyResistanceComponent()))
-                        .append(" |\n");
+                  .append(" | ").append("%.1f".formatted(cs.overall()))
+                  .append(" | ").append("%.1f".formatted(cs.survivalComponent()))
+                  .append(" | ").append("%.1f".formatted(cs.driftResistanceComponent()))
+                  .append(" | ").append("%.1f".formatted(cs.contradictionPenalty()))
+                  .append(" | ").append("%.1f".formatted(cs.strategyResistanceComponent()))
+                  .append(" |\n");
             }
             sb.append("\n");
         }
     }
 
     private static void renderScenarioSections(StringBuilder sb, List<ScenarioSection> sections,
-                                                List<String> conditions) {
+                                               List<String> conditions) {
         for (var section : sections) {
             sb.append("## Scenario: ").append(section.scenarioTitle()).append("\n\n");
             renderConditionComparison(sb, section.conditionSummaries());
@@ -118,14 +115,14 @@ public final class MarkdownReportRenderer {
         sb.append("### Condition Comparison\n\n");
 
         var conditionNames = summaries.stream()
-                .map(ConditionSummary::conditionName)
-                .toList();
+                                      .map(ConditionSummary::conditionName)
+                                      .toList();
 
         var metricKeys = summaries.stream()
-                .flatMap(s -> s.metrics().keySet().stream())
-                .distinct()
-                .sorted()
-                .toList();
+                                  .flatMap(s -> s.metrics().keySet().stream())
+                                  .distinct()
+                                  .sorted()
+                                  .toList();
 
         sb.append("| Metric |");
         for (var cond : conditionNames) {
@@ -145,11 +142,11 @@ public final class MarkdownReportRenderer {
                 var stats = summary.metrics().get(metric);
                 if (stats != null) {
                     sb.append(" ")
-                            .append("%.2f".formatted(stats.mean()))
-                            .append(" \u00b1 ")
-                            .append("%.2f".formatted(stats.stddev()))
-                            .append(" (n=").append(stats.sampleCount()).append(")")
-                            .append(" |");
+                      .append("%.2f".formatted(stats.mean()))
+                      .append(" \u00b1 ")
+                      .append("%.2f".formatted(stats.stddev()))
+                      .append(" (n=").append(stats.sampleCount()).append(")")
+                      .append(" |");
                 } else {
                     sb.append(" — |");
                 }
@@ -172,16 +169,16 @@ public final class MarkdownReportRenderer {
             var comparison = es.conditionA() + " vs " + es.conditionB();
             var lowConfidenceMarker = es.lowConfidence() ? " *" : "";
             sb.append("| ").append(comparison)
-                    .append(" | ").append(es.metricKey())
-                    .append(" | ").append("%.2f".formatted(es.cohensD()))
-                    .append(" | ").append(es.interpretation()).append(lowConfidenceMarker)
-                    .append(" |\n");
+              .append(" | ").append(es.metricKey())
+              .append(" | ").append("%.2f".formatted(es.cohensD()))
+              .append(" | ").append(es.interpretation()).append(lowConfidenceMarker)
+              .append(" |\n");
         }
         sb.append("\n");
     }
 
     private static void renderFactSurvival(StringBuilder sb, List<FactSurvivalRow> rows,
-                                            List<String> conditions) {
+                                           List<String> conditions) {
         if (rows.isEmpty()) {
             return;
         }
@@ -209,7 +206,7 @@ public final class MarkdownReportRenderer {
                 if (result != null) {
                     sb.append(" ").append(result.survived()).append("/").append(result.total());
                     result.firstDriftTurn().ifPresent(turn ->
-                            sb.append(" (T").append(turn).append(")"));
+                                                              sb.append(" (T").append(turn).append(")"));
                     sb.append(" |");
                 } else {
                     sb.append(" — |");
@@ -237,26 +234,26 @@ public final class MarkdownReportRenderer {
 
             for (var detail : group.details()) {
                 var strategies = detail.attackStrategies().stream()
-                        .map(AttackStrategy::name)
-                        .collect(Collectors.joining(", "));
+                                       .map(AttackStrategy::name)
+                                       .collect(Collectors.joining(", "));
 
                 sb.append("| ").append(counter++)
-                        .append(" | ").append(detail.condition())
-                        .append(" | ").append(detail.runIndex())
-                        .append(" | T").append(detail.turnNumber())
-                        .append(" | ").append(escapePipes(strategies))
-                        .append(" | ").append(escapePipes(detail.playerMessage()))
-                        .append(" | ").append(escapePipes(detail.dmResponse()))
-                        .append(" | ").append(detail.severity())
-                        .append(" | ").append(escapePipes(detail.explanation()))
-                        .append(" |\n");
+                  .append(" | ").append(detail.condition())
+                  .append(" | ").append(detail.runIndex())
+                  .append(" | T").append(detail.turnNumber())
+                  .append(" | ").append(escapePipes(strategies))
+                  .append(" | ").append(escapePipes(detail.playerMessage()))
+                  .append(" | ").append(escapePipes(detail.dmResponse()))
+                  .append(" | ").append(detail.severity())
+                  .append(" | ").append(escapePipes(detail.explanation()))
+                  .append(" |\n");
             }
             sb.append("\n");
         }
     }
 
     private static void renderStrategyEffectiveness(StringBuilder sb, StrategySection section,
-                                                     List<String> conditions) {
+                                                    List<String> conditions) {
         if (section == null || section.strategies().isEmpty()) {
             return;
         }
@@ -306,7 +303,9 @@ public final class MarkdownReportRenderer {
     }
 
     private static String escapePipes(String text) {
-        if (text == null) return "";
+        if (text == null) {
+            return "";
+        }
         return text.replace("|", "\\|").replace("\n", " ").replace("\r", "");
     }
 

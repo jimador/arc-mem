@@ -80,8 +80,8 @@ public class ScoringService {
 
         var totalFacts = groundTruth.size();
         var survivedCount = confirmedFactIds.stream()
-                .filter(id -> !contradictedFactIds.contains(id))
-                .count();
+                                            .filter(id -> !contradictedFactIds.contains(id))
+                                            .count();
         var factSurvivalRate = totalFacts > 0
                 ? ((double) survivedCount / totalFacts) * 100.0
                 : 0.0;
@@ -123,7 +123,9 @@ public class ScoringService {
         var confirmedFactIds = new HashSet<String>();
         for (var snapshot : snapshots) {
             var verdicts = snapshot.verdicts();
-            if (verdicts == null) continue;
+            if (verdicts == null) {
+                continue;
+            }
             for (var verdict : verdicts) {
                 if (verdict.verdict() == EvalVerdict.Verdict.CONFIRMED) {
                     confirmedFactIds.add(verdict.factId());

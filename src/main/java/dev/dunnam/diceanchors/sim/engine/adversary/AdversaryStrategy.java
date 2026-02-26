@@ -18,6 +18,7 @@ public interface AdversaryStrategy {
      * @param active     currently active anchors (highest-rank first, from {@code AnchorEngine.inject()})
      * @param conflicted anchors currently in conflict state (from {@code AnchorEngine.detectConflicts()})
      * @param history    outcomes recorded so far in this simulation run
+     *
      * @return a non-null {@link AttackPlan} with at least one strategy and at least one target
      */
     AttackPlan selectAttack(List<Anchor> active, List<Anchor> conflicted, AttackHistory history);

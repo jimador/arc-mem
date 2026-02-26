@@ -16,7 +16,6 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Consumer;
 
 /**
@@ -149,22 +148,22 @@ public class ExperimentConfigPanel extends VerticalLayout {
 
     private List<String> buildScenarioItems() {
         return this.scenarios.stream()
-                .map(SimulationScenario::id)
-                .toList();
+                             .map(SimulationScenario::id)
+                             .toList();
     }
 
     private String labelForScenario(String id) {
         return this.scenarios.stream()
-                .filter(s -> id.equals(s.id()))
-                .findFirst()
-                .map(s -> {
-                    var category = s.category();
-                    if (category != null && !category.isBlank()) {
-                        return "[%s] %s".formatted(category, id);
-                    }
-                    return id;
-                })
-                .orElse(id);
+                             .filter(s -> id.equals(s.id()))
+                             .findFirst()
+                             .map(s -> {
+                                 var category = s.category();
+                                 if (category != null && !category.isBlank()) {
+                                     return "[%s] %s".formatted(category, id);
+                                 }
+                                 return id;
+                             })
+                             .orElse(id);
     }
 
     private void updateRunButtonState() {
@@ -180,9 +179,9 @@ public class ExperimentConfigPanel extends VerticalLayout {
 
         var selectedConditionNames = conditionsGroup.getSelectedItems();
         var conditions = selectedConditionNames.stream()
-                .map(CONDITION_BY_NAME::get)
-                .filter(c -> c != null)
-                .toList();
+                                               .map(CONDITION_BY_NAME::get)
+                                               .filter(c -> c != null)
+                                               .toList();
 
         var selectedScenarioIds = List.copyOf(scenariosSelect.getSelectedItems());
 
@@ -191,7 +190,7 @@ public class ExperimentConfigPanel extends VerticalLayout {
         var modelText = evaluatorModelField.getValue();
         var evaluatorModel = (modelText != null && !modelText.isBlank())
                 ? Optional.of(modelText.trim())
-                : Optional.<String>empty();
+                : Optional.<String> empty();
 
         var nameText = experimentNameField.getValue();
         var experimentName = (nameText != null && !nameText.isBlank())

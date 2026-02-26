@@ -60,7 +60,7 @@ public class LlmCallService {
 
     private String executeWithTimeout(String systemPrompt, String userPrompt, Duration timeout) {
         try (var scope = StructuredTaskScope.open(
-                StructuredTaskScope.Joiner.<String>awaitAllSuccessfulOrThrow(),
+                StructuredTaskScope.Joiner.<String> awaitAllSuccessfulOrThrow(),
                 cfg -> cfg.withTimeout(timeout))) {
             var task = scope.fork(() -> {
                 var prompt = new Prompt(List.of(
@@ -73,8 +73,12 @@ public class LlmCallService {
             return task.get();
         } catch (StructuredTaskScope.FailedException e) {
             var cause = e.getCause();
-            if (cause instanceof LlmCallTimeoutException lte) throw lte;
-            if (cause instanceof RuntimeException re) throw re;
+            if (cause instanceof LlmCallTimeoutException lte) {
+                throw lte;
+            }
+            if (cause instanceof RuntimeException re) {
+                throw re;
+            }
             throw new RuntimeException("LLM call failed: " + (cause != null ? cause.getMessage() : e.getMessage()), cause != null ? cause : e);
         } catch (StructuredTaskScope.TimeoutException e) {
             throw new LlmCallTimeoutException(

@@ -55,7 +55,7 @@ public record ChatActions(
 ) {
 
     private static final Logger logger = LoggerFactory.getLogger(ChatActions.class);
-    private static final String DEFAULT_CONTEXT = "chat";
+    private static final String FALLBACK_CONTEXT = "chat";
 
     /**
      * Invoked for each user message in the conversation.
@@ -67,7 +67,7 @@ public record ChatActions(
      */
     @Action(canRerun = true, trigger = UserMessage.class)
     void respond(@NonNull Conversation conversation, ActionContext context) {
-        var contextId = DEFAULT_CONTEXT;
+        var contextId = resolveContextId(context);
         chatContextInitializer.initializeContext(contextId);
         var window = properties.memory().windowSize();
 
@@ -169,5 +169,10 @@ public record ChatActions(
         eventPublisher.publishEvent(
                 new ConversationAnalysisRequestEvent(this, contextId, persistedConversation));
         logger.debug("Published ConversationAnalysisRequestEvent for context {}", contextId);
+    }
+
+    private String resolveContextId(ActionContext context) {
+        var processContextId = context.getProcessContext().getProcessOptions().getContextIdString();
+        return processContextId != null ? processContextId : FALLBACK_CONTEXT;
     }
 }

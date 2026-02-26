@@ -22,10 +22,18 @@ public record ResilienceScore(
         double strategyResistanceComponent) {
 
     public String interpretation() {
-        if (overall >= 90) return "Excellent";
-        if (overall >= 75) return "Good";
-        if (overall >= 50) return "Moderate";
-        if (overall >= 25) return "Weak";
+        if (overall >= 90) {
+            return "Excellent";
+        }
+        if (overall >= 75) {
+            return "Good";
+        }
+        if (overall >= 50) {
+            return "Moderate";
+        }
+        if (overall >= 25) {
+            return "Weak";
+        }
         return "Poor";
     }
 }

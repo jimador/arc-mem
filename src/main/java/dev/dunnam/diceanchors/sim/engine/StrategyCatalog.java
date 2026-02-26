@@ -30,14 +30,16 @@ public class StrategyCatalog {
     private StrategyCatalog(List<DriftStrategyDefinition> strategies) {
         this.strategies = List.copyOf(strategies);
         this.byId = this.strategies.stream()
-                .collect(Collectors.toUnmodifiableMap(DriftStrategyDefinition::id, Function.identity()));
+                                   .collect(Collectors.toUnmodifiableMap(DriftStrategyDefinition::id, Function.identity()));
     }
 
     /**
      * Loads a strategy catalog from the given classpath resource.
      *
      * @param resourcePath classpath path to a YAML file with a {@code strategies} root key
+     *
      * @return parsed catalog
+     *
      * @throws IllegalArgumentException if the resource is not found
      * @throws UncheckedIOException     if the YAML cannot be parsed
      */
@@ -65,20 +67,20 @@ public class StrategyCatalog {
 
     public List<DriftStrategyDefinition> findByTier(StrategyTier tier) {
         return strategies.stream()
-                .filter(s -> s.tier() == tier)
-                .toList();
+                         .filter(s -> s.tier() == tier)
+                         .toList();
     }
 
     public List<DriftStrategyDefinition> findByCategory(String category) {
         return strategies.stream()
-                .filter(s -> s.applicableCategories().contains(category))
-                .toList();
+                         .filter(s -> s.applicableCategories().contains(category))
+                         .toList();
     }
 
     public List<DriftStrategyDefinition> findByTierAtOrBelow(StrategyTier maxTier) {
         return strategies.stream()
-                .filter(s -> s.tier().isAtOrBelow(maxTier))
-                .toList();
+                         .filter(s -> s.tier().isAtOrBelow(maxTier))
+                         .toList();
     }
 
     private record CatalogWrapper(List<DriftStrategyDefinition> strategies) {}

@@ -156,14 +156,14 @@ public class SimulationService {
 
             if (scenario.invariants() != null && !scenario.invariants().isEmpty()) {
                 var scenarioRules = scenario.invariants().stream()
-                        .map(def -> InvariantRuleProvider.toRule(new DiceAnchorsProperties.InvariantRuleDefinition(
-                                def.id(), def.type(),
-                                def.effectiveStrength(),
-                                def.contextId(),
-                                def.anchorTextPattern(),
-                                def.minimumAuthority(),
-                                def.minimumCount())))
-                        .toList();
+                                            .map(def -> InvariantRuleProvider.toRule(new DiceAnchorsProperties.InvariantRuleDefinition(
+                                                    def.id(), def.type(),
+                                                    def.effectiveStrength(),
+                                                    def.contextId(),
+                                                    def.anchorTextPattern(),
+                                                    def.minimumAuthority(),
+                                                    def.minimumCount())))
+                                            .toList();
                 invariantRuleProvider.registerForContext(contextId, scenarioRules);
                 logger.info("Registered {} invariant rules for context {}", scenarioRules.size(), contextId);
             }
@@ -223,10 +223,10 @@ public class SimulationService {
                         sceneAnchorEvents, null, 0L, null, null, null));
 
                 logger.info("Scene-setting turn 0: dm='{}', anchors after={}",
-                        sceneTurn.dmResponse().length() > 80
-                                ? sceneTurn.dmResponse().substring(0, 80) + "..."
-                                : sceneTurn.dmResponse(),
-                        sceneResult.currentAnchorState().size());
+                            sceneTurn.dmResponse().length() > 80
+                                    ? sceneTurn.dmResponse().substring(0, 80) + "..."
+                                    : sceneTurn.dmResponse(),
+                            sceneResult.currentAnchorState().size());
             }
 
             var attackHistory = new AttackHistory();
@@ -262,7 +262,7 @@ public class SimulationService {
                 } else if (i < scenario.warmUpTurns()) {
                     playerMessage = isAdaptive
                             ? adaptivePrompter.generateConversation(
-                                    scenario.persona(), scenario.setting(), conversationHistory)
+                            scenario.persona(), scenario.setting(), conversationHistory)
                             : generateWarmUpMessage(scenario);
                     turnType = TurnType.WARM_UP;
                 } else if (isAdaptive) {
@@ -324,7 +324,7 @@ public class SimulationService {
                     var verdictSeverity = computeVerdictSeverity(turn);
                     attackHistory.recordOutcome(new AttackOutcome(turnNumber, currentPlan, verdictSeverity));
                     logger.debug("Recorded attack outcome: turn={}, severity={}, historySize={}",
-                            turnNumber, verdictSeverity, attackHistory.size());
+                                 turnNumber, verdictSeverity, attackHistory.size());
                 }
 
                 conversationHistory.add(SimulationTurnExecutor.formatConversationLine("Player", playerMessage));
@@ -419,7 +419,9 @@ public class SimulationService {
      * Delegates to the most recent run context (backward compat for single-run UI).
      */
     public void pause() {
-        if (lastRunContext != null) lastRunContext.pause();
+        if (lastRunContext != null) {
+            lastRunContext.pause();
+        }
     }
 
     /**
@@ -427,7 +429,9 @@ public class SimulationService {
      * Delegates to the most recent run context (backward compat for single-run UI).
      */
     public void resume() {
-        if (lastRunContext != null) lastRunContext.resume();
+        if (lastRunContext != null) {
+            lastRunContext.resume();
+        }
     }
 
     /**
@@ -504,17 +508,17 @@ public class SimulationService {
      */
     private List<Anchor> detectConflictedAnchors(String contextId, List<String> conversationHistory) {
         var lastPlayerMsg = conversationHistory.stream()
-                .filter(line -> line.startsWith("Player:"))
-                .reduce((first, second) -> second)
-                .map(line -> line.substring("Player:".length()).trim())
-                .orElse("");
+                                               .filter(line -> line.startsWith("Player:"))
+                                               .reduce((first, second) -> second)
+                                               .map(line -> line.substring("Player:".length()).trim())
+                                               .orElse("");
         if (lastPlayerMsg.isBlank()) {
             return List.of();
         }
         return anchorEngine.detectConflicts(contextId, lastPlayerMsg).stream()
-                .filter(c -> c.existing() != null)
-                .map(c -> c.existing())
-                .toList();
+                           .filter(c -> c.existing() != null)
+                           .map(c -> c.existing())
+                           .toList();
     }
 
     private String generateWarmUpMessage(SimulationScenario scenario) {
