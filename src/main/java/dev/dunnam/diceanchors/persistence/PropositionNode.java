@@ -286,7 +286,19 @@ public class PropositionNode {
              null, null, null, null, null, null, null);
     }
 
-    // --- Standard proposition getters and setters ---
+    /**
+     * Creates a faithful copy for a new context. New UUID, new contextId, fresh revised timestamp.
+     * Supersession fields are nulled — they reference IDs from the source context.
+     */
+    public PropositionNode cloneForContext(String newContextId) {
+        return new PropositionNode(
+                UUID.randomUUID().toString(), newContextId,
+                text, confidence, decay, reasoning, grounding, created, Instant.now(),
+                status, uri, sourceIds, rank, authority, pinned, decayType,
+                lastReinforced, reinforcementCount, importance, memoryTier,
+                validFrom, validTo, transactionStart, transactionEnd,
+                null, null, authorityCeiling);
+    }
 
     public String getId() {
         return id;
@@ -392,8 +404,6 @@ public class PropositionNode {
         this.embedding = embedding;
     }
 
-    // --- Anchor getters and setters ---
-
     public int getRank() {
         return rank;
     }
@@ -466,8 +476,6 @@ public class PropositionNode {
         this.authorityCeiling = authorityCeiling;
     }
 
-    // --- Bi-temporal validity getters and setters ---
-
     public @Nullable Instant getValidFrom() {
         return validFrom;
     }
@@ -499,8 +507,6 @@ public class PropositionNode {
     public void setTransactionEnd(@Nullable Instant transactionEnd) {
         this.transactionEnd = transactionEnd;
     }
-
-    // --- Supersession tracking getters and setters ---
 
     public @Nullable String getSupersededBy() {
         return supersededBy;

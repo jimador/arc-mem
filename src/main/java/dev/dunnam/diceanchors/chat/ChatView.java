@@ -247,6 +247,9 @@ public class ChatView extends VerticalLayout implements BeforeEnterObserver {
         var newButton = new Button("New", e -> startNewConversation());
         newButton.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_PRIMARY);
 
+        var cloneButton = new Button("Clone", e -> cloneCurrentConversation());
+        cloneButton.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_CONTRAST);
+
         resumeIdField = new TextField();
         resumeIdField.setPlaceholder("Paste conversation ID...");
         resumeIdField.setWidth("280px");
@@ -256,7 +259,7 @@ public class ChatView extends VerticalLayout implements BeforeEnterObserver {
         resumeButton.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_SUCCESS);
 
         var bar = new HorizontalLayout(
-                conversationIdField, copyButton, newButton, resumeIdField, resumeButton);
+                conversationIdField, copyButton, newButton, cloneButton, resumeIdField, resumeButton);
         bar.setWidthFull();
         bar.setAlignItems(Alignment.CENTER);
         bar.setPadding(true);
@@ -1159,13 +1162,30 @@ public class ChatView extends VerticalLayout implements BeforeEnterObserver {
             return;
         }
 
+        switchToConversation(resumeId);
+        resumeIdField.clear();
+        logger.info("Resumed conversation {} ", activeConversationId);
+    }
+
+    private void cloneCurrentConversation() {
+        if (activeConversationId == null) {
+            Notification.show("No active conversation to clone", 3000,
+                    Notification.Position.MIDDLE);
+            return;
+        }
+
+        var clonedId = conversationService.cloneConversation(activeConversationId);
+        switchToConversation(clonedId);
+        logger.info("Cloned to conversation {}", activeConversationId);
+    }
+
+    private void switchToConversation(String conversationId) {
         cancelAsyncSidebarRefresh();
         clearSession();
 
-        activeConversationId = resumeId;
+        activeConversationId = conversationId;
         updateConversationIdDisplay();
         storeConversationIdInSession();
-        resumeIdField.clear();
 
         messagesLayout.removeAll();
         anchorCards.clear();
@@ -1185,10 +1205,8 @@ public class ChatView extends VerticalLayout implements BeforeEnterObserver {
         }
 
         getUI().ifPresent(ui -> hydrateEmbabelSession(ui, messages));
-
         refreshSidebar();
         scrollToBottom();
-        logger.info("Resumed conversation {} with {} messages", activeConversationId, messages.size());
     }
 
     private void addUserBubble(String text) {

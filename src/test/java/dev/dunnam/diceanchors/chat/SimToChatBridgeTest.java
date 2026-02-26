@@ -3,6 +3,7 @@ package dev.dunnam.diceanchors.chat;
 import dev.dunnam.diceanchors.anchor.Anchor;
 import dev.dunnam.diceanchors.anchor.AnchorEngine;
 import dev.dunnam.diceanchors.anchor.Authority;
+import dev.dunnam.diceanchors.anchor.MemoryTier;
 import dev.dunnam.diceanchors.persistence.AnchorRepository;
 import dev.dunnam.diceanchors.persistence.PropositionNode;
 import dev.dunnam.diceanchors.sim.engine.SimulationRunRecord;
@@ -21,7 +22,6 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
@@ -148,6 +148,25 @@ class SimToChatBridgeTest {
 
             verify(anchorRepository, never()).setAuthority(eq(nodes.get(0).getId()), any());
             verify(anchorRepository).setAuthority(nodes.get(1).getId(), "RELIABLE");
+        }
+
+        @Test
+        @DisplayName("copiesReinforcementCountImportanceAndDecayToNode")
+        void copiesReinforcementCountImportanceAndDecayToNode() {
+            when(conversationService.createConversation(any())).thenReturn("conv-1");
+            when(anchorRepository.saveNode(any())).thenAnswer(inv -> inv.getArgument(0));
+            var anchor = new Anchor("a1", "Rich anchor", 600, Authority.RELIABLE, false,
+                    0.9, 5, null, 0.85, 0.3, MemoryTier.HOT);
+            var run = run("test", List.of(), List.of(anchor));
+
+            bridge.cloneRunToConversation(run);
+
+            var nodeCaptor = ArgumentCaptor.forClass(PropositionNode.class);
+            verify(anchorRepository).saveNode(nodeCaptor.capture());
+            var node = nodeCaptor.getValue();
+            assertThat(node.getReinforcementCount()).isEqualTo(5);
+            assertThat(node.getImportance()).isEqualTo(0.85);
+            assertThat(node.getDecay()).isEqualTo(0.3);
         }
 
         @Test

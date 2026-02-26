@@ -41,6 +41,9 @@ public class SimToChatBridge {
         for (var anchor : run.finalAnchorState()) {
             var node = new PropositionNode(anchor.text(), anchor.confidence());
             node.setContextId(conversationId);
+            node.setReinforcementCount(anchor.reinforcementCount());
+            node.setImportance(anchor.diceImportance());
+            node.setDecay(anchor.diceDecay());
             anchorRepository.saveNode(node);
 
             anchorEngine.promote(node.getId(), anchor.rank());
