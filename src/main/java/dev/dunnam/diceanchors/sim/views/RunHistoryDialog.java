@@ -9,6 +9,7 @@ import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import dev.dunnam.diceanchors.chat.SimToChatBridge;
 import dev.dunnam.diceanchors.sim.engine.RunHistoryStore;
 import dev.dunnam.diceanchors.sim.engine.SimulationRunRecord;
 
@@ -30,12 +31,14 @@ public class RunHistoryDialog extends Dialog {
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault());
 
     private final RunHistoryStore runStore;
+    private final SimToChatBridge simToChatBridge;
     private final Grid<SimulationRunRecord> grid;
     private final Set<String> selectedRunIds = new HashSet<>();
     private final Button compareButton;
 
-    public RunHistoryDialog(RunHistoryStore runStore) {
+    public RunHistoryDialog(RunHistoryStore runStore, SimToChatBridge simToChatBridge) {
         this.runStore = runStore;
+        this.simToChatBridge = simToChatBridge;
 
         setHeaderTitle("Run History");
         setWidth("900px");
@@ -76,7 +79,7 @@ public class RunHistoryDialog extends Dialog {
 
         grid.addComponentColumn(this::createActions)
             .setHeader("Actions")
-            .setWidth("180px");
+            .setWidth("260px");
 
         compareButton = new Button("Compare Selected");
 
@@ -120,11 +123,19 @@ public class RunHistoryDialog extends Dialog {
             UI.getCurrent().navigate("run?runId=" + record.runId());
         });
 
+        var chatButton = new Button("Start Chat");
+        chatButton.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_SUCCESS, ButtonVariant.LUMO_TERTIARY);
+        chatButton.addClickListener(e -> {
+            var conversationId = simToChatBridge.cloneRunToConversation(record);
+            close();
+            UI.getCurrent().navigate("chat?conversationId=" + conversationId);
+        });
+
         var deleteButton = new Button("Delete");
         deleteButton.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
         deleteButton.addClickListener(e -> confirmDelete(record));
 
-        var layout = new HorizontalLayout(inspectButton, deleteButton);
+        var layout = new HorizontalLayout(inspectButton, chatButton, deleteButton);
         layout.setSpacing(true);
         layout.setPadding(false);
         return layout;

@@ -24,6 +24,7 @@ import com.vaadin.flow.router.RouterLink;
 import dev.dunnam.diceanchors.anchor.AnchorEngine;
 import dev.dunnam.diceanchors.anchor.AnchorMutationStrategy;
 import dev.dunnam.diceanchors.chat.ChatView;
+import dev.dunnam.diceanchors.chat.SimToChatBridge;
 import dev.dunnam.diceanchors.persistence.AnchorRepository;
 import dev.dunnam.diceanchors.sim.engine.RunHistoryStore;
 import dev.dunnam.diceanchors.sim.engine.ScenarioLoader;
@@ -99,7 +100,8 @@ public class SimulationView extends VerticalLayout {
             AnchorRepository anchorRepository,
             AnchorEngine anchorEngine,
             RunHistoryStore runHistoryStore,
-            AnchorMutationStrategy mutationStrategy) {
+            AnchorMutationStrategy mutationStrategy,
+            SimToChatBridge simToChatBridge) {
         this.simulationService = simulationService;
         this.scenarioLoader = scenarioLoader;
         this.anchorRepository = anchorRepository;
@@ -174,7 +176,7 @@ public class SimulationView extends VerticalLayout {
         stopButton = new Button("Stop");
         stopButton.setVisible(false);
 
-        runHistoryDialog = new RunHistoryDialog(simulationService.getRunStore());
+        runHistoryDialog = new RunHistoryDialog(simulationService.getRunStore(), simToChatBridge);
 
         runHistoryButton = new Button("Run History");
         runHistoryButton.addClickListener(e -> {

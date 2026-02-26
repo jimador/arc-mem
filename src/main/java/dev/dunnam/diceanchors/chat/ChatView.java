@@ -18,6 +18,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Paragraph;
@@ -31,6 +32,8 @@ import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouterLink;
@@ -83,13 +86,14 @@ import java.util.concurrent.TimeUnit;
  */
 @Route("chat")
 @PageTitle("Dice Anchors — Bigby the DM")
-public class ChatView extends VerticalLayout {
+public class ChatView extends VerticalLayout implements BeforeEnterObserver {
 
     private static final Logger logger = LoggerFactory.getLogger(ChatView.class);
     private static final int RESPONSE_TIMEOUT_SECONDS = 120;
     private static final int ASYNC_SIDEBAR_REFRESH_ATTEMPTS = 24;
     private static final long ASYNC_SIDEBAR_REFRESH_INTERVAL_MILLIS = 5_000L;
-    private static final String DEFAULT_CONTEXT = "chat";
+    private static final String SESSION_ATTR_CHAT = "diceAnchorsChatSession";
+    private static final String SESSION_ATTR_CONVERSATION_ID = "diceAnchorsConversationId";
 
     private final Chatbot chatbot;
     private final AnchorEngine anchorEngine;
@@ -100,6 +104,7 @@ public class ChatView extends VerticalLayout {
     private final TokenCounter tokenCounter;
     private final RelevanceScorer relevanceScorer;
     private final AnchorMutationStrategy mutationStrategy;
+    private final ConversationService conversationService;
     private final Parser markdownParser = Parser.builder().build();
     private final HtmlRenderer htmlRenderer = HtmlRenderer.builder().build();
 
@@ -108,6 +113,8 @@ public class ChatView extends VerticalLayout {
     private TextField inputField;
     private Button sendButton;
     private Div thinkingIndicator;
+    private TextField conversationIdField;
+    private TextField resumeIdField;
 
     private VerticalLayout anchorsTabContent;
     private VerticalLayout propositionsTabContent;
@@ -120,6 +127,7 @@ public class ChatView extends VerticalLayout {
     private Span anchorsHeader;
     private Div createAnchorForm;
     private int turnCount = 0;
+    private String activeConversationId;
 
     public ChatView(Chatbot chatbot, AnchorEngine anchorEngine, AnchorRepository anchorRepository,
                     GraphObjectManager graphObjectManager,
@@ -127,7 +135,8 @@ public class ChatView extends VerticalLayout {
                     CompliancePolicy compliancePolicy,
                     TokenCounter tokenCounter,
                     RelevanceScorer relevanceScorer,
-                    AnchorMutationStrategy mutationStrategy) {
+                    AnchorMutationStrategy mutationStrategy,
+                    ConversationService conversationService) {
         this.chatbot = chatbot;
         this.anchorEngine = anchorEngine;
         this.anchorRepository = anchorRepository;
@@ -137,6 +146,7 @@ public class ChatView extends VerticalLayout {
         this.tokenCounter = tokenCounter;
         this.relevanceScorer = relevanceScorer;
         this.mutationStrategy = mutationStrategy;
+        this.conversationService = conversationService;
         setSizeFull();
         setPadding(false);
         setSpacing(false);
@@ -155,6 +165,23 @@ public class ChatView extends VerticalLayout {
         super.onDetach(detachEvent);
     }
 
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        event.getLocation().getQueryParameters()
+                .getParameters()
+                .getOrDefault("conversationId", List.of())
+                .stream()
+                .findFirst()
+                .ifPresent(id -> {
+                    var existing = conversationService.findConversation(id);
+                    if (existing.isPresent()) {
+                        activeConversationId = id;
+                        storeConversationIdInSession();
+                    } else {
+                        logger.warn("Conversation {} from query param not found", id);
+                    }
+                });
+    }
 
     private void buildUI() {
         var header = new H2("Bigby — Your D&D Dungeon Master");
@@ -169,6 +196,8 @@ public class ChatView extends VerticalLayout {
         headerRow.setWidthFull();
         headerRow.setAlignItems(HorizontalLayout.Alignment.CENTER);
         headerRow.addClassName("ar-header-row");
+
+        var conversationBar = buildConversationBar();
 
         messagesLayout = new VerticalLayout();
         messagesLayout.setWidthFull();
@@ -194,9 +223,47 @@ public class ChatView extends VerticalLayout {
         splitLayout.setSizeFull();
         splitLayout.setSplitterPosition(70);
 
-        add(headerRow, splitLayout);
+        add(headerRow, conversationBar, splitLayout);
         setFlexGrow(1, splitLayout);
         setPadding(false);
+    }
+
+    private HorizontalLayout buildConversationBar() {
+        conversationIdField = new TextField();
+        conversationIdField.setReadOnly(true);
+        conversationIdField.setWidth("320px");
+        conversationIdField.setPlaceholder("No conversation");
+        conversationIdField.setClearButtonVisible(false);
+        conversationIdField.addClassName("ar-conversation-id");
+
+        var copyButton = new Button("Copy ID", e -> {
+            if (activeConversationId != null) {
+                getUI().ifPresent(ui -> ui.getPage().executeJs(
+                        "navigator.clipboard.writeText($0)", activeConversationId));
+            }
+        });
+        copyButton.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
+
+        var newButton = new Button("New", e -> startNewConversation());
+        newButton.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_PRIMARY);
+
+        resumeIdField = new TextField();
+        resumeIdField.setPlaceholder("Paste conversation ID...");
+        resumeIdField.setWidth("280px");
+        resumeIdField.setClearButtonVisible(true);
+
+        var resumeButton = new Button("Resume", e -> resumeConversation());
+        resumeButton.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_SUCCESS);
+
+        var bar = new HorizontalLayout(
+                conversationIdField, copyButton, newButton, resumeIdField, resumeButton);
+        bar.setWidthFull();
+        bar.setAlignItems(Alignment.CENTER);
+        bar.setPadding(true);
+        bar.setSpacing(true);
+        bar.addClassName("ar-conversation-bar");
+
+        return bar;
     }
 
     private HorizontalLayout buildInputSection() {
@@ -299,7 +366,7 @@ public class ChatView extends VerticalLayout {
 
     private void refreshAnchorsTab() {
         try {
-            var anchors = anchorEngine.inject(DEFAULT_CONTEXT);
+            var anchors = anchorEngine.inject(getContextId());
             var anchorsById = anchors.stream().collect(java.util.stream.Collectors.toMap(
                     Anchor::id, anchor -> anchor, (left, right) -> right, LinkedHashMap::new));
 
@@ -394,8 +461,8 @@ public class ChatView extends VerticalLayout {
         propositionsTabContent.removeAll();
 
         try {
-            var propositions = anchorRepository.findByContextIdValue(DEFAULT_CONTEXT);
-            var anchorIds = anchorRepository.findActiveAnchors(DEFAULT_CONTEXT).stream()
+            var propositions = anchorRepository.findByContextIdValue(getContextId());
+            var anchorIds = anchorRepository.findActiveAnchors(getContextId()).stream()
                                             .map(n -> n.getId())
                                             .collect(java.util.stream.Collectors.toSet());
             var nonAnchors = propositions.stream()
@@ -446,8 +513,8 @@ public class ChatView extends VerticalLayout {
         knowledgeTabContent.removeAll();
 
         try {
-            var propositions = anchorRepository.findByContextIdValue(DEFAULT_CONTEXT);
-            var anchorIds = anchorRepository.findActiveAnchors(DEFAULT_CONTEXT).stream()
+            var propositions = anchorRepository.findByContextIdValue(getContextId());
+            var anchorIds = anchorRepository.findActiveAnchors(getContextId()).stream()
                                             .map(n -> n.getId())
                                             .collect(java.util.stream.Collectors.toSet());
             var knowledge = propositions.stream()
@@ -522,7 +589,7 @@ public class ChatView extends VerticalLayout {
             var confidence = confidenceField.getValue() != null ? confidenceField.getValue() : 0.8;
 
             var node = new PropositionNode(knowledgeText.trim(), confidence);
-            node.setContextId(DEFAULT_CONTEXT);
+            node.setContextId(getContextId());
             graphObjectManager.save(new PropositionView(node, List.of()), CascadeType.NONE);
 
             textField.clear();
@@ -546,17 +613,17 @@ public class ChatView extends VerticalLayout {
         title.addClassName("ar-section-title");
         sessionInfoTabContent.add(title);
 
-        sessionInfoTabContent.add(infoRow("Context ID", DEFAULT_CONTEXT));
+        sessionInfoTabContent.add(infoRow("Context ID", getContextId()));
 
         try {
-            int anchorCount = anchorRepository.countActiveAnchors(DEFAULT_CONTEXT);
+            int anchorCount = anchorRepository.countActiveAnchors(getContextId());
             sessionInfoTabContent.add(infoRow("Active Anchors", String.valueOf(anchorCount)));
         } catch (Exception e) {
             sessionInfoTabContent.add(infoRow("Active Anchors", "N/A"));
         }
 
         try {
-            var propositions = anchorRepository.findByContextIdValue(DEFAULT_CONTEXT);
+            var propositions = anchorRepository.findByContextIdValue(getContextId());
             sessionInfoTabContent.add(infoRow("Propositions", String.valueOf(propositions.size())));
         } catch (Exception e) {
             sessionInfoTabContent.add(infoRow("Propositions", "N/A"));
@@ -714,7 +781,7 @@ public class ChatView extends VerticalLayout {
 
     private boolean executeRevision(Anchor anchor, String revisedText) {
         var node = new PropositionNode(revisedText, 0.95);
-        node.setContextId(DEFAULT_CONTEXT);
+        node.setContextId(getContextId());
         graphObjectManager.save(new PropositionView(node, List.of()), CascadeType.NONE);
         anchorRepository.promoteToAnchor(node.getId(), anchor.rank(), anchor.authority().name());
         if (anchor.pinned()) {
@@ -732,7 +799,7 @@ public class ChatView extends VerticalLayout {
         try {
             var anchorRef = new AnchorsLlmReference(
                     anchorEngine,
-                    DEFAULT_CONTEXT,
+                    getContextId(),
                     properties.anchor().budget(),
                     compliancePolicy,
                     properties.assembly().promptTokenBudget(),
@@ -742,7 +809,7 @@ public class ChatView extends VerticalLayout {
                     relevanceScorer);
             var propositionRef = new PropositionsLlmReference(
                     anchorRepository,
-                    DEFAULT_CONTEXT,
+                    getContextId(),
                     properties.anchor().budget());
 
             var anchors = anchorRef.getAnchors();
@@ -848,7 +915,7 @@ public class ChatView extends VerticalLayout {
             var authority = authorityCombo.getValue() != null ? authorityCombo.getValue() : "PROVISIONAL";
 
             var node = new PropositionNode(anchorText.trim(), 0.95);
-            node.setContextId(DEFAULT_CONTEXT);
+            node.setContextId(getContextId());
             graphObjectManager.save(new PropositionView(node, List.of()), CascadeType.NONE);
             anchorRepository.promoteToAnchor(node.getId(), rank, authority);
 
@@ -902,6 +969,10 @@ public class ChatView extends VerticalLayout {
 
         var sessionData = getOrCreateSession(ui);
 
+        if (activeConversationId != null) {
+            conversationService.appendMessage(activeConversationId, "PLAYER", text);
+        }
+
         new Thread(() -> {
             try {
                 sessionData.chatSession().onUserMessage(new UserMessage(text));
@@ -913,6 +984,9 @@ public class ChatView extends VerticalLayout {
                     removeThinkingIndicator();
                     if (response != null) {
                         addBotBubble(response.getContent());
+                        if (activeConversationId != null) {
+                            conversationService.appendMessage(activeConversationId, "DM", response.getContent());
+                        }
                         turnCount++;
                         refreshSidebar();
                         scheduleAsyncSidebarRefresh(ui);
@@ -948,23 +1022,28 @@ public class ChatView extends VerticalLayout {
 
     private SessionData getOrCreateSession(UI ui) {
         var vaadinSession = VaadinSession.getCurrent();
-        var existing = (SessionData) vaadinSession.getAttribute("diceAnchorsChatSession");
+        var existing = (SessionData) vaadinSession.getAttribute(SESSION_ATTR_CHAT);
         if (existing != null) {
             return existing;
+        }
+
+        if (activeConversationId == null) {
+            activeConversationId = conversationService.createConversation();
+            updateConversationIdDisplay();
+            storeConversationIdInSession();
         }
 
         var responseQueue = new ArrayBlockingQueue<Message>(10);
         var outputChannel = new VaadinOutputChannel(responseQueue, ui, messagesLayout);
 
-        // Simple anonymous user — dice-anchors has no user model
         var sessionId = UUID.randomUUID().toString();
         var user = new AnonymousDmUser(sessionId);
 
-        var chatSession = chatbot.createSession(user, outputChannel, sessionId, "Dice Anchors Chat");
+        var chatSession = chatbot.createSession(user, outputChannel, activeConversationId, activeConversationId);
         var sessionData = new SessionData(chatSession, responseQueue);
-        vaadinSession.setAttribute("diceAnchorsChatSession", sessionData);
+        vaadinSession.setAttribute(SESSION_ATTR_CHAT, sessionData);
 
-        logger.info("Created dice-anchors chat session {}", sessionId);
+        logger.info("Created chat session {} for conversation {}", sessionId, activeConversationId);
         return sessionData;
     }
 
@@ -974,24 +1053,143 @@ public class ChatView extends VerticalLayout {
             return;
         }
 
-        var sessionData = (SessionData) vaadinSession.getAttribute("diceAnchorsChatSession");
-        if (sessionData == null) {
-            return;
+        var storedConversationId = (String) vaadinSession.getAttribute(SESSION_ATTR_CONVERSATION_ID);
+        if (storedConversationId != null && activeConversationId == null) {
+            activeConversationId = storedConversationId;
+            updateConversationIdDisplay();
         }
 
-        var conversation = sessionData.chatSession().getConversation();
-        for (var msg : conversation.getMessages()) {
-            if (msg instanceof UserMessage) {
-                addUserBubble(msg.getContent());
-            } else if (msg instanceof AssistantMessage) {
-                addBotBubble(msg.getContent());
+        var sessionData = (SessionData) vaadinSession.getAttribute(SESSION_ATTR_CHAT);
+        if (sessionData != null) {
+            var conversation = sessionData.chatSession().getConversation();
+            for (var msg : conversation.getMessages()) {
+                if (msg instanceof UserMessage) {
+                    addUserBubble(msg.getContent());
+                } else if (msg instanceof AssistantMessage) {
+                    addBotBubble(msg.getContent());
+                }
             }
+        } else if (activeConversationId != null) {
+            var messages = conversationService.loadConversation(activeConversationId);
+            for (var msg : messages) {
+                if ("PLAYER".equals(msg.role())) {
+                    addUserBubble(msg.text());
+                } else if ("DM".equals(msg.role())) {
+                    addBotBubble(msg.text());
+                }
+            }
+            turnCount = (int) messages.stream().filter(m -> "DM".equals(m.role())).count();
         }
-        if (!conversation.getMessages().isEmpty()) {
+
+        if (messagesLayout.getComponentCount() > 0) {
             scrollToBottom();
         }
     }
 
+
+    private void hydrateEmbabelSession(UI ui, List<ChatMessageRecord> messages) {
+        var sessionData = getOrCreateSession(ui);
+        var conversation = sessionData.chatSession().getConversation();
+        for (var msg : messages) {
+            if ("PLAYER".equals(msg.role())) {
+                conversation.addMessage(new UserMessage(msg.text()));
+            } else if ("DM".equals(msg.role())) {
+                conversation.addMessage(new AssistantMessage(msg.text()));
+            }
+        }
+        logger.debug("Hydrated Embabel conversation with {} messages", messages.size());
+    }
+
+    private String getContextId() {
+        return activeConversationId != null ? activeConversationId : "chat";
+    }
+
+    private void updateConversationIdDisplay() {
+        if (conversationIdField != null && activeConversationId != null) {
+            conversationIdField.setValue(activeConversationId);
+        }
+    }
+
+    private void storeConversationIdInSession() {
+        var vaadinSession = VaadinSession.getCurrent();
+        if (vaadinSession != null && activeConversationId != null) {
+            vaadinSession.setAttribute(SESSION_ATTR_CONVERSATION_ID, activeConversationId);
+        }
+    }
+
+    private void clearSession() {
+        var vaadinSession = VaadinSession.getCurrent();
+        if (vaadinSession != null) {
+            vaadinSession.setAttribute(SESSION_ATTR_CHAT, null);
+            vaadinSession.setAttribute(SESSION_ATTR_CONVERSATION_ID, null);
+        }
+    }
+
+    private void startNewConversation() {
+        cancelAsyncSidebarRefresh();
+        clearSession();
+
+        activeConversationId = conversationService.createConversation();
+        updateConversationIdDisplay();
+        storeConversationIdInSession();
+
+        messagesLayout.removeAll();
+        anchorCards.clear();
+        renderedAnchors.clear();
+        anchorsHeader = null;
+        createAnchorForm = null;
+        turnCount = 0;
+
+        refreshSidebar();
+        inputField.focus();
+        logger.info("Started new conversation {}", activeConversationId);
+    }
+
+    private void resumeConversation() {
+        var resumeId = resumeIdField.getValue();
+        if (resumeId == null || resumeId.trim().isEmpty()) {
+            return;
+        }
+        resumeId = resumeId.trim();
+
+        var existing = conversationService.findConversation(resumeId);
+        if (existing.isEmpty()) {
+            Notification.show("No conversation found with that ID", 3000,
+                    Notification.Position.MIDDLE);
+            return;
+        }
+
+        cancelAsyncSidebarRefresh();
+        clearSession();
+
+        activeConversationId = resumeId;
+        updateConversationIdDisplay();
+        storeConversationIdInSession();
+        resumeIdField.clear();
+
+        messagesLayout.removeAll();
+        anchorCards.clear();
+        renderedAnchors.clear();
+        anchorsHeader = null;
+        createAnchorForm = null;
+        turnCount = 0;
+
+        var messages = conversationService.loadConversation(activeConversationId);
+        for (var msg : messages) {
+            if ("PLAYER".equals(msg.role())) {
+                addUserBubble(msg.text());
+            } else if ("DM".equals(msg.role())) {
+                addBotBubble(msg.text());
+                turnCount++;
+            }
+        }
+
+        getUI().ifPresent(ui -> hydrateEmbabelSession(ui, messages));
+
+        refreshSidebar();
+        scrollToBottom();
+        logger.info("Resumed conversation {} with {} messages", activeConversationId, messages.size());
+    }
 
     private void addUserBubble(String text) {
         var bubble = new Div(new Paragraph(text));
