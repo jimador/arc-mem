@@ -49,7 +49,7 @@ How do existing AI memory and agent frameworks handle the distinction between le
 
 ## Method
 
-1. Local code/doc checks: Review existing related work analysis in `docs/roadmaps/anchor-working-memory-research/research/R02-related-work-landscape-analysis.md` if present.
+1. Local code/doc checks: Review existing related work analysis in `openspec/roadmaps/anchor-working-memory-research/research/R02-related-work-landscape-analysis.md` if present.
 2. External evidence collection:
    - GitHub repos: Letta (`letta-ai/letta`), Zep (`getzep/zep`), Graphiti (`getzep/graphiti`), LangMem (`langchain-ai/langmem`), Mem0 (`mem0ai/mem0`)
    - Official documentation sites for each framework

@@ -40,10 +40,10 @@ Produce:
 
 Default output paths:
 
-1. `docs/roadmaps/<roadmap-slug>-roadmap.md`
-2. `docs/roadmaps/<roadmap-slug>/features/<NN>-<feature-slug>.md`
-3. `docs/roadmaps/<roadmap-slug>/research/R<NN>-<research-slug>.md` (optional)
-4. `docs/roadmaps/<roadmap-slug>/prep/<NN>-<feature-slug>-prep.md` (optional)
+1. `openspec/roadmaps/<roadmap-slug>-roadmap.md`
+2. `openspec/roadmaps/<roadmap-slug>/features/<NN>-<feature-slug>.md`
+3. `openspec/roadmaps/<roadmap-slug>/research/R<NN>-<research-slug>.md` (optional)
+4. `openspec/roadmaps/<roadmap-slug>/prep/<NN>-<feature-slug>-prep.md` (optional)
 If repository conventions differ, adapt consistently.
 
 ## Optional Inputs

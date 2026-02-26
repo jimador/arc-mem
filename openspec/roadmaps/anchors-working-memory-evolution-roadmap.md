@@ -51,10 +51,10 @@ Normative roadmap statements SHOULD use RFC 2119 keywords (`MUST`, `SHOULD`, `MA
 
 | Task ID | Question                                                                                                     | Target Feature(s) | Channels                                   | Timebox | Success Criteria                                                                    | Output Doc                                                                                            |
 |---------|--------------------------------------------------------------------------------------------------------------|-------------------|--------------------------------------------|---------|-------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|
-| R01     | What calibration approach should replace static conflict thresholds while preserving stable policy behavior? | F02, F03          | codebase + repo-docs + web + similar-repos | 8h      | Decision matrix and rollout gates with measurable review/false-allow targets.       | `docs/roadmaps/anchors-working-memory-evolution/research/R01-conflict-calibration-method.md`          |
-| R02     | Which temporal model best fits existing graph constraints with low migration risk?                           | F04               | codebase + repo-docs + web                 | 6h      | Accepted temporal field model, migration approach, and supersession rules.          | `docs/roadmaps/anchors-working-memory-evolution/research/R02-temporal-model-and-migration.md`         |
-| R03     | Which retry/fallback sequence provides no-regression compaction behavior under latency constraints?          | F05               | codebase + repo-docs + similar-repos       | 6h      | Policy recommendation with objective replacement safety criteria.                   | `docs/roadmaps/anchors-working-memory-evolution/research/R03-compaction-recovery-policy.md`           |
-| R04     | How should operator-defined invariants be modeled and prioritized against extracted anchors?                 | F07, F08          | codebase + repo-docs + web                 | 8h      | Precedence matrix, lifecycle model, and audit contract ready for proposal drafting. | `docs/roadmaps/anchors-working-memory-evolution/research/R04-operator-invariants-governance-model.md` |
+| R01     | What calibration approach should replace static conflict thresholds while preserving stable policy behavior? | F02, F03          | codebase + repo-docs + web + similar-repos | 8h      | Decision matrix and rollout gates with measurable review/false-allow targets.       | `openspec/roadmaps/anchors-working-memory-evolution/research/R01-conflict-calibration-method.md`          |
+| R02     | Which temporal model best fits existing graph constraints with low migration risk?                           | F04               | codebase + repo-docs + web                 | 6h      | Accepted temporal field model, migration approach, and supersession rules.          | `openspec/roadmaps/anchors-working-memory-evolution/research/R02-temporal-model-and-migration.md`         |
+| R03     | Which retry/fallback sequence provides no-regression compaction behavior under latency constraints?          | F05               | codebase + repo-docs + similar-repos       | 6h      | Policy recommendation with objective replacement safety criteria.                   | `openspec/roadmaps/anchors-working-memory-evolution/research/R03-compaction-recovery-policy.md`           |
+| R04     | How should operator-defined invariants be modeled and prioritized against extracted anchors?                 | F07, F08          | codebase + repo-docs + web                 | 8h      | Precedence matrix, lifecycle model, and audit contract ready for proposal drafting. | `openspec/roadmaps/anchors-working-memory-evolution/research/R04-operator-invariants-governance-model.md` |
 
 ## Sequencing Rationale
 
@@ -65,21 +65,21 @@ Normative roadmap statements SHOULD use RFC 2119 keywords (`MUST`, `SHOULD`, `MA
 
 ## Feature Documents
 
-1. `docs/roadmaps/anchors-working-memory-evolution/features/01-working-memory-tiering-core.md`
-2. `docs/roadmaps/anchors-working-memory-evolution/features/02-conflict-detection-calibration-core.md`
-3. `docs/roadmaps/anchors-working-memory-evolution/features/03-retrieval-quality-gate-toolishrag.md`
-4. `docs/roadmaps/anchors-working-memory-evolution/features/04-bi-temporal-validity-and-supersession.md`
-5. `docs/roadmaps/anchors-working-memory-evolution/features/05-compaction-recovery-guardrails.md`
-6. `docs/roadmaps/anchors-working-memory-evolution/features/06-benchmarking-and-statistical-rigor.md`
-7. `docs/roadmaps/anchors-working-memory-evolution/features/07-operator-invariants-api-and-governance.md`
-8. `docs/roadmaps/anchors-working-memory-evolution/features/08-dice-framework-fit-upstream-proposal.md`
+1. `openspec/roadmaps/anchors-working-memory-evolution/features/01-working-memory-tiering-core.md`
+2. `openspec/roadmaps/anchors-working-memory-evolution/features/02-conflict-detection-calibration-core.md`
+3. `openspec/roadmaps/anchors-working-memory-evolution/features/03-retrieval-quality-gate-toolishrag.md`
+4. `openspec/roadmaps/anchors-working-memory-evolution/features/04-bi-temporal-validity-and-supersession.md`
+5. `openspec/roadmaps/anchors-working-memory-evolution/features/05-compaction-recovery-guardrails.md`
+6. `openspec/roadmaps/anchors-working-memory-evolution/features/06-benchmarking-and-statistical-rigor.md`
+7. `openspec/roadmaps/anchors-working-memory-evolution/features/07-operator-invariants-api-and-governance.md`
+8. `openspec/roadmaps/anchors-working-memory-evolution/features/08-dice-framework-fit-upstream-proposal.md`
 
 ## Research Documents (Optional)
 
-1. `docs/roadmaps/anchors-working-memory-evolution/research/R01-conflict-calibration-method.md`
-2. `docs/roadmaps/anchors-working-memory-evolution/research/R02-temporal-model-and-migration.md`
-3. `docs/roadmaps/anchors-working-memory-evolution/research/R03-compaction-recovery-policy.md`
-4. `docs/roadmaps/anchors-working-memory-evolution/research/R04-operator-invariants-governance-model.md`
+1. `openspec/roadmaps/anchors-working-memory-evolution/research/R01-conflict-calibration-method.md`
+2. `openspec/roadmaps/anchors-working-memory-evolution/research/R02-temporal-model-and-migration.md`
+3. `openspec/roadmaps/anchors-working-memory-evolution/research/R03-compaction-recovery-policy.md`
+4. `openspec/roadmaps/anchors-working-memory-evolution/research/R04-operator-invariants-governance-model.md`
 
 ## Exit Criteria
 

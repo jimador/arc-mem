@@ -116,7 +116,7 @@ All normative statements in this document SHOULD use RFC 2119 keywords (`MUST`, 
 
 | Task ID | Key Finding | Evidence Source | Confidence | Impact on Scope |
 |---------|-------------|-----------------|------------|-----------------|
-| R00 | Observed: DM refuses player class change; wizard anchor reinforced to UNRELIABLE/650/x3 after 3 turns; refusal creates reinforcement feedback loop. | `docs/roadmaps/collaborative-anchor-mutation/research/R00-chat-mutation-failure-analysis.md` | High | Confirms classification gap is the blocking issue. |
+| R00 | Observed: DM refuses player class change; wizard anchor reinforced to UNRELIABLE/650/x3 after 3 turns; refusal creates reinforcement feedback loop. | `openspec/roadmaps/collaborative-anchor-mutation/research/R00-chat-mutation-failure-analysis.md` | High | Confirms classification gap is the blocking issue. |
 | R01 | Pending: LLM classification accuracy for revision vs contradiction. | — | — | MUST complete before proposal. |
 
 ## Validation Plan

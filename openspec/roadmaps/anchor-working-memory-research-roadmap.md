@@ -66,8 +66,8 @@ Multi-agent anchor governance — extending the trust/authority model to agent-t
 
 | Task ID | Question                                                                                                  | Target Feature(s) | Channels                   | Timebox | Success Criteria                                                                                           | Output Doc                                                                                        |
 |---------|-----------------------------------------------------------------------------------------------------------|-------------------|----------------------------|---------|------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------|
-| R01     | How reliable is LLM-as-judge drift evaluation, and what calibration methodology ensures credible results? | F01, F03          | codebase + web + repo-docs | 6h      | Human agreement methodology defined; Cohen's kappa target established; calibration sample size determined. | `docs/roadmaps/anchor-working-memory-research/research/R01-evaluator-validity-and-calibration.md` |
-| R02     | How does dice-anchors position against MemGPT, Zep, ShardMemo, MemOS, and A-MemGuard?                     | F03               | web + repo-docs            | 8h      | Comparison table with per-system analysis; differentiation argument articulated; citation list complete.   | `docs/roadmaps/anchor-working-memory-research/research/R02-related-work-landscape-analysis.md`    |
+| R01     | How reliable is LLM-as-judge drift evaluation, and what calibration methodology ensures credible results? | F01, F03          | codebase + web + repo-docs | 6h      | Human agreement methodology defined; Cohen's kappa target established; calibration sample size determined. | `openspec/roadmaps/anchor-working-memory-research/research/R01-evaluator-validity-and-calibration.md` |
+| R02     | How does dice-anchors position against MemGPT, Zep, ShardMemo, MemOS, and A-MemGuard?                     | F03               | web + repo-docs            | 8h      | Comparison table with per-system analysis; differentiation argument articulated; citation list complete.   | `openspec/roadmaps/anchor-working-memory-research/research/R02-related-work-landscape-analysis.md`    |
 
 ## Sequencing Rationale
 
@@ -77,16 +77,16 @@ Multi-agent anchor governance — extending the trust/authority model to agent-t
 
 ## Feature Documents
 
-1. `docs/roadmaps/anchor-working-memory-research/features/01-experiment-framework.md`
-2. `docs/roadmaps/anchor-working-memory-research/features/02-first-class-benchmarking-ui.md`
-3. `docs/roadmaps/anchor-working-memory-research/features/03-resilience-evaluation-report.md`
-4. `docs/roadmaps/anchor-working-memory-research/features/04-serendipitous-knowledge-retrieval.md`
-5. `docs/roadmaps/anchor-working-memory-research/features/05-multi-agent-anchor-governance.md`
+1. `openspec/roadmaps/anchor-working-memory-research/features/01-experiment-framework.md`
+2. `openspec/roadmaps/anchor-working-memory-research/features/02-first-class-benchmarking-ui.md`
+3. `openspec/roadmaps/anchor-working-memory-research/features/03-resilience-evaluation-report.md`
+4. `openspec/roadmaps/anchor-working-memory-research/features/04-serendipitous-knowledge-retrieval.md`
+5. `openspec/roadmaps/anchor-working-memory-research/features/05-multi-agent-anchor-governance.md`
 
 ## Research Documents
 
-1. `docs/roadmaps/anchor-working-memory-research/research/R01-evaluator-validity-and-calibration.md`
-2. `docs/roadmaps/anchor-working-memory-research/research/R02-related-work-landscape-analysis.md`
+1. `openspec/roadmaps/anchor-working-memory-research/research/R01-evaluator-validity-and-calibration.md`
+2. `openspec/roadmaps/anchor-working-memory-research/research/R02-related-work-landscape-analysis.md`
 
 ## Change Scaffolds
 

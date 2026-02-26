@@ -207,12 +207,13 @@ dice-anchors uses [OpenSpec](https://github.com/Fission-AI/OpenSpec) for structu
 
 ### OpenSpec Workflow
 
-1. **New feature/change**: Use `/opsx:new` to create a change with proposal -> spec -> design -> tasks
-2. **Continue change**: Use `/opsx:continue` to create the next artifact
-3. **Fast-forward**: Use `/opsx:ff` to generate all artifacts at once
-4. **Implement**: Use `/opsx:apply` to work through tasks
-5. **Verify**: Use `/opsx:verify` to validate implementation matches spec
-6. **Archive**: Use `/opsx:archive` to finalize completed changes
+1. **Plan a roadmap**: Use `/opsx:roadmap` to create sequenced feature docs from a high-level initiative
+2. **New feature/change**: Use `/opsx:new` to create a change with proposal -> spec -> design -> tasks
+3. **Continue change**: Use `/opsx:continue` to create the next artifact
+4. **Fast-forward**: Use `/opsx:ff` to generate all artifacts at once
+5. **Implement**: Use `/opsx:apply` to work through tasks
+6. **Verify**: Use `/opsx:verify` to validate implementation matches spec
+7. **Archive**: Use `/opsx:archive` to finalize completed changes
 
 ## What NOT to Do
 

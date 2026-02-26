@@ -56,12 +56,12 @@ Normative roadmap statements SHOULD use RFC 2119 keywords only (`MUST`, `SHOULD`
 
 | Task ID | Question | Target Feature(s) | Channels | Timebox | Success Criteria | Output Doc |
 |---------|----------|-------------------|----------|---------|------------------|------------|
-| R00 | What is the observed failure mode when a collaborator attempts to revise an established anchor via free-form chat? | All | codebase | completed | Failure mode documented with transcript, anchor state progression, and root cause analysis. | `docs/roadmaps/collaborative-anchor-mutation/research/R00-chat-mutation-failure-analysis.md` |
-| R01 | How reliably can an LLM classify revision intent vs adversarial contradiction, and what prompt strategies minimize false positives? | F01 | codebase + web | completed | Prompt strategy defined; false-positive rate target established; evaluation methodology documented. | `docs/roadmaps/collaborative-anchor-mutation/research/R01-revision-intent-classification-accuracy.md` |
-| R02 | Which cascade strategy (temporal co-creation, semantic dependency, explicit DERIVED_FROM edges) best identifies dangling propositions without over-invalidation? | F03 | codebase + web + repo-docs | completed | Strategy comparison matrix; recommended approach with tradeoff analysis; prototype validation criteria. | `docs/roadmaps/collaborative-anchor-mutation/research/R02-dependent-anchor-cascade-strategy.md` |
-| R03 | How should the compliance prompt template handle mixed-authority revision scenarios (e.g., RELIABLE anchor revised by PROVISIONAL evidence)? | F02 | codebase + repo-docs | completed | Authority-level revision rules defined; prompt template draft with compliance language; edge cases documented. | `docs/roadmaps/collaborative-anchor-mutation/research/R03-mixed-authority-revision-compliance.md` |
-| R04 | How do existing AI memory frameworks (Letta/MemGPT, Zep/Graphiti, LangMem, Mem0, A-MemGuard, MemOS) handle fact mutation, and do any distinguish update from contradiction? | F01, F02, F03 | web + similar-repos + repo-docs | completed | Comparison matrix across 3+ frameworks; transferable patterns identified; gaps in existing approaches documented. | `docs/roadmaps/collaborative-anchor-mutation/research/R04-ai-memory-framework-comparison.md` |
-| R05 | What established solutions exist in non-AI domains (TMS, AGM belief revision, MVCC, CRDTs, ECO/BOM, medical records, legal precedent, Wikipedia edit classification, accounting) for maintaining authoritative state while allowing legitimate revisions? | All | web + repo-docs | completed | Pattern catalog from 4+ distinct domains; transferability assessment per feature (F01-F05); recurring cross-domain patterns identified. | `docs/roadmaps/collaborative-anchor-mutation/research/R05-cross-domain-prior-art.md` |
+| R00 | What is the observed failure mode when a collaborator attempts to revise an established anchor via free-form chat? | All | codebase | completed | Failure mode documented with transcript, anchor state progression, and root cause analysis. | `openspec/roadmaps/collaborative-anchor-mutation/research/R00-chat-mutation-failure-analysis.md` |
+| R01 | How reliably can an LLM classify revision intent vs adversarial contradiction, and what prompt strategies minimize false positives? | F01 | codebase + web | completed | Prompt strategy defined; false-positive rate target established; evaluation methodology documented. | `openspec/roadmaps/collaborative-anchor-mutation/research/R01-revision-intent-classification-accuracy.md` |
+| R02 | Which cascade strategy (temporal co-creation, semantic dependency, explicit DERIVED_FROM edges) best identifies dangling propositions without over-invalidation? | F03 | codebase + web + repo-docs | completed | Strategy comparison matrix; recommended approach with tradeoff analysis; prototype validation criteria. | `openspec/roadmaps/collaborative-anchor-mutation/research/R02-dependent-anchor-cascade-strategy.md` |
+| R03 | How should the compliance prompt template handle mixed-authority revision scenarios (e.g., RELIABLE anchor revised by PROVISIONAL evidence)? | F02 | codebase + repo-docs | completed | Authority-level revision rules defined; prompt template draft with compliance language; edge cases documented. | `openspec/roadmaps/collaborative-anchor-mutation/research/R03-mixed-authority-revision-compliance.md` |
+| R04 | How do existing AI memory frameworks (Letta/MemGPT, Zep/Graphiti, LangMem, Mem0, A-MemGuard, MemOS) handle fact mutation, and do any distinguish update from contradiction? | F01, F02, F03 | web + similar-repos + repo-docs | completed | Comparison matrix across 3+ frameworks; transferable patterns identified; gaps in existing approaches documented. | `openspec/roadmaps/collaborative-anchor-mutation/research/R04-ai-memory-framework-comparison.md` |
+| R05 | What established solutions exist in non-AI domains (TMS, AGM belief revision, MVCC, CRDTs, ECO/BOM, medical records, legal precedent, Wikipedia edit classification, accounting) for maintaining authoritative state while allowing legitimate revisions? | All | web + repo-docs | completed | Pattern catalog from 4+ distinct domains; transferability assessment per feature (F01-F05); recurring cross-domain patterns identified. | `openspec/roadmaps/collaborative-anchor-mutation/research/R05-cross-domain-prior-art.md` |
 
 ## Sequencing Rationale
 
@@ -72,20 +72,20 @@ Normative roadmap statements SHOULD use RFC 2119 keywords only (`MUST`, `SHOULD`
 
 ## Feature Documents
 
-1. `docs/roadmaps/collaborative-anchor-mutation/features/01-revision-intent-classification.md`
-2. `docs/roadmaps/collaborative-anchor-mutation/features/02-prompt-compliance-revision-carveout.md`
-3. `docs/roadmaps/collaborative-anchor-mutation/features/03-dependent-anchor-cascade.md`
-4. `docs/roadmaps/collaborative-anchor-mutation/features/04-anchor-provenance-metadata.md`
-5. `docs/roadmaps/collaborative-anchor-mutation/features/05-ui-controlled-mutation.md`
+1. `openspec/roadmaps/collaborative-anchor-mutation/features/01-revision-intent-classification.md`
+2. `openspec/roadmaps/collaborative-anchor-mutation/features/02-prompt-compliance-revision-carveout.md`
+3. `openspec/roadmaps/collaborative-anchor-mutation/features/03-dependent-anchor-cascade.md`
+4. `openspec/roadmaps/collaborative-anchor-mutation/features/04-anchor-provenance-metadata.md`
+5. `openspec/roadmaps/collaborative-anchor-mutation/features/05-ui-controlled-mutation.md`
 
 ## Research Documents
 
-1. `docs/roadmaps/collaborative-anchor-mutation/research/R00-chat-mutation-failure-analysis.md` (completed)
-2. `docs/roadmaps/collaborative-anchor-mutation/research/R01-revision-intent-classification-accuracy.md`
-3. `docs/roadmaps/collaborative-anchor-mutation/research/R02-dependent-anchor-cascade-strategy.md`
-4. `docs/roadmaps/collaborative-anchor-mutation/research/R03-mixed-authority-revision-compliance.md`
-5. `docs/roadmaps/collaborative-anchor-mutation/research/R04-ai-memory-framework-comparison.md`
-6. `docs/roadmaps/collaborative-anchor-mutation/research/R05-cross-domain-prior-art.md`
+1. `openspec/roadmaps/collaborative-anchor-mutation/research/R00-chat-mutation-failure-analysis.md` (completed)
+2. `openspec/roadmaps/collaborative-anchor-mutation/research/R01-revision-intent-classification-accuracy.md`
+3. `openspec/roadmaps/collaborative-anchor-mutation/research/R02-dependent-anchor-cascade-strategy.md`
+4. `openspec/roadmaps/collaborative-anchor-mutation/research/R03-mixed-authority-revision-compliance.md`
+5. `openspec/roadmaps/collaborative-anchor-mutation/research/R04-ai-memory-framework-comparison.md`
+6. `openspec/roadmaps/collaborative-anchor-mutation/research/R05-cross-domain-prior-art.md`
 
 ## Research Findings Summary
 

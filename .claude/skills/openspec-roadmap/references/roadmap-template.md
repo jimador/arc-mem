@@ -52,7 +52,7 @@ Create this table when research mode is `scoped` or `full`.
 
 | Task ID | Question | Target Feature(s) | Channels | Timebox | Success Criteria | Output Doc |
 |---------|----------|-------------------|----------|---------|------------------|------------|
-| R01 | <question> | F01, F02 | codebase + web | 30m | <clear pass/fail evidence goal> | `docs/roadmaps/<roadmap-slug>/research/R01-<research-slug>.md` |
+| R01 | <question> | F01, F02 | codebase + web | 30m | <clear pass/fail evidence goal> | `openspec/roadmaps/<roadmap-slug>/research/R01-<research-slug>.md` |
 
 Channel values:
 
@@ -71,7 +71,7 @@ Explain why this order is chosen.
 
 List generated feature docs with paths:
 
-1. `docs/roadmaps/<roadmap-slug>/features/01-<feature-slug>.md`
+1. `openspec/roadmaps/<roadmap-slug>/features/01-<feature-slug>.md`
 
 If a different docs convention is used in this repository, replace these paths consistently.
 
@@ -79,7 +79,7 @@ If a different docs convention is used in this repository, replace these paths c
 
 List generated prep docs with paths:
 
-1. `docs/roadmaps/<roadmap-slug>/prep/01-<feature-slug>-prep.md`
+1. `openspec/roadmaps/<roadmap-slug>/prep/01-<feature-slug>-prep.md`
 
 ## Change Scaffolds (Optional)
 
@@ -93,7 +93,7 @@ Track whether OpenSpec change directories were created.
 
 List generated research docs with paths:
 
-1. `docs/roadmaps/<roadmap-slug>/research/R01-<research-slug>.md`
+1. `openspec/roadmaps/<roadmap-slug>/research/R01-<research-slug>.md`
 
 ## Global Risks
 
