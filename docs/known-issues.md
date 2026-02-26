@@ -81,6 +81,24 @@ Confirmed defects, operational limitations, and open research uncertainty. dice-
 | Mitigation | By design for demo isolation. Sim contexts use `sim-{uuid}` and clean up after.                      |
 | Follow-up  | Add optional cross-session memory profile; add retention policy and archive/restore controls.        |
 
+### L9: Revision intent classification not calibrated against human labels
+
+| Field      | Value                                                                                                                                                                    |
+|------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Severity   | Medium                                                                                                                                                                   |
+| Impact     | `ConflictType` classification (REVISION vs CONTRADICTION vs WORLD_PROGRESSION) relies on LLM judgment without a labeled calibration set. False-positive revision classification could allow adversarial edits through the revision pathway. |
+| Mitigation | Conservative default: ambiguous conflicts classify as CONTRADICTION. CANON anchors are exempt from revision. Authority gating limits blast radius of misclassification.  |
+| Follow-up  | Build labeled evaluation set from simulation transcripts; measure false-positive rate per model; tune classification prompts against labeled data.                        |
+
+### L10: Only HitlOnlyMutationStrategy implemented
+
+| Field      | Value                                                                                                                                                                    |
+|------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Severity   | Low                                                                                                                                                                      |
+| Impact     | `AnchorMutationStrategy` SPI has only one implementation (`HitlOnlyMutationStrategy`), which blocks all non-UI mutations. `LLM_TOOL` and `CONFLICT_RESOLVER` mutation sources are denied, meaning `RevisionAwareConflictResolver` cannot auto-replace anchors via the conflict pipeline. |
+| Mitigation | By design for the current demo stage. UI-sourced revisions work correctly. The SPI is extensible for future strategies.                                                  |
+| Follow-up  | Implement `LlmToolMutationStrategy` (allow LLM-initiated revisions with authority guards) and `ConflictResolverMutationStrategy` (allow auto-replacement for low-authority anchors). |
+
 ---
 
 ## 2. Credibility Risks
@@ -130,6 +148,14 @@ Budget, decay, authority thresholds, and profile cutoffs are hand-tuned. Decisio
 ### Adversarial Methodology and Red-Team Coverage
 
 Current scenarios emphasize direct contradiction and reframing. Coordinated multi-turn and gradual drift attacks are underrepresented. Requires: explicit adversarial taxonomy (`setup`, `build`, `payoff`, `drift`), automated red-team generation with quality gates, attack efficacy distributions rather than per-run outcomes only.
+
+### Collaborative Mutation Semantics
+
+The revision pipeline (`RevisionAwareConflictResolver`, `AnchorMutationStrategy`, supersession) is implemented but the underlying semantics are still under active research. Open questions: Should revision classification use a two-axis model (intent × impact) per Wikipedia ORES rather than a flat enum? How should cascade invalidation propagate through dependent anchors (JTMS label propagation vs semantic re-evaluation)? What is the correct materiality threshold for authority-gated revision (authority alone vs authority × impact radius)? See [research-directions.md](research-directions.md) and the [collaborative-anchor-mutation roadmap](../openspec/roadmaps/collaborative-anchor-mutation-roadmap.md).
+
+### Temporal Validity and Authority Interaction
+
+`PropositionNode` carries `validFrom`/`validTo` fields but temporal validity is not yet integrated with the authority lifecycle. Open question: should a temporally expired anchor retain its authority level (for historical queries) or be automatically demoted? How should temporal expiry interact with supersession chains?
 
 ### Cross-Model Generalization
 

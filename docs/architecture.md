@@ -5,13 +5,14 @@
 
 ## System Topology
 
-dice-anchors is a single-module Spring Boot application (Java 25, Spring Boot 3.5.10) with three user-facing Vaadin routes:
+dice-anchors is a single-module Spring Boot application (Java 25, Spring Boot 3.5.10) with four user-facing Vaadin routes:
 
 | Route        | Purpose                                               |
 |--------------|-------------------------------------------------------|
 | `/`          | Simulation harness                                    |
 | `/chat`      | Interactive chat with anchor-aware DM (Embabel Agent) |
 | `/benchmark` | Multi-condition ablation experiments                  |
+| `/run`       | Detailed run inspection and cross-run comparison      |
 
 All routes share the same anchor engine, persistence layer, and Neo4j 5.x database. Simulations isolate via per-run `contextId = sim-{uuid}`; chat uses a fixed `"chat"` context.
 
@@ -44,6 +45,9 @@ All routes share the same anchor engine, persistence layer, and Neo4j 5.x databa
 │                                                                     │
 │  BenchmarkView ───── Ablation experiment execution and reporting    │
 │  (route: /benchmark)                                                │
+│                                                                     │
+│  RunInspectorView ── Turn-by-turn run inspection, cross-run diffs   │
+│  (route: /run)                                                      │
 └─────────────────────────┬───────────────────────────────────────────┘
                           │
 ┌─────────────────────────▼───────────────────────────────────────────┐
@@ -124,17 +128,21 @@ record Anchor(
     String id,
     String text,
     int rank,                  // [100, 900] via clampRank()
-    Authority authority,       // PROVISIONAL -> UNRELIABLE -> RELIABLE -> CANON
-    boolean pinned,            // immune to eviction and decay
+    Authority authority,       // PROVISIONAL ↔ UNRELIABLE ↔ RELIABLE ↔ CANON
+    boolean pinned,            // immune to eviction, decay, and auto-demotion
     double confidence,         // [0.0, 1.0] from DICE extraction
     int reinforcementCount,
-    @Nullable TrustScore trustScore
+    @Nullable TrustScore trustScore,
+    double diceImportance,     // [0.0, 1.0] DICE-assigned importance
+    double diceDecay,          // >= 0.0, decay rate modifier
+    MemoryTier memoryTier      // COLD / WARM / HOT
 )
 ```
 
 **Invariants:**
 - Rank clamped to `[Anchor.MIN_RANK, Anchor.MAX_RANK]` (100-900) via `Anchor.clampRank()`
-- Authority only upgrades, never downgrades
+- Authority is bidirectional: promoted via reinforcement, demoted via rank decay or trust re-evaluation (A3a-A3e invariants)
+- CANON is immune to automatic demotion; only explicit action through `CanonizationGate` can change CANON authority
 - CANON is never auto-assigned
 - Pinned anchors are immune to rank-based eviction and decay
 - `rank > 0` means the proposition has been promoted to anchor status; there is no separate anchor node type
@@ -150,7 +158,7 @@ enum Authority {
 }
 ```
 
-Authority transitions are monotonic. `upgradeAuthority()` in the repository enforces this at the database level via a Cypher `WHERE newLevel > currentLevel` guard.
+Authority transitions are bidirectional with guards. Promotion occurs via `upgradeAuthority()` at reinforcement thresholds. Demotion occurs via rank decay (RELIABLE demotes below 400, UNRELIABLE below 200) or trust re-evaluation. CANON is immune to automatic demotion (invariant A3b). Pinned anchors are immune to automatic demotion (A3d). All transitions publish `AuthorityChanged` lifecycle events (A3e).
 
 ### PropositionNode
 
@@ -376,6 +384,19 @@ AnchorRepository (Neo4j)
 
 **Promotion gate sequence** (in `extract/`): confidence -> dedup -> conflict -> trust -> promote.
 
+### Revision and Supersession
+
+When the conflict detection pipeline classifies a conflict as `REVISION` (rather than `CONTRADICTION` or `WORLD_PROGRESSION`), `RevisionAwareConflictResolver` applies authority-gated revision rules:
+
+- **CANON** — never revisable (immutable via `CanonizationGate`)
+- **RELIABLE** — configurable via `dice-anchors.anchor.revision.reliable-revisable` (default: false)
+- **UNRELIABLE** — revisable when incoming confidence exceeds threshold
+- **PROVISIONAL** — always revisable
+
+Revision that results in `REPLACE` triggers `AnchorEngine.supersede()`, which archives the predecessor and creates a `SUPERSEDES` relationship in Neo4j linking successor to predecessor. `SupersessionReason` tracks the cause (CONFLICT_REPLACEMENT, BUDGET_EVICTION, DECAY_DEMOTION, USER_REVISION, MANUAL).
+
+`AnchorMutationStrategy` (SPI) gates all mutation attempts. The default `HitlOnlyMutationStrategy` allows only UI-sourced mutations, blocking LLM-initiated and conflict-resolver-initiated mutations.
+
 ## Simulation Execution
 
 ### Per-Run Flow
@@ -418,6 +439,26 @@ All configuration flows through `DiceAnchorsProperties` (`src/main/java/dev/dunn
 | `conflict-detection.strategy`    | llm          |
 | `conflict-detection.model`       | gpt-4o-nano  |
 | `run-history.store`              | memory       |
+| `anchor.revision.enabled`      | true         |
+| `anchor.revision.reliable-revisable` | false  |
+| `anchor.revision.confidence-threshold` | 0.75 |
+| `anchor.reliable-rank-threshold` | 400        |
+| `anchor.unreliable-rank-threshold` | 200      |
+| `anchor.tier.hot-threshold`    | 600          |
+| `anchor.tier.warm-threshold`   | 350          |
+| `anchor.tier.hot-decay-multiplier` | 1.5      |
+| `anchor.tier.warm-decay-multiplier` | 1.0     |
+| `anchor.tier.cold-decay-multiplier` | 0.6     |
+| `conflict.tier.hot-defense-modifier` | 0.1    |
+| `conflict.tier.warm-defense-modifier` | 0.0   |
+| `conflict.tier.cold-defense-modifier` | -0.1  |
+| `retrieval.mode`               | HYBRID       |
+| `retrieval.min-relevance`      | 0.0          |
+| `retrieval.baseline-top-k`     | 5            |
+| `retrieval.tool-top-k`         | 5            |
+| `retrieval.scoring.authority-weight` | 0.4    |
+| `retrieval.scoring.tier-weight` | 0.3         |
+| `retrieval.scoring.confidence-weight` | 0.3   |
 
 ### External Dependencies
 

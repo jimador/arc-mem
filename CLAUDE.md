@@ -53,7 +53,7 @@ This document uses keywords per [RFC 2119](https://www.ietf.org/rfc/rfc2119.txt)
 # Build (skip tests)
 ./mvnw clean compile -DskipTests
 
-# Test (689 tests)
+# Test
 ./mvnw test
 
 # Run (needs Neo4j + LLM API key)
@@ -94,7 +94,7 @@ See `.dice-anchors/coding-style.md` for the complete reference.
 - **Neo4j only** -- no PostgreSQL. Drivine for ORM, Neo4j 5.x for persistence
 - **Anchors = Propositions + extra fields** -- `rank > 0` means it's an anchor. No separate node type.
 - **Budget enforcement** -- configurable max active anchors (default 20). Evicts lowest-ranked non-pinned when over budget.
-- **Authority upgrade-only** -- PROVISIONAL -> UNRELIABLE -> RELIABLE -> CANON. Never downgrade. CANON never auto-assigned.
+- **Authority bidirectional** -- PROVISIONAL ↔ UNRELIABLE ↔ RELIABLE ↔ CANON. Promoted via reinforcement, demoted via rank decay or trust re-evaluation. CANON immune to auto-demotion. Pinned anchors immune to auto-demotion.
 - **Rank clamped [100-900]** -- `Anchor.clampRank()`
 - **Sim isolation via contextId** -- Each run gets `sim-{uuid}`, cleaned up after.
 - **Embabel Agent** for chat orchestration (`ChatActions` @EmbabelComponent)
@@ -108,7 +108,7 @@ See `.dice-anchors/coding-style.md` for the complete reference.
 - `@Nested` + `@DisplayName` for test structure
 - Method naming: `actionConditionExpectedOutcome` (no test prefix)
 - Integration tests (`*IT.java`, `@Tag("integration")`) excluded by default via Surefire
-- 689 tests across test classes in `anchor/`, `assembly/`, `chat/`, `extract/`, `persistence/`, `prompt/`, and `sim/` packages
+- Tests span test classes in `anchor/`, `assembly/`, `chat/`, `extract/`, `persistence/`, `prompt/`, and `sim/` packages
 
 ## Key Files
 
@@ -186,7 +186,7 @@ See `.dice-anchors/coding-style.md` for the complete reference.
 1. **Anchors = Propositions + extra fields** — `rank > 0` means it's an anchor. No separate node type.
 2. **Neo4j everywhere** — Both chat and sim use the same `AnchorRepository` (Drivine-backed).
 3. **Budget enforcement** — configurable max active anchors (default 20). Evicts lowest-ranked non-pinned when over budget.
-4. **Authority upgrade-only** — PROVISIONAL -> UNRELIABLE -> RELIABLE -> CANON. Never downgrade. CANON never auto-assigned.
+4. **Authority bidirectional** — PROVISIONAL ↔ UNRELIABLE ↔ RELIABLE ↔ CANON. Promoted via reinforcement, demoted via rank decay or trust re-evaluation. CANON immune to auto-demotion (A3b). Pinned anchors immune to auto-demotion (A3d).
 5. **Rank clamped [100-900]** — `Anchor.clampRank()`.
 6. **Sim isolation via contextId** — Each run gets `sim-{uuid}`, cleaned up after.
 7. **Persistence layer copied from impromptu** — re-packaged to `dev.dunnam.diceanchors.persistence`.
