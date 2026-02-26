@@ -26,6 +26,10 @@ dice-anchors:
     dedup-strategy: FAST_THEN_LLM
     compliance-policy: TIERED
     lifecycle-events-enabled: true
+    revision:
+      enabled: true
+      reliable-revisable: false
+      confidence-threshold: 0.75
     tier:
       hot-threshold: 600
       warm-threshold: 350
@@ -76,7 +80,7 @@ dice-anchors:
   retrieval:
     mode: HYBRID
     min-relevance: 0.0
-    baseline-top-k: 5
+    baseline-top-k: 20
     tool-top-k: 5
     scoring:
       authority-weight: 0.4

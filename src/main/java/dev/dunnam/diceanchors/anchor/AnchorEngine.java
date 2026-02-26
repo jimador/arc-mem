@@ -6,6 +6,7 @@ import dev.dunnam.diceanchors.anchor.event.ArchiveReason;
 import dev.dunnam.diceanchors.anchor.event.SupersessionReason;
 import dev.dunnam.diceanchors.persistence.AnchorRepository;
 import io.opentelemetry.api.trace.Span;
+import com.embabel.dice.proposition.PropositionStatus;
 import dev.dunnam.diceanchors.persistence.PropositionNode;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -695,6 +696,16 @@ public class AnchorEngine {
         var predecessorRank = node.getRank();
 
         archive(predecessorId, reason, successorId);
+        if (reason == ArchiveReason.REVISION) {
+            var predecessorStillActive = repository.findPropositionNodeById(predecessorId)
+                    .map(this::isActiveAnchorState)
+                    .orElse(false);
+            if (predecessorStillActive) {
+                logger.warn("Revision supersession fallback: forcing archive of predecessor {}", predecessorId);
+                repository.archiveAnchor(predecessorId, successorId);
+                publish(AnchorLifecycleEvent.archived(this, node.getContextId(), predecessorId, reason));
+            }
+        }
 
         var supersessionReason = SupersessionReason.fromArchiveReason(reason);
         repository.createSupersessionLink(successorId, predecessorId, supersessionReason);
@@ -708,8 +719,28 @@ public class AnchorEngine {
         span.setAttribute("supersession.successor_id", successorId);
         span.setAttribute("supersession.predecessor_authority", predecessorAuthority);
         span.setAttribute("supersession.predecessor_rank", predecessorRank);
+        if (reason == ArchiveReason.REVISION) {
+            var authority = authorityOf(node);
+            trustAuditLog.add(new TrustAuditRecord(
+                    predecessorId,
+                    node.getContextId(),
+                    authority,
+                    authority,
+                    Double.NaN,
+                    Double.NaN,
+                    "revision",
+                    Map.of("revision_supersession", 1.0),
+                    Instant.now()));
+            span.setAttribute("trust.audit.trigger_reason", "revision");
+        }
 
         logger.info("Superseded anchor {} by {} (reason={})", predecessorId, successorId, supersessionReason);
+    }
+
+    private boolean isActiveAnchorState(PropositionNode node) {
+        var status = node.getStatus();
+        var activeStatus = status == null || status == PropositionStatus.ACTIVE || status == PropositionStatus.PROMOTED;
+        return node.getRank() > 0 && activeStatus;
     }
 
     /**

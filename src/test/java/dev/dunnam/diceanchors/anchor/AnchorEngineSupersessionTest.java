@@ -121,6 +121,20 @@ class AnchorEngineSupersessionTest {
         }
 
         @Test
+        @DisplayName("supersede maps REVISION to USER_REVISION and writes revision trust audit")
+        void supersedeMapsRevisionReasonAndWritesTrustAudit() {
+            when(repository.findPropositionNodeById("pred-1"))
+                    .thenReturn(Optional.of(anchorNode("pred-1", 450, Authority.UNRELIABLE)));
+
+            engine.supersede("pred-1", "succ-2", ArchiveReason.REVISION);
+
+            verify(repository).createSupersessionLink("succ-2", "pred-1",
+                    SupersessionReason.USER_REVISION);
+            assertThat(engine.trustAuditLog(CONTEXT_ID))
+                    .anySatisfy(audit -> assertThat(audit.triggerReason()).isEqualTo("revision"));
+        }
+
+        @Test
         @DisplayName("supersede publishes Superseded event with correct fields")
         void supersedePublishesSupersededEvent() {
             when(repository.findPropositionNodeById("pred-1"))
@@ -158,6 +172,28 @@ class AnchorEngineSupersessionTest {
             verify(repository, never()).createSupersessionLink(any(), any(), any());
             verify(eventPublisher, never()).publishEvent(any());
         }
+
+        @Test
+        @DisplayName("revision supersede force-archives predecessor when invariant blocks archive")
+        void revisionSupersedeForceArchivesWhenInvariantBlocksArchive() {
+            var predecessor = anchorNode("pred-1", 500, Authority.RELIABLE);
+            var stillActive = anchorNode("pred-1", 500, Authority.RELIABLE);
+            when(repository.findPropositionNodeById("pred-1"))
+                    .thenReturn(Optional.of(predecessor))
+                    .thenReturn(Optional.of(stillActive));
+
+            var violation = new InvariantViolationData(
+                    "rev-archive-block", InvariantStrength.MUST, ProposedAction.ARCHIVE,
+                    "archive blocked", "pred-1");
+            when(invariantEvaluator.evaluate(eq(CONTEXT_ID), eq(ProposedAction.ARCHIVE), any(), any()))
+                    .thenReturn(new InvariantEvaluation(List.of(violation), 1));
+
+            engine.supersede("pred-1", "succ-2", ArchiveReason.REVISION);
+
+            verify(repository).archiveAnchor("pred-1", "succ-2");
+            verify(repository).createSupersessionLink("succ-2", "pred-1", SupersessionReason.USER_REVISION);
+        }
+
     }
 
     @Nested
@@ -284,7 +320,7 @@ class AnchorEngineSupersessionTest {
                 0.6,
                 400,
                 200,
-                null, null, null);
+                null, "hitl-only", null, null, null);
         return new DiceAnchorsProperties(
                 anchorConfig,
                 new DiceAnchorsProperties.ChatConfig("dm", 200, null),

@@ -164,10 +164,6 @@ class AnchorEngineDemoteTest {
         }
     }
 
-    // ========================================================================
-    // Private helpers
-    // ========================================================================
-
     private PropositionNode anchorNode(String id, Authority authority) {
         var node = new PropositionNode("anchor text " + id, 0.9);
         node.setId(id);
@@ -185,7 +181,7 @@ class AnchorEngineDemoteTest {
                 lifecycleEventsEnabled,
                 canonizationGateEnabled,
                 true,
-                0.6, 400, 200, null, null, null);
+                0.6, 400, 200, null, "hitl-only", null, null, null);
         return new DiceAnchorsProperties(
                 anchorConfig,
                 new DiceAnchorsProperties.ChatConfig("dm", 200, null),

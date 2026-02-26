@@ -49,22 +49,15 @@ class SimulationParallelismBenchmarkTest {
     @Mock private dev.dunnam.diceanchors.persistence.AnchorRepository anchorRepository;
     @Mock private SimulationExtractionService extractionService;
 
-    // -------------------------------------------------------------------------
-    // Benchmark
-    // -------------------------------------------------------------------------
-
     @Test
     @DisplayName("parallel mode is faster than sequential for ATTACK turns with concurrent drift+extraction")
     void parallelFasterThanSequentialForAttackTurns() throws Exception {
-        // Warm up the JVM with one quick pass (no delays) before timing
         setupMocks(0);
         runTurns(true, 1);
 
-        // --- Sequential run ---
         setupMocks(LLM_DELAY_MS);
         long sequentialMs = measureMs(() -> runTurns(false, TURN_COUNT));
 
-        // --- Parallel run ---
         setupMocks(LLM_DELAY_MS);
         long parallelMs = measureMs(() -> runTurns(true, TURN_COUNT));
 
@@ -81,7 +74,6 @@ class SimulationParallelismBenchmarkTest {
                 "╚══════════════════════════════════════════╝%n",
                 TURN_COUNT, LLM_DELAY_MS, sequentialMs, parallelMs, speedup);
 
-        // Parallel should be meaningfully faster (at least 30% faster = speedup > 1.3x)
         assertThat(parallelMs)
                 .as("Parallel execution should be at least 30%% faster than sequential")
                 .isLessThan((long) (sequentialMs * 0.80));
@@ -91,21 +83,10 @@ class SimulationParallelismBenchmarkTest {
                 .isGreaterThanOrEqualTo(1.3);
     }
 
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
-
-    /**
-     * Configure mocks so each LLM call sleeps {@code delayMs} milliseconds.
-     * Extraction also sleeps the same duration to represent concurrent IO work.
-     */
     private void setupMocks(long delayMs) throws Exception {
-        // chatModel.call() is used for both DM responses and drift evaluation
         when(chatModel.call(any(Prompt.class))).thenAnswer(inv -> {
             if (delayMs > 0) Thread.sleep(delayMs);
-            // Return a plausible drift-eval JSON or DM narrative — the executor handles both shapes
             return new ChatResponse(List.of(new Generation(new AssistantMessage(
-                    // If it looks like drift evaluation context, return verdict JSON; otherwise plain text
                     "{\"verdicts\":[{\"fact_id\":\"f1\",\"verdict\":\"CONFIRMED\"," +
                     "\"severity\":\"NONE\",\"explanation\":\"ok\"}]}"))));
         });
@@ -119,7 +100,6 @@ class SimulationParallelismBenchmarkTest {
         });
     }
 
-    /** Run {@code turnCount} ATTACK turns and return the total elapsed milliseconds. */
     private void runTurns(boolean parallel, int turnCount) {
         var executor = buildExecutor(parallel);
         var groundTruth = List.of(new SimulationScenario.GroundTruth("f1", "The king is alive"));
@@ -138,7 +118,7 @@ class SimulationParallelismBenchmarkTest {
     private SimulationTurnExecutor buildExecutor(boolean parallel) {
         var properties = new DiceAnchorsProperties(
                 new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65,
-                        "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200, null, null, null),
+                        "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200, null, "hitl-only", null, null, null),
                 null, null, null,
                 new DiceAnchorsProperties.SimConfig("gpt-4.1-mini", 30, 30, 10, parallel, 4),
                 null, null,

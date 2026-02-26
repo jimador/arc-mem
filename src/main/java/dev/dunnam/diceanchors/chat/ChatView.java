@@ -9,7 +9,9 @@ import com.embabel.chat.ChatSession;
 import com.embabel.chat.Chatbot;
 import com.embabel.chat.Message;
 import com.embabel.chat.UserMessage;
+import com.embabel.dice.proposition.PropositionStatus;
 import com.vaadin.flow.component.AttachEvent;
+import com.vaadin.flow.component.DetachEvent;
 import com.vaadin.flow.component.Key;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
@@ -26,18 +28,31 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.component.splitlayout.SplitLayout;
 import com.vaadin.flow.component.tabs.TabSheet;
+import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.server.VaadinSession;
+import dev.dunnam.diceanchors.DiceAnchorsProperties;
+import dev.dunnam.diceanchors.assembly.AnchorsLlmReference;
+import dev.dunnam.diceanchors.assembly.PropositionsLlmReference;
+import dev.dunnam.diceanchors.assembly.RelevanceScorer;
+import dev.dunnam.diceanchors.assembly.TokenCounter;
 import dev.dunnam.diceanchors.anchor.Anchor;
 import dev.dunnam.diceanchors.anchor.AnchorEngine;
 import dev.dunnam.diceanchors.anchor.Authority;
+import dev.dunnam.diceanchors.anchor.AnchorMutationStrategy;
+import dev.dunnam.diceanchors.anchor.CompliancePolicy;
+import dev.dunnam.diceanchors.anchor.MutationDecision;
+import dev.dunnam.diceanchors.anchor.MutationRequest;
+import dev.dunnam.diceanchors.anchor.MutationSource;
+import dev.dunnam.diceanchors.anchor.event.ArchiveReason;
 import dev.dunnam.diceanchors.persistence.AnchorRepository;
 import dev.dunnam.diceanchors.persistence.PropositionNode;
 import dev.dunnam.diceanchors.persistence.PropositionView;
+import dev.dunnam.diceanchors.prompt.PromptTemplates;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.HtmlRenderer;
 import org.drivine.manager.CascadeType;
@@ -46,7 +61,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -68,12 +86,19 @@ public class ChatView extends VerticalLayout {
 
     private static final Logger logger = LoggerFactory.getLogger(ChatView.class);
     private static final int RESPONSE_TIMEOUT_SECONDS = 120;
+    private static final int ASYNC_SIDEBAR_REFRESH_ATTEMPTS = 24;
+    private static final long ASYNC_SIDEBAR_REFRESH_INTERVAL_MILLIS = 5_000L;
     private static final String DEFAULT_CONTEXT = "chat";
 
     private final Chatbot chatbot;
     private final AnchorEngine anchorEngine;
     private final AnchorRepository anchorRepository;
     private final GraphObjectManager graphObjectManager;
+    private final DiceAnchorsProperties properties;
+    private final CompliancePolicy compliancePolicy;
+    private final TokenCounter tokenCounter;
+    private final RelevanceScorer relevanceScorer;
+    private final AnchorMutationStrategy mutationStrategy;
     private final Parser markdownParser = Parser.builder().build();
     private final HtmlRenderer htmlRenderer = HtmlRenderer.builder().build();
 
@@ -87,14 +112,30 @@ public class ChatView extends VerticalLayout {
     private VerticalLayout propositionsTabContent;
     private VerticalLayout knowledgeTabContent;
     private VerticalLayout sessionInfoTabContent;
+    private VerticalLayout contextTabContent;
+    private volatile Thread sidebarRefreshThread;
+    private final Map<String, Div> anchorCards = new LinkedHashMap<>();
+    private final Map<String, Anchor> renderedAnchors = new LinkedHashMap<>();
+    private Span anchorsHeader;
+    private Div createAnchorForm;
     private int turnCount = 0;
 
     public ChatView(Chatbot chatbot, AnchorEngine anchorEngine, AnchorRepository anchorRepository,
-                    GraphObjectManager graphObjectManager) {
+                    GraphObjectManager graphObjectManager,
+                    DiceAnchorsProperties properties,
+                    CompliancePolicy compliancePolicy,
+                    TokenCounter tokenCounter,
+                    RelevanceScorer relevanceScorer,
+                    AnchorMutationStrategy mutationStrategy) {
         this.chatbot = chatbot;
         this.anchorEngine = anchorEngine;
         this.anchorRepository = anchorRepository;
         this.graphObjectManager = graphObjectManager;
+        this.properties = properties;
+        this.compliancePolicy = compliancePolicy;
+        this.tokenCounter = tokenCounter;
+        this.relevanceScorer = relevanceScorer;
+        this.mutationStrategy = mutationStrategy;
         setSizeFull();
         setPadding(false);
         setSpacing(false);
@@ -105,6 +146,12 @@ public class ChatView extends VerticalLayout {
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
         restoreConversation();
+    }
+
+    @Override
+    protected void onDetach(DetachEvent detachEvent) {
+        cancelAsyncSidebarRefresh();
+        super.onDetach(detachEvent);
     }
 
 
@@ -197,6 +244,10 @@ public class ChatView extends VerticalLayout {
         sessionInfoTabContent.setPadding(true);
         sessionInfoTabContent.setSpacing(true);
 
+        contextTabContent = new VerticalLayout();
+        contextTabContent.setPadding(true);
+        contextTabContent.setSpacing(true);
+
         var anchorsScroller = new Scroller(anchorsTabContent);
         anchorsScroller.setSizeFull();
         anchorsScroller.setScrollDirection(Scroller.ScrollDirection.VERTICAL);
@@ -213,12 +264,17 @@ public class ChatView extends VerticalLayout {
         sessionInfoScroller.setSizeFull();
         sessionInfoScroller.setScrollDirection(Scroller.ScrollDirection.VERTICAL);
 
+        var contextScroller = new Scroller(contextTabContent);
+        contextScroller.setSizeFull();
+        contextScroller.setScrollDirection(Scroller.ScrollDirection.VERTICAL);
+
         var tabSheet = new TabSheet();
         tabSheet.setSizeFull();
         tabSheet.add("Anchors", anchorsScroller);
         tabSheet.add("Propositions", propositionsScroller);
         tabSheet.add("Knowledge", knowledgeScroller);
         tabSheet.add("Session Info", sessionInfoScroller);
+        tabSheet.add("Context", contextScroller);
 
         sidebar.add(tabSheet);
         sidebar.setFlexGrow(1, tabSheet);
@@ -237,34 +293,100 @@ public class ChatView extends VerticalLayout {
         refreshPropositionsTab();
         refreshKnowledgeTab();
         refreshSessionInfoTab();
+        refreshContextTab();
     }
 
     private void refreshAnchorsTab() {
-        anchorsTabContent.removeAll();
-
-        // Active anchors list
         try {
             var anchors = anchorEngine.inject(DEFAULT_CONTEXT);
-            if (!anchors.isEmpty()) {
-                var anchorsHeader = new Span("Active Anchors (%d)".formatted(anchors.size()));
+            var anchorsById = anchors.stream().collect(java.util.stream.Collectors.toMap(
+                    Anchor::id, anchor -> anchor, (left, right) -> right, LinkedHashMap::new));
+
+            anchorCards.entrySet().removeIf(entry -> {
+                var stale = !anchorsById.containsKey(entry.getKey());
+                if (stale) {
+                    anchorsTabContent.remove(entry.getValue());
+                    renderedAnchors.remove(entry.getKey());
+                }
+                return stale;
+            });
+
+            anchorsById.forEach((id, anchor) -> {
+                var currentCard = anchorCards.get(id);
+                if (currentCard == null) {
+                    var newCard = anchorCard(anchor);
+                    anchorCards.put(id, newCard);
+                    if (createAnchorForm != null) {
+                        anchorsTabContent.addComponentAtIndex(anchorsTabContent.indexOf(createAnchorForm), newCard);
+                    } else {
+                        anchorsTabContent.add(newCard);
+                    }
+                } else if (!Objects.equals(renderedAnchors.get(id), anchor)) {
+                    updateAnchorCard(currentCard, anchor);
+                }
+                renderedAnchors.put(id, anchor);
+            });
+
+            if (anchorsHeader == null) {
+                anchorsHeader = new Span();
                 anchorsHeader.addClassName("ar-chat-section-header");
                 anchorsHeader.addClassName("ar-chat-section-header--cyan");
-                anchorsTabContent.add(anchorsHeader);
+                anchorsTabContent.addComponentAtIndex(0, anchorsHeader);
+            }
+            anchorsHeader.setText("Active Anchors (%d)".formatted(anchors.size()));
+            anchorsHeader.setVisible(!anchors.isEmpty());
 
-                for (var anchor : anchors) {
-                    anchorsTabContent.add(anchorCard(anchor));
-                }
-            } else {
-                var placeholder = new Paragraph("No active anchors yet. Create one below or chat to generate propositions.");
-                placeholder.addClassName("ar-empty-message");
-                anchorsTabContent.add(placeholder);
+            if (createAnchorForm == null) {
+                createAnchorForm = buildCreateAnchorForm();
+                anchorsTabContent.add(createAnchorForm);
             }
         } catch (Exception e) {
             logger.warn("Failed to load anchors for sidebar: {}", e.getMessage());
         }
+    }
 
-        // Create Anchor form
-        anchorsTabContent.add(buildCreateAnchorForm());
+    private void updateAnchorCard(Div card, Anchor anchor) {
+        card.getChildren()
+            .filter(component -> component instanceof Span
+                    && component.getClassNames().contains("ar-chat-authority-badge"))
+            .findFirst()
+            .ifPresent(component -> {
+                var badge = (Span) component;
+                badge.setText(anchor.authority().name());
+                badge.getElement().setAttribute("data-authority", anchor.authority().name().toLowerCase());
+            });
+
+        card.getChildren()
+            .filter(component -> component instanceof Span
+                    && component.getClassNames().contains("ar-chat-text"))
+            .findFirst()
+            .ifPresent(component -> ((Span) component).setText(truncateText(anchor.text(), 80)));
+
+        card.getChildren()
+            .filter(component -> component instanceof ProgressBar)
+            .findFirst()
+            .ifPresent(component -> ((ProgressBar) component).setValue(anchor.rank()));
+
+        card.getChildren()
+            .filter(component -> component instanceof Span
+                    && component.getClassNames().contains("ar-chat-meta"))
+            .findFirst()
+            .ifPresent(component -> ((Span) component).setText(
+                    "rank: %d | x%d".formatted(anchor.rank(), anchor.reinforcementCount())));
+
+        var pinnedBadge = card.getChildren()
+                              .filter(component -> component instanceof Span
+                                      && component.getClassNames().contains("ar-pinned-icon"))
+                              .findFirst()
+                              .orElse(null);
+        if (anchor.pinned() && pinnedBadge == null) {
+            var badge = new Span("pinned");
+            badge.addClassName("ar-pinned-icon");
+            card.add(badge);
+        }
+        if (!anchor.pinned() && pinnedBadge != null) {
+            card.remove(pinnedBadge);
+        }
     }
 
     private void refreshPropositionsTab() {
@@ -292,8 +414,9 @@ public class ChatView extends VerticalLayout {
                     var text = new Span(truncateText(prop.getText(), 100));
                     text.addClassName("ar-chat-text");
 
+                    var statusName = prop.getStatus() != null ? prop.getStatus().name() : "UNKNOWN";
                     var meta = new Span("conf: %.0f%% | %s".formatted(
-                            prop.getConfidence() * 100, prop.getStatus().name()));
+                            prop.getConfidence() * 100, statusName));
                     meta.addClassName("ar-chat-meta");
 
                     var promoteButton = new Button("Promote", e -> {
@@ -312,6 +435,9 @@ public class ChatView extends VerticalLayout {
             }
         } catch (Exception e) {
             logger.warn("Failed to load propositions for sidebar: {}", e.getMessage());
+            var placeholder = new Paragraph("Failed to load propositions.");
+            placeholder.addClassName("ar-empty-message");
+            propositionsTabContent.add(placeholder);
         }
     }
 
@@ -508,7 +634,9 @@ public class ChatView extends VerticalLayout {
         authorityCombo.setItems(authorityOptions);
         authorityCombo.setValue(anchor.authority().name());
         authorityCombo.addValueChangeListener(e -> {
-            if (e.getValue() != null && !e.getValue().equals(anchor.authority().name())) {
+            var latest = renderedAnchors.get(anchor.id());
+            var currentAuthority = latest != null ? latest.authority().name() : anchor.authority().name();
+            if (e.getValue() != null && !e.getValue().equals(currentAuthority)) {
                 anchorRepository.setAuthority(anchor.id(), e.getValue());
                 refreshSidebar();
             }
@@ -522,14 +650,163 @@ public class ChatView extends VerticalLayout {
             refreshSidebar();
         });
 
+        var reviseField = new TextField("Revision");
+        reviseField.setWidthFull();
+        reviseField.setValue(anchor.text());
+        reviseField.addClassName("ar-chat-form-field");
+
+        var reviseButton = new Button("Revise");
+        reviseButton.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_TERTIARY);
+        reviseButton.addClickListener(e -> {
+            var revisedText = reviseField.getValue();
+            if (revisedText == null) {
+                return;
+            }
+            var latest = renderedAnchors.get(anchor.id());
+            var currentText = latest != null ? latest.text() : anchor.text();
+            var normalized = revisedText.trim();
+            if (normalized.isEmpty() || normalized.equals(currentText)) {
+                return;
+            }
+            var target = latest != null ? latest : anchor;
+            var revised = reviseAnchor(target, normalized);
+            if (!revised) {
+                logger.warn("Anchor revision did not archive predecessor {}", target.id());
+            }
+            refreshSidebar();
+        });
+
         var controlsRow = new HorizontalLayout(authorityCombo, evictButton);
         controlsRow.setWidthFull();
         controlsRow.setAlignItems(Alignment.END);
         controlsRow.setFlexGrow(1, authorityCombo);
 
-        card.add(rankField, controlsRow);
+        var reviseRow = new HorizontalLayout(reviseField, reviseButton);
+        reviseRow.setWidthFull();
+        reviseRow.setAlignItems(Alignment.END);
+        reviseRow.setFlexGrow(1, reviseField);
+
+        card.add(rankField, controlsRow, reviseRow);
 
         return card;
+    }
+
+    private boolean reviseAnchor(Anchor anchor, String revisedText) {
+        var request = new MutationRequest(anchor.id(), revisedText, MutationSource.UI, "chat-operator");
+        var decision = mutationStrategy.evaluate(request);
+        return switch (decision) {
+            case MutationDecision.Allow _ -> executeRevision(anchor, revisedText);
+            case MutationDecision.Deny deny -> {
+                com.vaadin.flow.component.notification.Notification.show(
+                        deny.reason(), 3000,
+                        com.vaadin.flow.component.notification.Notification.Position.MIDDLE);
+                yield false;
+            }
+            case MutationDecision.PendingApproval _ -> {
+                com.vaadin.flow.component.notification.Notification.show(
+                        "Revision queued for approval", 3000,
+                        com.vaadin.flow.component.notification.Notification.Position.MIDDLE);
+                yield false;
+            }
+        };
+    }
+
+    private boolean executeRevision(Anchor anchor, String revisedText) {
+        var node = new PropositionNode(revisedText, 0.95);
+        node.setContextId(DEFAULT_CONTEXT);
+        graphObjectManager.save(new PropositionView(node, List.of()), CascadeType.NONE);
+        anchorRepository.promoteToAnchor(node.getId(), anchor.rank(), anchor.authority().name());
+        if (anchor.pinned()) {
+            anchorRepository.updatePinned(node.getId(), true);
+        }
+        anchorEngine.supersede(anchor.id(), node.getId(), ArchiveReason.REVISION);
+        return anchorRepository.findPropositionNodeById(anchor.id())
+                .map(predecessor -> predecessor.getRank() <= 0
+                        || predecessor.getStatus() == PropositionStatus.SUPERSEDED)
+                .orElse(true);
+    }
+
+    private void refreshContextTab() {
+        contextTabContent.removeAll();
+        try {
+            var anchorRef = new AnchorsLlmReference(
+                    anchorEngine,
+                    DEFAULT_CONTEXT,
+                    properties.anchor().budget(),
+                    compliancePolicy,
+                    properties.assembly().promptTokenBudget(),
+                    tokenCounter,
+                    null,
+                    properties.retrieval(),
+                    relevanceScorer);
+            var propositionRef = new PropositionsLlmReference(
+                    anchorRepository,
+                    DEFAULT_CONTEXT,
+                    properties.anchor().budget());
+
+            var anchors = anchorRef.getAnchors();
+            var anchorsBlock = anchorRef.getContent();
+            var propositionBlock = propositionRef.getContent();
+            var prompt = renderChatPrompt(anchors, propositionBlock);
+
+            contextTabContent.add(infoRow("Anchors in Prompt", String.valueOf(anchors.size())));
+            contextTabContent.add(readOnlyBlock("Anchors Block", anchorsBlock));
+            contextTabContent.add(readOnlyBlock("Propositions Block", propositionBlock));
+            contextTabContent.add(readOnlyBlock("Rendered System Prompt", prompt));
+        } catch (Exception e) {
+            logger.warn("Failed to build context preview: {}", e.getMessage());
+            var placeholder = new Paragraph("Failed to render context preview.");
+            placeholder.addClassName("ar-empty-message");
+            contextTabContent.add(placeholder);
+        }
+    }
+
+    private String renderChatPrompt(List<Anchor> anchors, String propositionBlock) {
+        var anchorMaps = anchors.stream()
+                .map(a -> java.util.Map.<String, Object>of(
+                        "text", a.text(),
+                        "rank", a.rank(),
+                        "authority", a.authority().name()))
+                .toList();
+
+        var tiered = properties.anchor().compliancePolicy().equalsIgnoreCase("TIERED");
+        var templateVars = new java.util.HashMap<String, Object>();
+        templateVars.put("properties", properties);
+        templateVars.put("anchors", anchorMaps);
+        templateVars.put("proposition_block", propositionBlock);
+        templateVars.put("persona", properties.chat().persona());
+        templateVars.put("tiered", tiered);
+
+        if (tiered) {
+            var grouped = anchors.stream()
+                    .collect(java.util.stream.Collectors.groupingBy(Anchor::authority));
+            for (var authority : Authority.values()) {
+                var key = authority.name().toLowerCase() + "_anchors";
+                var group = grouped.getOrDefault(authority, List.of()).stream()
+                        .map(a -> java.util.Map.<String, Object>of("text", a.text(), "rank", a.rank()))
+                        .toList();
+                templateVars.put(key, group);
+            }
+        }
+
+        return PromptTemplates.render("prompts/dice-anchors.jinja", templateVars);
+    }
+
+    private VerticalLayout readOnlyBlock(String titleText, String content) {
+        var title = new Span(titleText);
+        title.addClassName("ar-chat-section-header");
+        title.addClassName("ar-chat-section-header--primary");
+
+        var textArea = new TextArea();
+        textArea.setWidthFull();
+        textArea.setReadOnly(true);
+        textArea.setValue(content != null ? content : "");
+        textArea.setMinHeight("180px");
+
+        var block = new VerticalLayout(title, textArea);
+        block.setPadding(false);
+        block.setSpacing(true);
+        return block;
     }
 
 
@@ -637,6 +914,7 @@ public class ChatView extends VerticalLayout {
                         addBotBubble(response.getContent());
                         turnCount++;
                         refreshSidebar();
+                        scheduleAsyncSidebarRefresh(ui);
                     } else {
                         addErrorBubble("Response timed out. Please try again.");
                     }
@@ -750,6 +1028,38 @@ public class ChatView extends VerticalLayout {
     private void setInputEnabled(boolean enabled) {
         inputField.setEnabled(enabled);
         sendButton.setEnabled(enabled);
+    }
+
+    private synchronized void cancelAsyncSidebarRefresh() {
+        if (sidebarRefreshThread != null && sidebarRefreshThread.isAlive()) {
+            sidebarRefreshThread.interrupt();
+        }
+        sidebarRefreshThread = null;
+    }
+
+    private synchronized void scheduleAsyncSidebarRefresh(UI ui) {
+        cancelAsyncSidebarRefresh();
+        var refresher = new Thread(() -> {
+            for (int i = 0; i < ASYNC_SIDEBAR_REFRESH_ATTEMPTS; i++) {
+                try {
+                    Thread.sleep(ASYNC_SIDEBAR_REFRESH_INTERVAL_MILLIS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+                if (!ui.isAttached()) {
+                    return;
+                }
+                ui.access(() -> {
+                    if (ui.isAttached()) {
+                        refreshSidebar();
+                    }
+                });
+            }
+        }, "dice-anchors-sidebar-refresh-" + UUID.randomUUID().toString().substring(0, 8));
+        refresher.setDaemon(true);
+        sidebarRefreshThread = refresher;
+        refresher.start();
     }
 
     private void scrollToBottom() {

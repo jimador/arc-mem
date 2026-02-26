@@ -9,11 +9,13 @@ import dev.dunnam.diceanchors.extract.NormalizedStringDuplicateDetector;
 import dev.dunnam.diceanchors.sim.engine.LlmCallService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 /**
  * Provides default implementations of anchor engine strategy interfaces.
@@ -62,8 +64,8 @@ public class AnchorConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean
-    ConflictResolver conflictResolver() {
+    @ConditionalOnMissingBean(AuthorityConflictResolver.class)
+    AuthorityConflictResolver authorityConflictResolver() {
         var conflict = properties.conflict();
         if (conflict != null) {
             return new AuthorityConflictResolver(
@@ -73,6 +75,39 @@ public class AnchorConfiguration {
             );
         }
         return new AuthorityConflictResolver();
+    }
+
+    @Bean
+    @Primary
+    @ConditionalOnMissingBean(value = ConflictResolver.class, ignored = AuthorityConflictResolver.class)
+    @ConditionalOnProperty(
+            prefix = "dice-anchors.anchor.revision",
+            name = "enabled",
+            havingValue = "true",
+            matchIfMissing = true)
+    ConflictResolver revisionAwareConflictResolver(AuthorityConflictResolver authorityResolver,
+                                                    AnchorMutationStrategy mutationStrategy) {
+        var revision = properties.anchor().revision();
+        var conflict = properties.conflict();
+        var replaceThreshold = conflict != null ? conflict.replaceThreshold() : 0.8;
+        return new RevisionAwareConflictResolver(
+                authorityResolver,
+                mutationStrategy,
+                revision.enabled(),
+                revision.reliableRevisable(),
+                revision.confidenceThreshold(),
+                replaceThreshold);
+    }
+
+    @Bean
+    @Primary
+    @ConditionalOnMissingBean(value = ConflictResolver.class, ignored = AuthorityConflictResolver.class)
+    @ConditionalOnProperty(
+            prefix = "dice-anchors.anchor.revision",
+            name = "enabled",
+            havingValue = "false")
+    ConflictResolver authorityPrimaryConflictResolver(AuthorityConflictResolver authorityResolver) {
+        return authorityResolver;
     }
 
     @Bean

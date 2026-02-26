@@ -249,10 +249,6 @@ class CanonizationGateTest {
         }
     }
 
-    // ========================================================================
-    // Helpers
-    // ========================================================================
-
     private static PropositionNode anchorNode(String id, Authority authority) {
         var node = new PropositionNode("anchor text", 0.9);
         node.setId(id);
@@ -283,7 +279,7 @@ class CanonizationGateTest {
                 20, 500, 100, 900, true, 0.65,
                 "FAST_THEN_LLM", "TIERED",
                 true, gateEnabled, autoApproveInSim,
-                0.6, 400, 200, null, null, null);
+                0.6, 400, 200, null, "hitl-only", null, null, null);
         return new DiceAnchorsProperties(
                 anchorConfig,
                 new DiceAnchorsProperties.ChatConfig("dm", 200, null),

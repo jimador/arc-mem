@@ -151,8 +151,6 @@ class LlmCallServiceTest {
         }
     }
 
-    // --- helpers ---
-
     private void stubChatModel(String text) {
         when(chatModel.call(any(Prompt.class))).thenReturn(stubResponse(text));
     }
@@ -172,7 +170,7 @@ class LlmCallServiceTest {
                 true,
                 4);
         return new DiceAnchorsProperties(
-                new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200, null, null, null),
+                new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200, null, "hitl-only", null, null, null),
                 new DiceAnchorsProperties.ChatConfig("dm", 200, null),
                 new DiceAnchorsProperties.MemoryConfig(true, null, null, "text-embedding-3-small", 20, 5, 2),
                 new DiceAnchorsProperties.PersistenceConfig(false),

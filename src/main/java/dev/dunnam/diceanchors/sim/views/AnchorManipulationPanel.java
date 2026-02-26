@@ -17,8 +17,12 @@ import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextArea;
 import dev.dunnam.diceanchors.anchor.Anchor;
 import dev.dunnam.diceanchors.anchor.AnchorEngine;
+import dev.dunnam.diceanchors.anchor.AnchorMutationStrategy;
 import dev.dunnam.diceanchors.anchor.ConflictDetector;
 import dev.dunnam.diceanchors.anchor.ConflictResolver;
+import dev.dunnam.diceanchors.anchor.MutationDecision;
+import dev.dunnam.diceanchors.anchor.MutationRequest;
+import dev.dunnam.diceanchors.anchor.MutationSource;
 import dev.dunnam.diceanchors.persistence.AnchorRepository;
 import dev.dunnam.diceanchors.persistence.PropositionNode;
 import org.jspecify.annotations.Nullable;
@@ -46,6 +50,7 @@ public class AnchorManipulationPanel extends VerticalLayout {
 
     private final AnchorRepository anchorRepository;
     private final AnchorEngine anchorEngine;
+    private final AnchorMutationStrategy mutationStrategy;
 
     private final VerticalLayout anchorsListContainer;
     private final VerticalLayout injectFormContainer;
@@ -74,12 +79,15 @@ public class AnchorManipulationPanel extends VerticalLayout {
         ENABLE,
         PIN_TOGGLE,
         INJECT,
+        REVISE,
         CONFLICT_RESOLVE
     }
 
-    public AnchorManipulationPanel(AnchorRepository anchorRepository, AnchorEngine anchorEngine) {
+    public AnchorManipulationPanel(AnchorRepository anchorRepository, AnchorEngine anchorEngine,
+                                    AnchorMutationStrategy mutationStrategy) {
         this.anchorRepository = anchorRepository;
         this.anchorEngine = anchorEngine;
+        this.mutationStrategy = mutationStrategy;
 
         setSizeFull();
         setPadding(true);
@@ -250,7 +258,29 @@ public class AnchorManipulationPanel extends VerticalLayout {
         controlsRow.setAlignItems(HorizontalLayout.Alignment.CENTER);
         controlsRow.setSpacing(true);
 
-        card.add(controlsRow, rankRow);
+        var reviseField = new com.vaadin.flow.component.textfield.TextField("Revision");
+        reviseField.setWidthFull();
+        reviseField.setValue(node.getText());
+
+        var reviseButton = new Button("Revise");
+        reviseButton.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_PRIMARY);
+        reviseButton.addClickListener(e -> {
+            var text = reviseField.getValue();
+            if (text == null || text.isBlank() || text.equals(node.getText())) return;
+            var request = new MutationRequest(node.getId(), text, MutationSource.UI, "sim-operator");
+            if (mutationStrategy.evaluate(request) instanceof MutationDecision.Allow) {
+                executeRevision(node, text);
+                recordIntervention(ActionType.REVISE, node.getId(), node.getText(), text);
+                if (currentContextId != null) loadAnchors(currentContextId);
+            }
+        });
+
+        var reviseRow = new HorizontalLayout(reviseField, reviseButton);
+        reviseRow.setWidthFull();
+        reviseRow.setAlignItems(HorizontalLayout.Alignment.BASELINE);
+        reviseRow.expand(reviseField);
+
+        card.add(controlsRow, rankRow, reviseRow);
         return card;
     }
 
@@ -270,6 +300,17 @@ public class AnchorManipulationPanel extends VerticalLayout {
         if (currentContextId != null) {
             loadAnchors(currentContextId);
         }
+    }
+
+    private void executeRevision(PropositionNode predecessor, String revisedText) {
+        var successor = new PropositionNode(revisedText, 0.95);
+        successor.setContextId(currentContextId);
+        anchorRepository.saveNode(successor);
+        anchorRepository.promoteToAnchor(successor.getId(), predecessor.getRank(), predecessor.getAuthority());
+        if (predecessor.isPinned()) {
+            anchorRepository.updatePinned(successor.getId(), true);
+        }
+        anchorEngine.supersede(predecessor.getId(), successor.getId(), ArchiveReason.REVISION);
     }
 
     private void buildInjectForm() {

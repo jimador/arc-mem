@@ -7,6 +7,7 @@ import dev.dunnam.diceanchors.anchor.AnchorEngine;
 import dev.dunnam.diceanchors.anchor.Authority;
 import dev.dunnam.diceanchors.anchor.ConflictDetector;
 import dev.dunnam.diceanchors.anchor.ConflictResolver;
+import dev.dunnam.diceanchors.anchor.ConflictType;
 import dev.dunnam.diceanchors.anchor.DemotionReason;
 import dev.dunnam.diceanchors.anchor.PromotionZone;
 import dev.dunnam.diceanchors.anchor.TrustContext;
@@ -349,61 +350,75 @@ public class AnchorPromoter {
      * @return true if the incoming proposition should proceed to trust evaluation
      */
     private ConflictResolutionResult resolveConflicts(Proposition prop, List<ConflictDetector.Conflict> conflicts) {
-        int resolvedCount = 0;
+        record Resolved(ConflictDetector.Conflict conflict, ConflictResolver.Resolution resolution) {}
+
         int degradedCount = 0;
-        var outcomes = new ArrayList<String>();
+        var resolved = new ArrayList<Resolved>();
         boolean rejected = false;
 
+        // Pass 1: compute all resolutions without side effects
         for (var conflict : conflicts) {
             if (conflict.detectionQuality() == ConflictDetector.DetectionQuality.DEGRADED
                     || conflict.existing() == null) {
                 logger.warn("Degraded conflict detection for proposition {} — routing to review; reason={}",
                         prop.getId(), conflict.reason());
-                outcomes.add("DEGRADED");
                 degradedCount++;
                 rejected = true;
                 break;
             }
 
             var resolution = engine.resolveConflict(conflict);
-            resolvedCount++;
-            outcomes.add(resolution.name());
+            resolved.add(new Resolved(conflict, resolution));
             logger.info("Conflict resolution for proposition {} vs anchor {}: {}",
                     prop.getId(), conflict.existing().id(), resolution);
 
-            switch (resolution) {
-                case KEEP_EXISTING -> {
-                    logger.info("Keeping existing anchor {}, rejecting proposition {}",
-                            conflict.existing().id(), prop.getId());
-                    engine.reEvaluateTrust(conflict.existing().id());
-                    rejected = true;
-                }
-                case REPLACE -> {
-                    logger.info("Replacing anchor {} with proposition {}",
-                            conflict.existing().id(), prop.getId());
-                    engine.supersede(conflict.existing().id(), prop.getId(), ArchiveReason.CONFLICT_REPLACEMENT);
-                }
-                case DEMOTE_EXISTING -> {
-                    logger.info("Demoting existing anchor {} due to conflict with proposition {}",
-                            conflict.existing().id(), prop.getId());
-                    engine.demote(conflict.existing().id(), DemotionReason.CONFLICT_EVIDENCE);
-                    engine.reEvaluateTrust(conflict.existing().id());
-                }
-                case COEXIST -> {
-                    logger.debug("Coexisting: proposition {} and anchor {}",
-                            prop.getId(), conflict.existing().id());
-                    engine.reEvaluateTrust(conflict.existing().id());
+            if (resolution == ConflictResolver.Resolution.KEEP_EXISTING) {
+                rejected = true;
+                break;
+            }
+        }
+
+        var outcomes = rejected && degradedCount > 0
+                ? List.of("DEGRADED")
+                : resolved.stream().map(r -> r.resolution().name()).toList();
+
+        // Pass 2: execute side effects only if the proposition survives all checks
+        if (!rejected) {
+            for (var r : resolved) {
+                switch (r.resolution()) {
+                    case REPLACE -> {
+                        logger.info("Replacing anchor {} with proposition {}",
+                                r.conflict().existing().id(), prop.getId());
+                        var archiveReason = r.conflict().conflictType() == ConflictType.REVISION
+                                ? ArchiveReason.REVISION
+                                : ArchiveReason.CONFLICT_REPLACEMENT;
+                        engine.supersede(r.conflict().existing().id(), prop.getId(), archiveReason);
+                    }
+                    case DEMOTE_EXISTING -> {
+                        logger.info("Demoting existing anchor {} due to conflict with proposition {}",
+                                r.conflict().existing().id(), prop.getId());
+                        engine.demote(r.conflict().existing().id(), DemotionReason.CONFLICT_EVIDENCE);
+                        engine.reEvaluateTrust(r.conflict().existing().id());
+                    }
+                    case COEXIST -> {
+                        logger.debug("Coexisting: proposition {} and anchor {}",
+                                prop.getId(), r.conflict().existing().id());
+                        engine.reEvaluateTrust(r.conflict().existing().id());
+                    }
+                    case KEEP_EXISTING -> throw new IllegalStateException("KEEP_EXISTING in pass 2");
                 }
             }
-
-            if (rejected) {
-                break;
+        } else {
+            for (var r : resolved) {
+                if (r.resolution() == ConflictResolver.Resolution.KEEP_EXISTING) {
+                    engine.reEvaluateTrust(r.conflict().existing().id());
+                }
             }
         }
 
         var span = Span.current();
         span.setAttribute("conflict.detected_count", conflicts.size());
-        span.setAttribute("conflict.resolved_count", resolvedCount);
+        span.setAttribute("conflict.resolved_count", resolved.size());
         span.setAttribute("conflict.resolution_outcomes", String.join(",", outcomes));
         span.setAttribute("conflict.degraded_count", degradedCount);
 

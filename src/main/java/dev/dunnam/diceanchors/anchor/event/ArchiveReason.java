@@ -10,6 +10,8 @@ public enum ArchiveReason {
     BUDGET_EVICTION,
     /** Archived because it stayed dormant and decayed below lifecycle threshold. */
     DORMANCY_DECAY,
+    /** Archived because user-intended revision superseded the anchor. */
+    REVISION,
     /** Archived via explicit operator or system action. */
     MANUAL
 }

@@ -413,7 +413,7 @@ class AnchorEngineLifecycleEventsTest {
                 0.6,
                 400,
                 200,
-                null, null, null);
+                null, "hitl-only", null, null, null);
         return new DiceAnchorsProperties(
                 anchorConfig,
                 new DiceAnchorsProperties.ChatConfig("dm", 200, null),

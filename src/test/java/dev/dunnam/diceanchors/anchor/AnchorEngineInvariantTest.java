@@ -164,31 +164,26 @@ class AnchorEngineInvariantTest {
         @Test
         @DisplayName("invariant-protected anchors are not evicted during budget enforcement")
         void invariantProtectedAnchorsNotEvicted() {
-            // Set up: promote triggers eviction check
             var promotedNode = anchorNode("new-1", Authority.PROVISIONAL);
             promotedNode.setRank(500);
 
-            // Mock the DICE Proposition returned by findById
             var proposition = mock(Proposition.class);
             when(proposition.getContextIdValue()).thenReturn(CONTEXT_ID);
             when(repository.findById("new-1")).thenReturn(proposition);
 
-            // Two existing anchors, one protected by invariant
             var protectedNode = anchorNode("protected-1", Authority.RELIABLE);
-            protectedNode.setRank(100); // lowest rank, would normally be evicted
+            protectedNode.setRank(100);
             var normalNode = anchorNode("normal-1", Authority.PROVISIONAL);
             normalNode.setRank(150);
 
             when(repository.findActiveAnchors(CONTEXT_ID))
                     .thenReturn(List.of(promotedNode, protectedNode, normalNode));
 
-            // For protected anchor: MUST violation blocks eviction
             var protectedViolation = new InvariantViolationData(
                     "ei-1", InvariantStrength.MUST, ProposedAction.EVICT, "Immune", "protected-1");
             var blockedEval = new InvariantEvaluation(List.of(protectedViolation), 1);
             var cleanEval = new InvariantEvaluation(List.of(), 0);
 
-            // The evaluator is called for each non-pinned anchor during eviction
             when(invariantEvaluator.evaluate(eq(CONTEXT_ID), eq(ProposedAction.EVICT), any(), any()))
                     .thenAnswer(inv -> {
                         Anchor target = inv.getArgument(3);
@@ -198,7 +193,6 @@ class AnchorEngineInvariantTest {
                         return cleanEval;
                     });
 
-            // Use budget of 2 so one must be evicted from the 3
             var engineSmallBudget = new AnchorEngine(
                     repository,
                     propertiesWithBudget(2),
@@ -213,9 +207,7 @@ class AnchorEngineInvariantTest {
 
             engineSmallBudget.promote("new-1", 500);
 
-            // Protected anchor should NOT be archived (evicted)
             verify(repository, never()).archiveAnchor(eq("protected-1"));
-            // Normal anchor should be archived (evicted) since it's the lowest non-protected
             verify(repository).archiveAnchor("normal-1");
         }
     }
@@ -324,8 +316,6 @@ class AnchorEngineInvariantTest {
         }
     }
 
-    // Helpers
-
     private PropositionNode anchorNode(String id, Authority authority) {
         var node = new PropositionNode("anchor text " + id, 0.9);
         node.setId(id);
@@ -345,7 +335,7 @@ class AnchorEngineInvariantTest {
                 budget, 500, 100, 900, true, 0.65,
                 "FAST_THEN_LLM", "TIERED",
                 true, true, true,
-                0.6, 400, 200, null, null, null);
+                0.6, 400, 200, null, "hitl-only", null, null, null);
         return new DiceAnchorsProperties(
                 anchorConfig,
                 new DiceAnchorsProperties.ChatConfig("dm", 200, null),

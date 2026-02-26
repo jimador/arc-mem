@@ -48,9 +48,17 @@ public record DiceAnchorsProperties(
             @DefaultValue("400") int reliableRankThreshold,
             @DefaultValue("200") int unreliableRankThreshold,
             @Valid @NestedConfigurationProperty TierConfig tier,
+            @DefaultValue("hitl-only") String mutationStrategy,
+            @Valid @NestedConfigurationProperty RevisionConfig revision,
             @Nullable InvariantConfig invariants,
             @Nullable ChatSeedConfig chatSeed
     ) {
+        public AnchorConfig {
+            if (revision == null) {
+                revision = new RevisionConfig(true, false, 0.75);
+            }
+        }
+
         @AssertTrue(message = "minRank must be < maxRank")
         public boolean isRankRangeValid() {
             return minRank < maxRank;
@@ -74,6 +82,13 @@ public record DiceAnchorsProperties(
             return hotThreshold > warmThreshold;
         }
     }
+
+    public record RevisionConfig(
+            @DefaultValue("true") boolean enabled,
+            @DefaultValue("false") boolean reliableRevisable,
+            @DecimalMin(value = "0.0", inclusive = false) @DecimalMax("1.0")
+            @DefaultValue("0.75") double confidenceThreshold
+    ) {}
 
     public record AssemblyConfig(
             @Min(0) @DefaultValue("0") int promptTokenBudget

@@ -51,11 +51,17 @@ public interface ConflictDetector {
      *                         means the result is a placeholder, not a confirmed conflict
      */
     record Conflict(@Nullable Anchor existing, String incomingText, double confidence, String reason,
-                    DetectionQuality detectionQuality) {
+                    DetectionQuality detectionQuality, @Nullable ConflictType conflictType) {
 
         /** Convenience constructor for full-quality detections (backward-compatible). */
         public Conflict(Anchor existing, String incomingText, double confidence, String reason) {
-            this(existing, incomingText, confidence, reason, DetectionQuality.FULL);
+            this(existing, incomingText, confidence, reason, DetectionQuality.FULL, null);
+        }
+
+        /** Convenience constructor preserving existing five-argument callers. */
+        public Conflict(Anchor existing, String incomingText, double confidence, String reason,
+                        DetectionQuality detectionQuality) {
+            this(existing, incomingText, confidence, reason, detectionQuality, null);
         }
     }
 

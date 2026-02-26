@@ -22,6 +22,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouterLink;
 import dev.dunnam.diceanchors.anchor.AnchorEngine;
+import dev.dunnam.diceanchors.anchor.AnchorMutationStrategy;
 import dev.dunnam.diceanchors.chat.ChatView;
 import dev.dunnam.diceanchors.persistence.AnchorRepository;
 import dev.dunnam.diceanchors.sim.engine.RunHistoryStore;
@@ -97,7 +98,8 @@ public class SimulationView extends VerticalLayout {
             ScenarioLoader scenarioLoader,
             AnchorRepository anchorRepository,
             AnchorEngine anchorEngine,
-            RunHistoryStore runHistoryStore) {
+            RunHistoryStore runHistoryStore,
+            AnchorMutationStrategy mutationStrategy) {
         this.simulationService = simulationService;
         this.scenarioLoader = scenarioLoader;
         this.anchorRepository = anchorRepository;
@@ -234,7 +236,7 @@ public class SimulationView extends VerticalLayout {
         driftSummaryPanel = new DriftSummaryPanel();
         inspectorPanel = new ContextInspectorPanel();
         timelinePanel = new AnchorTimelinePanel();
-        manipulationPanel = new AnchorManipulationPanel(anchorRepository, anchorEngine);
+        manipulationPanel = new AnchorManipulationPanel(anchorRepository, anchorEngine, mutationStrategy);
         knowledgeBrowserPanel = new KnowledgeBrowserPanel(anchorEngine, anchorRepository);
 
         timelinePanel.setTurnSelectionListener(this::onTurnSelected);

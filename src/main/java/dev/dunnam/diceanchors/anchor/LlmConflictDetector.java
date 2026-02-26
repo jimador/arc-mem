@@ -100,12 +100,28 @@ public class LlmConflictDetector implements ConflictDetector {
             var anchorByText = anchors.stream()
                     .collect(Collectors.toMap(Anchor::text, a -> a, (a, b) -> a));
             var result = new LinkedHashMap<String, List<Conflict>>();
-            for (var entry : parsed.results()) {
-                var conflicts = entry.contradictingAnchors().stream()
-                        .map(anchorByText::get)
+            var entries = parsed.results() != null ? parsed.results() : List.<BatchConflictResult.Entry>of();
+            for (var entry : entries) {
+                var matches = entry.contradictingAnchors() != null
+                        ? entry.contradictingAnchors()
+                        : List.<BatchConflictResult.AnchorMatch>of();
+                var conflicts = matches.stream()
+                        .filter(match -> match.conflictType() != ConflictType.WORLD_PROGRESSION)
+                        .map(match -> {
+                            var anchor = anchorByText.get(match.anchorText());
+                            if (anchor == null) {
+                                return null;
+                            }
+                            var reason = match.reasoning() != null && !match.reasoning().isBlank()
+                                    ? match.reasoning()
+                                    : "batch LLM conflict";
+                            var conflictType = match.conflictType() != null
+                                    ? match.conflictType()
+                                    : ConflictType.CONTRADICTION;
+                            return new Conflict(anchor, entry.candidate(), llmConfidence, reason,
+                                    DetectionQuality.FULL, conflictType);
+                        })
                         .filter(Objects::nonNull)
-                        .map(anchor -> new Conflict(anchor, entry.candidate(), llmConfidence,
-                                "batch LLM conflict"))
                         .toList();
                 result.put(entry.candidate(), conflicts);
             }
@@ -133,7 +149,8 @@ public class LlmConflictDetector implements ConflictDetector {
     private Conflict evaluatePair(String incomingText, Anchor anchor) {
         var promptText = PromptTemplates.render(PromptPathConstants.DICE_CONFLICT_DETECTION, Map.of(
                 "statement_a", incomingText,
-                "statement_b", anchor.text()));
+                "statement_b", anchor.text(),
+                "anchor_authority", anchor.authority().name()));
         var prompt = new Prompt(promptText);
         var response = chatModel.call(prompt);
         var raw = response.getResult().getOutput().getText();
@@ -146,9 +163,12 @@ public class LlmConflictDetector implements ConflictDetector {
         try {
             var node = MAPPER.readTree(json);
             var contradicts = node.path("contradicts").asBoolean(false);
+            var reasoning = node.path("reasoning").asText("");
             var explanation = node.path("explanation").asText("LLM-detected contradiction");
             if (contradicts) {
-                return new Conflict(anchor, incomingText, llmConfidence, explanation);
+                var reason = !reasoning.isBlank() ? reasoning : explanation;
+                return new Conflict(anchor, incomingText, llmConfidence, reason,
+                        DetectionQuality.FULL, parseConflictType(node.path("conflictType")));
             }
             return null;
         } catch (Exception e) {
@@ -157,11 +177,27 @@ public class LlmConflictDetector implements ConflictDetector {
             if (raw != null && raw.toLowerCase().contains("true")) {
                 return new Conflict(anchor, incomingText, llmConfidence,
                         "LLM indicated contradiction (fallback parse)",
-                        DetectionQuality.FALLBACK);
+                        DetectionQuality.FALLBACK,
+                        ConflictType.CONTRADICTION);
             }
             return new Conflict(anchor, incomingText, 0.0,
                     "conflict detection degraded — parse failure",
                     DetectionQuality.DEGRADED);
+        }
+    }
+
+    private ConflictType parseConflictType(com.fasterxml.jackson.databind.JsonNode conflictTypeNode) {
+        if (conflictTypeNode == null || conflictTypeNode.isMissingNode() || conflictTypeNode.isNull()) {
+            return ConflictType.CONTRADICTION;
+        }
+        var raw = conflictTypeNode.asText("");
+        if (raw.isBlank()) {
+            return ConflictType.CONTRADICTION;
+        }
+        try {
+            return ConflictType.valueOf(raw.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return ConflictType.CONTRADICTION;
         }
     }
 

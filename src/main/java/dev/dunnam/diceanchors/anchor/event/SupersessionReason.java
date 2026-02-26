@@ -36,6 +36,8 @@ public enum SupersessionReason {
      * is included for completeness but may not be used with a SUPERSEDES relationship.
      */
     DECAY_DEMOTION,
+    /** Superseded via user-intended revision. */
+    USER_REVISION,
     /** Superseded via explicit operator or system action. */
     MANUAL;
 
@@ -55,6 +57,7 @@ public enum SupersessionReason {
             case CONFLICT_REPLACEMENT -> CONFLICT_REPLACEMENT;
             case BUDGET_EVICTION -> BUDGET_EVICTION;
             case DORMANCY_DECAY -> DECAY_DEMOTION;
+            case REVISION -> USER_REVISION;
             case MANUAL -> MANUAL;
         };
     }

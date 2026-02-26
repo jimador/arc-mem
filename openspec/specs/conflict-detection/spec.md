@@ -8,12 +8,15 @@ The `ConflictDetector` interface SHALL add a `batchDetect(List<String> candidate
 
 `LlmConflictDetector` SHALL accept the confidence score from `ConflictConfig.llmConfidence()` via constructor injection instead of using the hardcoded constant `LLM_CONFLICT_CONFIDENCE = 0.9`. The injected confidence SHALL be assigned to all LLM-detected conflicts in both individual and batch detection paths.
 
+The `Conflict` record SHALL include a `@Nullable ConflictType conflictType` field. Existing constructors (4-arg and 5-arg) SHALL be preserved and SHALL default `conflictType` to null. A new 6-arg constructor SHALL accept `conflictType` as the final parameter.
+
 #### Scenario: LLM batch conflict detection
 
 - **GIVEN** the conflict detection strategy is `llm`
 - **WHEN** `batchDetect()` is called with 5 candidates and 10 anchors
 - **THEN** a single LLM call SHALL evaluate all 5 candidates against all 10 anchors
 - **AND** the result SHALL map each candidate to its list of conflicting anchors
+- **AND** each conflict SHALL include a `conflictType` classification
 
 #### Scenario: Lexical batch conflict detection
 
@@ -21,12 +24,14 @@ The `ConflictDetector` interface SHALL add a `batchDetect(List<String> candidate
 - **WHEN** `batchDetect()` is called with 5 candidates
 - **THEN** each candidate SHALL be evaluated via negation pattern matching (no LLM call)
 - **AND** evaluations MAY run in parallel using virtual threads
+- **AND** all resulting conflicts SHALL have `conflictType = null`
 
 #### Scenario: Fallback on batch failure
 
 - **GIVEN** a batched LLM call fails
 - **WHEN** the error is caught
 - **THEN** the system SHALL fall back to individual `detect()` calls per candidate
+- **AND** fallback conflicts SHALL still include `conflictType` classification
 
 #### Scenario: Configurable negation overlap threshold
 
@@ -41,3 +46,10 @@ The `ConflictDetector` interface SHALL add a `batchDetect(List<String> candidate
 - **WHEN** `LlmConflictDetector` detects a conflict
 - **THEN** the returned `Conflict` object SHALL have confidence `0.85`
 - **AND** the hardcoded constant `0.9` SHALL NOT be referenced
+
+#### Scenario: Conflict record backward compatibility
+
+- **GIVEN** existing code creates a `Conflict` using the 4-arg or 5-arg constructor
+- **WHEN** the record is instantiated
+- **THEN** `conflictType` SHALL be null
+- **AND** resolvers SHALL treat null `conflictType` as `CONTRADICTION`

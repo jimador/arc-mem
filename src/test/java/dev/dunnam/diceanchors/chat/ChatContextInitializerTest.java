@@ -230,10 +230,6 @@ class ChatContextInitializerTest {
         }
     }
 
-    // ========================================================================
-    // Helpers
-    // ========================================================================
-
     private ChatContextInitializer initializerWith(DiceAnchorsProperties.ChatSeedConfig chatSeed) {
         var props = propertiesWithSeed(chatSeed);
         return new ChatContextInitializer(props, anchorEngine, repository);
@@ -250,7 +246,7 @@ class ChatContextInitializerTest {
                 20, 500, 100, 900, true, 0.65,
                 "FAST_THEN_LLM", "TIERED",
                 true, true, true,
-                0.6, 400, 200, null, null, chatSeed);
+                0.6, 400, 200, null, "hitl-only", null, null, chatSeed);
         return new DiceAnchorsProperties(
                 anchorConfig,
                 new DiceAnchorsProperties.ChatConfig("dm", 200, null),
