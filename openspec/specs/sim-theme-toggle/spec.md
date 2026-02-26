@@ -1,21 +1,15 @@
 ## Requirements
 
-### Requirement: Light/dark toggle button in simulation header
+### Requirement: Theme toggle placement
+The light/dark toggle button SHALL be positioned at the far right of the header row, alongside Chat and Benchmark navigation links. The toggle SHALL display "☀ LIGHT" or "🌙 DARK" based on current theme. Theme preference SHALL be persisted to `localStorage` under key `"anchor-theme"`.
 
-`SimulationView` SHALL display a small toggle button in the header area that switches
-between dark mode (default) and light mode. The button label SHALL reflect the mode
-that will be activated on click: `"☀ LIGHT"` when in dark mode, `"🌙 DARK"` when in
-light mode. The button SHALL use no variant (default ghost style) and SHALL remain
-enabled in all simulation states.
+#### Scenario: Toggle in header with nav links
+- **WHEN** the SimulationView loads
+- **THEN** the theme toggle appears at the far right of the header row, after the Chat and Benchmark navigation links
 
-#### Scenario: Default state is dark
-- **WHEN** the app loads with no stored preference
-- **THEN** the dark palette is active and the toggle button reads `"☀ LIGHT"`
-
-#### Scenario: Clicking toggle switches palette
-- **WHEN** the user clicks the toggle button while in dark mode
-- **THEN** the page switches to the light palette immediately
-- **AND** the button label changes to `"🌙 DARK"`
+#### Scenario: Theme persistence
+- **WHEN** the user toggles the theme
+- **THEN** the preference is saved to localStorage and applied without page reload
 
 ---
 

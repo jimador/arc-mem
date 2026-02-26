@@ -1,5 +1,3 @@
-## ADDED Requirements
-
 ### Requirement: 13 ported scenarios
 
 Thirteen simulation scenarios SHALL be ported from tor and adapted to the dice-anchors `SimulationScenario` format. The scenarios SHALL be organized in `src/main/resources/simulations/` as YAML files. The 13 scenarios SHALL be: `trust-evaluation-basic`, `trust-evaluation-full-signals`, `adversarial-contradictory`, `adversarial-poisoned-player`, `adversarial-displacement`, `dungeon-of-mirrors`, `dead-kingdom`, `compaction-stress`, `balanced-campaign`, `narrative-dm-driven`, `dormancy-revival`, `episodic-recall`, and `multi-session-campaign`.
@@ -82,10 +80,13 @@ The existing `cursed-blade.yml` and `anchor-drift.yml` scenarios SHALL continue 
 - **WHEN** `cursed-blade.yml` is loaded and executed
 - **THEN** the simulation completes successfully with the same behavior as before the changes
 
-### Requirement: Scenario categories in UI
+### Requirement: Two-level scenario selection by category
+The scenario selection SHALL use two separate components: a Category `Select<String>` and a Scenario `ComboBox<SimulationScenario>`. Selecting a category SHALL filter the Scenario ComboBox to show only scenarios in that category. Categories SHALL be sorted alphabetically (via TreeMap), with scenarios sorted by title within each category.
 
-The scenario combo box in `SimulationView` SHALL group scenarios by category. Categories SHALL include: Trust Evaluation, Adversarial (Core), Adversarial (Complex), Non-Adversarial, Dormancy/Recall, Multi-Session. The scenario label generator SHALL display the category alongside the scenario ID.
+#### Scenario: Category selection filters scenarios
+- **WHEN** the user selects a category from the Category Select
+- **THEN** the Scenario ComboBox is filtered to show only scenarios belonging to that category, sorted by title
 
-#### Scenario: Grouped scenario display
-- **WHEN** the scenario combo box is opened in SimulationView
-- **THEN** scenarios are visually grouped by category with category headers or prefixes
+#### Scenario: Categories sorted alphabetically
+- **WHEN** the SimulationView loads
+- **THEN** the Category Select contains categories in alphabetical order (adversarial, baseline, compaction, dormancy, extraction, multi-session, trust)

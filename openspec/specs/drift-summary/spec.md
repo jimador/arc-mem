@@ -1,4 +1,15 @@
-## MODIFIED Requirements
+### Requirement: DriftSummaryPanel placement
+DriftSummaryPanel SHALL be rendered as the content of the "Results" tab in the right panel TabSheet. It SHALL NOT be rendered as a child of the left column below the ConversationPanel.
+
+#### Scenario: Panel rendered in Results tab
+- **WHEN** a simulation completes
+- **THEN** the DriftSummaryPanel is visible within the Results tab of the right panel
+
+#### Scenario: Panel not in left column
+- **WHEN** a simulation completes
+- **THEN** no DriftSummaryPanel appears below or alongside the ConversationPanel in the left column
+
+---
 
 ### Requirement: Attribution accuracy and absorption rate metrics
 
@@ -11,8 +22,6 @@ The attribution accuracy SHALL measure how often injected anchors match ground t
 #### Scenario: High absorption rate
 - **WHEN** 8 out of 10 evaluated turns produced no contradictions
 - **THEN** the absorption rate displays "80.0%"
-
-## ADDED Requirements
 
 ### Requirement: Major contradiction count metric
 

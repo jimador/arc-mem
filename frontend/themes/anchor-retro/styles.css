@@ -1876,20 +1876,6 @@ html[theme~="light"] {
     margin-bottom: 12px;
 }
 
-/* Category badge for scenario selection */
-.ar-category-badge {
-    display: inline-block;
-    padding: 1px 6px;
-    border-radius: 3px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    background: rgba(0, 212, 255, 0.15);
-    color: var(--anchor-accent-cyan);
-    margin-left: 6px;
-}
-
 /* Nav links in header */
 .ar-nav-link {
     color: var(--anchor-accent-cyan);
@@ -1903,23 +1889,6 @@ html[theme~="light"] {
 
 .ar-nav-link:hover {
     background: rgba(0, 212, 255, 0.1);
-}
-
-.ar-category-badge {
-    font-size: 0.7rem;
-    font-family: var(--lumo-font-family);
-    color: var(--anchor-accent-amber);
-    background: rgba(255, 176, 32, 0.12);
-    padding: 1px 6px;
-    border-radius: 3px;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    white-space: nowrap;
-}
-
-.ar-scenario-item-title {
-    font-size: 0.85rem;
-    font-family: var(--lumo-font-family);
 }
 
 /* Drill-down Details accordion within ConditionComparisonPanel */

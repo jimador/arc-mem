@@ -1,16 +1,17 @@
-## ADDED Requirements
+### Requirement: ConversationPanel extraction
+`ConversationPanel` SHALL be a self-contained Vaadin `VerticalLayout` extracted from `SimulationView`. It SHALL expose `appendTurn(TurnSnapshot)` and `reset()` as its public API. The panel SHALL occupy the full height of the left column with no sibling panels stacked below it.
 
-### Requirement: Extracted ConversationPanel component
+#### Scenario: Panel occupies full left column
+- **WHEN** a simulation is running or completed
+- **THEN** the ConversationPanel is the sole content of the left column with flex-grow filling available height
 
-Conversation rendering SHALL be extracted from `SimulationView` into a standalone `ConversationPanel` Vaadin component. The `SimulationView` SHALL instantiate and delegate to `ConversationPanel` instead of managing conversation DOM elements directly. The panel SHALL accept turn data via a public `appendTurn()` method and support `reset()` to clear all turns.
+#### Scenario: Append turn
+- **WHEN** `appendTurn(TurnSnapshot)` is called
+- **THEN** a new conversation bubble is rendered and the panel scrolls to the latest entry
 
-#### Scenario: SimulationView uses ConversationPanel
-- **WHEN** `SimulationView.java` is inspected
-- **THEN** conversation rendering is handled by a `ConversationPanel` field, not by inline `appendMessage()`/`appendDmResponse()` methods
-
-#### Scenario: Panel resets between runs
-- **WHEN** the user starts a new simulation
-- **THEN** `ConversationPanel.reset()` is called, clearing all previous turn bubbles
+#### Scenario: Reset
+- **WHEN** `reset()` is called
+- **THEN** all conversation bubbles are cleared and the placeholder message is shown
 
 ### Requirement: Injection state tags per turn
 
