@@ -1,13 +1,20 @@
 package dev.dunnam.diceanchors;
 
 import com.embabel.common.ai.model.LlmOptions;
+import dev.dunnam.diceanchors.anchor.Authority;
+import dev.dunnam.diceanchors.anchor.CompliancePolicyMode;
+import dev.dunnam.diceanchors.anchor.ConflictStrategy;
+import dev.dunnam.diceanchors.anchor.DedupStrategy;
+import dev.dunnam.diceanchors.anchor.InvariantRuleType;
+import dev.dunnam.diceanchors.anchor.InvariantStrength;
 import dev.dunnam.diceanchors.assembly.RetrievalMode;
+import dev.dunnam.diceanchors.sim.engine.RunHistoryStoreType;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Positive;
 import org.jspecify.annotations.Nullable;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -39,8 +46,8 @@ public record DiceAnchorsProperties(
             @Min(100) @Max(900) @DefaultValue("900") int maxRank,
             @DefaultValue("true") boolean autoActivate,
             @DecimalMin("0.0") @DecimalMax("1.0") @DefaultValue("0.65") double autoActivateThreshold,
-            @DefaultValue("FAST_THEN_LLM") String dedupStrategy,
-            @DefaultValue("TIERED") String compliancePolicy,
+            @DefaultValue("FAST_THEN_LLM") DedupStrategy dedupStrategy,
+            @DefaultValue("TIERED") CompliancePolicyMode compliancePolicy,
             @DefaultValue("true") boolean lifecycleEventsEnabled,
             @DefaultValue("true") boolean canonizationGateEnabled,
             @DefaultValue("true") boolean autoApproveInSimulation,
@@ -48,7 +55,6 @@ public record DiceAnchorsProperties(
             @DefaultValue("400") int reliableRankThreshold,
             @DefaultValue("200") int unreliableRankThreshold,
             @Valid @NestedConfigurationProperty TierConfig tier,
-            @DefaultValue("hitl-only") String mutationStrategy,
             @Valid @NestedConfigurationProperty RevisionConfig revision,
             @Nullable InvariantConfig invariants,
             @Nullable ChatSeedConfig chatSeed
@@ -124,12 +130,12 @@ public record DiceAnchorsProperties(
     ) {}
 
     public record ConflictDetectionConfig(
-            @DefaultValue("llm") String strategy,
+            @DefaultValue("LLM") ConflictStrategy strategy,
             @DefaultValue("gpt-4o-nano") String model
     ) {}
 
     public record RunHistoryConfig(
-            @DefaultValue("memory") String store
+            @DefaultValue("MEMORY") RunHistoryStoreType store
     ) {}
 
     public record ConflictConfig(
@@ -181,11 +187,11 @@ public record DiceAnchorsProperties(
 
     public record InvariantRuleDefinition(
             String id,
-            String type,
-            @DefaultValue("MUST") String strength,
+            InvariantRuleType type,
+            @DefaultValue("MUST") InvariantStrength strength,
             @Nullable String contextId,
             @Nullable String anchorTextPattern,
-            @Nullable String minimumAuthority,
+            @Nullable Authority minimumAuthority,
             @Nullable Integer minimumCount
     ) {}
 
@@ -196,7 +202,7 @@ public record DiceAnchorsProperties(
 
     public record ChatSeedAnchor(
             String text,
-            @DefaultValue("RELIABLE") String authority,
+            @DefaultValue("RELIABLE") Authority authority,
             @DefaultValue("500") int rank,
             @DefaultValue("false") boolean pinned
     ) {}

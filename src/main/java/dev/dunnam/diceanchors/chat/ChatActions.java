@@ -8,6 +8,7 @@ import com.embabel.chat.UserMessage;
 import dev.dunnam.diceanchors.DiceAnchorsProperties;
 import dev.dunnam.diceanchors.anchor.Anchor;
 import dev.dunnam.diceanchors.anchor.AnchorEngine;
+import dev.dunnam.diceanchors.anchor.CompliancePolicyMode;
 import dev.dunnam.diceanchors.anchor.Authority;
 import dev.dunnam.diceanchors.anchor.CompliancePolicy;
 import dev.dunnam.diceanchors.assembly.AnchorsLlmReference;
@@ -101,7 +102,7 @@ public record ChatActions(
                 .toList();
 
         // Build tiered anchor groups for compliance-aware prompt rendering.
-        var tiered = properties.anchor().compliancePolicy().equalsIgnoreCase("TIERED");
+        var tiered = properties.anchor().compliancePolicy() == CompliancePolicyMode.TIERED;
         var templateVars = new HashMap<String, Object>();
         templateVars.put("properties", properties);
         templateVars.put("anchors", anchorMaps);

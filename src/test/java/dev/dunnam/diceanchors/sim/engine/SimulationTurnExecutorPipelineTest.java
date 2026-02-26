@@ -1,6 +1,8 @@
 package dev.dunnam.diceanchors.sim.engine;
 
 import dev.dunnam.diceanchors.DiceAnchorsProperties;
+import dev.dunnam.diceanchors.anchor.CompliancePolicyMode;
+import dev.dunnam.diceanchors.anchor.DedupStrategy;
 import dev.dunnam.diceanchors.anchor.Anchor;
 import dev.dunnam.diceanchors.anchor.CompliancePolicy;
 import dev.dunnam.diceanchors.anchor.Authority;
@@ -41,7 +43,7 @@ class SimulationTurnExecutorPipelineTest {
     @DisplayName("executeTurnFull refreshes anchors after extraction and reinforces injected anchors")
     void executeTurnFullRefreshesAnchorsAfterExtractionAndReinforcesInjectedAnchors() {
         var properties = new DiceAnchorsProperties(
-                new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200, null, "hitl-only", null, null, null),
+                new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null),
                 null, null, null, null, null, null,
                 new DiceAnchorsProperties.AssemblyConfig(0), null, null);
         var executor = new SimulationTurnExecutor(
@@ -103,7 +105,7 @@ class SimulationTurnExecutorPipelineTest {
     @DisplayName("executeTurn injects working propositions into the system prompt")
     void executeTurnInjectsWorkingPropositionsIntoSystemPrompt() {
         var properties = new DiceAnchorsProperties(
-                new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200, null, "hitl-only", null, null, null),
+                new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null),
                 null, null, null, null, null, null,
                 new DiceAnchorsProperties.AssemblyConfig(0), null, null);
         var executor = new SimulationTurnExecutor(
@@ -164,7 +166,7 @@ class SimulationTurnExecutorPipelineTest {
     @DisplayName("executeTurn renders anchor tiers without duplicate compliance headers or blank rows")
     void executeTurnRendersAnchorsWithoutDuplicateHeaders() {
         var properties = new DiceAnchorsProperties(
-                new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200, null, "hitl-only", null, null, null),
+                new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null),
                 null, null, null, null, null, null,
                 new DiceAnchorsProperties.AssemblyConfig(0), null, null);
         var executor = new SimulationTurnExecutor(
@@ -216,7 +218,7 @@ class SimulationTurnExecutorPipelineTest {
     @DisplayName("executeTurnFull applies dormancy decay and emits DECAYED event")
     void executeTurnFullAppliesDormancyDecayAndEmitsDecayedEvent() {
         var properties = new DiceAnchorsProperties(
-                new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200, null, "hitl-only", null, null, null),
+                new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null),
                 null, null, null, null, null, null,
                 new DiceAnchorsProperties.AssemblyConfig(0), null, null);
         var executor = new SimulationTurnExecutor(

@@ -71,11 +71,11 @@ dice-anchors:
     parallel-post-response: true
 
   conflict-detection:
-    strategy: llm
+    strategy: LLM
     model: gpt-4o-nano
 
   run-history:
-    store: memory
+    store: MEMORY
 
   retrieval:
     mode: HYBRID

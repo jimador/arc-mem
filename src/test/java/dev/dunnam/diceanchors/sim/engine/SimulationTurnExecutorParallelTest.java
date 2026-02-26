@@ -1,6 +1,8 @@
 package dev.dunnam.diceanchors.sim.engine;
 
 import dev.dunnam.diceanchors.DiceAnchorsProperties;
+import dev.dunnam.diceanchors.anchor.CompliancePolicyMode;
+import dev.dunnam.diceanchors.anchor.DedupStrategy;
 import dev.dunnam.diceanchors.anchor.Anchor;
 import dev.dunnam.diceanchors.anchor.CompliancePolicy;
 import dev.dunnam.diceanchors.anchor.Authority;
@@ -37,7 +39,7 @@ class SimulationTurnExecutorParallelTest {
 
     private SimulationTurnExecutor executorWithFlag(boolean parallelPostResponse) {
         var properties = new DiceAnchorsProperties(
-                new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200, null, "hitl-only", null, null, null),
+                new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null),
                 null, null, null,
                 new DiceAnchorsProperties.SimConfig("gpt-4.1-mini", 30, 30, 10, parallelPostResponse, 4),
                 null, null,

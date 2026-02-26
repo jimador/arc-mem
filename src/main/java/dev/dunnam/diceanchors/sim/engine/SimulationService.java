@@ -158,7 +158,7 @@ public class SimulationService {
                 var scenarioRules = scenario.invariants().stream()
                         .map(def -> InvariantRuleProvider.toRule(new DiceAnchorsProperties.InvariantRuleDefinition(
                                 def.id(), def.type(),
-                                def.strength() != null ? def.strength() : "MUST",
+                                def.effectiveStrength(),
                                 def.contextId(),
                                 def.anchorTextPattern(),
                                 def.minimumAuthority(),

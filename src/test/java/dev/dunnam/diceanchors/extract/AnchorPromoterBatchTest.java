@@ -3,6 +3,8 @@ package dev.dunnam.diceanchors.extract;
 import com.embabel.dice.proposition.Proposition;
 import com.embabel.dice.proposition.PropositionStatus;
 import dev.dunnam.diceanchors.DiceAnchorsProperties;
+import dev.dunnam.diceanchors.anchor.CompliancePolicyMode;
+import dev.dunnam.diceanchors.anchor.DedupStrategy;
 import dev.dunnam.diceanchors.anchor.Anchor;
 import dev.dunnam.diceanchors.anchor.AnchorEngine;
 import dev.dunnam.diceanchors.anchor.Authority;
@@ -56,7 +58,7 @@ class AnchorPromoterBatchTest {
     @BeforeEach
     void setUp() {
         var anchorConfig = new DiceAnchorsProperties.AnchorConfig(
-                20, INITIAL_RANK, 100, 900, true, THRESHOLD, "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200, null, "hitl-only", null, null, null);
+                20, INITIAL_RANK, 100, 900, true, THRESHOLD, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null);
         var simConfig = new DiceAnchorsProperties.SimConfig(
                 "gpt-4.1-mini", 30, 30, BATCH_MAX_SIZE, true, 4);
         var properties = new DiceAnchorsProperties(

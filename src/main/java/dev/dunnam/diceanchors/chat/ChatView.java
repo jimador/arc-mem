@@ -45,6 +45,7 @@ import dev.dunnam.diceanchors.anchor.AnchorEngine;
 import dev.dunnam.diceanchors.anchor.Authority;
 import dev.dunnam.diceanchors.anchor.AnchorMutationStrategy;
 import dev.dunnam.diceanchors.anchor.CompliancePolicy;
+import dev.dunnam.diceanchors.anchor.CompliancePolicyMode;
 import dev.dunnam.diceanchors.anchor.MutationDecision;
 import dev.dunnam.diceanchors.anchor.MutationRequest;
 import dev.dunnam.diceanchors.anchor.MutationSource;
@@ -769,7 +770,7 @@ public class ChatView extends VerticalLayout {
                         "authority", a.authority().name()))
                 .toList();
 
-        var tiered = properties.anchor().compliancePolicy().equalsIgnoreCase("TIERED");
+        var tiered = properties.anchor().compliancePolicy() == CompliancePolicyMode.TIERED;
         var templateVars = new java.util.HashMap<String, Object>();
         templateVars.put("properties", properties);
         templateVars.put("anchors", anchorMaps);

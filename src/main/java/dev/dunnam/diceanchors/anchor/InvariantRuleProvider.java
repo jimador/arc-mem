@@ -47,19 +47,17 @@ public class InvariantRuleProvider {
     }
 
     public static InvariantRule toRule(DiceAnchorsProperties.InvariantRuleDefinition def) {
-        var strength = InvariantStrength.valueOf(def.strength());
         return switch (def.type()) {
-            case "authority-floor" -> new InvariantRule.AuthorityFloor(
-                    def.id(), strength, def.contextId(),
-                    def.anchorTextPattern(), Authority.valueOf(def.minimumAuthority()));
-            case "eviction-immunity" -> new InvariantRule.EvictionImmunity(
-                    def.id(), strength, def.contextId(), def.anchorTextPattern());
-            case "min-authority-count" -> new InvariantRule.MinAuthorityCount(
-                    def.id(), strength, def.contextId(),
-                    Authority.valueOf(def.minimumAuthority()), def.minimumCount());
-            case "archive-prohibition" -> new InvariantRule.ArchiveProhibition(
-                    def.id(), strength, def.contextId(), def.anchorTextPattern());
-            default -> throw new IllegalArgumentException("Unknown invariant rule type: " + def.type());
+            case AUTHORITY_FLOOR -> new InvariantRule.AuthorityFloor(
+                    def.id(), def.strength(), def.contextId(),
+                    def.anchorTextPattern(), def.minimumAuthority());
+            case EVICTION_IMMUNITY -> new InvariantRule.EvictionImmunity(
+                    def.id(), def.strength(), def.contextId(), def.anchorTextPattern());
+            case MIN_AUTHORITY_COUNT -> new InvariantRule.MinAuthorityCount(
+                    def.id(), def.strength(), def.contextId(),
+                    def.minimumAuthority(), def.minimumCount());
+            case ARCHIVE_PROHIBITION -> new InvariantRule.ArchiveProhibition(
+                    def.id(), def.strength(), def.contextId(), def.anchorTextPattern());
         };
     }
 }

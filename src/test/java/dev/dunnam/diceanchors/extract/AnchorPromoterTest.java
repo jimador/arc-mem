@@ -3,6 +3,8 @@ package dev.dunnam.diceanchors.extract;
 import com.embabel.dice.proposition.Proposition;
 import com.embabel.dice.proposition.PropositionStatus;
 import dev.dunnam.diceanchors.DiceAnchorsProperties;
+import dev.dunnam.diceanchors.anchor.CompliancePolicyMode;
+import dev.dunnam.diceanchors.anchor.DedupStrategy;
 import dev.dunnam.diceanchors.anchor.*;
 import dev.dunnam.diceanchors.anchor.event.ArchiveReason;
 import dev.dunnam.diceanchors.persistence.AnchorRepository;
@@ -45,7 +47,7 @@ class AnchorPromoterTest {
 
     @BeforeEach
     void setUp() {
-        var anchorConfig = new DiceAnchorsProperties.AnchorConfig(20, INITIAL_RANK, 100, 900, true, THRESHOLD, "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200, null, "hitl-only", null, null, null);
+        var anchorConfig = new DiceAnchorsProperties.AnchorConfig(20, INITIAL_RANK, 100, 900, true, THRESHOLD, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null);
         var properties = new DiceAnchorsProperties(
                 anchorConfig, null, null, null, null, null, null, new DiceAnchorsProperties.AssemblyConfig(0), null, null
         );

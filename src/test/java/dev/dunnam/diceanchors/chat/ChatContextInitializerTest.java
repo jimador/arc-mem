@@ -3,6 +3,10 @@ package dev.dunnam.diceanchors.chat;
 import dev.dunnam.diceanchors.DiceAnchorsProperties;
 import dev.dunnam.diceanchors.anchor.AnchorEngine;
 import dev.dunnam.diceanchors.anchor.Authority;
+import dev.dunnam.diceanchors.anchor.CompliancePolicyMode;
+import dev.dunnam.diceanchors.anchor.ConflictStrategy;
+import dev.dunnam.diceanchors.anchor.DedupStrategy;
+import dev.dunnam.diceanchors.sim.engine.RunHistoryStoreType;
 import dev.dunnam.diceanchors.persistence.AnchorRepository;
 import dev.dunnam.diceanchors.persistence.PropositionNode;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,7 +48,7 @@ class ChatContextInitializerTest {
         void seedsCreatedOnFirstInit() {
             var initializer = initializerWith(enabledSeedConfig(
                     List.of(new DiceAnchorsProperties.ChatSeedAnchor(
-                            "The sky is blue", "RELIABLE", 600, false))));
+                            "The sky is blue", Authority.RELIABLE, 600, false))));
 
             when(repository.findActiveAnchors(CONTEXT_ID)).thenReturn(List.of());
 
@@ -69,7 +73,7 @@ class ChatContextInitializerTest {
         void skipsExistingAnchorsOnSecondInit() {
             var initializer = initializerWith(enabledSeedConfig(
                     List.of(new DiceAnchorsProperties.ChatSeedAnchor(
-                            "The sky is blue", "RELIABLE", 600, false))));
+                            "The sky is blue", Authority.RELIABLE, 600, false))));
 
             var existingNode = new PropositionNode("the sky is blue", 0.9);
             existingNode.setContextId(CONTEXT_ID);
@@ -91,7 +95,7 @@ class ChatContextInitializerTest {
         void canonSeedsBypassGate() {
             var initializer = initializerWith(enabledSeedConfig(
                     List.of(new DiceAnchorsProperties.ChatSeedAnchor(
-                            "Fundamental truth", "CANON", 800, true))));
+                            "Fundamental truth", Authority.CANON, 800, true))));
 
             when(repository.findActiveAnchors(CONTEXT_ID)).thenReturn(List.of());
 
@@ -124,7 +128,7 @@ class ChatContextInitializerTest {
         @DisplayName("disabled chatSeed config skips seeding")
         void disabledChatSeedSkipsSeeding() {
             var disabledSeed = new DiceAnchorsProperties.ChatSeedConfig(false, List.of(
-                    new DiceAnchorsProperties.ChatSeedAnchor("test", "RELIABLE", 500, false)));
+                    new DiceAnchorsProperties.ChatSeedAnchor("test", Authority.RELIABLE, 500, false)));
             var initializer = initializerWith(disabledSeed);
 
             initializer.initializeContext(CONTEXT_ID);
@@ -165,7 +169,7 @@ class ChatContextInitializerTest {
         void provisionalSeedNoAuthorityUpgrade() {
             var initializer = initializerWith(enabledSeedConfig(
                     List.of(new DiceAnchorsProperties.ChatSeedAnchor(
-                            "Provisional fact", "PROVISIONAL", 400, false))));
+                            "Provisional fact", Authority.PROVISIONAL, 400, false))));
 
             when(repository.findActiveAnchors(CONTEXT_ID)).thenReturn(List.of());
 
@@ -183,7 +187,7 @@ class ChatContextInitializerTest {
         void unreliableSeedSetsAuthority() {
             var initializer = initializerWith(enabledSeedConfig(
                     List.of(new DiceAnchorsProperties.ChatSeedAnchor(
-                            "Somewhat reliable fact", "UNRELIABLE", 450, false))));
+                            "Somewhat reliable fact", Authority.UNRELIABLE, 450, false))));
 
             when(repository.findActiveAnchors(CONTEXT_ID)).thenReturn(List.of());
 
@@ -204,7 +208,7 @@ class ChatContextInitializerTest {
         void pinnedFlagSet() {
             var initializer = initializerWith(enabledSeedConfig(
                     List.of(new DiceAnchorsProperties.ChatSeedAnchor(
-                            "Pinned fact", "RELIABLE", 700, true))));
+                            "Pinned fact", Authority.RELIABLE, 700, true))));
 
             when(repository.findActiveAnchors(CONTEXT_ID)).thenReturn(List.of());
 
@@ -220,7 +224,7 @@ class ChatContextInitializerTest {
         void nonPinnedDoesNotCallUpdatePinned() {
             var initializer = initializerWith(enabledSeedConfig(
                     List.of(new DiceAnchorsProperties.ChatSeedAnchor(
-                            "Unpinned fact", "RELIABLE", 500, false))));
+                            "Unpinned fact", Authority.RELIABLE, 500, false))));
 
             when(repository.findActiveAnchors(CONTEXT_ID)).thenReturn(List.of());
 
@@ -244,17 +248,17 @@ class ChatContextInitializerTest {
             DiceAnchorsProperties.ChatSeedConfig chatSeed) {
         var anchorConfig = new DiceAnchorsProperties.AnchorConfig(
                 20, 500, 100, 900, true, 0.65,
-                "FAST_THEN_LLM", "TIERED",
+                DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED,
                 true, true, true,
-                0.6, 400, 200, null, "hitl-only", null, null, chatSeed);
+                0.6, 400, 200, null, null, null, chatSeed);
         return new DiceAnchorsProperties(
                 anchorConfig,
                 new DiceAnchorsProperties.ChatConfig("dm", 200, null),
                 new DiceAnchorsProperties.MemoryConfig(true, null, null, "text-embedding-3-small", 20, 5, 2),
                 new DiceAnchorsProperties.PersistenceConfig(false),
                 new DiceAnchorsProperties.SimConfig("gpt-4.1-mini", 30, 30, 10, true, 4),
-                new DiceAnchorsProperties.ConflictDetectionConfig("llm", "gpt-4o-nano"),
-                new DiceAnchorsProperties.RunHistoryConfig("memory"),
+                new DiceAnchorsProperties.ConflictDetectionConfig(ConflictStrategy.LLM, "gpt-4o-nano"),
+                new DiceAnchorsProperties.RunHistoryConfig(RunHistoryStoreType.MEMORY),
                 new DiceAnchorsProperties.AssemblyConfig(0),
                 null, null);
     }

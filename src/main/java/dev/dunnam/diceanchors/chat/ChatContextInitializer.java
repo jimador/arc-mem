@@ -76,9 +76,8 @@ public class ChatContextInitializer {
 
             anchorEngine.promote(node.getId(), seed.rank());
 
-            var authority = Authority.valueOf(seed.authority());
-            if (authority.level() > Authority.PROVISIONAL.level()) {
-                repository.setAuthority(node.getId(), authority.name());
+            if (seed.authority().level() > Authority.PROVISIONAL.level()) {
+                repository.setAuthority(node.getId(), seed.authority().name());
             }
 
             if (seed.pinned()) {

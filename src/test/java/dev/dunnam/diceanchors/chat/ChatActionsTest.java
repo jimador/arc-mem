@@ -8,6 +8,10 @@ import com.embabel.agent.core.ProcessContext;
 import com.embabel.chat.AssistantMessage;
 import com.embabel.chat.Conversation;
 import dev.dunnam.diceanchors.DiceAnchorsProperties;
+import dev.dunnam.diceanchors.anchor.CompliancePolicyMode;
+import dev.dunnam.diceanchors.anchor.ConflictStrategy;
+import dev.dunnam.diceanchors.anchor.DedupStrategy;
+import dev.dunnam.diceanchors.sim.engine.RunHistoryStoreType;
 import dev.dunnam.diceanchors.anchor.AnchorEngine;
 import dev.dunnam.diceanchors.assembly.CharHeuristicTokenCounter;
 import dev.dunnam.diceanchors.persistence.AnchorRepository;
@@ -173,13 +177,13 @@ class ChatActionsTest {
 
     private static DiceAnchorsProperties properties() {
         return new DiceAnchorsProperties(
-                new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, "FAST_THEN_LLM", "TIERED", true, true, true, 0.6, 400, 200, null, "hitl-only", null, null, null),
+                new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null),
                 new DiceAnchorsProperties.ChatConfig("dm", 200, null),
                 new DiceAnchorsProperties.MemoryConfig(true, null, null, "text-embedding-3-small", 20, 5, 2),
                 new DiceAnchorsProperties.PersistenceConfig(false),
                 new DiceAnchorsProperties.SimConfig("gpt-4.1-mini", 30, 30, 10, true, 4),
-                new DiceAnchorsProperties.ConflictDetectionConfig("llm", "gpt-4o-nano"),
-                new DiceAnchorsProperties.RunHistoryConfig("memory"),
+                new DiceAnchorsProperties.ConflictDetectionConfig(ConflictStrategy.LLM, "gpt-4o-nano"),
+                new DiceAnchorsProperties.RunHistoryConfig(RunHistoryStoreType.MEMORY),
                 new DiceAnchorsProperties.AssemblyConfig(0),
                 null, null
         );

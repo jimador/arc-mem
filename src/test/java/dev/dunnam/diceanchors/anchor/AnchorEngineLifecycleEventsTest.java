@@ -2,6 +2,7 @@ package dev.dunnam.diceanchors.anchor;
 
 import com.embabel.dice.proposition.Proposition;
 import dev.dunnam.diceanchors.DiceAnchorsProperties;
+import dev.dunnam.diceanchors.sim.engine.RunHistoryStoreType;
 import dev.dunnam.diceanchors.anchor.event.AnchorLifecycleEvent;
 import dev.dunnam.diceanchors.anchor.event.ArchiveReason;
 import dev.dunnam.diceanchors.persistence.AnchorRepository;
@@ -405,23 +406,23 @@ class AnchorEngineLifecycleEventsTest {
                 900,
                 true,
                 0.65,
-                "FAST_THEN_LLM",
-                "TIERED",
+                DedupStrategy.FAST_THEN_LLM,
+                CompliancePolicyMode.TIERED,
                 lifecycleEventsEnabled,
                 true,
                 true,
                 0.6,
                 400,
                 200,
-                null, "hitl-only", null, null, null);
+                null, null, null, null);
         return new DiceAnchorsProperties(
                 anchorConfig,
                 new DiceAnchorsProperties.ChatConfig("dm", 200, null),
                 new DiceAnchorsProperties.MemoryConfig(true, null, null, "text-embedding-3-small", 20, 5, 2),
                 new DiceAnchorsProperties.PersistenceConfig(false),
                 new DiceAnchorsProperties.SimConfig("gpt-4.1-mini", 30, 30, 10, true, 4),
-                new DiceAnchorsProperties.ConflictDetectionConfig("llm", "gpt-4o-nano"),
-                new DiceAnchorsProperties.RunHistoryConfig("memory"),
+                new DiceAnchorsProperties.ConflictDetectionConfig(ConflictStrategy.LLM, "gpt-4o-nano"),
+                new DiceAnchorsProperties.RunHistoryConfig(RunHistoryStoreType.MEMORY),
                 new DiceAnchorsProperties.AssemblyConfig(0),
                 null, null);
     }

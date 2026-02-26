@@ -99,9 +99,9 @@ class ExponentialDecayPolicyTest {
         private final DiceAnchorsProperties.AnchorConfig anchorConfig =
                 new DiceAnchorsProperties.AnchorConfig(
                         20, 500, 100, 900, true, 0.65,
-                        "FAST_THEN_LLM", "TIERED",
+                        DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED,
                         true, true, true,
-                        0.6, 400, 200, null, "hitl-only", null, null, null);
+                        0.6, 400, 200, null, null, null, null);
 
         private final DecayPolicy policyWithThresholds = DecayPolicy.exponential(24.0, anchorConfig);
 

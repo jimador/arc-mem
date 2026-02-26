@@ -3,6 +3,9 @@ package dev.dunnam.diceanchors.sim.engine;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import dev.dunnam.diceanchors.anchor.Authority;
+import dev.dunnam.diceanchors.anchor.InvariantRuleType;
+import dev.dunnam.diceanchors.anchor.InvariantStrength;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -127,13 +130,17 @@ public record SimulationScenario(
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record InvariantRuleDef(
             String id,
-            String type,
-            @Nullable String strength,
+            InvariantRuleType type,
+            @Nullable InvariantStrength strength,
             @Nullable String contextId,
             @Nullable String anchorTextPattern,
-            @Nullable String minimumAuthority,
+            @Nullable Authority minimumAuthority,
             @Nullable Integer minimumCount
-    ) {}
+    ) {
+        public InvariantStrength effectiveStrength() {
+            return strength != null ? strength : InvariantStrength.MUST;
+        }
+    }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record ScriptedTurn(

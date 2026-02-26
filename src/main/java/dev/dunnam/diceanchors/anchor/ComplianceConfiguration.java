@@ -13,13 +13,12 @@ public class ComplianceConfiguration {
 
     @Bean
     public CompliancePolicy compliancePolicy(DiceAnchorsProperties properties) {
-        var mode = properties.anchor().compliancePolicy();
-        return switch (mode.toUpperCase()) {
-            case "TIERED" -> {
+        return switch (properties.anchor().compliancePolicy()) {
+            case TIERED -> {
                 logger.info("Using authority-tiered compliance policy");
                 yield CompliancePolicy.tiered();
             }
-            default -> {
+            case FLAT -> {
                 logger.info("Using default (flat) compliance policy");
                 yield CompliancePolicy.flat();
             }

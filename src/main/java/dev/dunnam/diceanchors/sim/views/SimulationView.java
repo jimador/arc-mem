@@ -13,11 +13,11 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.progressbar.ProgressBar;
+import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.splitlayout.SplitLayout;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.textfield.IntegerField;
-import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouterLink;
@@ -426,14 +426,14 @@ public class SimulationView extends VerticalLayout {
             var scenarios = scenarioLoader.listScenarios();
 
             scenariosByCategory = scenarios.stream()
-                    .collect(Collectors.groupingBy(
-                            s -> s.category() != null && !s.category().isBlank() ? s.category() : "adversarial",
-                            TreeMap::new,
-                            Collectors.collectingAndThen(
-                                    Collectors.toList(),
-                                    list -> list.stream()
-                                            .sorted((a, b) -> a.displayTitle().compareTo(b.displayTitle()))
-                                            .toList())));
+                                           .collect(Collectors.groupingBy(
+                                                   s -> s.category() != null && !s.category().isBlank() ? s.category() : "adversarial",
+                                                   TreeMap::new,
+                                                   Collectors.collectingAndThen(
+                                                           Collectors.toList(),
+                                                           list -> list.stream()
+                                                                       .sorted((a, b) -> a.displayTitle().compareTo(b.displayTitle()))
+                                                                       .toList())));
 
             categorySelect.setItems(scenariosByCategory.keySet());
             categorySelect.addValueChangeListener(e -> {
@@ -477,8 +477,8 @@ public class SimulationView extends VerticalLayout {
         var ui = UI.getCurrent();
 
         CompletableFuture.runAsync(() ->
-                simulationService.runSimulation(scenario, maxTurns, injectionToggle::getValue, this::resolveTokenBudget,
-                        progress -> ui.access(() -> applyProgress(progress, scenario)))
+                                           simulationService.runSimulation(scenario, maxTurns, injectionToggle::getValue, this::resolveTokenBudget,
+                                                                           progress -> ui.access(() -> applyProgress(progress, scenario)))
         ).exceptionally(ex -> {
             ui.access(() -> {
                 statusLabel.setText("Simulation error: " + ex.getMessage());
@@ -540,7 +540,7 @@ public class SimulationView extends VerticalLayout {
             scenarioDetailsHighlights.add(line);
         }
 
-        var settingPreview = summarizeSetting(scenario.setting());
+        var settingPreview = normalizeSetting(scenario.setting());
         scenarioDetailsSetting.setText("Setting: " + settingPreview);
     }
 
@@ -555,15 +555,12 @@ public class SimulationView extends VerticalLayout {
                 details);
     }
 
-    private String summarizeSetting(@Nullable String setting) {
+    private String normalizeSetting(@Nullable String setting) {
         if (setting == null || setting.isBlank()) {
             return "No setting details provided.";
         }
         var normalized = setting.replaceAll("\\s+", " ").trim();
-        if (normalized.length() <= 220) {
-            return normalized;
-        }
-        return normalized.substring(0, 220) + "...";
+        return normalized;
     }
 
     static String formatDuration(long ms) {
@@ -581,10 +578,10 @@ public class SimulationView extends VerticalLayout {
 
     private void initTheme() {
         UI.getCurrent().getPage().executeJs("""
-                const t = localStorage.getItem('anchor-theme');
-                if (t === 'light') document.documentElement.setAttribute('theme', 'light');
-                return t || 'dark';
-                """).then(String.class, theme -> {
+                                                    const t = localStorage.getItem('anchor-theme');
+                                                    if (t === 'light') document.documentElement.setAttribute('theme', 'light');
+                                                    return t || 'dark';
+                                                    """).then(String.class, theme -> {
             currentTheme = theme;
             updateThemeButton();
         });

@@ -17,11 +17,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
-/**
- * Provides default implementations of anchor engine strategy interfaces.
- * All beans are conditional so applications can override them by registering
- * their own implementations.
- */
 @Configuration
 @EnableConfigurationProperties(DiceAnchorsProperties.class)
 public class AnchorConfiguration {
@@ -36,28 +31,27 @@ public class AnchorConfiguration {
 
     @Bean
     ConflictDetector conflictDetector(ChatModel chatModel, LlmCallService llmCallService) {
-        var strategyName = properties.conflictDetection().strategy();
         var conflict = properties.conflict();
-        var overlapThreshold = conflict != null ? conflict.negationOverlapThreshold() : 0.5;
-        var llmConfidence = conflict != null ? conflict.llmConfidence() : 0.9;
-        return switch (strategyName.toLowerCase()) {
-            case "lexical" -> {
-                logger.info("Using lexical-only conflict detection (overlap threshold: {})", overlapThreshold);
-                yield new NegationConflictDetector(overlapThreshold);
+        var detection = properties.conflictDetection();
+        return switch (detection.strategy()) {
+            case LEXICAL -> {
+                logger.info("Using lexical-only conflict detection (overlap threshold: {})",
+                        conflict.negationOverlapThreshold());
+                yield new NegationConflictDetector(conflict.negationOverlapThreshold());
             }
-            case "hybrid" -> {
+            case HYBRID -> {
                 logger.info("Using hybrid conflict detection (lexical + semantic with subject filter)");
                 yield new CompositeConflictDetector(
-                        new NegationConflictDetector(overlapThreshold),
-                        new LlmConflictDetector(llmConfidence, chatModel, properties.conflictDetection().model(),
+                        new NegationConflictDetector(conflict.negationOverlapThreshold()),
+                        new LlmConflictDetector(conflict.llmConfidence(), chatModel, detection.model(),
                                 llmCallService),
                         new SubjectFilter(),
                         ConflictDetectionStrategy.LEXICAL_THEN_SEMANTIC
                 );
             }
-            default -> {
-                logger.info("Using LLM-based conflict detection (confidence: {})", llmConfidence);
-                yield new LlmConflictDetector(llmConfidence, chatModel, properties.conflictDetection().model(),
+            case LLM -> {
+                logger.info("Using LLM-based conflict detection (confidence: {})", conflict.llmConfidence());
+                yield new LlmConflictDetector(conflict.llmConfidence(), chatModel, detection.model(),
                         llmCallService);
             }
         };
@@ -67,14 +61,11 @@ public class AnchorConfiguration {
     @ConditionalOnMissingBean(AuthorityConflictResolver.class)
     AuthorityConflictResolver authorityConflictResolver() {
         var conflict = properties.conflict();
-        if (conflict != null) {
-            return new AuthorityConflictResolver(
-                    conflict.replaceThreshold(),
-                    conflict.demoteThreshold(),
-                    conflict.tier()
-            );
-        }
-        return new AuthorityConflictResolver();
+        return new AuthorityConflictResolver(
+                conflict.replaceThreshold(),
+                conflict.demoteThreshold(),
+                conflict.tier()
+        );
     }
 
     @Bean
@@ -88,15 +79,13 @@ public class AnchorConfiguration {
     ConflictResolver revisionAwareConflictResolver(AuthorityConflictResolver authorityResolver,
                                                     AnchorMutationStrategy mutationStrategy) {
         var revision = properties.anchor().revision();
-        var conflict = properties.conflict();
-        var replaceThreshold = conflict != null ? conflict.replaceThreshold() : 0.8;
         return new RevisionAwareConflictResolver(
                 authorityResolver,
                 mutationStrategy,
                 revision.enabled(),
                 revision.reliableRevisable(),
                 revision.confidenceThreshold(),
-                replaceThreshold);
+                properties.conflict().replaceThreshold());
     }
 
     @Bean
@@ -125,19 +114,18 @@ public class AnchorConfiguration {
     @Bean
     @ConditionalOnMissingBean
     DuplicateDetector duplicateDetector(ChatModel chatModel, LlmCallService llmCallService) {
-        var strategy = properties.anchor().dedupStrategy().toUpperCase();
         var fast = new NormalizedStringDuplicateDetector();
         var llm = new LlmDuplicateDetector(chatModel, llmCallService);
-        return switch (strategy) {
-            case "FAST_ONLY" -> {
+        return switch (properties.anchor().dedupStrategy()) {
+            case FAST_ONLY -> {
                 logger.info("Using fast-only duplicate detection (normalized string)");
                 yield fast;
             }
-            case "LLM_ONLY" -> {
+            case LLM_ONLY -> {
                 logger.info("Using LLM-only duplicate detection");
                 yield llm;
             }
-            default -> {
+            case FAST_THEN_LLM -> {
                 logger.info("Using composite duplicate detection (fast then LLM)");
                 yield new CompositeDuplicateDetector(fast, llm);
             }
