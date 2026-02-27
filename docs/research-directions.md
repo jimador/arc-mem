@@ -4,11 +4,11 @@ Ongoing and future research areas for the dice-anchors project.
 
 ## Collaborative Anchor Mutation
 
-The [collaborative-anchor-mutation roadmap](../../openspec/roadmaps/collaborative-anchor-mutation-roadmap.md) is the primary active research track — how to allow legitimate revisions of established anchors without compromising adversarial drift resistance.
+The [collaborative-anchor-mutation roadmap](../../openspec/roadmaps/collaborative-anchor-mutation-roadmap.md) is the primary active research track — how to allow legitimate revisions of established anchors without compromising long-horizon consistency and hallucination control.
 
 ### Problem Statement
 
-When a collaborator (human or AI) attempts to revise an established anchor via natural language, the anchor framework's drift resistance treats the revision as an adversarial attack. The framework correctly defends the original fact but incorrectly blocks legitimate updates. This is the core tension: how to distinguish "the king is actually an ancient lich" (legitimate world reveal) from "the king was never real" (adversarial contradiction).
+When a collaborator (human or AI) attempts to revise an established anchor via natural language, the anchor framework's current consistency controls can treat the revision as an adversarial contradiction. The framework correctly protects established facts in stress cases but incorrectly blocks legitimate updates. This is the core tension: how to distinguish "the king is actually an ancient lich" (legitimate world reveal) from "the king was never real" (adversarial contradiction).
 
 ### Feature Waves
 
@@ -80,14 +80,14 @@ The `BenchmarkRunner` supports multi-condition ablation experiments comparing:
 
 | System | Key Difference from Anchors |
 |--------|----------------------------|
-| MemGPT/Letta | Fixed memory blocks; no authority hierarchy or adversarial resistance focus |
+| MemGPT/Letta | Fixed memory blocks; no authority hierarchy or explicit long-horizon consistency-control focus |
 | Zep/Graphiti | Temporal knowledge graphs; strongest complement (temporal model); no mandatory injection |
 | ShardMemo | Shard-based memory management; no authority governance |
 | MemOS | Operating system metaphor for memory; no adversarial testing |
 | HippoRAG | PageRank-based retrieval; no guaranteed presence |
 | ACON | Task-aware compression; no authority hierarchy |
 
-What sets anchors apart, in our survey so far: adversarial resistance as a primary concern, authority-governed lifecycle management, and mandatory prompt injection. None of the surveyed systems combine all three.
+What sets anchors apart, in our survey so far: long-horizon consistency/hallucination control as a primary concern, authority-governed lifecycle management, and mandatory prompt injection. Adversarial inputs are used as stress tests for that objective. None of the surveyed systems combine all three.
 
 ---
 

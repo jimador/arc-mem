@@ -6,7 +6,7 @@ dice-anchors exposes four Vaadin routes. Architecture, state management, and key
 
 **File:** `src/main/java/dev/dunnam/diceanchors/sim/views/SimulationView.java`
 
-Primary view for running adversarial simulation scenarios.
+Primary view for running simulation scenarios, including adversarial stress-test runs that deliberately induce contradiction/hallucination pressure.
 
 ### Layout
 

@@ -110,7 +110,7 @@ dev.dunnam.diceanchors
 └── sim/
     ├── assertions/ Post-run assertion framework
     ├── benchmark/  Condition/scenario matrix, aggregate stats, CIs/effect sizes
-    ├── engine/     Turn orchestration, adversarial message gen, drift eval,
+├── engine/     Turn orchestration, adversarial message generation for stress tests, drift eval,
     │               run scoring, run persistence
     ├── report/     Resilience score composition, per-fact survival tables,
     │               contradiction drill-down, markdown rendering

@@ -2,7 +2,7 @@
 
 ## Project
 
-**dice-anchors** — Test bed for Anchors (enriched DICE Propositions with rank, authority, and budget management) as a working memory model resistant to adversarial prompt drift. Working reference for DICE <-> Anchor integration. Java 25 / Spring Boot 3.5.10 / Embabel Agent 0.3.5-SNAPSHOT / DICE 0.1.0-SNAPSHOT / Vaadin 24.6.4 / Neo4j 5.x (Drivine ORM).
+**dice-anchors** — Test bed for Anchors (enriched DICE Propositions with rank, authority, and budget management) as a working memory model for long-horizon attention stability and hallucination/contradiction control (validated with adversarial stress prompts). Working reference for DICE <-> Anchor integration. Java 25 / Spring Boot 3.5.10 / Embabel Agent 0.3.5-SNAPSHOT / DICE 0.1.0-SNAPSHOT / Vaadin 24.6.4 / Neo4j 5.x (Drivine ORM).
 
 Single-module Maven project.
 
@@ -203,9 +203,9 @@ See `.dice-anchors/coding-style.md` for the complete reference.
 5. **Rank clamped [100-900]** — `Anchor.clampRank()`.
 6. **Sim isolation via contextId** — Each run gets `sim-{uuid}`, cleaned up after.
 7. **Persistence layer copied from impromptu** — re-packaged to `dev.dunnam.diceanchors.persistence`.
-8. **Scene-setting turn 0** — When `scenario.setting()` is non-blank and extraction is enabled, `SimulationService` executes an ESTABLISH turn before turn 1. The DM narrates the setting; DICE extraction captures initial propositions. This gives the anchor framework material to defend before adversarial pressure begins. Skipped if setting is blank or extraction is disabled.
+8. **Scene-setting turn 0** — When `scenario.setting()` is non-blank and extraction is enabled, `SimulationService` executes an ESTABLISH turn before turn 1. The DM narrates the setting; DICE extraction captures initial propositions. This gives the anchor framework material to stabilize before stress-test contradiction turns begin. Skipped if setting is blank or extraction is disabled.
 9. **Drift evaluator: epistemic hedging = NOT_MENTIONED** — The drift evaluation prompt distinguishes three DM response categories: (1) contradiction (asserts the opposite), (2) world progression (narrative change that isn't a contradiction), (3) epistemic hedging (declines to affirm without asserting the opposite). Hedging is classified as NOT_MENTIONED, not CONTRADICTED. The player message is included in the evaluator prompt so the evaluator can distinguish defensive resistance from genuine forgetting.
-10. **No seed anchors required** — Scenarios may have no seed anchors. The expected flow is that scene-setting turn 0 + warm-up turns allow the anchor framework to accumulate propositions organically before adversarial pressure.
+10. **No seed anchors required** — Scenarios may have no seed anchors. The expected flow is that scene-setting turn 0 + warm-up turns allow the anchor framework to accumulate propositions organically before stress-test contradiction turns.
 11. **Composite conflict detection** — `CompositeConflictDetector` chains multiple strategies (LLM semantic + negation lexical). Strategy selection is configurable via `ConflictDetectionStrategy`.
 12. **Trust pipeline** — `TrustPipeline` evaluates propositions through multiple trust signals (source authority, extraction confidence, reinforcement history) before promotion. `TrustAuditRecord` captures the decision trail.
 13. **Context compaction** — `CompactedContextProvider` summarizes older context when token thresholds are exceeded. `CompactionValidator` ensures protected facts survive compaction.

@@ -403,7 +403,7 @@ These extensions are research-level, not mainstream implementations. [inference 
 | Causal ordering for revision vs concurrent conflict | **High** | F01 |
 | MV-Register (preserve conflicts for human resolution) | **Medium** | F05 |
 | Priority-based LWW (authority-weighted resolution) | **Medium** | F02 |
-| OR-Set add-wins semantics | **Low** (conflicts with drift resistance) | — |
+| OR-Set add-wins semantics | **Low** (conflicts with long-horizon consistency controls) | — |
 | No built-in cascade | Low (gap) | F03 |
 
 **Key insight for dice-anchors**: The CRDT causal ordering concept provides a clean formal criterion for revision vs contradiction: if the new statement causally follows (i.e., the speaker is aware of the old statement and is intentionally updating it), it is a revision. If the new statement is "concurrent" (the speaker is not referencing the old statement), it is a potential contradiction. Detecting causal ordering in natural language is harder than in distributed systems, but the principle is sound and can inform F01 prompt design: does the user's statement reference or acknowledge the existing anchor?
@@ -494,7 +494,7 @@ This maps to: PROVISIONAL revision = engineer-level (auto-approve); RELIABLE rev
 
 #### Problem Analogy
 
-Medical records must be simultaneously immutable (for legal/audit purposes) and correctable (because errors in medical records can kill people). The tension between preservation and correction is exactly our tension between drift resistance and revision acceptance.
+Medical records must be simultaneously immutable (for legal/audit purposes) and correctable (because errors in medical records can kill people). The tension between preservation and correction is exactly our tension between consistency control and revision acceptance.
 
 #### Solution Mechanism
 

@@ -10,7 +10,7 @@ How reliably can an LLM classify revision intent vs adversarial contradiction, a
 
 ## Why This Matters
 
-1. Decision blocked by uncertainty: F01 (revision-intent-classification) requires a prompt strategy for extending the `LlmConflictDetector`. Without evidence that LLM classification is reliable, deploying revision-aware resolution risks undermining adversarial drift resistance.
+1. Decision blocked by uncertainty: F01 (revision-intent-classification) requires a prompt strategy for extending the `LlmConflictDetector`. Without evidence that LLM classification is reliable, deploying revision-aware resolution risks undermining long-horizon consistency controls.
 2. Potential impact if wrong: False-positive revision classification (adversarial input misclassified as REVISION) would allow prompt injection to bypass the anchor framework's core defense mechanism.
 3. Related feature IDs: F01, F02.
 
@@ -19,7 +19,7 @@ How reliably can an LLM classify revision intent vs adversarial contradiction, a
 ### In Scope
 
 1. Evaluate prompt strategies for revision-vs-contradiction classification.
-2. Define false-positive rate targets for adversarial resistance preservation.
+2. Define false-positive rate targets for preserving consistency controls under adversarial stress tests.
 3. Evaluate whether classification can piggyback on the existing conflict detection prompt or requires a separate LLM call.
 4. Test classification across at least 2 LLM providers (e.g., GPT-4.1, Claude).
 

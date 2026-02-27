@@ -147,7 +147,7 @@ A-MemGuard (E14) takes the opposite approach: it treats ALL inconsistent informa
 
 5. **No framework handles dependent fact cascade.** This is a consistently missing capability. The closest analog is in non-AI domains: Truth Maintenance Systems (JTMS/ATMS), which the R05 research task already identifies as relevant prior art.
 
-6. **The "agent decides" pattern (Letta, Mem0, LangMem) is the dominant paradigm.** These frameworks delegate mutation decisions to the LLM itself, with no system-level governance. This works for benign environments but fails under adversarial pressure, as the LLM's reasoning is precisely what adversarial prompts target.
+6. **The "agent decides" pattern (Letta, Mem0, LangMem) is the dominant paradigm.** These frameworks delegate mutation decisions to the LLM itself, with no system-level governance. This works for benign environments but fails under adversarial stress tests, as the LLM's reasoning is precisely what adversarial prompts target.
 
 ## Recommendation
 

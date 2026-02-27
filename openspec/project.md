@@ -1,7 +1,7 @@
 # dice-anchors Project Overview
 
 ## Purpose
-dice-anchors is a standalone application and test bed for **Anchors** — enriched DICE Propositions with rank, authority, and budget management — that implements a working memory model resistant to adversarial prompt drift. Working reference for DICE <-> Anchor integration.
+dice-anchors is a standalone application and test bed for **Anchors** — enriched DICE Propositions with rank, authority, and budget management — that implements a working memory model for long-horizon attention stability and hallucination/contradiction control. Adversarial prompts are used as stress tests, not as the product objective. Working reference for DICE <-> Anchor integration.
 
 ## Tech Stack
 - Java 25 (preview) / Spring Boot 3.5.10 / Embabel Agent 0.3.5-SNAPSHOT / DICE 0.1.0-SNAPSHOT
@@ -13,7 +13,7 @@ dice-anchors is a standalone application and test bed for **Anchors** — enrich
 - Neo4j is the sole persistence store (no PostgreSQL)
 - Anchors are propositions with rank > 0 (no separate node type)
 - Configuration validation via Jakarta Bean Validation annotations (fail-fast at startup)
-- Simulation harness runs YAML-defined adversarial/baseline scenarios with turn-by-turn execution
+- Simulation harness runs YAML-defined adversarial/baseline scenarios with turn-by-turn execution (adversarial scenarios are stress tests for hallucination/contradiction control)
 - Chat interface uses Embabel Agent for LLM orchestration with anchor context injection
 - Budget enforcement: configurable max active anchors (default 20) with eviction of lowest-ranked non-pinned anchors
 

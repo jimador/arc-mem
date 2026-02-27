@@ -101,7 +101,7 @@ How should the compliance prompt template handle mixed-authority revision scenar
 
 **Evidence**: E01, E03. The distinction between "player revision" and "adversarial contradiction" is the core problem identified in R00 (Root Cause 2). The conflict detection pipeline has no type field on the `Conflict` record (E12).
 
-**Recommendation**: The prompt template alone cannot distinguish adversarial contradictions from legitimate revisions. This is F01's responsibility (revision-intent-classification). For F02, the template SHOULD annotate which anchors are revision-eligible, but MUST NOT weaken adversarial resistance for non-revision interactions. The key language should be: revision eligibility is scoped to interactions classified as revisions by the F01 pipeline -- the template marks eligibility, but does not grant blanket permission to contradict.
+**Recommendation**: The prompt template alone cannot distinguish adversarial contradictions from legitimate revisions. This is F01's responsibility (revision-intent-classification). For F02, the template SHOULD annotate which anchors are revision-eligible, but MUST NOT weaken long-horizon consistency controls for non-revision interactions. The key language should be: revision eligibility is scoped to interactions classified as revisions by the F01 pipeline -- the template marks eligibility, but does not grant blanket permission to contradict.
 
 ### Scenario 6: Cross-authority -- incoming PROVISIONAL-confidence revision of RELIABLE anchor
 

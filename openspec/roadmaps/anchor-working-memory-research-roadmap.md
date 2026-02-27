@@ -2,7 +2,7 @@
 
 ## Intent
 
-Produce a rigorous empirical evaluation of trust/authority-governed working memory (Anchors) as a mechanism for adversarial conversational drift resistance. The end-state is: (1) a reproducible experiment framework for ablation studies, (2) a first-class benchmarking UI for running and comparing experiments, (3) a tech report / arXiv paper positioned against MemGPT/Letta, Zep/Graphiti, ShardMemo, and MemOS, suitable for presentation to the DICE team and broader community review. Future tracks capture serendipitous knowledge retrieval and multi-agent (A2A) anchor governance as follow-on research directions.
+Produce a rigorous empirical evaluation of trust/authority-governed working memory (Anchors) as a mechanism for long-horizon conversational consistency and hallucination/contradiction control. Adversarial scenarios are used as stress tests to evaluate this behavior. The end-state is: (1) a reproducible experiment framework for ablation studies, (2) a first-class benchmarking UI for running and comparing experiments, (3) a tech report / arXiv paper positioned against MemGPT/Letta, Zep/Graphiti, ShardMemo, and MemOS, suitable for presentation to the DICE team and broader community review. Future tracks capture serendipitous knowledge retrieval and multi-agent (A2A) anchor governance as follow-on research directions.
 
 ## RFC 2119 Compliance
 
@@ -40,7 +40,7 @@ Normative roadmap statements SHOULD use RFC 2119 keywords only (`MUST`, `SHOULD`
 
 ## Tracks
 
-### Track A: Adversarial Resilience Evaluation (Critical Path)
+### Track A: Long-Horizon Consistency Evaluation (Critical Path)
 
 The primary deliverable. Produces the experiment framework, benchmarking UI, and the tech report. This is the near-term work.
 

@@ -29,7 +29,7 @@ Not applicable — this article governs spec format and cannot be overridden.
 Neo4j SHALL be the sole authoritative store for all persistent state: propositions, anchors, entities, relationships, and simulation data. There is no PostgreSQL in this project. All persistence SHALL go through Drivine ORM and the `AnchorRepository`.
 
 ### Rationale
-dice-anchors is a single-purpose demo focused on anchor drift resistance. A single graph store simplifies the architecture and avoids the dual-store complexity of the parent tor project.
+dice-anchors is a single-purpose demo focused on long-horizon attention stability and contradiction/hallucination drift control. Adversarial turns are evaluation stress tests for that goal. A single graph store simplifies the architecture and avoids the dual-store complexity of the parent tor project.
 
 ### Enforcement
 - Code review verifies no relational database dependencies
@@ -82,7 +82,7 @@ The anchor subsystem MUST enforce the following invariants:
 - **A4**: Anchor authority levels (PROVISIONAL, UNRELIABLE, RELIABLE, CANON) MUST follow upgrade-only hierarchy. CANON MUST NOT be auto-assigned.
 
 ### Rationale
-Anchors are the primary mechanism for persistent memory in drift resistance. Unbounded growth leads to context overflow; uncontrolled ranks cause priority inversion; auto-promotion creates unreliable facts.
+Anchors are the primary mechanism for persistent memory in long-horizon consistency control. Unbounded growth leads to context overflow; uncontrolled ranks cause priority inversion; auto-promotion creates unreliable facts.
 
 ### Enforcement
 - Unit tests validate budget enforcement, rank clamping, and explicit promotion

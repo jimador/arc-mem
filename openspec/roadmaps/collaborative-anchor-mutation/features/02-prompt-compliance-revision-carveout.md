@@ -84,7 +84,7 @@ All normative statements in this document SHOULD use RFC 2119 keywords (`MUST`, 
 
 ### Proposal Starter Inputs
 
-1. Problem statement: The DM system prompt treats all anchors as immutable facts with RFC 2119 MUST-level compliance. This is correct for adversarial resistance but prevents legitimate revisions. The prompt needs a revision carveout that permits changes to lower-authority anchors while maintaining strict compliance for higher-authority facts.
+1. Problem statement: The DM system prompt treats all anchors as immutable facts with RFC 2119 MUST-level compliance. This is correct for consistency/hallucination control under stress but prevents legitimate revisions. The prompt needs a revision carveout that permits changes to lower-authority anchors while maintaining strict compliance for higher-authority facts.
 2. Why now: Ships with F01 — classification is useless without prompt changes.
 3. Constraints and non-goals: CANON immutability preserved; simulation prompts unchanged; minimal token overhead.
 4. User-visible and/or observability-visible outcomes: DM accepts revision requests for eligible anchors instead of refusing.

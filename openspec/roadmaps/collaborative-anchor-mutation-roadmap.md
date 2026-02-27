@@ -2,7 +2,7 @@
 
 ## Intent
 
-Enable legitimate revisions of established anchors in multi-actor collaborative contexts without compromising adversarial drift resistance. The end-state is: (1) a conflict classification pipeline that distinguishes revision from contradiction, (2) prompt compliance language that permits authorized revisions while maintaining drift resistance, (3) cascade logic for dependent anchors during supersession, (4) provenance metadata for audit and heuristics, and (5) optional UI controls for explicit anchor mutation. This roadmap is industry-generic — the problem applies anywhere anchors are collaboratively authored (healthcare, legal, supply chain), not only to D&D.
+Enable legitimate revisions of established anchors in multi-actor collaborative contexts without compromising long-horizon consistency and hallucination/contradiction control. The end-state is: (1) a conflict classification pipeline that distinguishes revision from contradiction, (2) prompt compliance language that permits authorized revisions while maintaining consistency controls, (3) cascade logic for dependent anchors during supersession, (4) provenance metadata for audit and heuristics, and (5) optional UI controls for explicit anchor mutation. This roadmap is industry-generic — the problem applies anywhere anchors are collaboratively authored (healthcare, legal, supply chain), not only to D&D.
 
 ## RFC 2119 Compliance
 
@@ -39,7 +39,7 @@ Normative roadmap statements SHOULD use RFC 2119 keywords only (`MUST`, `SHOULD`
 1. Conform to `openspec/constitution.md` — Neo4j-only persistence, constructor injection, records for DTOs, anchor invariants.
 2. Build on existing conflict detection infrastructure (F02 conflict-detection-calibration-core, delivered) and supersession plumbing (F04 bi-temporal-validity-and-supersession, archived).
 3. Extension points MUST be additive — no breaking changes to `ConflictDetector`, `ConflictResolver`, `AnchorEngine`, or `AnchorPromoter` interfaces.
-4. The anchor framework's adversarial drift resistance MUST NOT be weakened by revision support — false-positive revision classification (adversarial input misclassified as revision) is a critical risk.
+4. The anchor framework's consistency controls MUST NOT be weakened by revision support — false-positive revision classification (adversarial input misclassified as revision) is a critical risk.
 5. CANON authority anchors MUST NOT be revision-eligible via automated classification — CANON mutations require explicit operator action through the `CanonizationGate`.
 
 ## Proposal Waves
@@ -130,7 +130,7 @@ PROVISIONAL and UNRELIABLE anchors are revision-eligible by default. RELIABLE is
 
 ## Global Risks
 
-1. **False-positive revision classification** — An adversarial prompt mimicking revision language ("Actually, the king was never real") could bypass drift resistance. Mitigation: conservative classification threshold; CANON anchors exempt; human-in-the-loop for RELIABLE+ revisions.
+1. **False-positive revision classification** — An adversarial prompt mimicking revision language ("Actually, the king was never real") could bypass consistency controls. Mitigation: conservative classification threshold; CANON anchors exempt; human-in-the-loop for RELIABLE+ revisions.
 2. **Over-cascade during supersession** — Cascade logic may invalidate anchors that are only loosely related to the revised anchor. Mitigation: R02 research task to evaluate strategies; configurable cascade depth limit.
 3. **Prompt template complexity** — Adding revision-eligible annotations to the compliance template increases prompt token cost and DM instruction complexity. Mitigation: keep revision carveout minimal; use tiered compliance (only annotate revision-eligible anchors, not all).
 4. **Cross-domain generalization** — Strategies validated in D&D may not transfer to healthcare/legal domains where revision semantics differ. Mitigation: R05 surveys 9 non-AI domains for transferable patterns; keep the classification vocabulary generic (REVISION/CONTRADICTION/PROGRESSION); domain-specific tuning deferred to operator invariants.

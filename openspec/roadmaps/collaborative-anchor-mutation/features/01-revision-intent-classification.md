@@ -6,7 +6,7 @@
 
 ## Summary
 
-Extend the conflict detection pipeline to classify detected conflicts as REVISION, CONTRADICTION, or WORLD_PROGRESSION. This enables downstream components (prompt compliance, supersession, resolution) to handle each type differently — permitting legitimate revisions while maintaining adversarial drift resistance.
+Extend the conflict detection pipeline to classify detected conflicts as REVISION, CONTRADICTION, or WORLD_PROGRESSION. This enables downstream components (prompt compliance, supersession, resolution) to handle each type differently — permitting legitimate revisions while maintaining long-horizon consistency and hallucination/contradiction control.
 
 ## RFC 2119 Compliance
 
@@ -15,7 +15,7 @@ All normative statements in this document SHOULD use RFC 2119 keywords (`MUST`, 
 ## Why This Feature
 
 1. Problem addressed: The conflict detection pipeline (`CompositeConflictDetector`) returns a binary `contradicts: true/false` signal. It cannot distinguish a collaborator revising their own statement from an adversary attempting to inject contradictions. Both are treated identically — as contradictions to be resisted.
-2. Value delivered: With type classification, the framework can permit revisions (triggering supersession) while blocking contradictions (maintaining drift resistance). This unblocks the entire collaborative mutation workflow.
+2. Value delivered: With type classification, the framework can permit revisions (triggering supersession) while blocking contradictions (maintaining consistency controls). This unblocks the entire collaborative mutation workflow.
 3. Why now: This is the foundational capability — F02 (prompt carveout) and F03 (cascade) both depend on the classification signal. Without it, no downstream feature can safely proceed.
 
 ## Scope
@@ -83,7 +83,7 @@ All normative statements in this document SHOULD use RFC 2119 keywords (`MUST`, 
 
 ## Risks and Mitigations
 
-1. Risk: False-positive revision classification undermines drift resistance.
+1. Risk: False-positive revision classification undermines consistency controls.
 2. Mitigation: Conservative threshold; CANON exemption; configurable confidence gate; R01 research to establish accuracy baseline.
 3. Risk: Additional LLM call for classification increases latency and cost.
 4. Mitigation: Extend existing conflict detection prompt rather than adding a separate call; batch classification.

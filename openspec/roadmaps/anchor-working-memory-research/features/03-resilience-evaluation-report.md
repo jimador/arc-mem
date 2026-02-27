@@ -6,7 +6,7 @@
 
 ## Summary
 
-Produce a tech report / arXiv paper that presents empirical evidence for trust/authority-governed working memory as a structural mechanism for adversarial conversational drift resistance. This is a **publication deliverable**, not a code feature. The paper positions dice-anchors against MemGPT/Letta, Zep/Graphiti, ShardMemo, MemOS, A-MemGuard, and ASB; reports ablation results with effect sizes; and scopes future research directions for serendipitous retrieval and multi-agent anchor governance.
+Produce a tech report / arXiv paper that presents empirical evidence for trust/authority-governed working memory as a structural mechanism for long-horizon conversational consistency and hallucination/contradiction control. Adversarial scenarios are treated as stress tests in this evaluation setup. This is a **publication deliverable**, not a code feature. The paper positions dice-anchors against MemGPT/Letta, Zep/Graphiti, ShardMemo, MemOS, A-MemGuard, and ASB; reports ablation results with effect sizes; and scopes future research directions for serendipitous retrieval and multi-agent anchor governance.
 
 ## RFC 2119 Compliance
 
@@ -14,7 +14,7 @@ All normative statements in this document use RFC 2119 keywords (`MUST`, `MUST N
 
 ## Why This Feature
 
-1. **Problem addressed**: No existing benchmark evaluates drift resistance as a function of memory authority level. The literature on long-context memory systems (MemGPT, Zep, ShardMemo, MemOS) focuses on capacity management, temporal accuracy, retrieval scalability, or lifecycle governance -- but none study adversarial robustness as a property of trust-governed memory architecture. A-MemGuard addresses adversarial memory but uses binary trust scoring, not graduated authority with upgrade-only promotions. ASB (ICLR 2025) provides an adversarial benchmark but assumes a flat memory store.
+1. **Problem addressed**: No existing benchmark evaluates long-horizon consistency and hallucination/contradiction control as a function of memory authority level. The literature on long-context memory systems (MemGPT, Zep, ShardMemo, MemOS) focuses on capacity management, temporal accuracy, retrieval scalability, or lifecycle governance. A-MemGuard addresses adversarial memory but uses binary trust scoring, not graduated authority with upgrade-only promotions. ASB (ICLR 2025) provides an adversarial benchmark but assumes a flat memory store.
 2. **Value delivered**: A citable, peer-reviewable evaluation demonstrating that anchor subsystems (authority hierarchy, rank differentiation, budget enforcement) provide measurable, structural resistance to adversarial drift. This positions dice-anchors in the research landscape and provides the DICE team with a presentation-ready artifact.
 3. **Why now**: Wave 2, parallel with F02. The experiment framework (F01) provides the ablation infrastructure. The benchmarking UI (F02) provides rapid iteration on results. The paper synthesizes both into a coherent narrative.
 
@@ -23,7 +23,7 @@ All normative statements in this document use RFC 2119 keywords (`MUST`, `MUST N
 ### In Scope
 
 1. **Paper authoring**: Full tech report with Abstract, Introduction, Related Work, Architecture, Experiment Design, Results, Discussion, and Conclusion.
-2. **Related work positioning**: Systematic comparison against MemGPT/Letta, Zep/Graphiti, ShardMemo, MemOS, A-MemGuard, and ASB with per-system analysis of trust/authority model, adversarial consideration, and drift resistance mechanism.
+2. **Related work positioning**: Systematic comparison against MemGPT/Letta, Zep/Graphiti, ShardMemo, MemOS, A-MemGuard, and ASB with per-system analysis of trust/authority model, adversarial consideration, and consistency-control mechanism.
 3. **Ablation results**: At least 4 conditions (FULL_ANCHORS, NO_ANCHORS, FLAT_AUTHORITY, NO_RANK_DIFFERENTIATION) x 3-5 scenarios x 5 repetitions, with effect sizes and confidence intervals.
 4. **Adversary taxonomy documentation**: The 19-strategy tiered adversary (BASIC through EXPERT) as a contribution.
 5. **Future work scoping**: Serendipitous retrieval (spreading activation in DICE graph) and A2A extension (multi-agent trust with asymmetric budgets).
@@ -76,13 +76,13 @@ Not applicable. This is a publication deliverable.
 
 1. The paper MUST include the following sections: Abstract, Introduction, Related Work, Architecture (DICE + Anchors), Experiment Design, Results, Discussion, and Conclusion.
 2. The Abstract MUST state the thesis, method (ablation study), and key finding (effect size for the primary comparison).
-3. The Introduction MUST frame the gap: no existing evaluation of drift resistance as a function of memory authority level.
+3. The Introduction MUST frame the gap: no existing evaluation of long-horizon consistency and hallucination/contradiction control as a function of memory authority level.
 
 ### Related Work
 
 4. The paper MUST cite and discuss all six systems: MemGPT/Letta, Zep/Graphiti, ShardMemo, MemOS, A-MemGuard, and ASB (ICLR 2025).
-5. Each system MUST be analyzed along three dimensions: trust/authority model (present/absent/binary/graduated), adversarial consideration (explicit/implicit/absent), and drift resistance mechanism (structural/incidental/absent).
-6. The paper MUST NOT claim that anchor memory is the only or best approach. It MUST position it as a complementary mechanism with a specific strength (adversarial drift resistance via graduated trust).
+5. Each system MUST be analyzed along three dimensions: trust/authority model (present/absent/binary/graduated), adversarial consideration (explicit/implicit/absent), and consistency-control mechanism (structural/incidental/absent).
+6. The paper MUST NOT claim that anchor memory is the only or best approach. It MUST position it as a complementary mechanism with a specific strength (graduated-trust consistency control under long-horizon pressure, stress-tested with adversarial inputs).
 7. The paper MUST NOT reference "Core Anchor Memory" as a literature concept -- this term does not exist in the literature.
 
 ### Architecture
@@ -133,7 +133,7 @@ Not applicable. This is a publication deliverable.
 | **Weak effect sizes** | Medium | High | If FULL_ANCHORS vs. NO_ANCHORS shows only small effects (d < 0.2), the paper's thesis is undermined. Mitigation: (1) increase repetitions to reduce variance, (2) focus on specific metrics/scenarios where effects are strongest, (3) reframe as "the effect is domain/scenario-dependent" with analysis of when anchors help most. |
 | **Evaluator unreliability** | Medium | High | If LLM-as-judge produces inconsistent verdicts, all results are questionable. Mitigation: R01 calibration study. If kappa is low, acknowledge the limitation and report calibration data transparently. |
 | **Reviewer skepticism about domain** | Medium | Medium | Reviewers may argue D&D/collaborative fiction is too narrow. Mitigation: Frame as "collaborative fiction" (a recognized NLP evaluation domain). Emphasize that the mechanism is domain-agnostic; the experiment domain is specific by design. Acknowledge cross-domain evaluation as future work. |
-| **Paper scope creep** | Medium | Low | The paper MAY expand into topics beyond the ablation study (e.g., detailed adversary analysis, system comparison benchmarks). Mitigation: Keep the paper focused on the thesis (authority-governed memory provides drift resistance). Adversary taxonomy and system comparison are supporting content, not primary contributions. |
+| **Paper scope creep** | Medium | Low | The paper MAY expand into topics beyond the ablation study (e.g., detailed adversary analysis, system comparison benchmarks). Mitigation: Keep the paper focused on the thesis (authority-governed memory provides long-horizon consistency and hallucination control). Adversary taxonomy and system comparison are supporting content, not primary contributions. |
 | **Timing dependency on F01 and F02** | High | Medium | The paper requires experiment results from F01 and benefits from F02's visualization for rapid iteration. Mitigation: Begin paper skeleton (related work, architecture, experiment design) before F01 is complete. Results section is filled in last. |
 | **Citation currency** | Low | Medium | The related work landscape shifts rapidly. New memory systems MAY appear between writing and submission. Mitigation: R02 establishes the baseline landscape. Update citations during final review before submission. |
 

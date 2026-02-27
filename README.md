@@ -17,7 +17,7 @@ Standard mitigations fall short:
 | RAG                    | Retrieves relevant content but does not mandate consistency. No enforcement.             |
 | Prompt engineering     | "Remember these facts" degrades as context grows. Vulnerable to confident contradiction. |
 
-The problem is acute in agentic systems where invariants must hold across long horizons under adversarial pressure. A dead NPC must stay dead. A drug allergy must never be forgotten. A legal privilege must never be waived.
+The problem is acute in agentic systems where invariants must hold across long horizons under sustained context pressure. A dead NPC must stay dead. A drug allergy must never be forgotten. A legal privilege must never be waived.
 
 ### Why D&D as a Test Domain
 
@@ -25,7 +25,7 @@ This project uses tabletop RPGs as its proving ground, but the approach is domai
 
 - **Invariants are legible.** World facts, character states, and rules form a clear set of constraints. A dead NPC stays dead (barring necromancy shenanigans). Violations are immediately obvious.
 - **Creative freedom is the point.** The value of the LLM is improvisation, elaboration, and responsive storytelling. Restricting this defeats the purpose.
-- **Adversarial pressure is natural.** Players routinely test boundaries, make false claims, and try to manipulate the narrative — providing organic adversarial testing that mirrors real-world prompt injection concerns.
+- **Adversarial pressure is a useful stress harness.** Players routinely test boundaries, make false claims, and try to manipulate the narrative — giving us a deliberate way to force contradiction/hallucination cases and test whether relevant anchors hold.
 - **Long horizons are the norm.** Campaigns span dozens of sessions. Facts established early must persist across hundreds of turns.
 
 This tension — *be creative, but don't break the rules* — exists wherever agentic systems operate within constraints.
@@ -54,11 +54,11 @@ Knowledge graphs answer “what facts exist.” Anchors answer “what must stay
 
 **Explicit state over implicit memory.** Facts are managed state with rank, authority, and provenance rather than raw conversation history the model must parse.
 
-**Authority tiers as governance primitive.** A four-level hierarchy creates policy hooks you don't get with flat retrieval stacks. Bidirectional transitions with invariant guards work to prevent adversarial downgrade and unauthorized escalation.
+**Authority tiers as governance primitive.** A four-level hierarchy creates policy hooks you don't get with flat retrieval stacks. Bidirectional transitions with invariant guards prevent unsupported downgrade and unauthorized escalation.
 
 **Hard budget enforcement.** A cap (default 20 active anchors) prevents context bloat. Long-context capability doesn't fix attention-allocation failures. In our testing, a small focused fact set outperforms a large dump.
 
-**Adversarial resistance by design.** Anchors are formatted as authoritative instructions with explicit correction directives. The model is told to *actively resist* contradiction attempts, not just recall facts.
+**Contradiction/hallucination control by design.** Anchors are formatted as authoritative instructions with explicit correction directives. The model is told to preserve relevant established facts under long-horizon pressure, not just recall facts opportunistically.
 
 **Mandatory injection over retrieval.** RAG content competes for attention. Summarization can drop things. Anchors occupy a fixed system-prompt block injected before the user message — they're always there.
 
@@ -70,7 +70,7 @@ This repo is an extension layer, not a replacement stack:
 - **Embabel** handles agent orchestration plus prompt/action lifecycle integration.
 - **Anchors** adds trust/authority governance and bounded working-memory control (where base proposition systems are intentionally neutral).
 
-Practically: DICE/Embabel handle acquisition and flow; Anchors handles memory prioritization, trust-constrained mutation, and drift resistance.
+Practically: DICE/Embabel handle acquisition and flow; Anchors handles memory prioritization, trust-constrained mutation, and long-horizon relevance stability.
 
 ## Architecture Overview
 
@@ -362,12 +362,12 @@ Not all extracted knowledge deserves anchor status. The authority hierarchy keep
 | Authority hierarchy        | Yes (4 levels, bidirectional with guards)    | No                      | No                        | No                   | No              |
 | Budget enforcement         | Hard cap (20)                               | Token limit             | None                      | Top-k                | Token reduction |
 | Conflict detection         | LLM-based semantic + lexical fallback       | No                      | Temporal                  | No                   | No              |
-| Adversarial resistance     | Primary design goal                         | Not a focus             | Not a focus               | Not a focus          | Not a focus     |
+| Stress-tested consistency control | Primary design goal                  | Not a focus             | Not a focus               | Not a focus          | Not a focus     |
 | Temporal validity          | Not yet (planned)                           | No                      | Yes (bi-temporal)         | No                   | No              |
 | Decay/reinforcement        | Exponential decay + threshold reinforcement | Self-edit               | Temporal validity windows | Spreading activation | Failure-driven  |
 | Graph-native retrieval     | Neo4j store, no graph retrieval yet         | No                      | Yes                       | Yes                  | No              |
 
-**What's different here:** Adversarial resistance is a primary design goal, not an afterthought. The closest comparison is MemGPT's fixed memory blocks — Anchors adds explicit ranking, authority governance, and lifecycle management on top. Graphiti/Zep's temporal model looks like the most natural complement and a planned integration direction.
+**What's different here:** Long-horizon attention stability and hallucination/contradiction control are primary design goals, not afterthoughts. Adversarial scenarios are used as stress tests to evaluate those goals. The closest comparison is MemGPT's fixed memory blocks — Anchors adds explicit ranking, authority governance, and lifecycle management on top. Graphiti/Zep's temporal model looks like the most natural complement and a planned integration direction.
 
 ## Getting Started
 
@@ -479,7 +479,7 @@ Current corpus: 22 scenarios (plus strategy catalog), 357 scripted turns, 180 ev
 - `episodic-recall.yml` — Multi-episode anchor retention
 - `evidence-laundering-poisoning.yml` — Evidence laundering through indirect attribution
 - `extraction-baseline.yaml` — Extraction accuracy baseline (no attacks)
-- `extraction-under-attack.yaml` — Extraction accuracy under adversarial pressure
+- `extraction-under-attack.yaml` — Extraction accuracy under stress-test contradiction pressure
 - `gen-adversarial-dungeon.yml` — LLM-generated dungeon + adaptive attacks
 - `gen-easy-dungeon.yml` — LLM-generated dungeon + baseline (no attacks)
 - `multi-session-campaign.yml` — Anchors persisted across sessions
@@ -669,30 +669,30 @@ dice-anchors uses [OpenSpec](https://github.com/Fission-AI/OpenSpec) for structu
 
 ### Collaborative Anchor Mutation
 
-The [collaborative-anchor-mutation roadmap](openspec/roadmaps/collaborative-anchor-mutation-roadmap.md) tackles legitimate revision of established anchors in multi-actor contexts. Five feature waves:
+The [collaborative-anchor-mutation roadmap](openspec/roadmaps/collaborative-anchor-mutation-roadmap.md) tackles legitimate revision of established anchors in multi-actor contexts — when an update isn't a contradiction but the anchor still needs to change. Main threads:
 
-1. **Revision intent classification** — `ConflictType` enum distinguishing REVISION from CONTRADICTION
-2. **Prompt compliance revision carveout** — authority-gated revision eligibility in prompt templates
-3. **Dependent anchor cascade** — invalidation of dependent anchors during supersession
-4. **Anchor provenance metadata** — extraction turn, speaker role tracking
-5. **UI-controlled mutation** — explicit anchor editing via the chat sidebar
+- **Revision intent classification** — `ConflictType` enum distinguishing REVISION from CONTRADICTION
+- **Authority-gated revision eligibility** — prompt compliance carveout for anchors that can be revised
+- **Dependent anchor cascade** — invalidation of dependent anchors on supersession
+- **Provenance metadata** — extraction turn and speaker role tracking
+- **UI-controlled mutation** — explicit anchor editing via the chat sidebar
 
-Six research tasks (R00–R05) are complete. Key finding: none of the AI memory frameworks we surveyed distinguish update from contradiction — to our knowledge, revision-vs-contradiction classification hasn't been done elsewhere in this space.
+The most interesting finding so far: none of the AI memory frameworks I looked at distinguish update from contradiction. They either let the model overwrite memory or reject the conflicting input outright. Revision as a first-class operation seems underexplored.
 
 ### Current Direction: AGM Belief Revision
 
-Research (R05) identified AGM belief revision theory as the best-fitting theoretical foundation we found:
+AGM belief revision theory turned out to be a good theoretical fit:
 - **Contraction** maps to anchor archival
 - **Revision** maps to supersession (archive + create successor)
 - **Entrenchment ordering** maps to authority tiers
 - **Minimal change principle** constrains cascade scope
 
-Cross-domain patterns from TMS (label propagation for cascade), Wikipedia ORES (two-axis intent/impact classification), and accounting materiality (authority x impact radius) are shaping the implementation direction.
+Also drawing on truth maintenance systems for cascade propagation patterns, Wikipedia's ORES for two-axis intent/impact scoring, and accounting materiality as a heuristic for deciding how far a change should ripple.
 
 ### Future Work
 
-- **Track B**: Creative retrieval — spreading activation and graph-native retrieval for serendipitous knowledge discovery
-- **Track C**: A2A governance — multi-agent anchor revision protocols
+- **Creative retrieval** — spreading activation and graph-native retrieval for serendipitous knowledge discovery
+- **A2A governance** — multi-agent anchor revision protocols
 - Cross-domain generalization beyond tabletop RPGs
 - Memory poisoning threat model and defenses
 

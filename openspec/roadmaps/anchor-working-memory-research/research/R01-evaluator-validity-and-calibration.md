@@ -12,7 +12,7 @@ How reliable is LLM-as-judge drift evaluation, and what calibration methodology 
 
 The entire scoring pipeline in dice-anchors depends on an LLM evaluator producing trustworthy verdicts. If the evaluator is unreliable -- inconsistent across runs, biased by shared model architecture with the generator, or poorly calibrated on severity -- then the headline metrics (Fact Survival Rate, Drift Absorption Rate, Mean Turns to First Drift) carry no evidential weight. A tech report that reports these numbers without validating the instrument that produces them will not survive peer scrutiny.
 
-The simulation engine (`SimulationTurnExecutor.evaluateDrift()`) sends the DM's response and a list of ground truth facts to an LLM, which returns per-fact verdicts (CONFIRMED / CONTRADICTED / NOT_MENTIONED) with severity (MAJOR / MINOR / NONE). The `ScoringService` then aggregates these verdicts into run-level metrics. Every downstream claim about adversarial drift resistance is transitively dependent on verdict quality.
+The simulation engine (`SimulationTurnExecutor.evaluateDrift()`) sends the DM's response and a list of ground truth facts to an LLM, which returns per-fact verdicts (CONFIRMED / CONTRADICTED / NOT_MENTIONED) with severity (MAJOR / MINOR / NONE). The `ScoringService` then aggregates these verdicts into run-level metrics. Every downstream claim about long-horizon consistency and hallucination/contradiction control (including adversarial stress-test results) is transitively dependent on verdict quality.
 
 ## Scope
 

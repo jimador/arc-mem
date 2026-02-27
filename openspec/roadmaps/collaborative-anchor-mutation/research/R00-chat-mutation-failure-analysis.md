@@ -157,7 +157,7 @@ This failure mode applies to any collaborative system using anchors:
 | Legal | Paralegal enters "contract effective date: March 1." Partner says "change to April 1." | Framework treats the correction as a contradiction of established fact. |
 | Supply chain | Planner sets "shipment via air freight." Manager revises to "sea freight for cost savings." | Framework blocks the update because "air freight" has been reinforced. |
 
-The core problem is **conflating factual immutability (adversarial resistance) with collaborative rigidity (inability to accept legitimate revisions)**. The anchor framework was designed to resist prompt drift, and it does so effectively — but it cannot distinguish drift from revision.
+The core problem is **conflating factual immutability (consistency/hallucination control under adversarial stress tests) with collaborative rigidity (inability to accept legitimate revisions)**. The anchor framework was designed to resist prompt drift, and it does so effectively — but it cannot distinguish drift from revision.
 
 ## Screenshots
 

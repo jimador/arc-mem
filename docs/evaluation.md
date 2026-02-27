@@ -278,7 +278,7 @@ Treat with caution when:
 
 - Composite resilience score is a secondary diagnostic. Never use it as sole evidence for claims.
 - Results depend on LLM model, temperature, and prompt construction. Model changes invalidate prior runs.
-- Epistemic hedging classification materially affects drift scores under adversarial conditions.
+- Epistemic hedging classification materially affects drift scores under adversarial stress-test conditions.
 - All current results are provisional until `NO_TRUST` is implemented and the deterministic pack runs at scale.
 
 ### Required Before Final Claim

@@ -6,7 +6,7 @@
 
 ## Summary
 
-Build the controlled ablation experiment infrastructure that runs multiple anchor conditions against the existing simulation scenario corpus, computes cross-condition statistical comparisons, and persists experiment-level reports. This is the **critical path** feature: without declarative condition definitions, paired execution, and effect-size computation, no credible empirical evaluation of anchor drift resistance is possible.
+Build the controlled ablation experiment infrastructure that runs multiple anchor conditions against the existing simulation scenario corpus, computes cross-condition statistical comparisons, and persists experiment-level reports. This is the **critical path** feature: without declarative condition definitions, paired execution, and effect-size computation, no credible empirical evaluation of long-horizon consistency and hallucination/contradiction control is possible.
 
 ## RFC 2119 Compliance
 
@@ -15,7 +15,7 @@ All normative statements in this document use RFC 2119 keywords (`MUST`, `MUST N
 ## Why This Feature
 
 1. **Problem addressed**: The existing `sim.benchmark` package (BenchmarkRunner, BenchmarkAggregator, BenchmarkStatistics, BenchmarkReport) supports multi-run execution and descriptive statistics for a *single* configuration. It cannot compare conditions (e.g., anchors-on vs. anchors-off), compute effect sizes between conditions, or run a full experiment matrix. The `injectionStateSupplier` toggle in SimulationService is the only ablation mechanism, and it is a UI checkbox -- not a declarative, reproducible experimental condition.
-2. **Value delivered**: Enables rigorous, reproducible ablation studies that quantify the marginal contribution of each anchor subsystem (authority hierarchy, rank differentiation, budget enforcement) to drift resistance. This is the empirical foundation for the tech report (F03).
+2. **Value delivered**: Enables rigorous, reproducible ablation studies that quantify the marginal contribution of each anchor subsystem (authority hierarchy, rank differentiation, budget enforcement) to long-horizon consistency and hallucination/contradiction control. This is the empirical foundation for the tech report (F03).
 3. **Why now**: This is Wave 1. The benchmarking infrastructure from the `benchmarking-and-statistical-rigor` change is complete. The experiment framework extends it with condition definitions, matrix execution, and cross-condition statistics. F02 (UI) and F03 (paper) depend on this feature.
 
 ## Scope

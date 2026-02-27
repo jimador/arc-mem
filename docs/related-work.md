@@ -11,9 +11,9 @@ How Anchors relate to prior work on LLM memory, grounding, and robustness.
 
 Anchors are a **bounded working-memory governance layer** for multi-turn LLM conversations. They maintain a capped pool of ranked, authority-tiered propositions injected into system context, with explicit conflict resolution, trust-gated promotion, and budget enforcement.
 
-Anchors are **not** a full memory management system. They do not replace long-term memory stores, retrieval pipelines, or graph-based knowledge systems. They are a control layer designed to preserve invariants under adversarial pressure, and they coexist with paging, graph memory, and retrieval systems as complementary infrastructure.
+Anchors are **not** a full memory management system. They do not replace long-term memory stores, retrieval pipelines, or graph-based knowledge systems. They are a control layer designed to preserve invariants under long-horizon context pressure, and they coexist with paging, graph memory, and retrieval systems as complementary infrastructure.
 
-The goal is **policy-controlled attention shaping** — keeping critical facts in active model context when conversation length, adversarial pressure, or context competition would otherwise cause them to be lost or contradicted.
+The goal is **policy-controlled attention shaping** — keeping critical facts in active model context when conversation length or context competition would otherwise cause them to be lost or contradicted. Adversarial turns are used as stress tests for this objective.
 
 ---
 
