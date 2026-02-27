@@ -194,43 +194,40 @@ class CanonizationGateTest {
     }
 
     @Nested
-    @DisplayName("simulation auto-approve")
-    class SimulationAutoApprove {
+    @DisplayName("auto-approve promotions")
+    class AutoApprovePromotions {
 
         @Test
-        @DisplayName("sim-* context with autoApproveInSimulation=true immediately approves request")
-        void simContextAutoApproved() {
-            var simContextId = "sim-abc123";
+        @DisplayName("promotion to CANON is auto-approved when autoApprovePromotions=true")
+        void promotionAutoApproved() {
             when(repository.findPendingCanonizationRequest(ANCHOR_ID, Authority.CANON.name()))
                     .thenReturn(Optional.empty());
 
             var node = anchorNode(ANCHOR_ID, Authority.RELIABLE);
             when(repository.findPropositionNodeById(ANCHOR_ID)).thenReturn(Optional.of(node));
 
-            // The auto-approve path calls approve() which loads the request by ID
             when(repository.findCanonizationRequestById(anyString()))
                     .thenAnswer(inv -> {
                         var id = (String) inv.getArgument(0);
-                        return Optional.of(requestMap(id, ANCHOR_ID, simContextId));
+                        return Optional.of(requestMap(id, ANCHOR_ID, CONTEXT_ID));
                     });
 
             var request = gate.requestCanonization(
-                    ANCHOR_ID, simContextId, ANCHOR_TEXT, Authority.RELIABLE, "test", "system");
+                    ANCHOR_ID, CONTEXT_ID, ANCHOR_TEXT, Authority.RELIABLE, "test", "system");
 
-            // Auto-approve should have fired immediately
             assertThat(request.status()).isEqualTo(CanonizationStatus.APPROVED);
             verify(repository).setAuthority(ANCHOR_ID, Authority.CANON.name());
             verify(eventPublisher).publishEvent(any(AnchorLifecycleEvent.AuthorityChanged.class));
         }
 
         @Test
-        @DisplayName("non-sim context does not auto-approve")
-        void nonSimContextNotAutoApproved() {
-            when(repository.findPendingCanonizationRequest(ANCHOR_ID, Authority.CANON.name()))
+        @DisplayName("decanonization is never auto-approved — requires HITL")
+        void decanonizationNotAutoApproved() {
+            when(repository.findPendingCanonizationRequest(ANCHOR_ID, Authority.RELIABLE.name()))
                     .thenReturn(Optional.empty());
 
-            var request = gate.requestCanonization(
-                    ANCHOR_ID, CONTEXT_ID, ANCHOR_TEXT, Authority.RELIABLE, "test", "user");
+            var request = gate.requestDecanonization(
+                    ANCHOR_ID, CONTEXT_ID, ANCHOR_TEXT, "TRUST_DEGRADATION", "system");
 
             assertThat(request.status()).isEqualTo(CanonizationStatus.PENDING);
             verify(repository, never()).setAuthority(any(), any());
@@ -275,11 +272,11 @@ class CanonizationGateTest {
         );
     }
 
-    private static DiceAnchorsProperties properties(boolean gateEnabled, boolean autoApproveInSim) {
+    private static DiceAnchorsProperties properties(boolean gateEnabled, boolean autoApprovePromotions) {
         var anchorConfig = new DiceAnchorsProperties.AnchorConfig(
                 20, 500, 100, 900, true, 0.65,
                 DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED,
-                true, gateEnabled, autoApproveInSim,
+                true, gateEnabled, autoApprovePromotions,
                 0.6, 400, 200, null, null, null, null);
         return new DiceAnchorsProperties(
                 anchorConfig,

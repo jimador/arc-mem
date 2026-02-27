@@ -50,7 +50,7 @@ public record DiceAnchorsProperties(
             @DefaultValue("TIERED") CompliancePolicyMode compliancePolicy,
             @DefaultValue("true") boolean lifecycleEventsEnabled,
             @DefaultValue("true") boolean canonizationGateEnabled,
-            @DefaultValue("true") boolean autoApproveInSimulation,
+            @DefaultValue("true") boolean autoApprovePromotions,
             @DecimalMin("0.0") @DecimalMax("1.0") @DefaultValue("0.6") double demoteThreshold,
             @DefaultValue("400") int reliableRankThreshold,
             @DefaultValue("200") int unreliableRankThreshold,

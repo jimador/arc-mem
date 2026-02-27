@@ -25,8 +25,8 @@ import java.util.UUID;
  * <ol>
  *   <li>Caller invokes {@link #requestCanonization} or {@link #requestDecanonization}.
  *       A {@link CanonizationRequest} with status {@link CanonizationStatus#PENDING} is created.</li>
- *   <li>If {@code auto-approve-in-simulation} is enabled and the context matches {@code sim-*},
- *       the request is immediately approved (for automated testing).</li>
+ *   <li>If {@code auto-approve-promotions} is enabled and the request is a promotion to CANON,
+ *       the request is immediately approved. Decanonization always requires HITL approval.</li>
  *   <li>Otherwise, the request waits in the pending queue until {@link #approve} or {@link #reject}
  *       is called.</li>
  *   <li>On approval, the authority transition is executed directly via the repository and an
@@ -265,9 +265,9 @@ public class CanonizationGate {
         logger.info("Canonization request {} created: anchor {} {} -> {} (requestedBy={})",
                 request.id(), anchorId, currentAuthority, requestedAuthority, requestedBy);
 
-        // Auto-approve for simulation contexts to enable automated testing
-        if (config.autoApproveInSimulation() && contextId != null && contextId.startsWith("sim-")) {
-            logger.debug("Auto-approving canonization request {} for simulation context {}", request.id(), contextId);
+        // Auto-approve promotions only. Decanonization always requires HITL — CANON is world-defining (A3b).
+        if (config.autoApprovePromotions() && requestedAuthority == Authority.CANON) {
+            logger.debug("Auto-approving canonization promotion {} for anchor {}", request.id(), anchorId);
             return approve(request.id()).orElse(request);
         }
 
