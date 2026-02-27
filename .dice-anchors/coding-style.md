@@ -175,16 +175,16 @@ Tests exist to verify that anchors resist drift, authority upgrades work, confli
 
 ## Layer Dependencies
 
-Dependencies flow one way: `sim/` → core (`anchor/`, `assembly/`, `extract/`, `persistence/`, `prompt/`). Never the reverse.
+Dependencies flow one way: higher-level layers depend on lower-level layers, never the reverse.
 
-**Core logic MUST NOT reference simulation concepts.** This includes:
-- Context ID conventions (`"sim-*"`) — core doesn't know how contexts are named
-- Simulation-specific config flags (e.g., ~~`autoApproveInSimulation`~~) — if a flag only makes sense for one caller, it's a layer violation
-- Any import from `dev.dunnam.diceanchors.sim.*` in core packages
+**Lower layers MUST NOT reference concepts from higher layers.** Signs of a violation:
+- A lower-level class sniffs caller-specific IDs or naming conventions to change behavior
+- A config flag is named for the feature that uses it rather than what it does
+- A lower-level package imports from a higher-level package
 
-**Test:** Ask "does this concept exist independently of the simulation layer?" If no, it belongs in `sim/`.
+**Test:** Ask "does this concept exist independently of any specific caller?" If no, it belongs in the caller's layer.
 
-**Config flags** should be named for what they do generally, not who uses them. `autoApprovePromotions` is correct; `autoApproveInSimulation` is not.
+**Config flags** should be named for the behavior they control, not the context in which they're used.
 
 ## What NOT to Do
 
