@@ -283,7 +283,7 @@ Resolution outcomes: `KEEP_EXISTING`, `REPLACE`, `DEMOTE_EXISTING`, `COEXIST`. M
 
 ## DICE Integration
 
-Anchors is a downstream consumer of DICE, not a replacement. Everything here is implemented locally in `dice-anchors` with upstream-friendly proposals for DICE extension points.
+Anchors is a downstream consumer of DICE, not a replacement. Everything here is implemented locally in `dice-anchors`.
 
 ### How DICE Concepts Map to Anchors
 
@@ -333,20 +333,6 @@ Not all extracted knowledge deserves anchor status. The authority hierarchy keep
 - Decay and reinforcement policies (`ExponentialDecayPolicy`, `ThresholdReinforcementPolicy`)
 - Adversarial simulation and drift evaluation harness (`sim/engine/`, `sim/report/`)
 
-### Proposed DICE Extension Points
-
-| Extension Point                             | Purpose                                                             | Expected Contract                                                          | Current Limitation                                                                             |
-|---------------------------------------------|---------------------------------------------------------------------|----------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|
-| `PropositionPipeline` post-extraction hooks | Tier candidate tagging after extraction                             | Callback receiving proposition + context, returning tier hint + confidence | No hook exists in DICE; `dice-anchors` processes extraction results after the fact             |
-| `PropositionRepository` tier-aware queries  | Filter by memory tier (`COLD`, `WARM`, `HOT`) | Optional tier parameter on existing `findByContext` methods                | Current repo adds tier semantics at the application layer, not in shared persistence contracts |
-| Incremental analysis context metadata       | Carry session/temporal metadata for validity decisions              | Session ID, timestamp, source provenance in analysis context               | DICE incremental analysis does not expose metadata needed for temporal validity                |
-| Revision/conflict extension seam            | Temporal-aware and evidence-aware conflict classification           | Hook on `PropositionReviser` allowing external conflict policy             | Conflict detection is entirely application-side in `dice-anchors`; no DICE seam exists         |
-| `MemoryTierClassifier` (proposed SPI)       | Classify propositions into tier candidates                          | Input: proposition + context; Output: tier + confidence + rationale        | Not yet proposed upstream; implemented locally as promotion logic                              |
-| `MemoryTierPolicy` (proposed SPI)           | Apply transition rules between tiers                                | Input: proposition, tier, state; Output: transition decision               | Not yet proposed upstream                                                                      |
-| `MemoryMutationAudit` (proposed SPI)        | Structured decision events for observability                        | Event payload for every state mutation                                     | Partially implemented via `anchor/event/` lifecycle events; not standardized                   |
-
-All proposed interfaces would default to no-op implementations so existing DICE adopters see no behavior change.
-
 ### Where Integration Is Rough
 
 - **No DICE lifecycle hooks** — promotion and tiering run after extraction completes. There's no way to hook into the extraction pipeline itself.
@@ -355,17 +341,17 @@ All proposed interfaces would default to no-op implementations so existing DICE 
 - **Text-keyed maps** — the trust pipeline and promotion paths key by proposition text, not a stable DICE proposition ID. Text normalization edge cases could cause collisions.
 - **Parse failure quarantine** — duplicate/conflict parse failures quarantine instead of auto-accepting, but what operators actually do with quarantined items is still undefined.
 - **Upstream divergence** — if DICE adds its own memory tiering, our patterns may need to adapt. Adapter boundaries help, but it's a real risk.
-- **Authority is domain policy** — the `PROVISIONAL`/`UNRELIABLE`/`RELIABLE`/`CANON` taxonomy belongs to this application, not to DICE. If any of this moves upstream, the governance layer needs to stay pluggable.
+- **Authority is domain policy** — the `PROVISIONAL`/`UNRELIABLE`/`RELIABLE`/`CANON` taxonomy belongs to this application, not to DICE.
 - **Temporal state machines** — adding `validFrom`/`validTo` to propositions means real state machine complexity that DICE may not want in its core.
 
 ### Integration Summary
 
 | Dimension       | Status                                                                                                                                                                                                    |
 |-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Intent**      | Demonstrate working-memory anchoring as a composable layer over DICE extraction, with early evidence toward upstream adoption                                                                             |
+| **Intent**      | Demonstrate working-memory anchoring as a composable layer over DICE extraction                                                                                                                          |
 | **Current fit** | DICE provides extraction; Anchors consumes output and adds lifecycle governance. Integration is functional but loosely coupled (no shared hooks)                                                          |
 | **Known gaps**  | No DICE lifecycle hooks, no temporal primitives, text-keyed maps, fail-open parse paths                                                                                                                   |
-| **Next steps**  | (1) propose `MemoryTierClassifier`/`MemoryTierPolicy`/`MemoryMutationAudit` SPIs to DICE upstream, (2) add temporal metadata to persistence model, (3) publish deterministic ablation manifests |
+| **Next steps**  | (1) add temporal metadata to persistence model, (2) publish deterministic ablation manifests                                                                                                              |
 
 ## How This Compares
 
