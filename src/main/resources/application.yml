@@ -75,7 +75,7 @@ dice-anchors:
     model: gpt-4o-nano
 
   run-history:
-    store: MEMORY
+    store: NEO4J
 
   retrieval:
     mode: HYBRID

@@ -4,11 +4,11 @@ import dev.dunnam.diceanchors.sim.benchmark.BenchmarkReport;
 import dev.dunnam.diceanchors.sim.benchmark.ExperimentReport;
 
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * In-memory LRU store for completed simulation run records.
@@ -19,9 +19,9 @@ public class SimulationRunStore implements RunHistoryStore {
 
     private static final int MAX_ENTRIES = 50;
 
-    private final Map<String, BenchmarkReport> benchmarkReports = new HashMap<>();
-    private final Map<String, String> scenarioBaselines = new HashMap<>();
-    private final Map<String, ExperimentReport> experimentReports = new HashMap<>();
+    private final Map<String, BenchmarkReport> benchmarkReports = new ConcurrentHashMap<>();
+    private final Map<String, String> scenarioBaselines = new ConcurrentHashMap<>();
+    private final Map<String, ExperimentReport> experimentReports = new ConcurrentHashMap<>();
 
     private final Map<String, SimulationRunRecord> store = new LinkedHashMap<>(16, 0.75f, true) {
         @Override
@@ -38,14 +38,6 @@ public class SimulationRunStore implements RunHistoryStore {
     @Override
     public synchronized Optional<SimulationRunRecord> load(String runId) {
         return Optional.ofNullable(store.get(runId));
-    }
-
-    /**
-     * @deprecated Use {@link #load(String)} instead.
-     */
-    @Deprecated(forRemoval = true)
-    public Optional<SimulationRunRecord> get(String runId) {
-        return load(runId);
     }
 
     @Override
@@ -97,7 +89,7 @@ public class SimulationRunStore implements RunHistoryStore {
     @Override
     public synchronized void saveAsBaseline(String reportId, String scenarioId) {
         if (!benchmarkReports.containsKey(reportId)) {
-            return;
+            throw new IllegalArgumentException("Benchmark report not found: " + reportId);
         }
         scenarioBaselines.put(scenarioId, reportId);
     }

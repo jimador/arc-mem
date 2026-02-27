@@ -16,12 +16,12 @@ import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.router.RouterLink;
 import dev.dunnam.diceanchors.anchor.Anchor;
 import dev.dunnam.diceanchors.sim.engine.EvalVerdict;
 import dev.dunnam.diceanchors.sim.engine.RunHistoryStore;
 import dev.dunnam.diceanchors.sim.engine.SimulationRunRecord;
 import dev.dunnam.diceanchors.sim.engine.SimulationRunRecord.TurnSnapshot;
-import dev.dunnam.diceanchors.sim.engine.SimulationService;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,11 +60,25 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
     private final VerticalLayout mainContent;
     private final VerticalLayout errorContent;
 
-    public RunInspectorView(SimulationService simulationService) {
-        this.runStore = simulationService.getRunStore();
+    public RunInspectorView(RunHistoryStore runStore) {
+        this.runStore = runStore;
         setSizeFull();
         setPadding(true);
         setSpacing(false);
+
+        var nav = new HorizontalLayout();
+        nav.setWidthFull();
+        nav.setSpacing(true);
+        nav.setAlignItems(Alignment.CENTER);
+        nav.setPadding(false);
+        nav.addClassName("ar-nav-bar");
+
+        var backLink = new RouterLink("Simulation", SimulationView.class);
+        backLink.addClassName("ar-nav-link");
+        var benchmarkLink = new RouterLink("Benchmark", BenchmarkView.class);
+        benchmarkLink.addClassName("ar-nav-link");
+
+        nav.add(backLink, benchmarkLink);
 
         mainContent = new VerticalLayout();
         mainContent.setSizeFull();
@@ -76,7 +90,7 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
         errorContent.setPadding(true);
         errorContent.setVisible(false);
 
-        add(mainContent, errorContent);
+        add(nav, mainContent, errorContent);
         setFlexGrow(1, mainContent);
     }
 

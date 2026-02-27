@@ -20,9 +20,9 @@ A `RunHistoryStore` interface SHALL define the API contract for persisting simul
 - **WHEN** `delete(runId)` is called for an existing record
 - **THEN** `load(runId)` returns `Optional.empty()`
 
-### Requirement: InMemoryRunHistoryStore
+### Requirement: SimulationRunStore
 
-An `InMemoryRunHistoryStore` SHALL implement `RunHistoryStore` using a `ConcurrentHashMap`. This SHALL be the default implementation. Data SHALL NOT survive application restarts. This implementation preserves current behavior.
+An `SimulationRunStore` SHALL implement `RunHistoryStore` using a `ConcurrentHashMap`. This SHALL be the default implementation. Data SHALL NOT survive application restarts. This implementation preserves current behavior.
 
 #### Scenario: Data lost on restart
 - **WHEN** run records are saved and the application restarts
@@ -42,15 +42,15 @@ A `Neo4jRunHistoryStore` SHALL implement `RunHistoryStore` using Neo4j via Drivi
 
 ### Requirement: Store selection via configuration
 
-The active `RunHistoryStore` implementation SHALL be selected via `dice-anchors.run-history.store` configuration property. Valid values SHALL be `memory` (InMemoryRunHistoryStore) and `neo4j` (Neo4jRunHistoryStore). The default SHALL be `memory`.
+The active `RunHistoryStore` implementation SHALL be selected via `dice-anchors.run-history.store` configuration property. Valid values SHALL be `MEMORY` (SimulationRunStore) and `NEO4J` (Neo4jRunHistoryStore). The default SHALL be `NEO4J`.
 
-#### Scenario: Memory store is default
+#### Scenario: Neo4j store is default
 - **WHEN** no `dice-anchors.run-history.store` property is set
-- **THEN** the InMemoryRunHistoryStore is used
+- **THEN** the `Neo4jRunHistoryStore` is used
 
-#### Scenario: Neo4j store selected
-- **WHEN** `dice-anchors.run-history.store=neo4j` is configured
-- **THEN** the Neo4jRunHistoryStore is used
+#### Scenario: Memory store selected explicitly
+- **WHEN** `dice-anchors.run-history.store=MEMORY` is configured
+- **THEN** the `SimulationRunStore` is used
 
 ## Added Requirements (initial-community-review-readiness)
 

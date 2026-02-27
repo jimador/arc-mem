@@ -10,13 +10,13 @@ import org.springframework.context.annotation.Configuration;
 public class SimulationConfiguration {
 
     @Bean
-    @ConditionalOnProperty(name = "dice-anchors.run-history.store", havingValue = "MEMORY", matchIfMissing = true)
+    @ConditionalOnProperty(name = "dice-anchors.run-history.store", havingValue = "MEMORY")
     RunHistoryStore memoryRunHistoryStore() {
         return new SimulationRunStore();
     }
 
     @Bean
-    @ConditionalOnProperty(name = "dice-anchors.run-history.store", havingValue = "NEO4J")
+    @ConditionalOnProperty(name = "dice-anchors.run-history.store", havingValue = "NEO4J", matchIfMissing = true)
     RunHistoryStore neo4jRunHistoryStore(PersistenceManager persistenceManager, ObjectMapper objectMapper) {
         return new Neo4jRunHistoryStore(persistenceManager, objectMapper);
     }

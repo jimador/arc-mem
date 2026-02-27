@@ -459,10 +459,6 @@ public class SimulationService {
         return lastRunContext != null ? lastRunContext.contextId() : null;
     }
 
-    public RunHistoryStore getRunStore() {
-        return runStore;
-    }
-
     /**
      * Uses the GraphObjectManager directly to bypass the DICE Proposition constructor.
      */

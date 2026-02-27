@@ -82,7 +82,8 @@ public class SimulationView extends VerticalLayout {
     private final Tab manipulationTab;
     private final Tab knowledgeBrowserTab;
     private final Tab resultsTab;
-    private final RunHistoryDialog runHistoryDialog;
+    private final Tab runHistoryTab;
+    private final RunHistoryPanel runHistoryPanel;
     private final ProgressDispatcher dispatcher;
 
     private final Button themeToggleButton;
@@ -172,13 +173,9 @@ public class SimulationView extends VerticalLayout {
         stopButton = new Button("Stop");
         stopButton.setVisible(false);
 
-        runHistoryDialog = new RunHistoryDialog(simulationService.getRunStore(), simToChatBridge);
+        runHistoryPanel = new RunHistoryPanel(runHistoryStore, simToChatBridge);
 
         runHistoryButton = new Button("Run History");
-        runHistoryButton.addClickListener(e -> {
-            runHistoryDialog.refreshGrid();
-            runHistoryDialog.open();
-        });
 
         wireButtons();
 
@@ -255,6 +252,12 @@ public class SimulationView extends VerticalLayout {
         resultsTab = rightTabSheet.add("Results", driftSummaryPanel);
         manipulationTab = rightTabSheet.add("Manipulation", manipulationPanel);
         manipulationTab.setVisible(false);
+        runHistoryTab = rightTabSheet.add("Run History", runHistoryPanel);
+
+        runHistoryButton.addClickListener(e -> {
+            runHistoryPanel.refresh();
+            rightTabSheet.setSelectedTab(runHistoryTab);
+        });
 
         inspectorPanel.setBrowseCallback(anchorText -> {
             knowledgeBrowserPanel.filterByAnchorText(anchorText);
@@ -501,6 +504,7 @@ public class SimulationView extends VerticalLayout {
 
         if (progress.complete()) {
             progressBar.setValue(1.0);
+            runHistoryPanel.refresh();
             transitionTo(SimControlState.COMPLETED);
         }
     }
