@@ -162,7 +162,7 @@ public class SimulationTurnExecutor {
                 anchorRef.getLastBudgetResult().excluded().size());
 
         var verdicts = shouldEvaluate(turnType, groundTruth)
-                ? evaluateDrift(dmResponse, groundTruth, playerMessage)
+                ? evaluateDrift(dmResponse, groundTruth, playerMessage, anchors)
                 : List.<EvalVerdict> of();
 
         logger.info("Turn {} [{}]: player='{}', dm='{}', anchors={}, verdicts={}",
@@ -351,6 +351,7 @@ public class SimulationTurnExecutor {
         final var finalDmResponse = dmResponse;
         final var finalGroundTruth = groundTruth;
         final var finalPlayerMessage = playerMessage;
+        final var finalAnchors = anchors;
 
         // Branch A: drift evaluation; Branch B: DICE extraction + promotion.
         // AtomicReferences carry results; lambdas return Void for a homogeneous Joiner.
@@ -367,7 +368,7 @@ public class SimulationTurnExecutor {
 
             scope.fork(() -> {
                 if (shouldEvaluate(turnType, finalGroundTruth)) {
-                    verdictsRef.set(evaluateDrift(finalDmResponse, finalGroundTruth, finalPlayerMessage));
+                    verdictsRef.set(evaluateDrift(finalDmResponse, finalGroundTruth, finalPlayerMessage, finalAnchors));
                 }
                 return null;
             });
@@ -773,7 +774,8 @@ public class SimulationTurnExecutor {
     List<EvalVerdict> evaluateDrift(
             String dmResponse,
             List<SimulationScenario.GroundTruth> groundTruth,
-            String playerMessage) {
+            String playerMessage,
+            List<Anchor> injectedAnchors) {
         var serializedGroundTruth = groundTruth.stream()
                                                .filter(fact -> fact.text() != null && !fact.text().isBlank())
                                                .map(fact -> Map.of("id", fact.id(), "text", fact.text()))
@@ -783,6 +785,11 @@ public class SimulationTurnExecutor {
         templateVars.put("dm_response", dmResponse != null ? dmResponse : "");
         if (playerMessage != null && !playerMessage.isBlank()) {
             templateVars.put("player_message", playerMessage);
+        }
+        if (injectedAnchors != null && !injectedAnchors.isEmpty()) {
+            templateVars.put("active_anchors", injectedAnchors.stream()
+                    .map(a -> Map.of("authority", a.authority().name(), "text", a.text()))
+                    .toList());
         }
         var userPrompt = PromptTemplates.render(PromptPathConstants.SIM_DRIFT_EVALUATION_USER, templateVars);
 
