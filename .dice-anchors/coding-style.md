@@ -173,6 +173,19 @@ Tests exist to verify that anchors resist drift, authority upgrades work, confli
 - Work test-first when fixing bugs: write failing test, then implement
 - Don't couple tests tightly to implementation
 
+## Layer Dependencies
+
+Dependencies flow one way: `sim/` → core (`anchor/`, `assembly/`, `extract/`, `persistence/`, `prompt/`). Never the reverse.
+
+**Core logic MUST NOT reference simulation concepts.** This includes:
+- Context ID conventions (`"sim-*"`) — core doesn't know how contexts are named
+- Simulation-specific config flags (e.g., ~~`autoApproveInSimulation`~~) — if a flag only makes sense for one caller, it's a layer violation
+- Any import from `dev.dunnam.diceanchors.sim.*` in core packages
+
+**Test:** Ask "does this concept exist independently of the simulation layer?" If no, it belongs in `sim/`.
+
+**Config flags** should be named for what they do generally, not who uses them. `autoApprovePromotions` is correct; `autoApproveInSimulation` is not.
+
 ## What NOT to Do
 
 - Do not return null from service methods — use `Optional` or throw
