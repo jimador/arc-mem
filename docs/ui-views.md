@@ -1,12 +1,12 @@
 # UI Views — Developer Guide
 
-dice-anchors exposes four Vaadin routes. This guide covers the architecture, state management, and key interactions of each view.
+dice-anchors exposes four Vaadin routes. Architecture, state management, and key interactions for each.
 
 ## SimulationView (`/`)
 
 **File:** `src/main/java/dev/dunnam/diceanchors/sim/views/SimulationView.java`
 
-The primary view for running adversarial simulation scenarios.
+Primary view for running adversarial simulation scenarios.
 
 ### Layout
 
@@ -36,7 +36,7 @@ The primary view for running adversarial simulation scenarios.
 | PAUSED | Resume, Stop visible; Manipulation tab shown | Manipulation |
 | COMPLETED | Run re-enabled; controls enabled | Results |
 
-Simulation execution runs in `CompletableFuture.runAsync()`. Progress events are delivered to the UI via `ui.access()` through a `ProgressDispatcher` that fans out `SimulationProgress` events to all panels.
+Simulation execution runs in `CompletableFuture.runAsync()`. Progress events reach the UI via `ui.access()` through a `ProgressDispatcher` that fans out `SimulationProgress` events to all panels.
 
 ### Notable Features
 
@@ -120,7 +120,7 @@ Inline revision in the sidebar:
 
 **File:** `src/main/java/dev/dunnam/diceanchors/sim/views/BenchmarkView.java`
 
-Multi-condition ablation experiments with statistical aggregation.
+Multi-condition ablation experiments with statistical aggregation over repeated runs.
 
 ### Layout
 
@@ -163,7 +163,7 @@ All panels stacked vertically; visibility toggled by state:
 
 **File:** `src/main/java/dev/dunnam/diceanchors/sim/views/RunInspectorView.java`
 
-Detailed post-run inspection with optional cross-run comparison.
+Post-run inspection with optional cross-run comparison.
 
 ### URL Parameters
 

@@ -1,7 +1,7 @@
 <!-- sync: openspec/specs/benchmark-report, openspec/specs/resilience-report, openspec/specs/deterministic-simulation-tests, openspec/specs/observability -->
 <!-- last-synced: 2026-02-25 -->
 
-# Evaluation Protocol and Interpretation Guide
+# Evaluation Protocol
 
 ## 1. Evaluation Framework
 
@@ -49,7 +49,7 @@ After each turn, the executor diffs anchor state against the previous turn to de
 | `EVICTED`           | Anchor present in previous state but not current (budget enforcement) |
 | `ARCHIVED`          | Anchor present in previous state but not current (decay/archival)     |
 
-These events feed the anchor timeline UI and are logged in run records.
+Anchor timeline UI and run records consume these events.
 
 ### SimulationRunRecord Contents
 
@@ -62,7 +62,7 @@ Each `SimulationRunRecord` captures:
 
 ## 2. Drift Taxonomy
 
-Five categories of conversational drift, each with a measurable definition.
+Five categories of conversational drift, each with a measurable definition:
 
 | Category                 | Definition                                                            | Metric                                                                                                                                  |
 |--------------------------|-----------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
@@ -72,7 +72,7 @@ Five categories of conversational drift, each with a measurable definition.
 | **Source-of-Truth**      | Lower-authority claims displace higher-authority facts                | `source_truth_drift_count`, `source_truth_drift_rate` (track authority transitions and conflict outcomes)                               |
 | **Silent**               | Behavior diverges without explicit contradiction                      | `silent_drift_rate = silent_drift_turns / evaluated_turns` (persistent NOT_MENTIONED on critical facts + semantic divergence)           |
 
-**Current gap**: Silent and category-level drift is only partially instrumented and requires additional labeling infrastructure.
+**Current gap**: Silent and category-level drift is only partially instrumented. Full coverage needs additional labeling work.
 
 ## 3. Metrics
 
@@ -105,9 +105,9 @@ Diagnostics only; do not use for primary conclusions.
 
 ### Evaluation Flow
 
-After each evaluated turn, `SimulationTurnExecutor.evaluateDrift()` sends the DM response and ground truth facts to a separate LLM judge call. The evaluation prompt is loaded from `src/main/resources/prompts/drift-evaluation-system.jinja`.
+After each evaluated turn, `SimulationTurnExecutor.evaluateDrift()` sends the DM response and ground truth facts to a separate LLM judge call. Prompt loaded from `src/main/resources/prompts/drift-evaluation-system.jinja`.
 
-The evaluator receives: a system prompt with guidelines, examples, severity criteria, and JSON schema; a user prompt with ground truth facts (with IDs), the player's message, and the DM response text.
+The evaluator gets: a system prompt with guidelines, examples, severity criteria, and JSON schema; a user prompt with ground truth facts (with IDs), the player's message, and the DM response text.
 
 ### Verdicts
 
@@ -218,7 +218,7 @@ Each run MUST retain:
 
 ### What Can Be Concluded
 
-- Current evidence is useful for debugging failure modes and identifying harness issues.
+- Current evidence is useful for debugging failure modes and finding harness bugs.
 - Same-scenario winner sign flips are already present (`gen-adversarial-dungeon`, `gen-easy-dungeon`).
 - Adaptive/generated scenarios materially change results between snapshots.
 
@@ -230,7 +230,7 @@ Each run MUST retain:
 
 ## 8. Known Evaluation Gaps
 
-### Missing Infrastructure
+### Missing Pieces
 
 | Gap                                                                 | Impact                                                    |
 |---------------------------------------------------------------------|-----------------------------------------------------------|
@@ -247,7 +247,7 @@ Each run MUST retain:
 
 ### Metrics/Reporting Gaps
 
-- Silent drift detection requires additional labeling infrastructure.
+- Silent drift detection needs additional labeling work.
 - Identity and objective drift categories require tagged groundTruth IDs (not yet standard in scenarios).
 - Source-of-truth drift requires authority transition tracking in evaluator output.
 
@@ -279,7 +279,7 @@ Treat with caution when:
 - Composite resilience score is a secondary diagnostic. Never use it as sole evidence for claims.
 - Results depend on LLM model, temperature, and prompt construction. Model changes invalidate prior runs.
 - Epistemic hedging classification materially affects drift scores under adversarial conditions.
-- All current results are provisional pending `NO_TRUST` implementation and deterministic pack execution at scale.
+- All current results are provisional until `NO_TRUST` is implemented and the deterministic pack runs at scale.
 
 ### Required Before Final Claim
 

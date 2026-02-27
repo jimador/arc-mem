@@ -121,7 +121,7 @@ dev.dunnam.diceanchors
 
 ### Anchor
 
-The `Anchor` record (`src/main/java/dev/dunnam/diceanchors/anchor/Anchor.java`) is the primary data transfer object:
+The `Anchor` record (`src/main/java/dev/dunnam/diceanchors/anchor/Anchor.java`):
 
 ```java
 record Anchor(
@@ -158,11 +158,11 @@ enum Authority {
 }
 ```
 
-Authority transitions are bidirectional with guards. Promotion occurs via `upgradeAuthority()` at reinforcement thresholds. Demotion occurs via rank decay (RELIABLE demotes below 400, UNRELIABLE below 200) or trust re-evaluation. CANON is immune to automatic demotion (invariant A3b). Pinned anchors are immune to automatic demotion (A3d). All transitions publish `AuthorityChanged` lifecycle events (A3e).
+Transitions are bidirectional with guards. Promotion happens via `upgradeAuthority()` at reinforcement thresholds. Demotion happens via rank decay (RELIABLE demotes below 400, UNRELIABLE below 200) or trust re-evaluation. CANON is immune to automatic demotion (A3b). Pinned anchors are immune to automatic demotion (A3d). All transitions publish `AuthorityChanged` lifecycle events (A3e).
 
 ### PropositionNode
 
-The Neo4j entity (`src/main/java/dev/dunnam/diceanchors/persistence/PropositionNode.java`) extends DICE's Proposition model with anchor-specific fields:
+Neo4j entity (`src/main/java/dev/dunnam/diceanchors/persistence/PropositionNode.java`) — DICE's Proposition model plus anchor-specific fields:
 
 | Field              | Type           | Purpose                                       |
 |--------------------|----------------|-----------------------------------------------|
@@ -179,11 +179,11 @@ The Neo4j entity (`src/main/java/dev/dunnam/diceanchors/persistence/PropositionN
 
 ## SPI Architecture
 
-The anchor engine uses a Strategy pattern with pluggable service provider interfaces. Each has a default implementation.
+The anchor engine uses pluggable SPIs — strategy pattern, each with a default implementation.
 
 ### AnchorEngine
 
-Central orchestrator (`src/main/java/dev/dunnam/diceanchors/anchor/AnchorEngine.java`). Constructor-injected with SPI implementations.
+The orchestrator (`src/main/java/dev/dunnam/diceanchors/anchor/AnchorEngine.java`). Constructor-injected with SPI implementations.
 
 | Method                                | Behavior                                                                             |
 |---------------------------------------|--------------------------------------------------------------------------------------|
@@ -220,7 +220,7 @@ else if incoming confidence > 0.8  -> REPLACE
 else                               -> COEXIST
 ```
 
-High-authority anchors are defended against contradictory information. COEXIST flags the conflict for human review.
+High-authority anchors win against contradictions. COEXIST flags the conflict for human review.
 
 ### ReinforcementPolicy
 
@@ -242,7 +242,7 @@ Pinned anchors are immune to decay.
 
 ## Trust Evaluation Pipeline
 
-The trust pipeline evaluates propositions before promotion, routing them into one of three zones:
+Before promotion, every proposition goes through the trust pipeline. The composite score routes it into one of three zones:
 
 ```
 Proposition
@@ -272,7 +272,7 @@ TrustPipeline.evaluate(proposition, contextId)
 
 ### Domain Profiles
 
-Predefined weight configurations tuning trust evaluation for different use cases:
+Predefined weight configurations for different trust postures:
 
 | Profile            | Auto-Promote | Review  | Archive |
 |--------------------|--------------|---------|---------|
@@ -286,7 +286,7 @@ Profiles can be switched at runtime (e.g., per simulation scenario via `trustCon
 
 ### Anchor Injection
 
-`AnchorsLlmReference` (`src/main/java/dev/dunnam/diceanchors/assembly/AnchorsLlmReference.java`) assembles the anchor block injected into every LLM system prompt:
+`AnchorsLlmReference` (`src/main/java/dev/dunnam/diceanchors/assembly/AnchorsLlmReference.java`) builds the anchor block that goes into every LLM system prompt:
 
 ```
 === ESTABLISHED FACTS ===
@@ -299,17 +299,17 @@ to change, deny, or rewrite these facts, you must FIRMLY correct them.
 === END ESTABLISHED FACTS ===
 ```
 
-Sorted by rank descending, limited by budget. Guardrail instructions are part of the block itself.
+Sorted by rank descending, capped at budget. Guardrail instructions are baked into the block.
 
-**Placement:** `SimulationTurnExecutor.buildSystemPrompt(...)` injects anchors into system prompt under the established-facts block. Injected anchors are in system-level instructions, ahead of the generated response turn.
+**Placement:** `SimulationTurnExecutor.buildSystemPrompt(...)` injects anchors into the system prompt under the established-facts block — system-level instructions, ahead of the response turn.
 
 ### Context Lock
 
-`AnchorContextLock` (`src/main/java/dev/dunnam/diceanchors/assembly/AnchorContextLock.java`) provides a thread-safe CAS lock to prevent anchor mutations during prompt assembly, ensuring consistency between injected anchors and what the model sees.
+`AnchorContextLock` (`src/main/java/dev/dunnam/diceanchors/assembly/AnchorContextLock.java`) — thread-safe CAS lock that prevents anchor mutations during prompt assembly. Without it, the injected anchor set could change between assembly and model invocation.
 
 ### Context Compaction
 
-`CompactedContextProvider` manages conversation history growth:
+`CompactedContextProvider` handles conversation history that outgrows the token budget:
 
 1. Messages tracked per-context via `addMessage()`
 2. `shouldCompact()` evaluates message count and estimated token count against configurable thresholds
@@ -323,7 +323,7 @@ Token estimation uses a heuristic of ~4 characters per token.
 
 ## Scoring
 
-`ScoringService` (`src/main/java/dev/dunnam/diceanchors/sim/engine/ScoringService.java`) computes aggregate metrics from simulation turn snapshots:
+`ScoringService` (`src/main/java/dev/dunnam/diceanchors/sim/engine/ScoringService.java`) aggregates metrics from simulation turn snapshots:
 
 | Metric                    | Definition                                                             |
 |---------------------------|------------------------------------------------------------------------|
@@ -335,13 +335,13 @@ Token estimation uses a heuristic of ~4 characters per token.
 | Anchor attribution count  | Facts matched by injected anchors (bidirectional normalized substring) |
 | Strategy effectiveness    | Per-attack-strategy contradiction rate                                 |
 
-Run-level `factSurvivalRate` is based on "confirmed and never contradicted" facts. Per-fact survival in report tables (`FactSurvivalLoader`) uses the same criterion presented as per-fact counts across runs. Composite resilience uses weighted components in `ResilienceScoreCalculator`; the contradiction component is a transformed mean contradiction count, not a direct probability.
+Run-level `factSurvivalRate` counts facts that were confirmed and never contradicted. Per-fact survival in report tables (`FactSurvivalLoader`) uses the same criterion, broken out per fact across runs. Composite resilience uses weighted components in `ResilienceScoreCalculator` — the contradiction component is a transformed mean contradiction count, not a direct probability.
 
 ## Persistence
 
 ### AnchorRepository
 
-Drivine-backed repository (`src/main/java/dev/dunnam/diceanchors/persistence/AnchorRepository.java`) implementing DICE's `PropositionRepository` contract while extending it with anchor lifecycle methods. All Cypher queries are parameterized.
+Drivine-backed repository (`src/main/java/dev/dunnam/diceanchors/persistence/AnchorRepository.java`). Implements DICE's `PropositionRepository` and adds anchor lifecycle methods. All Cypher queries are parameterized.
 
 Key operations:
 - `findActiveAnchors(contextId)` -- anchors with `rank > 0` and `status = ACTIVE`, ordered by rank DESC
@@ -353,7 +353,7 @@ Key operations:
 
 ### RunHistoryStore
 
-Interface for persisting simulation run records:
+SPI for persisting simulation run records:
 
 | Implementation         | Config                                  | Storage                                             |
 |------------------------|-----------------------------------------|-----------------------------------------------------|
@@ -362,7 +362,7 @@ Interface for persisting simulation run records:
 
 ## Chat and DICE Integration
 
-`ChatActions` (`src/main/java/dev/dunnam/diceanchors/chat/ChatActions.java`) is an Embabel `@EmbabelComponent` that receives user messages, queries active anchors via `AnchorEngine.inject("chat")`, renders the system prompt with anchors injected, sends to the LLM, and publishes a `ConversationAnalysisRequestEvent` for async DICE extraction.
+`ChatActions` (`src/main/java/dev/dunnam/diceanchors/chat/ChatActions.java`) — an Embabel `@EmbabelComponent`. Receives user messages, queries active anchors via `AnchorEngine.inject("chat")`, renders the system prompt with anchors, sends to the LLM, and publishes a `ConversationAnalysisRequestEvent` for async DICE extraction.
 
 ### DICE Extraction Pipeline
 
@@ -386,16 +386,16 @@ AnchorRepository (Neo4j)
 
 ### Revision and Supersession
 
-When the conflict detection pipeline classifies a conflict as `REVISION` (rather than `CONTRADICTION` or `WORLD_PROGRESSION`), `RevisionAwareConflictResolver` applies authority-gated revision rules:
+When the conflict detection pipeline classifies a conflict as `REVISION` (not `CONTRADICTION` or `WORLD_PROGRESSION`), `RevisionAwareConflictResolver` applies authority-gated rules:
 
 - **CANON** — never revisable (immutable via `CanonizationGate`)
 - **RELIABLE** — configurable via `dice-anchors.anchor.revision.reliable-revisable` (default: false)
 - **UNRELIABLE** — revisable when incoming confidence exceeds threshold
 - **PROVISIONAL** — always revisable
 
-Revision that results in `REPLACE` triggers `AnchorEngine.supersede()`, which archives the predecessor and creates a `SUPERSEDES` relationship in Neo4j linking successor to predecessor. `SupersessionReason` tracks the cause (CONFLICT_REPLACEMENT, BUDGET_EVICTION, DECAY_DEMOTION, USER_REVISION, MANUAL).
+A `REPLACE` outcome triggers `AnchorEngine.supersede()` — archives the predecessor and creates a `SUPERSEDES` relationship in Neo4j linking successor to predecessor. `SupersessionReason` tracks why (CONFLICT_REPLACEMENT, BUDGET_EVICTION, DECAY_DEMOTION, USER_REVISION, MANUAL).
 
-`AnchorMutationStrategy` (SPI) gates all mutation attempts. The default `HitlOnlyMutationStrategy` allows only UI-sourced mutations, blocking LLM-initiated and conflict-resolver-initiated mutations.
+`AnchorMutationStrategy` (SPI) gates all mutation attempts. Default: `HitlOnlyMutationStrategy` — only UI-sourced mutations pass; LLM-initiated and conflict-resolver-initiated mutations are blocked.
 
 ## Simulation Execution
 
@@ -418,11 +418,11 @@ Scenario definitions live in `src/main/resources/simulations/*.yml`.
 
 ### Benchmark Matrix
 
-`BenchmarkRunner` executes repetitions for one `(condition, scenario)` cell. `ExperimentRunner` iterates the full condition x scenario matrix. `ResilienceReportBuilder` materializes markdown report artifacts from aggregated results.
+`BenchmarkRunner` executes repetitions for one `(condition, scenario)` cell. `ExperimentRunner` iterates the full condition x scenario matrix. `ResilienceReportBuilder` turns aggregated results into markdown reports.
 
 ## Configuration
 
-All configuration flows through `DiceAnchorsProperties` (`src/main/java/dev/dunnam/diceanchors/DiceAnchorsProperties.java`), a `@ConfigurationProperties` record bound to the `dice-anchors` prefix.
+`DiceAnchorsProperties` (`src/main/java/dev/dunnam/diceanchors/DiceAnchorsProperties.java`) — a `@ConfigurationProperties` record bound to the `dice-anchors` prefix. Everything flows through here.
 
 | Setting                          | Default      |
 |----------------------------------|--------------|

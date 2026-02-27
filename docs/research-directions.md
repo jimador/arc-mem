@@ -1,10 +1,10 @@
 # Research Directions
 
-Ongoing and future research areas for the dice-anchors project. This document captures the current research landscape, completed investigations, and planned explorations.
+Ongoing and future research areas for the dice-anchors project.
 
 ## Collaborative Anchor Mutation
 
-The [collaborative-anchor-mutation roadmap](../../openspec/roadmaps/collaborative-anchor-mutation-roadmap.md) is the primary active research track. It addresses how to allow legitimate revisions of established anchors without compromising adversarial drift resistance.
+The [collaborative-anchor-mutation roadmap](../../openspec/roadmaps/collaborative-anchor-mutation-roadmap.md) is the primary active research track — how to allow legitimate revisions of established anchors without compromising adversarial drift resistance.
 
 ### Problem Statement
 
@@ -28,7 +28,7 @@ When a collaborator (human or AI) attempts to revise an established anchor via n
 | R01 | How reliably can an LLM classify revision intent? | Two-step detection (detect conflict → classify type) with chain-of-thought reasoning. < 5% false-positive rate achievable with GPT-4.1/Claude Sonnet. Conservative default: ambiguous = CONTRADICTION. |
 | R02 | Which cascade strategy for dependent anchors? | Two-phase: temporal co-creation as fast filter (zero LLM cost) + LLM semantic dependency as precision filter. Authority-gated: hard cascade for PROVISIONAL/UNRELIABLE, soft cascade (review) for RELIABLE, CANON exempt. |
 | R03 | How should mixed-authority revisions work? | PROVISIONAL/UNRELIABLE: revision-eligible by default. RELIABLE: configurable (default off). CANON: never. Adds ~155 tokens for `[revisable]` annotation in prompt template. |
-| R04 | How do existing AI memory frameworks handle mutation? | No surveyed framework (Letta/MemGPT, Zep/Graphiti, LangMem, Mem0, A-MemGuard, MemOS) distinguishes update from contradiction. Revision-vs-contradiction classification is novel. Graphiti's temporal supersession is the closest structural analog. |
+| R04 | How do existing AI memory frameworks handle mutation? | No surveyed framework (Letta/MemGPT, Zep/Graphiti, LangMem, Mem0, A-MemGuard, MemOS) distinguishes update from contradiction. We haven't found revision-vs-contradiction classification elsewhere. Graphiti's temporal supersession is the closest structural analog. |
 | R05 | What prior art exists in non-AI domains? | 19 transferable patterns from 9 domains. Top 3: (1) Wikipedia ORES two-axis classification for intent × impact, (2) JTMS label propagation for cascade, (3) accounting materiality for authority × impact radius. |
 
 ---
@@ -50,11 +50,11 @@ Research task R05 identified AGM belief revision theory (Alchourrón, Gärdenfor
 
 ### Cross-Domain Patterns Informing Design
 
-**TMS (Truth Maintenance Systems, Doyle 1979)** — JTMS-style label propagation provides a proven algorithm for cascade invalidation. When a parent anchor is revised, label-propagate "unsupported" status to dependents, then re-evaluate each. 40+ years of implementation history.
+**TMS (Truth Maintenance Systems, Doyle 1979)** — JTMS-style label propagation is a well-established algorithm for cascade invalidation. When a parent anchor is revised, label-propagate "unsupported" status to dependents, then re-evaluate each. 40+ years of implementation history.
 
-**Wikipedia ORES** — Two-axis classification (intent × impact) produces a 2×2 matrix that handles edge cases the flat `ConflictType` enum misses: good-faith-but-damaging edits, bad-faith-but-harmless edits. Consider decomposing revision classification into independent intent and impact axes.
+**Wikipedia ORES** — Two-axis classification (intent × impact) produces a 2×2 matrix that catches edge cases the flat `ConflictType` enum misses: good-faith-but-damaging edits, bad-faith-but-harmless edits. Worth exploring whether revision classification should decompose into independent intent and impact axes.
 
-**Accounting Materiality (IAS 8)** — Materiality is a function of authority AND impact radius, not authority alone. A PROVISIONAL anchor with 10 dependents is more "material" than a RELIABLE anchor with zero dependents. This principle should inform cascade priority.
+**Accounting Materiality (IAS 8)** — Materiality is a function of authority AND impact radius, not authority alone. A PROVISIONAL anchor with 10 dependents is more "material" than a RELIABLE anchor with zero dependents. Cascade priority should account for this.
 
 **MVCC (Multi-Version Concurrency Control)** — Temporal supersession chains are structurally analogous to MVCC version chains. The `SUPERSEDES` relationship in Neo4j already supports this pattern.
 
@@ -74,7 +74,7 @@ The `BenchmarkRunner` supports multi-condition ablation experiments comparing:
 
 ### Benchmarking UI
 
-`BenchmarkView` (`/benchmark`) provides a visual interface for configuring and running experiments, with inline fact drill-down and condition comparison.
+`BenchmarkView` (`/benchmark`) — configure and run experiments, with inline fact drill-down and condition comparison.
 
 ### Positioning Against Related Systems
 
@@ -87,7 +87,7 @@ The `BenchmarkRunner` supports multi-condition ablation experiments comparing:
 | HippoRAG | PageRank-based retrieval; no guaranteed presence |
 | ACON | Task-aware compression; no authority hierarchy |
 
-The key differentiator: Anchors is designed for adversarial resistance as a primary concern, with authority-governed lifecycle management and mandatory prompt injection. No surveyed system combines all three.
+What sets anchors apart, in our survey so far: adversarial resistance as a primary concern, authority-governed lifecycle management, and mandatory prompt injection. None of the surveyed systems combine all three.
 
 ---
 

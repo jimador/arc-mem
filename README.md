@@ -54,13 +54,13 @@ Knowledge graphs answer “what facts exist.” Anchors answer “what must stay
 
 **Explicit state over implicit memory.** Facts are managed state with rank, authority, and provenance rather than raw conversation history the model must parse.
 
-**Authority tiers as governance primitive.** A four-level hierarchy creates policy hooks unavailable in flat retrieval stacks. Bidirectional transitions with invariant guards prevent both adversarial downgrade and unauthorized escalation.
+**Authority tiers as governance primitive.** A four-level hierarchy creates policy hooks you don't get with flat retrieval stacks. Bidirectional transitions with invariant guards work to prevent adversarial downgrade and unauthorized escalation.
 
-**Hard budget enforcement.** A cap (default 20 active anchors) prevents context bloat. Long-context capability does not remove attention-allocation failures. A small, focused fact set outperforms a large dump.
+**Hard budget enforcement.** A cap (default 20 active anchors) prevents context bloat. Long-context capability doesn't fix attention-allocation failures. In our testing, a small focused fact set outperforms a large dump.
 
-**Adversarial resistance by design.** Anchors are formatted as authoritative instructions with explicit correction directives. The model is told to *actively resist* contradiction attempts, not merely recall facts.
+**Adversarial resistance by design.** Anchors are formatted as authoritative instructions with explicit correction directives. The model is told to *actively resist* contradiction attempts, not just recall facts.
 
-**Mandatory injection over retrieval.** Unlike RAG (retrieved content competes for attention) or summarization (content may be dropped), anchors occupy a fixed system-prompt block injected before the user message.
+**Mandatory injection over retrieval.** RAG content competes for attention. Summarization can drop things. Anchors occupy a fixed system-prompt block injected before the user message — they're always there.
 
 ## Why DICE + Embabel?
 
@@ -120,7 +120,7 @@ SimulationView (user selects scenario and hits "Run")
 
 ### Anchor Lifecycle
 
-An **Anchor** is a fact promoted to special status in the LLM’s context:
+An anchor is a fact promoted to special status in the LLM’s context:
 
 - **Rank** `[100–900]` — higher rank = more influence under budget pressure
 - **Authority** — PROVISIONAL → UNRELIABLE → RELIABLE → CANON (bidirectional — promoted via reinforcement, demoted via decay/trust re-evaluation; CANON is never auto-assigned and immune to auto-demotion)
@@ -130,18 +130,18 @@ An **Anchor** is a fact promoted to special status in the LLM’s context:
 
 ### Trust Pipeline
 
-`TrustPipeline` evaluates propositions through multiple trust signals before promotion:
+`TrustPipeline` runs propositions through multiple trust signals before promotion:
 
 - source authority assessment
 - extraction confidence scoring
 - reinforcement history tracking
 - `TrustAuditRecord` captures the decision trail
 - domain-specific invariant rules via `InvariantEvaluator`
-- `CanonizationGate` controls CANON assignment (always explicit, never automatic)
+- `CanonizationGate` controls CANON assignment — always explicit, never automatic
 
 ### Adversarial Simulation
 
-The simulation harness runs scenarios with turn-by-turn execution and drift evaluation:
+The simulation harness runs scenarios turn-by-turn with drift evaluation:
 
 - **Drift verdicts** — each ground-truth fact is evaluated as `CONTRADICTED`, `CONFIRMED`, or `NOT_MENTIONED` per turn
 - **Epistemic hedging** — DM declines to affirm without asserting the opposite → `NOT_MENTIONED`, not `CONTRADICTED`
@@ -150,7 +150,7 @@ The simulation harness runs scenarios with turn-by-turn execution and drift eval
 
 ### Context Compaction
 
-`CompactedContextProvider` summarizes older context when token thresholds are exceeded. `CompactionValidator` ensures protected facts survive compaction. Memory tiers (`COLD`, `WARM`, `HOT`) influence decay rates and eviction priority.
+`CompactedContextProvider` summarizes older context when token thresholds are exceeded. `CompactionValidator` checks that protected facts survive compaction. Memory tiers (`COLD`, `WARM`, `HOT`) influence decay rates and eviction priority.
 
 ### Lifecycle Flow
 
@@ -223,7 +223,7 @@ RFC 2119 compliance mapping: CANON = MUST (absolute requirement), RELIABLE = SHO
 
 ### Trust Pipeline
 
-`TrustPipeline` evaluates propositions through pluggable `TrustSignal` implementations weighted by a `DomainProfile`:
+`TrustPipeline` runs propositions through pluggable `TrustSignal` implementations weighted by a `DomainProfile`:
 
 | Profile | Auto-Promote | Review | Archive | Tuning |
 |---------|-------------|--------|---------|--------|
@@ -275,17 +275,17 @@ Resolution outcomes: `KEEP_EXISTING`, `REPLACE`, `DEMOTE_EXISTING`, `COEXIST`. M
 
 ### Canonization Gate
 
-`CanonizationGate` enforces HITL control over CANON authority:
-- Canonization and decanonization requests are queued as `PENDING` in Neo4j
+`CanonizationGate` enforces human-in-the-loop control over CANON authority:
+- Canonization and decanonization requests queue as `PENDING` in Neo4j
 - Auto-approved in simulation contexts (`contextId` starting with `sim-`)
 - In chat contexts, requires explicit `approve()` or `reject()` call
-- Stale detection: if the anchor's authority changed since the request was created, the request is marked `STALE`
+- Stale detection — if the anchor's authority changed since the request was created, the request is marked `STALE`
 
 ## DICE Integration
 
-This section addresses how Anchors composes with the DICE framework. Anchors is a downstream consumer of DICE, not a replacement. The integration strategy follows Option B: local implementation in `dice-anchors` with an upstream-friendly proposal for DICE extension points.
+Anchors is a downstream consumer of DICE, not a replacement. Everything here is implemented locally in `dice-anchors` with upstream-friendly proposals for DICE extension points.
 
-### Concept Mapping: DICE Proposition Lifecycle -> Anchors Lifecycle
+### How DICE Concepts Map to Anchors
 
 | DICE Concept            | Anchors Concept                | Relationship                                                                                              |
 |-------------------------|--------------------------------|-----------------------------------------------------------------------------------------------------------|
@@ -297,24 +297,24 @@ This section addresses how Anchors composes with the DICE framework. Anchors is 
 
 DICE owns extraction and revision. Anchors owns promotion, lifecycle governance, budget enforcement, and context injection.
 
-### Memory Layering: Separate and Complementary
+### Memory Layering
 
-DICE Agent Memory and Anchors serve **different retrieval purposes** and operate as separate layers:
+DICE Agent Memory and Anchors serve different purposes and run as separate layers:
 
 | Layer                   | Mechanism                                          | Purpose                                                                                          |
 |-------------------------|----------------------------------------------------|--------------------------------------------------------------------------------------------------|
 | **DICE Agent Memory**   | `searchByTopic`, `searchRecent`, `searchByType`    | Broad retrieval of relevant propositions, entity relationships, and historical context on demand |
 | **Anchors working set** | Rank-sorted mandatory injection into system prompt | Guaranteed presence of load-bearing facts regardless of retrieval relevance scoring              |
 
-Anchors **augments** DICE memory, it does not replace it. DICE retrieval provides the broader knowledge base. Anchors provides the invariant enforcement layer. A proposition may exist in DICE memory and never become an anchor. An anchor always has a corresponding DICE proposition as its origin.
+Anchors augments DICE memory — doesn't replace it. DICE retrieval provides the broader knowledge base. Anchors provides the invariant enforcement layer. A proposition can exist in DICE memory and never become an anchor. An anchor always has a corresponding DICE proposition as its origin.
 
-### Low-Trust Knowledge with Constrained Authority
+### Low-Trust Knowledge
 
-Not all extracted knowledge deserves anchor status. The authority hierarchy allows low-trust knowledge to remain available without contaminating the invariant set:
+Not all extracted knowledge deserves anchor status. The authority hierarchy keeps low-trust knowledge available without contaminating the invariant set:
 
 - **PROVISIONAL** anchors carry provenance qualifiers in the injected context (tagged `[PROVISIONAL]`), signaling the model to treat them as tentative.
 - Propositions below the AUTO_PROMOTE threshold (trust score < 0.80) enter the REVIEW queue or are archived, remaining in DICE's proposition store for retrieval without occupying anchor budget.
-- Authority ceiling (persisted at promotion) constrains how high a low-provenance fact can be upgraded, preventing adversarial escalation through repetition alone.
+- Authority ceiling (persisted at promotion) constrains how high a low-provenance fact can be upgraded — designed to prevent adversarial escalation through repetition alone.
 - The `TrustSignal` composite evaluates source authority, extraction confidence, and reinforcement history to gate promotion decisions.
 
 ### Runtime Boundaries
@@ -333,7 +333,7 @@ Not all extracted knowledge deserves anchor status. The authority hierarchy allo
 - Decay and reinforcement policies (`ExponentialDecayPolicy`, `ThresholdReinforcementPolicy`)
 - Adversarial simulation and drift evaluation harness (`sim/engine/`, `sim/report/`)
 
-### Extension Points for Future DICE Incorporation
+### Proposed DICE Extension Points
 
 | Extension Point                             | Purpose                                                             | Expected Contract                                                          | Current Limitation                                                                             |
 |---------------------------------------------|---------------------------------------------------------------------|----------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|
@@ -345,32 +345,29 @@ Not all extracted knowledge deserves anchor status. The authority hierarchy allo
 | `MemoryTierPolicy` (proposed SPI)           | Apply transition rules between tiers                                | Input: proposition, tier, state; Output: transition decision               | Not yet proposed upstream                                                                      |
 | `MemoryMutationAudit` (proposed SPI)        | Structured decision events for observability                        | Event payload for every state mutation                                     | Partially implemented via `anchor/event/` lifecycle events; not standardized                   |
 
-All proposed interfaces default to no-op implementations so existing DICE adopters see no behavior change.
+All proposed interfaces would default to no-op implementations so existing DICE adopters see no behavior change.
 
-### Known Integration Gaps and Risks
+### Where Integration Is Rough
 
-**Gaps:**
-1. **No DICE lifecycle hooks.** All promotion/tiering logic runs after DICE extraction completes. Tighter integration requires upstream hook points that do not yet exist.
-2. **No temporal validity primitives.** DICE propositions have no `validFrom`/`validTo` semantics. Anchors cannot represent "this was true then but not now" without application-level workarounds.
-3. **No shared audit schema.** Anchor lifecycle events (`anchor/event/`) and DICE extraction events use different structures. Unified observability requires schema alignment.
-4. **Text-keyed batch maps.** Trust pipeline and promotion paths key by proposition text rather than stable DICE proposition ID, risking collisions on normalization edge cases.
-5. **Degraded parse handling still requires review workflows.** Duplicate/conflict parse failures now quarantine or degrade to review instead of auto-accept, but operator handling paths remain implementation-specific.
-
-**Risks:**
-1. **Semantic drift from DICE upstream.** If DICE evolves its own memory tiering, `dice-anchors` patterns may diverge. Option B mitigates this by maintaining adapter boundaries.
-2. **Over-generalizing app-specific semantics.** The authority taxonomy (`PROVISIONAL/UNRELIABLE/RELIABLE/CANON`) is domain policy, not framework primitive. Upstreaming must keep governance policy outside DICE core.
-3. **Temporal complexity.** Adding `validFrom`/`validTo` to propositions introduces state machine complexity that DICE may not want in its core.
+- **No DICE lifecycle hooks** — promotion and tiering run after extraction completes. There's no way to hook into the extraction pipeline itself.
+- **No temporal validity** — DICE propositions have no `validFrom`/`validTo`. Representing "this was true then but not now" takes app-level workarounds.
+- **Separate audit schemas** — anchor lifecycle events and DICE extraction events use different structures, so unified tracing takes extra plumbing.
+- **Text-keyed maps** — the trust pipeline and promotion paths key by proposition text, not a stable DICE proposition ID. Text normalization edge cases could cause collisions.
+- **Parse failure quarantine** — duplicate/conflict parse failures quarantine instead of auto-accepting, but what operators actually do with quarantined items is still undefined.
+- **Upstream divergence** — if DICE adds its own memory tiering, our patterns may need to adapt. Adapter boundaries help, but it's a real risk.
+- **Authority is domain policy** — the `PROVISIONAL`/`UNRELIABLE`/`RELIABLE`/`CANON` taxonomy belongs to this application, not to DICE. If any of this moves upstream, the governance layer needs to stay pluggable.
+- **Temporal state machines** — adding `validFrom`/`validTo` to propositions means real state machine complexity that DICE may not want in its core.
 
 ### Integration Summary
 
 | Dimension       | Status                                                                                                                                                                                                    |
 |-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Intent**      | Demonstrate working-memory anchoring as a composable layer over DICE extraction, with evidence for upstream adoption                                                                                      |
+| **Intent**      | Demonstrate working-memory anchoring as a composable layer over DICE extraction, with early evidence toward upstream adoption                                                                             |
 | **Current fit** | DICE provides extraction; Anchors consumes output and adds lifecycle governance. Integration is functional but loosely coupled (no shared hooks)                                                          |
 | **Known gaps**  | No DICE lifecycle hooks, no temporal primitives, text-keyed maps, fail-open parse paths                                                                                                                   |
 | **Next steps**  | (1) propose `MemoryTierClassifier`/`MemoryTierPolicy`/`MemoryMutationAudit` SPIs to DICE upstream, (2) add temporal metadata to persistence model, (3) publish deterministic ablation manifests |
 
-## Positioning Against Related Work
+## How This Compares
 
 | Feature                    | Anchors                                     | MemGPT                  | Graphiti/Zep              | HippoRAG             | ACON            |
 |----------------------------|---------------------------------------------|-------------------------|---------------------------|----------------------|-----------------|
@@ -384,7 +381,7 @@ All proposed interfaces default to no-op implementations so existing DICE adopte
 | Decay/reinforcement        | Exponential decay + threshold reinforcement | Self-edit               | Temporal validity windows | Spreading activation | Failure-driven  |
 | Graph-native retrieval     | Neo4j store, no graph retrieval yet         | No                      | Yes                       | Yes                  | No              |
 
-**Key differentiator:** Anchors is designed for adversarial resistance as a primary concern, not an afterthought. The closest comparison is MemGPT's fixed memory blocks; Anchors extends this with explicit ranking, authority governance, and lifecycle management. Graphiti/Zep's temporal model is the strongest complement and a planned integration direction.
+**What's different here:** Adversarial resistance is a primary design goal, not an afterthought. The closest comparison is MemGPT's fixed memory blocks — Anchors adds explicit ranking, authority governance, and lifecycle management on top. Graphiti/Zep's temporal model looks like the most natural complement and a planned integration direction.
 
 ## Getting Started
 
@@ -426,7 +423,7 @@ OPENAI_API_KEY=sk-... ./mvnw spring-boot:run
 
 ## Running Simulations
 
-Navigate to `http://localhost:8089` (routes to `SimulationView`).
+Go to `http://localhost:8089` (routes to `SimulationView`).
 
 **UI Controls:**
 
@@ -449,10 +446,10 @@ Navigate to `http://localhost:8089/benchmark`.
 **Configure the benchmark matrix:**
 
 - **Conditions**: `FULL_ANCHORS`, `NO_ANCHORS`, `FLAT_AUTHORITY` (and `NO_TRUST` once implemented)
-- **Scenario pack**: select deterministic claim pack for primary evidence; stochastic stress pack for secondary
-- **Repetitions**: 10–20 per cell for reliable results
+- **Scenario pack**: deterministic claim pack for primary evidence; stochastic stress pack for secondary
+- **Repetitions**: 10-20 per cell for stable results
 
-Reports are built by `ResilienceReportBuilder` and rendered by `MarkdownReportRenderer`. See `docs/evaluation.md` for metrics definitions, integrity checks, and interpretation guidance.
+`ResilienceReportBuilder` builds reports, `MarkdownReportRenderer` renders them. See `docs/evaluation.md` for metrics definitions, integrity checks, and interpretation guidance.
 
 ## Scenario Configuration
 
@@ -473,7 +470,7 @@ Scenarios are YAML files in `src/main/resources/simulations/`. Each file defines
 | `trustConfig`                                     | Optional trust profile and weight overrides |
 | `compactionConfig`                                | Optional compaction triggers and thresholds |
 
-**Scene-setting turn 0:** when `setting` is non-blank and extraction is enabled, an `ESTABLISH` turn executes before turn 1. The DM narrates the setting; DICE extraction captures initial propositions as anchors.
+**Scene-setting turn 0** — when `setting` is non-blank and extraction is enabled, an `ESTABLISH` turn runs before turn 1. The DM narrates the setting; DICE extraction captures initial propositions as anchors.
 
 Current corpus: 22 scenarios (plus strategy catalog), 357 scripted turns, 180 evaluated turns.
 
@@ -575,22 +572,22 @@ assertions:                       # Optional post-run validation
 
 ### Per-Turn Execution Sequence
 
-Each turn executes through `SimulationTurnExecutor`:
+`SimulationTurnExecutor` runs each turn:
 
 1. Query active anchors via `AnchorEngine.inject(contextId)`
 2. Format anchors as `ESTABLISHED FACTS` block (if injection enabled)
-3. Build system prompt: DM persona, campaign setting, anchor block, contradiction resistance instructions
-4. Build user prompt: recent conversation history + current player message
+3. Build system prompt — DM persona, campaign setting, anchor block, contradiction resistance instructions
+4. Build user prompt — recent conversation history + current player message
 5. Call LLM via Spring AI `ChatModel`
 6. Build `ContextTrace` (token counts, injected anchors, full prompts)
-7. If turn type requires evaluation: send to evaluator LLM, parse JSON verdicts with severity
-8. Diff anchor state vs previous turn: detect CREATED, REINFORCED, DECAYED, AUTHORITY_CHANGED, EVICTED, ARCHIVED events
-9. Check compaction thresholds; compact if needed (validate protected fact survival via `CompactionValidator`)
+7. If turn type requires evaluation — send to evaluator LLM, parse JSON verdicts with severity
+8. Diff anchor state vs previous turn — detect CREATED, REINFORCED, DECAYED, AUTHORITY_CHANGED, EVICTED, ARCHIVED events
+9. Check compaction thresholds; compact if needed (`CompactionValidator` checks protected fact survival)
 10. Return `TurnExecutionResult`
 
 ### Run History Persistence
 
-Configure via `dice-anchors.run-history.store` in `application.yml`:
+Set `dice-anchors.run-history.store` in `application.yml`:
 
 | Value              | Storage                       | Lifecycle |
 |--------------------|-------------------------------|-----------|
@@ -623,7 +620,7 @@ Started via `docker-compose.yml`. Both chat and simulation use the same `AnchorR
 
 ## Observability
 
-Optional Langfuse stack for OTEL-based observability.
+Optional Langfuse stack for OTEL-based tracing.
 
 ```bash
 docker compose -f docker-compose.langfuse.yml up -d
@@ -686,7 +683,7 @@ dice-anchors uses [OpenSpec](https://github.com/Fission-AI/OpenSpec) for structu
 
 ### Collaborative Anchor Mutation
 
-The [collaborative-anchor-mutation roadmap](openspec/roadmaps/collaborative-anchor-mutation-roadmap.md) addresses legitimate revision of established anchors in multi-actor contexts. Five feature waves:
+The [collaborative-anchor-mutation roadmap](openspec/roadmaps/collaborative-anchor-mutation-roadmap.md) tackles legitimate revision of established anchors in multi-actor contexts. Five feature waves:
 
 1. **Revision intent classification** — `ConflictType` enum distinguishing REVISION from CONTRADICTION
 2. **Prompt compliance revision carveout** — authority-gated revision eligibility in prompt templates
@@ -694,17 +691,17 @@ The [collaborative-anchor-mutation roadmap](openspec/roadmaps/collaborative-anch
 4. **Anchor provenance metadata** — extraction turn, speaker role tracking
 5. **UI-controlled mutation** — explicit anchor editing via the chat sidebar
 
-Six research tasks (R00–R05) are complete. Key finding: no surveyed AI memory framework distinguishes update from contradiction — revision-vs-contradiction classification is novel in this space.
+Six research tasks (R00–R05) are complete. Key finding: none of the AI memory frameworks we surveyed distinguish update from contradiction — to our knowledge, revision-vs-contradiction classification hasn't been done elsewhere in this space.
 
 ### Current Direction: AGM Belief Revision
 
-Research (R05) identified AGM belief revision theory as the strongest theoretical foundation:
+Research (R05) identified AGM belief revision theory as the best-fitting theoretical foundation we found:
 - **Contraction** maps to anchor archival
 - **Revision** maps to supersession (archive + create successor)
 - **Entrenchment ordering** maps to authority tiers
 - **Minimal change principle** constrains cascade scope
 
-Cross-domain patterns from TMS (label propagation for cascade), Wikipedia ORES (two-axis intent/impact classification), and accounting materiality (authority × impact radius) inform the implementation direction.
+Cross-domain patterns from TMS (label propagation for cascade), Wikipedia ORES (two-axis intent/impact classification), and accounting materiality (authority x impact radius) are shaping the implementation direction.
 
 ### Future Work
 
@@ -715,10 +712,10 @@ Cross-domain patterns from TMS (label propagation for cascade), Wikipedia ORES (
 
 ### Known Limitations
 
-- **Very long conversations** where the system prompt itself gets diluted and attention allocation fails even for injected content.
-- **Sophisticated adversarial attacks** that don't directly contradict but subtly reframe facts over multiple turns.
-- **Models with weak instruction following** that ignore system prompt directives regardless of formatting.
-- **Cross-session persistence** where anchors must survive context resets and be reconstructed from storage.
+- **Very long conversations** — the system prompt itself gets diluted and attention allocation fails even for injected content.
+- **Subtle reframing attacks** — adversaries that don't directly contradict but slowly reframe facts over multiple turns. The conflict detector catches direct contradictions but misses gradual drift.
+- **Weak instruction followers** — some models ignore system prompt directives regardless of formatting. Anchors can't help if the model won't read them.
+- **Cross-session persistence** — anchors must survive context resets and be reconstructed from storage. This works but hasn't been stress-tested.
 
 ### Open Questions
 

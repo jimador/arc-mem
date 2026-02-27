@@ -3,7 +3,7 @@
 <!-- sync: openspec/specs/anchor-conflict, openspec/specs/anchor-trust, openspec/specs/anchor-lifecycle, openspec/specs/share-ready-implementation-gate -->
 <!-- last-synced: 2026-02-25 -->
 
-Confirmed defects, operational limitations, and open research uncertainty. dice-anchors is an exploration-quality demo, not a production-hardened memory system. Items are separated into confirmed limitations (known defects with mitigations), credibility risks (risk register from adversarial review), and open research uncertainty (not defects -- areas requiring further investigation).
+Confirmed defects, operational limitations, and open research uncertainty. dice-anchors is an exploration-quality demo, not a production-hardened memory system. Three sections: confirmed limitations (known defects with mitigations), credibility risks (risk register from adversarial review), and open research uncertainty (not defects -- areas needing further investigation).
 
 ---
 
@@ -32,7 +32,7 @@ Confirmed defects, operational limitations, and open research uncertainty. dice-
 | Field      | Value                                                                                                                                               |
 |------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
 | Severity   | Low                                                                                                                                                 |
-| Impact     | `CharHeuristicTokenCounter` uses fixed chars-per-token ratio. Estimated counts can diverge from model reality. Strict budget guarantees are weaker. |
+| Impact     | `CharHeuristicTokenCounter` uses fixed chars-per-token ratio. Estimated counts can diverge from model reality. Strict budget enforcement is weaker. |
 | Mitigation | Acceptable for rough simulation and demo use.                                                                                                       |
 | Follow-up  | Use model-specific tokenizer or provider token-count endpoints for strict budget paths; record estimate-vs-actual deltas.                           |
 
@@ -96,14 +96,14 @@ Confirmed defects, operational limitations, and open research uncertainty. dice-
 |------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Severity   | Low                                                                                                                                                                      |
 | Impact     | `AnchorMutationStrategy` SPI has only one implementation (`HitlOnlyMutationStrategy`), which blocks all non-UI mutations. `LLM_TOOL` and `CONFLICT_RESOLVER` mutation sources are denied, meaning `RevisionAwareConflictResolver` cannot auto-replace anchors via the conflict pipeline. |
-| Mitigation | By design for the current demo stage. UI-sourced revisions work correctly. The SPI is extensible for future strategies.                                                  |
+| Mitigation | By design for the current demo stage. UI-sourced revisions work correctly. The SPI supports additional strategies when needed.                                            |
 | Follow-up  | Implement `LlmToolMutationStrategy` (allow LLM-initiated revisions with authority guards) and `ConflictResolverMutationStrategy` (allow auto-replacement for low-authority anchors). |
 
 ---
 
 ## 2. Credibility Risks
 
-Risk register from adversarial harness audit. Status updates reflect implementation changes where applicable.
+Risk register from adversarial harness audit. Status updates reflect implementation changes.
 
 ### Blocking Risks
 
@@ -139,7 +139,7 @@ Risk register from adversarial harness audit. Status updates reflect implementat
 
 ## 3. Open Research Uncertainty
 
-These are not defects. They are areas where further investigation is required before strong claims can be made.
+These are not defects. They need further investigation before strong claims hold up.
 
 ### Calibration and Policy Tuning
 
@@ -151,7 +151,7 @@ Current scenarios emphasize direct contradiction and reframing. Coordinated mult
 
 ### Collaborative Mutation Semantics
 
-The revision pipeline (`RevisionAwareConflictResolver`, `AnchorMutationStrategy`, supersession) is implemented but the underlying semantics are still under active research. Open questions: Should revision classification use a two-axis model (intent × impact) per Wikipedia ORES rather than a flat enum? How should cascade invalidation propagate through dependent anchors (JTMS label propagation vs semantic re-evaluation)? What is the correct materiality threshold for authority-gated revision (authority alone vs authority × impact radius)? See [research-directions.md](research-directions.md) and the [collaborative-anchor-mutation roadmap](../openspec/roadmaps/collaborative-anchor-mutation-roadmap.md).
+The revision pipeline (`RevisionAwareConflictResolver`, `AnchorMutationStrategy`, supersession) works but the underlying semantics are under active research. Open questions: Should revision classification use a two-axis model (intent × impact) per Wikipedia ORES rather than a flat enum? How should cascade invalidation propagate through dependent anchors (JTMS label propagation vs semantic re-evaluation)? What materiality threshold makes sense for authority-gated revision (authority alone vs authority x impact radius)? See [research-directions.md](research-directions.md) and the [collaborative-anchor-mutation roadmap](../openspec/roadmaps/collaborative-anchor-mutation-roadmap.md).
 
 ### Temporal Validity and Authority Interaction
 

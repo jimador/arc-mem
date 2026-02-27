@@ -1,6 +1,6 @@
 # Promotion, Revision, and Supersession
 
-This document covers the three key anchor mutation workflows: promotion (proposition → anchor), revision (anchor text update), and supersession (anchor replacement with lineage tracking).
+Three anchor mutation workflows: promotion (proposition → anchor), revision (anchor text update), and supersession (anchor replacement with lineage tracking).
 
 ## Promotion Pipeline
 
@@ -49,7 +49,7 @@ After each run, the promoter logs counts at each stage: `total → post-confiden
 
 ## Revision Pipeline
 
-Revision is the controlled update of an existing anchor's text when new information refines (but does not contradict) it. This is distinct from contradiction, where new information asserts the opposite.
+Revision updates an anchor's text when new information refines (but does not contradict) it. Distinct from contradiction, where new information asserts the opposite.
 
 ### Conflict Type Classification
 
@@ -125,7 +125,7 @@ This means: with the default strategy, the `RevisionAwareConflictResolver` will 
 
 ## Supersession
 
-Supersession records the lineage when one anchor replaces another. It creates a `SUPERSEDES` relationship in Neo4j linking successor to predecessor.
+Supersession records lineage when one anchor replaces another — a `SUPERSEDES` relationship in Neo4j linking successor to predecessor.
 
 ### AnchorEngine.supersede()
 

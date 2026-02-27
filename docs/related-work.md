@@ -3,7 +3,7 @@
 <!-- sync: openspec/specs/dice-integration-review-docs -->
 <!-- last-synced: 2026-02-25 -->
 
-Positioning of Anchors against relevant prior systems and research on LLM memory, grounding, and robustness.
+How Anchors relate to prior work on LLM memory, grounding, and robustness.
 
 ---
 
@@ -11,9 +11,9 @@ Positioning of Anchors against relevant prior systems and research on LLM memory
 
 Anchors are a **bounded working-memory governance layer** for multi-turn LLM conversations. They maintain a capped pool of ranked, authority-tiered propositions injected into system context, with explicit conflict resolution, trust-gated promotion, and budget enforcement.
 
-Anchors are **not** a full memory management system. They do not replace long-term memory stores, retrieval pipelines, or graph-based knowledge systems. They are a control layer designed to preserve hard invariants under adversarial pressure, and they can coexist with paging, graph memory, and retrieval systems as complementary infrastructure.
+Anchors are **not** a full memory management system. They do not replace long-term memory stores, retrieval pipelines, or graph-based knowledge systems. They are a control layer designed to preserve invariants under adversarial pressure, and they coexist with paging, graph memory, and retrieval systems as complementary infrastructure.
 
-The value proposition is **policy-controlled attention shaping**: ensuring that critical facts remain in active model context when conversation length, adversarial pressure, or context competition would otherwise cause them to be lost or contradicted.
+The goal is **policy-controlled attention shaping** — keeping critical facts in active model context when conversation length, adversarial pressure, or context competition would otherwise cause them to be lost or contradicted.
 
 ---
 
@@ -38,9 +38,9 @@ The value proposition is **policy-controlled attention shaping**: ensuring that 
 
 ### MemGPT / Letta
 
-OS-style memory paging with explicit context hierarchy and memory blocks [1][2]. Letta operationalizes memory as structured blocks with archival and recall tiers.
+OS-style memory paging with explicit context hierarchy and memory blocks [1][2]. Letta structures memory as blocks with archival and recall tiers.
 
-**Position relative to Anchors**: Overlapping in explicit-memory intent. Anchors differ by centering trust/authority governance over proposition updates rather than paging semantics. The two approaches are composable -- Anchors could serve as a policy layer within a MemGPT-style memory stack.
+**Position relative to Anchors**: Overlapping goals around explicit memory management. Anchors center trust/authority control over proposition updates rather than paging semantics. The two approaches are composable — Anchors could serve as a policy layer within a MemGPT-style memory stack.
 
 ### Zep / Graphiti
 
@@ -58,35 +58,35 @@ Sharded retrieval for long-horizon tasks, distributing memory across retrievable
 
 Hippocampal-inspired retrieval augmented generation using neurobiological memory principles [6].
 
-**Position relative to Anchors**: Different abstraction level. HippoRAG focuses on retrieval architecture; Anchors focus on post-retrieval governance of what stays in active context.
+**Position relative to Anchors**: Different abstraction level. HippoRAG focuses on retrieval architecture; Anchors focus on post-retrieval control of what stays in active context.
 
 ### ACON (Agentic Constraint Networks)
 
 Priority-based constraint management for multi-agent systems with conflict handling.
 
-**Position relative to Anchors**: Closest in intent. Anchors add trust-gated promotion and authority-tiered conflict resolution, which ACON handles through simpler priority mechanisms. Anchors also include adversarial simulation for validation.
+**Position relative to Anchors**: Closest in intent. ACON uses priority-based conflict handling; Anchors use trust-gated promotion and authority-tiered conflict resolution instead. Anchors also include an adversarial simulation harness, which ACON doesn't currently ship.
 
 ### Standard RAG
 
 Retrieval-augmented generation combining parametric and external memory [7].
 
-**Position relative to Anchors**: RAG retrieves relevant context per query. Anchors maintain persistent governance over what facts remain in context across turns. RAG is an evidence source; Anchors are a retention policy.
+**Position relative to Anchors**: RAG retrieves relevant context per query. Anchors maintain persistent control over what facts remain in context across turns. RAG is an evidence source; Anchors are a retention policy.
 
 ### Core Memory / Pinned Summary Patterns
 
 Pinned memory blocks used in production agents (e.g., LlamaIndex summary memory buffer) [2][8].
 
-**Position relative to Anchors**: Anchors are a stricter, policy-governed variant with explicit conflict/authority semantics rather than simple pinning.
+**Position relative to Anchors**: Anchors add conflict detection, authority tiers, and rank-based eviction on top of the pinning concept. Pinned summaries don't currently address what happens when pinned facts conflict with each other or with new information.
 
 ---
 
 ## 4. Gaps Against Existing Solutions
 
-Identified gaps from external technical assessment, with evidence from the current implementation.
+Gaps identified from external technical assessment, with evidence from the current implementation.
 
 ### Gap A: Memory tiering remains shallow
 
-Anchors include rank-based tiering (`HOT/WARM/COLD`) and decay/reinforcement, but lack explicit transfer policies between working memory and longer-term stores. MemGPT/Letta provides stronger movement semantics across tiers [2]. DICE's proposition-to-graph promotion direction is compatible but not yet implemented as a tier transfer mechanism.
+Anchors include rank-based tiering (`HOT/WARM/COLD`) and decay/reinforcement, but lack explicit transfer policies between working memory and longer-term stores. MemGPT/Letta has more developed movement semantics across tiers [2]. DICE's proposition-to-graph promotion direction is compatible but not yet implemented as a tier transfer mechanism.
 
 ### Gap B: No graph-native retrieval/summarization loop
 
