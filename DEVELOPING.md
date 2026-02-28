@@ -4,6 +4,7 @@
 
 - **[Embabel API Inventory](docs/dev/embabel-api-inventory.md)** — Reference guide to Embabel Agent APIs used in dice-anchors, available-but-unused capabilities, and recommended patterns for chat integration.
 - **[Embabel Goal-Directed Orchestration Evaluation](docs/dev/embabel-goal-modeling.md)** — Analysis of whether goal-directed action chaining would improve anchor lifecycle management. Covers trust pipeline mapping, side-effect handling options, chatbot mode assessment, and recommendation (DEFER).
+- **[DICE Integration Reference](docs/dev/dice-integration.md)** — Canonical reference for how dice-anchors integrates with DICE 0.1.0-SNAPSHOT. Covers both extraction paths (chat and simulation), component API usage, fragile coupling points, API stability assessment, and monitoring strategy.
 
 ## Getting Started
 
