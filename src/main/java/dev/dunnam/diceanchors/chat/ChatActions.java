@@ -22,10 +22,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -125,22 +125,19 @@ public record ChatActions(
         logger.debug("Responding with {} active anchors and {} working propositions for context {} (tiered={})",
                 anchors.size(), propositionRef.getPropositions().size(), contextId, tiered);
 
-        var tools = new AnchorTools(anchorEngine, anchorRepository, contextId);
         var retrievalConfig = properties.retrieval();
         var retrievalMode = retrievalConfig != null ? retrievalConfig.mode() : RetrievalMode.BULK;
+        var activeConfig = (retrievalMode == RetrievalMode.HYBRID || retrievalMode == RetrievalMode.TOOL)
+                ? retrievalConfig : null;
 
-        var toolObjects = new ArrayList<Object>();
-        toolObjects.add(tools);
-
-        if (retrievalMode == RetrievalMode.HYBRID || retrievalMode == RetrievalMode.TOOL) {
-            var retrievalTools = new AnchorRetrievalTools(anchorEngine, relevanceScorer, contextId, retrievalConfig);
-            toolObjects.add(retrievalTools);
-        }
+        var queryTools = new AnchorQueryTools(anchorEngine, anchorRepository, relevanceScorer,
+                contextId, activeConfig, new AtomicInteger(0));
+        var mutationTools = new AnchorMutationTools(anchorEngine, anchorRepository, contextId);
 
         var assistantMessage = context.ai()
                 .withDefaultLlm()
                 .withId("dice_anchors_response")
-                .withToolObjects(toolObjects.toArray())
+                .withToolObjects(queryTools, mutationTools)
                 .rendering("dice-anchors")
                 .respondWithSystemPrompt(
                         conversation.last(window),

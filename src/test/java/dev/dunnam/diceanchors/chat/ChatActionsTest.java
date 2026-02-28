@@ -90,7 +90,7 @@ class ChatActionsTest {
         when(actionContext.ai()).thenReturn(ai);
         when(ai.withDefaultLlm()).thenReturn(promptRunner);
         when(promptRunner.withId("dice_anchors_response")).thenReturn(promptRunner);
-        when(promptRunner.withToolObjects(org.mockito.ArgumentMatchers.<Object[]>any())).thenReturn(promptRunner);
+        when(promptRunner.withToolObjects(org.mockito.ArgumentMatchers.<Object>any(), org.mockito.ArgumentMatchers.<Object>any())).thenReturn(promptRunner);
         when(promptRunner.rendering("dice-anchors")).thenReturn(rendering);
         when(triggeredConversation.last(properties.memory().windowSize())).thenReturn(triggeredConversation);
         when(rendering.respondWithSystemPrompt(eq(triggeredConversation), anyMap())).thenReturn(assistantMessage);
@@ -119,7 +119,7 @@ class ChatActionsTest {
         when(actionContext.ai()).thenReturn(ai);
         when(ai.withDefaultLlm()).thenReturn(promptRunner);
         when(promptRunner.withId("dice_anchors_response")).thenReturn(promptRunner);
-        when(promptRunner.withToolObjects(org.mockito.ArgumentMatchers.<Object[]>any())).thenReturn(promptRunner);
+        when(promptRunner.withToolObjects(org.mockito.ArgumentMatchers.<Object>any(), org.mockito.ArgumentMatchers.<Object>any())).thenReturn(promptRunner);
         when(promptRunner.rendering("dice-anchors")).thenReturn(rendering);
         when(triggeredConversation.last(properties.memory().windowSize())).thenReturn(triggeredConversation);
         when(rendering.respondWithSystemPrompt(eq(triggeredConversation), anyMap())).thenReturn(assistantMessage);
@@ -164,7 +164,7 @@ class ChatActionsTest {
         when(actionContext.ai()).thenReturn(ai);
         when(ai.withDefaultLlm()).thenReturn(promptRunner);
         when(promptRunner.withId("dice_anchors_response")).thenReturn(promptRunner);
-        when(promptRunner.withToolObjects(org.mockito.ArgumentMatchers.<Object[]>any())).thenReturn(promptRunner);
+        when(promptRunner.withToolObjects(org.mockito.ArgumentMatchers.<Object>any(), org.mockito.ArgumentMatchers.<Object>any())).thenReturn(promptRunner);
         when(promptRunner.rendering("dice-anchors")).thenReturn(rendering);
         when(triggeredConversation.last(properties.memory().windowSize())).thenReturn(triggeredConversation);
 
