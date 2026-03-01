@@ -1,13 +1,19 @@
-# Developer Documentation
+# Docs
 
-- [architecture.md](architecture.md) — System topology, modules, data flow, and boundaries
-- [implementation-notes.md](implementation-notes.md) — Important implementation details and caveats
-- [known-issues.md](known-issues.md) — Confirmed defects and current mitigations
-- [evaluation.md](evaluation.md) — Evaluation protocol and interpretation guidance
-- [related-work.md](related-work.md) — Positioning against relevant prior systems
+Technical documentation for the demo implementation. The focus is architecture, behavior, tradeoffs, and operational caveats.
 
-## Developer Guides
+## Core docs
 
-- [ui-views.md](ui-views.md) — All 4 Vaadin views: layout, state management, notable features
-- [promotion-revision-supersession.md](promotion-revision-supersession.md) — Promotion pipeline, revision workflow, supersession lineage
-- [research-directions.md](research-directions.md) — Ongoing research, AGM framework direction, future work
+- [architecture.md](architecture.md): runtime topology, core models, and critical invariants
+- [implementation-notes.md](implementation-notes.md): decisions, caveats, and failure-mode notes
+- [known-issues.md](known-issues.md): current issues + what blocks stronger claims
+- [evaluation.md](evaluation.md): evaluation protocol, metrics, and interpretation rules
+- [promotion-revision-supersession.md](promotion-revision-supersession.md): mutation semantics and lineage handling
+- [attention-tracker-architecture.md](attention-tracker-architecture.md): attention signals and windowing mechanics
+- [ui-views.md](ui-views.md): route-level UI behavior and state models
+- [related-work.md](related-work.md): where anchors fit relative to adjacent approaches
+- [research-directions.md](research-directions.md): active research backlog and priority order
+
+## Deep dev references
+
+`docs/dev/` contains deeper integration docs (DICE + Embabel internals).

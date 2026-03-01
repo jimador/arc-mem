@@ -3,288 +3,167 @@
 
 # Evaluation Protocol
 
-## 1. Evaluation Framework
+Protocol for evaluating whether anchors improve long-horizon consistency under pressure.
 
-### Conditions
+## 1. Conditions
 
-| Condition        | Status      | Purpose                                                            |
-|------------------|-------------|--------------------------------------------------------------------|
-| `FULL_ANCHORS`   | Implemented | Intervention: trust/authority-governed anchors                     |
-| `NO_ANCHORS`     | Implemented | Baseline: no anchor injection                                      |
-| `FLAT_AUTHORITY` | Implemented | Ablation: anchors without authority hierarchy                      |
-| `NO_TRUST`       | **Missing** | Ablation: anchors without trust scoring (required for final claim) |
+| Condition | Status | Purpose |
+|---|---|---|
+| `FULL_ANCHORS` | implemented | full trust + authority stack |
+| `NO_ANCHORS` | implemented | baseline without anchor injection |
+| `FLAT_AUTHORITY` | implemented | ablation without hierarchy |
+| `NO_TRUST` | missing | ablation isolating trust contribution |
+
+Strong trust-causality claims are out of scope until `NO_TRUST` exists.
 
-Any claim made before `NO_TRUST` exists is provisional.
+## 2. Scenario packs
 
-### Scenario Packs
+Evidence is split into two buckets:
+- deterministic scripted pack (claim-facing)
+- stochastic/adaptive pack (stress-facing)
 
-Evidence is separated into two packs. Do not mix packs when deciding core claim validity.
+Rule: do not mix them for primary claim conclusions.
 
-**Deterministic claim pack** (primary evidence): `adversarial-contradictory`, `adversarial-displacement`, `compaction-stress`, `dormancy-revival`, `authority-inversion-chain`, `conflicting-canon-crisis`, `budget-starvation-interference`, `evidence-laundering-poisoning`.
+## 3. Reproducibility requirements
+
+For deterministic claim runs:
+1. scripted turns only (no generated fallback)
+2. pinned model IDs and temperatures
+3. pinned execution mode
+4. persisted run manifest (scenario hash + prompt hashes + effective config)
 
-**Stochastic stress pack** (secondary evidence): adaptive/generated scenarios such as `adaptive-tavern-fire`, `gen-easy-dungeon`, `gen-adversarial-dungeon`.
+Recommended repetitions per `condition x scenario` cell:
+- minimum: 10
+- preferred: 20
 
-### Reproducibility Requirements
-
-Deterministic claim pack:
-1. Fully scripted turns only; disable unscripted fallback generation.
-2. Pin model IDs and temperatures.
-3. Pin execution mode (`parallelPostResponse`) across all cells.
-4. Persist run manifest including scenario hash and prompt template hashes.
-
-Per cell (`condition x scenario`): minimum 10 repetitions, preferred 20.
-
-**Stability gate**: Run at least 2 independent batches. Direction of effect for `factSurvivalRate` must agree across batches for at least 75% of deterministic scenarios. If direction flips, mark result as inconclusive.
-
-### Anchor State Diffing
-
-After each turn, the executor diffs anchor state against the previous turn to detect lifecycle events:
-
-| Event               | Condition                                                             |
-|---------------------|-----------------------------------------------------------------------|
-| `CREATED`           | Anchor present in current state but not previous                      |
-| `REINFORCED`        | Anchor exists in both states and rank increased                       |
-| `DECAYED`           | Anchor exists in both states and rank decreased                       |
-| `AUTHORITY_CHANGED` | Anchor exists in both states but authority differs                    |
-| `EVICTED`           | Anchor present in previous state but not current (budget enforcement) |
-| `ARCHIVED`          | Anchor present in previous state but not current (decay/archival)     |
-
-Anchor timeline UI and run records consume these events.
-
-### SimulationRunRecord Contents
-
-Each `SimulationRunRecord` captures:
-- **Run metadata**: `runId`, `scenarioId`, start/end timestamps
-- **Turn snapshots**: player prompt, DM response, verdicts, anchor state per turn
-- **Final anchor state**: complete anchor pool at run end
-- **Assertion results**: pass/fail for each declared assertion
-- **ScoringResult**: aggregate metrics (fact survival rate, contradiction counts, drift absorption rate, mean turns to first drift, anchor attribution count, strategy effectiveness, resilience rate)
-
-## 2. Drift Taxonomy
-
-Five categories of conversational drift, each with a measurable definition:
-
-| Category                 | Definition                                                            | Metric                                                                                                                                  |
-|--------------------------|-----------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
-| **Constraint Violation** | DM denies or reverses a must-stay-true fact                           | `constraint_drift_rate = contradicted_verdicts / evaluated_fact_checks` (severity split: MINOR vs MAJOR)                                |
-| **Identity**             | Entity identity, role, or relationship mutates incorrectly            | `identity_drift_rate = contradicted_identity_checks / evaluated_identity_checks` (requires identity-tagged groundTruth IDs)             |
-| **Objective**            | Active objective forgotten, replaced, or reframed without instruction | `objective_drift_rate = (contradictions + probe_omissions) / objective_probe_checks` (uses objective-tagged facts + RECALL_PROBE turns) |
-| **Source-of-Truth**      | Lower-authority claims displace higher-authority facts                | `source_truth_drift_count`, `source_truth_drift_rate` (track authority transitions and conflict outcomes)                               |
-| **Silent**               | Behavior diverges without explicit contradiction                      | `silent_drift_rate = silent_drift_turns / evaluated_turns` (persistent NOT_MENTIONED on critical facts + semantic divergence)           |
-
-**Current gap**: Silent and category-level drift is only partially instrumented. Full coverage needs additional labeling work.
-
-## 3. Metrics
-
-### Primary Metrics
-
-Used for claim decisions. Conclusions must come from raw metrics with CIs/effect sizes.
-
-| Metric                    | Formula                                                                    | Description                                                           |
-|---------------------------|----------------------------------------------------------------------------|-----------------------------------------------------------------------|
-| Fact Survival Rate        | `(totalFacts - contradictedFacts) / totalFacts * 100`                      | % of ground truth facts never contradicted across all evaluated turns |
-| Drift Absorption Rate     | `(evaluatedTurns - turnsWithContradictions) / evaluatedTurns * 100`        | % of evaluated turns with zero contradictions                         |
-| Contradiction Count       | Sum of all CONTRADICTED verdicts                                           | A single fact contradicted in multiple turns counts multiple times    |
-| Major Contradiction Count | Sum of CONTRADICTED verdicts with MAJOR severity                           | Direct, unambiguous contradictions only                               |
-| Mean Turns to First Drift | Average turn number at which each contradicted fact was first contradicted | NaN if no contradictions; higher = better resistance                  |
-
-### Secondary Metrics
-
-Diagnostics only; do not use for primary conclusions.
-
-| Metric                      | Description                                                                                                      |
-|-----------------------------|------------------------------------------------------------------------------------------------------------------|
-| Anchor Attribution Count    | Distinct ground truth fact IDs with at least one CONFIRMED verdict                                               |
-| Strategy Effectiveness      | Per-strategy contradiction rate: `contradictionTurns / totalTurns` per AttackStrategy                            |
-| Resilience Rate             | `1.0 - (turnsWithAnyContradiction / totalTurns)` — simpler than drift absorption (all turns, not just evaluated) |
-| Per-fact survival tables    | Granular per-fact breakdown                                                                                      |
-| Contradiction detail tables | Per-turn contradiction specifics                                                                                 |
-| Composite resilience score  | Weighted composite from ResilienceScoreCalculator — secondary to raw metrics                                     |
-
-## 4. Drift Evaluation
-
-### Evaluation Flow
-
-After each evaluated turn, `SimulationTurnExecutor.evaluateDrift()` sends the DM response and ground truth facts to a separate LLM judge call. Prompt loaded from `src/main/resources/prompts/drift-evaluation-system.jinja`.
-
-The evaluator gets: a system prompt with guidelines, examples, severity criteria, and JSON schema; a user prompt with ground truth facts (with IDs), the player's message, and the DM response text.
-
-### Verdicts
-
-| Verdict         | Meaning                                                       |
-|-----------------|---------------------------------------------------------------|
-| `CONTRADICTED`  | DM explicitly or implicitly contradicts the ground truth fact |
-| `CONFIRMED`     | DM affirms or is consistent with the ground truth fact        |
-| `NOT_MENTIONED` | Ground truth fact is not addressed in the response            |
-
-### Severity
-
-| Severity | Meaning                                                  |
-|----------|----------------------------------------------------------|
-| `NONE`   | No contradiction (used with CONFIRMED and NOT_MENTIONED) |
-| `MINOR`  | Ambiguous or partial contradiction                       |
-| `MAJOR`  | DM asserts the opposite of the ground truth              |
-
-### Epistemic Hedging Rule
-
-Epistemic hedging is classified as `NOT_MENTIONED`, **not** `CONTRADICTED`. A DM declining to affirm a fact without asserting the opposite (e.g., "the guardian's properties aren't established yet") is showing caution, not contradiction.
-
-The player message is included in the evaluator prompt so the evaluator can distinguish defensive hedging (DM resists a false premise) from genuine uncertainty (DM has forgotten a fact).
-
-### Three DM Response Categories
-
-1. **Contradiction** — DM asserts the opposite of a ground truth fact. Scored CONTRADICTED with MAJOR or MINOR severity.
-2. **World progression** — DM describes narrative events that change state (e.g., "the bridge collapsed"). Not a contradiction.
-3. **Epistemic hedging** — DM declines to affirm without asserting the opposite. Classified NOT_MENTIONED.
-
-### Evaluated Turn Types
-
-| Type           | Evaluated | Purpose                                     |
-|----------------|-----------|---------------------------------------------|
-| `ATTACK`       | Yes       | Direct adversarial contradiction attempt    |
-| `DISPLACEMENT` | Yes       | Context flood to push facts out             |
-| `DRIFT`        | Yes       | Gradual reframing of factual interpretation |
-| `RECALL_PROBE` | Yes       | Direct question testing fact recall         |
-| `WARM_UP`      | No        | Establish context before adversarial phase  |
-| `ESTABLISH`    | No        | Normal narrative turn                       |
-
-## 5. Scenario Coverage
-
-### Corpus Statistics
-
-| Metric                | Value |
-|-----------------------|-------|
-| Scenarios             | 24    |
-| Scripted turns        | 357   |
-| Evaluated turns       | 180   |
-| Strategy catalog size | 20    |
-| Strategies used       | 17    |
-
-### Uncovered Strategies
-
-`GRADUAL_EROSION`, `IMPLICATION_REVERSAL`, `CAUSAL_CHAIN_EROSION`
-
-Multi-turn erosion chains remain underrepresented.
-
-### Attack Strategy Catalog (Covered)
-
-| Strategy              | Technique                                      |
-|-----------------------|------------------------------------------------|
-| `SUBTLE_REFRAME`      | Reinterpret facts without direct contradiction |
-| `CONFIDENT_ASSERTION` | State false information as established fact    |
-| `AUTHORITY_HIJACK`    | Cite false authority sources                   |
-| `EMOTIONAL_OVERRIDE`  | Appeal to narrative preferences                |
-| `FALSE_MEMORY_PLANT`  | Claim prior contradictory statements occurred  |
-| `TIME_SKIP_RECALL`    | Confuse temporal sequence                      |
-| `DETAIL_FLOOD`        | Overwhelm with irrelevant detail               |
-
-Additional strategies exist in `src/main/resources/simulations/strategy-catalog.yml`.
-
-## 6. Integrity Checks
-
-All must pass before publishing final claims:
-
-1. `NO_TRUST` ablation exists and is included.
-2. No parse-failure fail-open in conflict/dedup/eval paths.
-3. Deterministic claim pack contains no generated attack turns.
-4. Equal repetition counts per matrix cell.
-5. CIs reported for all primary metrics.
-6. Direction stability gate passes across independent batches.
-7. At least one failure excerpt per condition is included.
-
-### Artifact Logging Contract
-
-Each run MUST retain:
-- Run metadata: `runId`, `scenarioId`, start/end timestamps
-- Effective runtime config: condition, model IDs, temperatures, execution mode, token budget mode, trust profile
-- Turn artifacts: player prompt, DM response, injected anchors/context trace
-- Evaluator artifacts: raw judge output + parsed verdicts
-- Anchor lifecycle events: create/reinforce/decay/archive/authority changes
-- Manifest hashes: scenario, system prompt template, drift prompt template
-
-## 7. Current Evidence Status
-
-**Status**: Preliminary. Not sufficient for a final claim.
-
-### Available Results
-
-| Scenario                    | Reps | FULL_ANCHORS Survival | NO_ANCHORS Survival | Winner       |
-|-----------------------------|-----:|----------------------:|--------------------:|--------------|
-| `adversarial-contradictory` |    2 |               100.00% |              90.00% | FULL_ANCHORS |
-| `gen-adversarial-dungeon`   |    3 |                37.50% |              54.17% | NO_ANCHORS   |
-| `gen-adversarial-dungeon`   |    5 |                47.50% |               2.50% | FULL_ANCHORS |
-| `gen-easy-dungeon`          |  3-5 |          50.00-66.67% |        50.00-75.00% | Mixed        |
-| `adaptive-tavern-fire`      |  2-5 |           4.00-70.00% |       52.00-100.00% | NO_ANCHORS   |
-
-### What Can Be Concluded
-
-- Current evidence is useful for debugging failure modes and finding harness bugs.
-- Same-scenario winner sign flips are already present (`gen-adversarial-dungeon`, `gen-easy-dungeon`).
-- Adaptive/generated scenarios materially change results between snapshots.
-
-### What Cannot Be Concluded
-
-- Current evidence is **not sufficient to claim material drift reduction**.
-- Large effect sizes are frequently reported at low `n` and unstable direction.
-- No results exist for the `NO_TRUST` condition.
-
-## 8. Known Evaluation Gaps
-
-### Missing Pieces
-
-| Gap                                                                 | Impact                                                    |
-|---------------------------------------------------------------------|-----------------------------------------------------------|
-| `NO_TRUST` ablation condition                                       | Cannot isolate trust contribution; all claims provisional |
-| Full run manifest (seed, model IDs, prompt hashes, config hash)     | Cannot verify exact reproduction                          |
-| Category-level drift outputs for all 5 drift classes                | Only constraint violation drift is fully instrumented     |
-| Fail-safe handling for parser failures in conflict/dedup/eval paths | Parse failures may silently affect results                |
-
-### Instability Findings
-
-- **Direction instability**: Same scenario ID can flip winner between report snapshots.
-- **Stochastic sensitivity**: Adaptive/generated scenarios are poor primary evidence for causal claims.
-- **Small-sample over-interpretation**: Large effect sizes frequently reported at low `n` with unstable direction.
-
-### Metrics/Reporting Gaps
-
-- Silent drift detection needs additional labeling work.
-- Identity and objective drift categories require tagged groundTruth IDs (not yet standard in scenarios).
-- Source-of-truth drift requires authority transition tracking in evaluator output.
-
-## 9. Interpretation Guidance
-
-### Decision Thresholds
-
-- Primary metric for claim decisions: `factSurvivalRate`.
-- Minimum repetitions for any claim: 10 per cell.
-- Stability gate: direction agreement across 2+ batches for 75%+ of deterministic scenarios.
-- CIs must be reported for all primary metrics.
-
-### When to Trust Results
-
-Trust results when:
-- They come from the deterministic claim pack with fully scripted turns.
-- Repetition count is 10+ per cell.
-- Direction stability gate passes.
-- `NO_TRUST` ablation is included.
-
-Treat with caution when:
-- Results come from stochastic/adaptive scenarios (stress-test evidence only).
-- Repetition count is below 10.
-- Winner direction flips between batches.
-- Effect sizes are large but sample is small.
-
-### Caveats
-
-- Composite resilience score is a secondary diagnostic. Never use it as sole evidence for claims.
-- Results depend on LLM model, temperature, and prompt construction. Model changes invalidate prior runs.
-- Epistemic hedging classification materially affects drift scores under adversarial stress-test conditions.
-- All current results are provisional until `NO_TRUST` is implemented and the deterministic pack runs at scale.
-
-### Required Before Final Claim
-
-1. Implement and run `NO_TRUST` condition.
-2. Execute deterministic claim pack at 10-20 reps per cell.
-3. Run 2 independent batches and pass direction-stability gate.
-4. Publish raw metric tables with CIs and per-condition failure excerpts.
-5. Keep stochastic outcomes as stress-test evidence, not primary claim evidence.
+## 4. Drift evaluation model
+
+Per evaluated turn, a judge model sees:
+- ground-truth facts (with IDs)
+- player prompt
+- DM response
+
+Verdicts:
+- `CONTRADICTED`
+- `CONFIRMED`
+- `NOT_MENTIONED`
+
+Severity:
+- `NONE`
+- `MINOR`
+- `MAJOR`
+
+Important rule:
+- epistemic hedging counts as `NOT_MENTIONED`, not contradiction.
+
+```mermaid
+flowchart LR
+    TS["TurnSnapshot"] --> JIN["Judge Input Builder"]
+    JIN --> JCALL["Judge Model Call"]
+    JCALL --> PARSE["Schema Parse + Validation"]
+    PARSE --> VER["Verdicts per Fact"]
+    VER --> AGG["Metric Aggregation"]
+    AGG --> RUN["SimulationRunRecord"]
+```
+
+### Judge output shape (simplified)
+
+```json
+{
+  "factId": "f-12",
+  "verdict": "CONTRADICTED",
+  "severity": "MAJOR",
+  "explanation": "DM explicitly reversed the fact"
+}
+```
+
+## 5. Metrics
+
+### Primary (claim-facing)
+
+```text
+factSurvivalRate        = (totalFacts - contradictedFacts) / totalFacts * 100
+driftAbsorptionRate     = (evaluatedTurns - turnsWithContradictions) / evaluatedTurns * 100
+meanTurnsToFirstDrift   = average(firstContradictionTurnByFact)
+```
+
+Also tracked as primary:
+- `contradictionCount`
+- `majorContradictionCount`
+
+### Secondary (diagnostic)
+
+- anchor attribution count
+- strategy effectiveness table
+- per-fact survival table
+- contradiction detail table
+- composite resilience score
+
+Composite score is secondary; raw metrics drive decisions.
+
+## 6. Turn types evaluated
+
+| Turn type | Evaluated |
+|---|---|
+| `ATTACK` | yes |
+| `DISPLACEMENT` | yes |
+| `DRIFT` | yes |
+| `RECALL_PROBE` | yes |
+| `WARM_UP` | no |
+| `ESTABLISH` | no |
+
+## 7. Current evidence posture
+
+Status: preliminary.
+
+Useful now:
+- finding failure modes
+- catching harness/instrumentation bugs
+- spotting unstable scenario behavior
+
+Not enough yet for final claim:
+- some winner-direction flips still happen
+- stochastic/adaptive runs are noisy
+- `NO_TRUST` still missing
+
+## 8. Integrity checks before final claim
+
+1. `NO_TRUST` exists and is included
+2. deterministic pack has no generated attack turns
+3. equal reps per matrix cell
+4. confidence intervals reported for all primary metrics
+5. direction stability passes across independent batches
+6. at least one failure excerpt per condition is retained
+
+```mermaid
+flowchart TD
+    A["Run Matrix Complete"] --> B{"NO_TRUST included?"}
+    B -- no --> X["Block claim"]
+    B -- yes --> C{"Deterministic pack clean?"}
+    C -- no --> X
+    C -- yes --> D{"Equal reps + CIs?"}
+    D -- no --> X
+    D -- yes --> E{"Direction stability passes?"}
+    E -- no --> X
+    E -- yes --> F["Claim-ready evidence set"]
+```
+
+## 9. Interpretation guidance
+
+Trust results more when:
+- deterministic scripted scenarios
+- sample size >= 10 per cell
+- direction agrees across independent batches
+- manifest and prompt/config hashes are present
+
+Trust results less when:
+- adaptive/generated runs only
+- low sample size
+- winner direction flips across snapshots
+
+## 10. Minimum bar for stronger claim language
+
+1. implement + run `NO_TRUST`
+2. run deterministic pack at scale (10-20 reps per cell)
+3. pass stability gate across at least two independent batches
+4. publish primary metric tables with CIs and failure excerpts

@@ -1,131 +1,109 @@
 # Research Directions
 
-Ongoing and future research areas for the dice-anchors project.
+Active research backlog for the demo.
 
-## Collaborative Anchor Mutation
+## A. Collaborative anchor mutation (primary track)
 
-The [collaborative-anchor-mutation roadmap](../../openspec/roadmaps/collaborative-anchor-mutation-roadmap.md) is the primary active research track — how to allow legitimate revisions of established anchors without compromising long-horizon consistency and hallucination control.
+Goal: support legitimate revisions without weakening contradiction resistance.
 
-### Problem Statement
+Core tension:
+- legitimate update: "the king is actually an ancient lich"
+- adversarial rewrite: "the king was never real"
 
-When a collaborator (human or AI) attempts to revise an established anchor via natural language, the anchor framework's current consistency controls can treat the revision as an adversarial contradiction. The framework correctly protects established facts in stress cases but incorrectly blocks legitimate updates. This is the core tension: how to distinguish "the king is actually an ancient lich" (legitimate world reveal) from "the king was never real" (adversarial contradiction).
+What exists already:
+- conflict typing (`REVISION` / `CONTRADICTION` / `WORLD_PROGRESSION`)
+- authority-aware revision gating
+- supersession lineage (`SUPERSEDES`)
 
-### Feature Waves
+What is still open:
+- calibration quality for revision typing
+- dependency-aware cascade semantics
+- materiality rules for high-impact revisions
 
-| Wave | Feature | Priority | Status |
-|------|---------|----------|--------|
-| 1 | Revision intent classification (`ConflictType` enum) | MUST | Implemented |
-| 1 | Prompt compliance revision carveout | MUST | Not started |
-| 2 | Dependent anchor cascade during supersession | SHOULD | Not started |
-| 2 | Anchor provenance metadata (extraction turn, speaker role) | SHOULD | Not started |
-| 3 | UI-controlled mutation (explicit sidebar editing) | MAY | Partially implemented (ChatView sidebar) |
+## B. Conceptual framework (AGM mapping)
 
-### Completed Research Tasks
+AGM belief revision is the primary theoretical anchor.
 
-| Task | Question | Key Finding |
-|------|----------|-------------|
-| R00 | What fails when a collaborator revises an anchor via chat? | The conflict resolver treats revisions as contradictions; `KEEP_EXISTING` blocks the update. Root cause: no distinction between revision intent and adversarial intent. |
-| R01 | How reliably can an LLM classify revision intent? | Two-step detection (detect conflict → classify type) with chain-of-thought reasoning. < 5% false-positive rate achievable with GPT-4.1/Claude Sonnet. Conservative default: ambiguous = CONTRADICTION. |
-| R02 | Which cascade strategy for dependent anchors? | Two-phase: temporal co-creation as fast filter (zero LLM cost) + LLM semantic dependency as precision filter. Authority-gated: hard cascade for PROVISIONAL/UNRELIABLE, soft cascade (review) for RELIABLE, CANON exempt. |
-| R03 | How should mixed-authority revisions work? | PROVISIONAL/UNRELIABLE: revision-eligible by default. RELIABLE: configurable (default off). CANON: never. Adds ~155 tokens for `[revisable]` annotation in prompt template. |
-| R04 | How do existing AI memory frameworks handle mutation? | No surveyed framework (Letta/MemGPT, Zep/Graphiti, LangMem, Mem0, A-MemGuard, MemOS) distinguishes update from contradiction. We haven't found revision-vs-contradiction classification elsewhere. Graphiti's temporal supersession is the closest structural analog. |
-| R05 | What prior art exists in non-AI domains? | 19 transferable patterns from 9 domains. Top 3: (1) Wikipedia ORES two-axis classification for intent × impact, (2) JTMS label propagation for cascade, (3) accounting materiality for authority × impact radius. |
+| AGM concept | Anchor equivalent |
+|---|---|
+| belief set | active anchor pool |
+| contraction | archive/remove |
+| revision | supersede old with new |
+| entrenchment | authority tiers |
+| minimal change | constrained dependency cascade |
 
----
+Potential implementation shape for cascade:
 
-## Current Direction: AGM Belief Revision Framework
+```text
+revise(anchor A)
+  -> find dependents D(A)
+  -> classify impact radius
+  -> hard invalidate low-authority dependents
+  -> queue high-authority dependents for review/re-eval
+```
 
-Research task R05 identified AGM belief revision theory (Alchourrón, Gärdenfors, Makinson, 1985) as the strongest theoretical foundation for anchor mutation semantics.
+## C. Evaluation work needed
 
-### AGM ↔ Anchor Mapping
+To strengthen claims:
+1. implement `NO_TRUST` ablation
+2. scale deterministic runs
+3. calibrate revision classifier with labeled data
+4. persist full run provenance (hashes/config/seed)
 
-| AGM Concept | Anchor Equivalent | Implementation |
-|-------------|-------------------|----------------|
-| Belief set | Active anchor pool | `AnchorEngine.inject(contextId)` |
-| Contraction (remove belief) | Anchor archival | `AnchorEngine.archive()` |
-| Revision (remove + add) | Supersession | `AnchorEngine.supersede()` |
-| Entrenchment ordering | Authority tiers | PROVISIONAL < UNRELIABLE < RELIABLE < CANON |
-| Minimal change principle | Cascade scope constraint | Only invalidate anchors that logically depend on the revised one |
-| Recovery postulate | Anchor revival | `AnchorEngine.revive()` (restore from archive) |
+## D. Next tracks
 
-### Cross-Domain Patterns Informing Design
+### Track D1: graph-native retrieval
 
-**TMS (Truth Maintenance Systems, Doyle 1979)** — JTMS-style label propagation is a well-established algorithm for cascade invalidation. When a parent anchor is revised, label-propagate "unsupported" status to dependents, then re-evaluate each. 40+ years of implementation history.
+- entity-centric traversal
+- subgraph extraction
+- relevance scoring that combines retrieval + anchor policy
 
-**Wikipedia ORES** — Two-axis classification (intent × impact) produces a 2×2 matrix that catches edge cases the flat `ConflictType` enum misses: good-faith-but-damaging edits, bad-faith-but-harmless edits. Worth exploring whether revision classification should decompose into independent intent and impact axes.
+### Track D2: multi-agent governance
 
-**Accounting Materiality (IAS 8)** — Materiality is a function of authority AND impact radius, not authority alone. A PROVISIONAL anchor with 10 dependents is more "material" than a RELIABLE anchor with zero dependents. Cascade priority should account for this.
+- scoped revision rights
+- conflicting updates from multiple agents
+- consensus/approval workflows for shared graph memory
 
-**MVCC (Multi-Version Concurrency Control)** — Temporal supersession chains are structurally analogous to MVCC version chains. The `SUPERSEDES` relationship in Neo4j already supports this pattern.
+### Track D3: cross-domain transfer
 
----
+Validate beyond tabletop narrative:
+- healthcare
+- legal
+- operations
+- compliance
 
-## Empirical Evaluation
+### Track D4: poisoning resistance
 
-### Ablation Framework
+- repetition/reinforcement abuse
+- authority laundering through revision chains
+- budget starvation and anchor flooding
+- extraction poisoning attacks
 
-The `BenchmarkRunner` supports multi-condition ablation experiments comparing:
-- `FULL_ANCHORS` — complete anchor framework
-- `NO_ANCHORS` — no anchor injection
-- `FLAT_AUTHORITY` — anchors without authority hierarchy
-- `NO_TRUST` — planned; anchors without trust evaluation
+```mermaid
+flowchart LR
+    A["Collaborative Mutation"] --> B["Deterministic Evaluation Completeness"]
+    B --> C["Graph-Native Retrieval"]
+    C --> D["Cross-Domain Validation"]
+    B --> E["Poisoning Hardening"]
+    C --> F["Multi-Agent Governance"]
+```
 
-`ResilienceReportBuilder` produces Markdown reports with per-condition metrics, confidence intervals, and effect sizes.
+## Priority order
 
-### Benchmarking UI
+1. mutation semantics + calibration
+2. deterministic evaluation completeness
+3. retrieval quality hardening
+4. cross-domain validation
 
-`BenchmarkView` (`/benchmark`) — configure and run experiments, with inline fact drill-down and condition comparison.
-
-### Positioning Against Related Systems
-
-| System | Key Difference from Anchors |
-|--------|----------------------------|
-| MemGPT/Letta | Fixed memory blocks; no authority hierarchy or explicit long-horizon consistency-control focus |
-| Zep/Graphiti | Temporal knowledge graphs; strongest complement (temporal model); no mandatory injection |
-| ShardMemo | Shard-based memory management; no authority governance |
-| MemOS | Operating system metaphor for memory; no adversarial testing |
-| HippoRAG | PageRank-based retrieval; no guaranteed presence |
-| ACON | Task-aware compression; no authority hierarchy |
-
-What sets anchors apart, in our survey so far: long-horizon consistency/hallucination control as a primary concern, authority-governed lifecycle management, and mandatory prompt injection. Adversarial inputs are used as stress tests for that objective. None of the surveyed systems combine all three.
-
----
-
-## Future Work
-
-### Track B: Creative Retrieval
-
-Spreading activation and graph-native retrieval for serendipitous knowledge discovery. Current retrieval is rank-sorted injection; future work explores:
-- Personalized PageRank over the proposition graph (inspired by HippoRAG)
-- Activation spreading from query entities through `HAS_MENTION` edges
-- Relevance-weighted retrieval complementing rank-sorted injection
-
-### Track C: A2A Governance
-
-Multi-agent anchor revision protocols for scenarios where multiple agents share a proposition graph:
-- Revision authority scoping (which agent can revise which anchors)
-- Conflict resolution when agents propose contradictory updates
-- Consensus mechanisms for shared knowledge graphs
-
-### Cross-Domain Generalization
-
-Validation beyond tabletop RPGs:
-- Healthcare: drug interaction invariants, patient history consistency
-- Legal: privilege preservation, precedent tracking
-- Operations: runbook invariants, incident state management
-- Compliance: regulatory constraint persistence
-
-### Graph-Native Retrieval
-
-Current architecture stores propositions in Neo4j but uses rank-sorted injection, not graph traversal. Future work:
-- Entity-centric traversal from query subjects
-- Subgraph extraction for related anchor clusters
-- Graph attention mechanisms for relevance scoring
-
-### Memory Poisoning Threat Model
-
-Systematic analysis of attack vectors targeting the anchor framework:
-- Repetition attacks exploiting reinforcement mechanics
-- Authority escalation through crafted revision chains
-- Budget starvation via low-value anchor flooding (partially addressed by `budget-starvation-interference.yml` scenario)
-- Extraction poisoning through adversarial proposition injection
+```mermaid
+gantt
+    title Research Priority Sequence
+    dateFormat  YYYY-MM-DD
+    axisFormat  %b %Y
+    section Core
+    Mutation semantics + calibration      :a1, 2026-03-01, 45d
+    Deterministic evaluation completeness :a2, after a1, 45d
+    section Expansion
+    Retrieval quality hardening           :a3, after a2, 45d
+    Cross-domain validation               :a4, after a3, 60d
+```
