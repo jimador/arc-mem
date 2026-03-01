@@ -49,7 +49,7 @@ class AnchorPromoterTest {
     void setUp() {
         var anchorConfig = new DiceAnchorsProperties.AnchorConfig(20, INITIAL_RANK, 100, 900, true, THRESHOLD, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null);
         var properties = new DiceAnchorsProperties(
-                anchorConfig, null, null, null, null, null, null, new DiceAnchorsProperties.AssemblyConfig(0), null, null
+                anchorConfig, null, null, null, null, null, null, new DiceAnchorsProperties.AssemblyConfig(0), null, null, null
         );
         promoter = new AnchorPromoter(engine, properties, trustPipeline, repository, duplicateDetector);
     }

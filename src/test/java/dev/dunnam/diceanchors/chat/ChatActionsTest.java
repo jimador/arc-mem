@@ -195,7 +195,7 @@ class ChatActionsTest {
                 new DiceAnchorsProperties.ConflictDetectionConfig(ConflictStrategy.LLM, "gpt-4o-nano"),
                 new DiceAnchorsProperties.RunHistoryConfig(RunHistoryStoreType.MEMORY),
                 new DiceAnchorsProperties.AssemblyConfig(0),
-                null, null
+                null, null, null
         );
     }
 }

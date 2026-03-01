@@ -22,6 +22,7 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.validation.annotation.Validated;
 
+import java.time.Duration;
 import java.util.List;
 
 @Validated
@@ -36,7 +37,8 @@ public record DiceAnchorsProperties(
         @NestedConfigurationProperty RunHistoryConfig runHistory,
         @Valid @NestedConfigurationProperty AssemblyConfig assembly,
         @Valid @NestedConfigurationProperty ConflictConfig conflict,
-        @Valid @NestedConfigurationProperty RetrievalConfig retrieval
+        @Valid @NestedConfigurationProperty RetrievalConfig retrieval,
+        @Nullable @NestedConfigurationProperty AttentionConfig attention
 ) {
 
     public record AnchorConfig(
@@ -205,5 +207,16 @@ public record DiceAnchorsProperties(
             @DefaultValue("RELIABLE") Authority authority,
             @DefaultValue("500") int rank,
             @DefaultValue("false") boolean pinned
+    ) {}
+
+    public record AttentionConfig(
+            @DefaultValue("true") boolean enabled,
+            @DefaultValue("PT5M") Duration windowDuration,
+            @DecimalMin("0.0") @DecimalMax("1.0") @DefaultValue("0.5") double pressureThreshold,
+            @Min(1) @DefaultValue("3") int minConflictsForPressure,
+            @DecimalMin("0.0") @DecimalMax("1.0") @DefaultValue("0.7") double heatPeakThreshold,
+            @DecimalMin("0.0") @DecimalMax("1.0") @DefaultValue("0.2") double heatDropThreshold,
+            @Min(2) @DefaultValue("3") int clusterDriftMinAnchors,
+            @Positive @DefaultValue("20") int maxExpectedEventsPerWindow
     ) {}
 }

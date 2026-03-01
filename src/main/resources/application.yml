@@ -97,6 +97,16 @@ dice-anchors:
       warm-defense-modifier: 0.0
       cold-defense-modifier: -0.1
 
+  attention:
+    enabled: true
+    window-duration: PT5M
+    pressure-threshold: 0.5
+    min-conflicts-for-pressure: 3
+    heat-peak-threshold: 0.7
+    heat-drop-threshold: 0.2
+    cluster-drift-min-anchors: 3
+    max-expected-events-per-window: 20
+
 spring:
   ai:
     openai:
