@@ -45,7 +45,7 @@ class SimulationTurnExecutorPipelineTest {
         var properties = new DiceAnchorsProperties(
                 new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null),
                 null, null, null, null, null, null,
-                new DiceAnchorsProperties.AssemblyConfig(0), null, null);
+                new DiceAnchorsProperties.AssemblyConfig(0), null, null, null);
         var executor = new SimulationTurnExecutor(
                 chatModel,
                 anchorEngine,
@@ -107,7 +107,7 @@ class SimulationTurnExecutorPipelineTest {
         var properties = new DiceAnchorsProperties(
                 new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null),
                 null, null, null, null, null, null,
-                new DiceAnchorsProperties.AssemblyConfig(0), null, null);
+                new DiceAnchorsProperties.AssemblyConfig(0), null, null, null);
         var executor = new SimulationTurnExecutor(
                 chatModel,
                 anchorEngine,
@@ -168,7 +168,7 @@ class SimulationTurnExecutorPipelineTest {
         var properties = new DiceAnchorsProperties(
                 new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null),
                 null, null, null, null, null, null,
-                new DiceAnchorsProperties.AssemblyConfig(0), null, null);
+                new DiceAnchorsProperties.AssemblyConfig(0), null, null, null);
         var executor = new SimulationTurnExecutor(
                 chatModel,
                 anchorEngine,
@@ -220,7 +220,7 @@ class SimulationTurnExecutorPipelineTest {
         var properties = new DiceAnchorsProperties(
                 new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null),
                 null, null, null, null, null, null,
-                new DiceAnchorsProperties.AssemblyConfig(0), null, null);
+                new DiceAnchorsProperties.AssemblyConfig(0), null, null, null);
         var executor = new SimulationTurnExecutor(
                 chatModel,
                 anchorEngine,

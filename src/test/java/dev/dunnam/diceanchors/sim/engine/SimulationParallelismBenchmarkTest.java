@@ -124,7 +124,7 @@ class SimulationParallelismBenchmarkTest {
                 null, null, null,
                 new DiceAnchorsProperties.SimConfig("gpt-4.1-mini", 30, 30, 10, parallel, 4),
                 null, null,
-                new DiceAnchorsProperties.AssemblyConfig(0), null, null);
+                new DiceAnchorsProperties.AssemblyConfig(0), null, null, null);
         return new SimulationTurnExecutor(
                 chatModel,
                 anchorEngine,

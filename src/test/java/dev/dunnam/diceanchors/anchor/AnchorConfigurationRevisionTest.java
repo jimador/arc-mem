@@ -140,6 +140,6 @@ class AnchorConfigurationRevisionTest {
                 new DiceAnchorsProperties.AssemblyConfig(0),
                 new DiceAnchorsProperties.ConflictConfig(0.5, 0.9, 0.8, 0.6,
                         new DiceAnchorsProperties.TierModifierConfig(0.1, 0.0, -0.1)),
-                null);
+                null, null);
     }
 }
