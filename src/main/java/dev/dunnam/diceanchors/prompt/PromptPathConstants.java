@@ -17,6 +17,18 @@ public final class PromptPathConstants {
     public static final String ANCHORS_REFERENCE_OVERHEAD =
             "prompts/anchors-reference-overhead.jinja";
 
+    public static final String ANCHOR_TEMPLATE_PROVISIONAL =
+            "prompts/anchor-tier-provisional.jinja";
+
+    public static final String ANCHOR_TEMPLATE_UNRELIABLE =
+            "prompts/anchor-tier-unreliable.jinja";
+
+    public static final String ANCHOR_TEMPLATE_RELIABLE =
+            "prompts/anchor-tier-reliable.jinja";
+
+    public static final String ANCHOR_TEMPLATE_CANON =
+            "prompts/anchor-tier-canon.jinja";
+
     public static final String PROPOSITIONS_REFERENCE =
             "prompts/propositions-reference.jinja";
 

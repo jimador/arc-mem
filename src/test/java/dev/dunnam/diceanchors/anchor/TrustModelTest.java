@@ -49,18 +49,22 @@ class TrustModelTest {
             @Test
             @DisplayName("computes weighted sum from all signals using BALANCED profile")
             void evaluate_allSignalsPresent_computesWeightedSum() {
+                // Quality signals absent (disabled) — weight redistributes to 4 core signals (0.22 each -> 0.25 each)
                 var signals = List.<TrustSignal>of(
                         namedSignal("sourceAuthority", 0.9),
                         namedSignal("extractionConfidence", 0.8),
                         namedSignal("graphConsistency", 0.7),
-                        namedSignal("corroboration", 0.6)
+                        namedSignal("corroboration", 0.6),
+                        absentSignal("novelty"),
+                        absentSignal("importance")
                 );
                 var evaluator = new TrustEvaluator(signals, DomainProfile.BALANCED);
                 var prop = proposition("The dragon is red", 0.8);
 
                 var result = evaluator.evaluate(prop, CONTEXT_ID);
 
-                // BALANCED: all weights 0.25. Score = 0.25*0.9 + 0.25*0.8 + 0.25*0.7 + 0.25*0.6 = 0.75
+                // BALANCED: core weights 0.22 each, quality absent (0.06+0.06) redistributes -> effective 0.25 each
+                // Score = 0.25*0.9 + 0.25*0.8 + 0.25*0.7 + 0.25*0.6 = 0.75
                 assertThat(result.score()).isCloseTo(0.75, within(0.001));
             }
 
@@ -103,20 +107,23 @@ class TrustModelTest {
             @Test
             @DisplayName("redistributes absent signal weight to present signals")
             void evaluate_oneSignalAbsent_redistributesWeight() {
+                // corroboration, novelty, importance all absent — weight redistributes to 3 present signals
                 var signals = List.<TrustSignal>of(
                         namedSignal("sourceAuthority", 0.8),
                         namedSignal("extractionConfidence", 0.8),
                         namedSignal("graphConsistency", 0.8),
-                        absentSignal("corroboration")
+                        absentSignal("corroboration"),
+                        absentSignal("novelty"),
+                        absentSignal("importance")
                 );
                 var evaluator = new TrustEvaluator(signals, DomainProfile.BALANCED);
                 var prop = proposition("The goblin is green", 0.8);
 
                 var result = evaluator.evaluate(prop, CONTEXT_ID);
 
-                // Present weight = 0.75, absent weight = 0.25
-                // Redistribution factor = 1.0 / 0.75 = 1.333...
-                // Each present signal contributes: 0.8 * (0.25 * 1.333) = 0.8 * 0.333 = 0.2666...
+                // Present weight = 0.66 (3 * 0.22), absent weight = 0.34 (0.22 + 0.06 + 0.06)
+                // Redistribution factor = 1.0 / 0.66 = 1.5151...
+                // Each present signal: 0.8 * 0.22 * 1.5151 = 0.8 * 0.3333 = 0.2666...
                 // Total = 3 * 0.2666... = 0.8
                 assertThat(result.score()).isCloseTo(0.8, within(0.001));
             }
@@ -180,12 +187,14 @@ class TrustModelTest {
             @Test
             @DisplayName("score exactly 0.80 yields RELIABLE ceiling")
             void evaluate_scoreExactly080_ceilingIsReliable() {
-                // All signals return 0.8, BALANCED weights = 0.25 each -> score = 0.8
+                // Core weights 0.22 each; quality signals absent, redistribute -> effective 0.25 each -> score = 0.8
                 var signals = List.<TrustSignal>of(
                         namedSignal("sourceAuthority", 0.8),
                         namedSignal("extractionConfidence", 0.8),
                         namedSignal("graphConsistency", 0.8),
-                        namedSignal("corroboration", 0.8)
+                        namedSignal("corroboration", 0.8),
+                        absentSignal("novelty"),
+                        absentSignal("importance")
                 );
                 var evaluator = new TrustEvaluator(signals, DomainProfile.BALANCED);
                 var prop = proposition("test", 0.8);
@@ -199,12 +208,14 @@ class TrustModelTest {
             @Test
             @DisplayName("score in [0.50, 0.80) yields UNRELIABLE ceiling")
             void evaluate_midScore_ceilingIsUnreliable() {
-                // All signals return 0.6 -> score = 0.6
+                // Core weights 0.22 each; quality signals absent, redistribute -> effective 0.25 each -> score = 0.6
                 var signals = List.<TrustSignal>of(
                         namedSignal("sourceAuthority", 0.6),
                         namedSignal("extractionConfidence", 0.6),
                         namedSignal("graphConsistency", 0.6),
-                        namedSignal("corroboration", 0.6)
+                        namedSignal("corroboration", 0.6),
+                        absentSignal("novelty"),
+                        absentSignal("importance")
                 );
                 var evaluator = new TrustEvaluator(signals, DomainProfile.BALANCED);
                 var prop = proposition("test", 0.6);
@@ -218,11 +229,14 @@ class TrustModelTest {
             @Test
             @DisplayName("score exactly 0.50 yields UNRELIABLE ceiling")
             void evaluate_scoreExactly050_ceilingIsUnreliable() {
+                // Core weights 0.22 each; quality signals absent, redistribute -> effective 0.25 each -> score = 0.5
                 var signals = List.<TrustSignal>of(
                         namedSignal("sourceAuthority", 0.5),
                         namedSignal("extractionConfidence", 0.5),
                         namedSignal("graphConsistency", 0.5),
-                        namedSignal("corroboration", 0.5)
+                        namedSignal("corroboration", 0.5),
+                        absentSignal("novelty"),
+                        absentSignal("importance")
                 );
                 var evaluator = new TrustEvaluator(signals, DomainProfile.BALANCED);
                 var prop = proposition("test", 0.5);
@@ -254,11 +268,14 @@ class TrustModelTest {
             @Test
             @DisplayName("CANON is never assigned as ceiling (invariant A3)")
             void evaluate_perfectScore_neverAssignsCanon() {
+                // Core weights 0.22 each; quality signals absent, redistribute -> effective 0.25 each -> score = 1.0
                 var signals = List.<TrustSignal>of(
                         namedSignal("sourceAuthority", 1.0),
                         namedSignal("extractionConfidence", 1.0),
                         namedSignal("graphConsistency", 1.0),
-                        namedSignal("corroboration", 1.0)
+                        namedSignal("corroboration", 1.0),
+                        absentSignal("novelty"),
+                        absentSignal("importance")
                 );
                 var evaluator = new TrustEvaluator(signals, DomainProfile.BALANCED);
                 var prop = proposition("test", 1.0);
@@ -819,19 +836,22 @@ class TrustModelTest {
         @Test
         @DisplayName("evaluates proposition using composed signals")
         void evaluate_withSignals_delegatesToEvaluator() {
+            // Quality signals absent — weight redistributes; NARRATIVE core weights 0.35,0.25,0.15,0.15 -> sum=0.90
+            // Effective weights after redistribution: 0.389, 0.278, 0.167, 0.167
             var signals = List.<TrustSignal>of(
                     namedSignal("sourceAuthority", 0.8),
                     namedSignal("extractionConfidence", 0.7),
                     namedSignal("graphConsistency", 0.6),
-                    namedSignal("corroboration", 0.9)
+                    namedSignal("corroboration", 0.9),
+                    absentSignal("novelty"),
+                    absentSignal("importance")
             );
             var pipeline = new TrustPipeline(signals);
             var prop = proposition("The castle has a moat", 0.7);
 
             var result = pipeline.evaluate(prop, CONTEXT_ID);
 
-            // NARRATIVE: 0.4*0.8 + 0.3*0.7 + 0.15*0.6 + 0.15*0.9
-            //          = 0.32  + 0.21  + 0.09  + 0.135 = 0.755
+            // NARRATIVE (redistributed): 0.389*0.8 + 0.278*0.7 + 0.167*0.6 + 0.167*0.9 = 0.755
             assertThat(result.score()).isCloseTo(0.755, within(0.001));
             assertThat(result).isNotNull();
             assertThat(result.signalAudit()).isNotEmpty();
@@ -851,12 +871,15 @@ class TrustModelTest {
         @Test
         @DisplayName("evaluates with switched profile thresholds")
         void evaluate_afterProfileSwitch_usesNewProfileThresholds() {
-            // Score 0.65 is above NARRATIVE autoPromote (0.60) but below BALANCED autoPromote (0.70)
+            // Quality signals absent — redistribution preserves proportions; all core signals at 0.65 -> score = 0.65
+            // 0.65 is above NARRATIVE autoPromote (0.60) but below BALANCED autoPromote (0.70)
             var signals = List.<TrustSignal>of(
                     namedSignal("sourceAuthority", 0.65),
                     namedSignal("extractionConfidence", 0.65),
                     namedSignal("graphConsistency", 0.65),
-                    namedSignal("corroboration", 0.65)
+                    namedSignal("corroboration", 0.65),
+                    absentSignal("novelty"),
+                    absentSignal("importance")
             );
             var pipeline = new TrustPipeline(signals);
             var prop = proposition("test", 0.65);
@@ -874,18 +897,24 @@ class TrustModelTest {
         @Test
         @DisplayName("handles absent signals through evaluator redistribution")
         void evaluate_absentSignal_redistributesViaEvaluator() {
+            // corroboration, novelty, importance all absent — 3 core signals present
+            // NARRATIVE: present weight = 0.35+0.25+0.15 = 0.75, absent = 0.15+0.05+0.05 = 0.25
+            // Redistribution factor = 1/0.75 = 1.333...; each signal: 0.8 * (weight * 1.333)
+            // score = 0.8 * (0.35/0.75 + 0.25/0.75 + 0.15/0.75) = 0.8 * 1.0 = 0.8
             var signals = List.<TrustSignal>of(
                     namedSignal("sourceAuthority", 0.8),
                     namedSignal("extractionConfidence", 0.8),
                     namedSignal("graphConsistency", 0.8),
-                    absentSignal("corroboration")
+                    absentSignal("corroboration"),
+                    absentSignal("novelty"),
+                    absentSignal("importance")
             );
             var pipeline = new TrustPipeline(signals);
             var prop = proposition("test", 0.8);
 
             var result = pipeline.evaluate(prop, CONTEXT_ID);
 
-            // With redistribution, all present signals at 0.8 should produce score = 0.8
+            // All present signals at same value 0.8 -> redistribution preserves that value as score
             assertThat(result.score()).isCloseTo(0.8, within(0.001));
         }
     }

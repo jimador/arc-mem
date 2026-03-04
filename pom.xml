@@ -149,6 +149,12 @@
             <artifactId>opentelemetry-api</artifactId>
         </dependency>
 
+        <!-- Caffeine in-memory cache for HOT-tier anchor storage -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
         <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

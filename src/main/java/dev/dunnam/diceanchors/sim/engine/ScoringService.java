@@ -100,8 +100,15 @@ public class ScoringService {
             strategyEffectiveness.put(strategy, (double) contradictions / total);
         }
 
-        logger.info("Scoring complete: survivalRate={}, contradictions={}, major={}, absorption={}",
-                    factSurvivalRate, contradictionCount, majorContradictionCount, driftAbsorptionRate);
+        // Compliance rate: percentage of evaluated turns with no contradictions.
+        // Computed from all evaluated turns (not just engaged turns) for enforcement A/B comparison.
+        var complianceRate = evaluatedTurnCount > 0
+                ? ((double) (evaluatedTurnCount - contradictionCount) / evaluatedTurnCount) * 100.0
+                : 0.0;
+        complianceRate = Math.max(0.0, complianceRate);
+
+        logger.info("Scoring complete: survivalRate={}, contradictions={}, major={}, absorption={}, complianceRate={}",
+                    factSurvivalRate, contradictionCount, majorContradictionCount, driftAbsorptionRate, complianceRate);
         return new ScoringResult(
                 factSurvivalRate,
                 contradictionCount,
@@ -110,7 +117,8 @@ public class ScoringService {
                 meanTurnsToFirstDrift,
                 anchorAttributionCount,
                 Map.copyOf(strategyEffectiveness),
-                degradedConflictCount
+                degradedConflictCount,
+                complianceRate
         );
     }
 

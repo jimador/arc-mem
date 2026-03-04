@@ -669,7 +669,7 @@ dice-anchors uses [OpenSpec](https://github.com/Fission-AI/OpenSpec) for structu
 
 ### Collaborative Anchor Mutation
 
-The [collaborative-anchor-mutation roadmap](openspec/roadmaps/collaborative-anchor-mutation-roadmap.md) tackles legitimate revision of established anchors in multi-actor contexts — when an update isn't a contradiction but the anchor still needs to change. Main threads:
+The [collaborative-anchor-mutation roadmap](openspec/changes/archive/roadmap/2026-03-03-collaborative-anchor-mutation/roadmap.md) tackles legitimate revision of established anchors in multi-actor contexts — when an update isn't a contradiction but the anchor still needs to change. Main threads:
 
 - **Revision intent classification** — `ConflictType` enum distinguishing REVISION from CONTRADICTION
 - **Authority-gated revision eligibility** — prompt compliance carveout for anchors that can be revised

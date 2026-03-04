@@ -40,8 +40,8 @@ class AnchorRepositoryEntityMentionGraphTest {
                 null,
                 null,
                 null,
-                new DiceAnchorsProperties.AssemblyConfig(0),
-                null, null, null);
+                new DiceAnchorsProperties.AssemblyConfig(0, false, dev.dunnam.diceanchors.assembly.EnforcementStrategy.PROMPT_ONLY),
+                null, null, null, null, null, null, null);
         repository = new AnchorRepository(graphObjectManager, persistenceManager, embeddingService, properties);
     }
 

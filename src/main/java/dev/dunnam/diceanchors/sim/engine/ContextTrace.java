@@ -31,7 +31,10 @@ public record ContextTrace(
         List<String> extractedTexts,
         int hotCount,
         int warmCount,
-        int coldCount
+        int coldCount,
+        ComplianceSnapshot complianceSnapshot,
+        int injectionPatternsDetected,
+        SweepSnapshot sweepSnapshot
 ) {
     /**
      * Convenience constructor for turns without extraction.
@@ -46,7 +49,8 @@ public record ContextTrace(
             String fullSystemPrompt,
             String fullUserPrompt) {
         this(turnNumber, anchorTokens, totalTokens, injectedAnchors, injectionEnabled,
-             assembledPrompt, fullSystemPrompt, fullUserPrompt, false, 0, 0, 0, 0, List.of(), 0, 0, 0);
+             assembledPrompt, fullSystemPrompt, fullUserPrompt, false, 0, 0, 0, 0, List.of(), 0, 0, 0,
+             ComplianceSnapshot.none(), 0, SweepSnapshot.none());
     }
 
     /**
@@ -64,6 +68,7 @@ public record ContextTrace(
             boolean budgetApplied,
             int anchorsExcluded) {
         this(turnNumber, anchorTokens, totalTokens, injectedAnchors, injectionEnabled,
-             assembledPrompt, fullSystemPrompt, fullUserPrompt, budgetApplied, anchorsExcluded, 0, 0, 0, List.of(), 0, 0, 0);
+             assembledPrompt, fullSystemPrompt, fullUserPrompt, budgetApplied, anchorsExcluded, 0, 0, 0, List.of(), 0, 0, 0,
+             ComplianceSnapshot.none(), 0, SweepSnapshot.none());
     }
 }

@@ -6,6 +6,7 @@ import dev.dunnam.diceanchors.anchor.ConflictResolver;
 import dev.dunnam.diceanchors.anchor.InvariantStrength;
 import dev.dunnam.diceanchors.anchor.InvariantViolationData;
 import dev.dunnam.diceanchors.anchor.MemoryTier;
+import dev.dunnam.diceanchors.anchor.PressureScore;
 import dev.dunnam.diceanchors.anchor.ProposedAction;
 import org.jspecify.annotations.Nullable;
 import org.springframework.context.ApplicationEvent;
@@ -43,7 +44,8 @@ public abstract sealed class AnchorLifecycleEvent extends ApplicationEvent
                 AnchorLifecycleEvent.AuthorityChanged,
                 AnchorLifecycleEvent.TierChanged,
                 AnchorLifecycleEvent.Superseded,
-                AnchorLifecycleEvent.InvariantViolation {
+                AnchorLifecycleEvent.InvariantViolation,
+                AnchorLifecycleEvent.PressureThresholdBreached {
 
     private final String contextId;
     private final Instant occurredAt;
@@ -133,6 +135,12 @@ public abstract sealed class AnchorLifecycleEvent extends ApplicationEvent
         return new InvariantViolation(source, contextId, violation.ruleId(),
                 violation.strength(), violation.blockedAction(),
                 violation.constraintDescription(), violation.anchorId());
+    }
+
+    public static PressureThresholdBreached pressureThresholdBreached(Object source, String contextId,
+                                                                       PressureScore pressureScore,
+                                                                       String thresholdType) {
+        return new PressureThresholdBreached(source, contextId, pressureScore, thresholdType);
     }
 
 
@@ -356,5 +364,20 @@ public abstract sealed class AnchorLifecycleEvent extends ApplicationEvent
         public ProposedAction getBlockedAction() { return blockedAction; }
         public String getConstraintDescription() { return constraintDescription; }
         public @Nullable String getAnchorId() { return anchorId; }
+    }
+
+    public static final class PressureThresholdBreached extends AnchorLifecycleEvent {
+        private final PressureScore pressureScore;
+        private final String thresholdType;
+
+        private PressureThresholdBreached(Object source, String contextId,
+                                          PressureScore pressureScore, String thresholdType) {
+            super(source, contextId);
+            this.pressureScore = pressureScore;
+            this.thresholdType = thresholdType;
+        }
+
+        public PressureScore getPressureScore() { return pressureScore; }
+        public String getThresholdType() { return thresholdType; }
     }
 }

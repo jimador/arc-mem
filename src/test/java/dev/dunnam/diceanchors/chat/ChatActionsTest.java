@@ -28,6 +28,7 @@ import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyMap;
@@ -84,7 +85,7 @@ class ChatActionsTest {
         var properties = properties();
         var assistantMessage = new AssistantMessage("ok");
         var actions = new ChatActions(anchorEngine, anchorRepository, eventPublisher, properties,
-                dev.dunnam.diceanchors.anchor.CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null, chatContextInitializer);
+                dev.dunnam.diceanchors.anchor.CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null, chatContextInitializer, Optional.empty());
 
         when(anchorEngine.inject("chat")).thenReturn(List.of());
         when(actionContext.ai()).thenReturn(ai);
@@ -113,7 +114,7 @@ class ChatActionsTest {
         var properties = properties();
         var assistantMessage = new AssistantMessage("ok");
         var actions = new ChatActions(anchorEngine, anchorRepository, eventPublisher, properties,
-                dev.dunnam.diceanchors.anchor.CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null, chatContextInitializer);
+                dev.dunnam.diceanchors.anchor.CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null, chatContextInitializer, Optional.empty());
 
         when(anchorEngine.inject("chat")).thenReturn(List.of());
         when(actionContext.ai()).thenReturn(ai);
@@ -143,7 +144,7 @@ class ChatActionsTest {
         var properties = properties();
         var assistantMessage = new AssistantMessage("ok");
         var actions = new ChatActions(anchorEngine, anchorRepository, eventPublisher, properties,
-                dev.dunnam.diceanchors.anchor.CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null, chatContextInitializer);
+                dev.dunnam.diceanchors.anchor.CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null, chatContextInitializer, Optional.empty());
 
         when(anchorEngine.inject("chat")).thenReturn(List.of());
         when(anchorRepository.findActiveUnanchoredPropositions("chat", properties.anchor().budget()))
@@ -187,15 +188,15 @@ class ChatActionsTest {
 
     private static DiceAnchorsProperties properties() {
         return new DiceAnchorsProperties(
-                new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null),
+                new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null, null),
                 new DiceAnchorsProperties.ChatConfig("dm", 200, null),
                 new DiceAnchorsProperties.MemoryConfig(true, null, null, "text-embedding-3-small", 20, 5, 2),
                 new DiceAnchorsProperties.PersistenceConfig(false),
                 new DiceAnchorsProperties.SimConfig("gpt-4.1-mini", 30, 30, 10, true, 4),
                 new DiceAnchorsProperties.ConflictDetectionConfig(ConflictStrategy.LLM, "gpt-4o-nano"),
                 new DiceAnchorsProperties.RunHistoryConfig(RunHistoryStoreType.MEMORY),
-                new DiceAnchorsProperties.AssemblyConfig(0),
-                null, null, null
+                new DiceAnchorsProperties.AssemblyConfig(0, false, dev.dunnam.diceanchors.assembly.EnforcementStrategy.PROMPT_ONLY),
+                null, null, null, null, null, null, null
         );
     }
 }

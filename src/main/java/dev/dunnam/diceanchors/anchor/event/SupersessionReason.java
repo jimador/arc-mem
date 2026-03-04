@@ -59,6 +59,7 @@ public enum SupersessionReason {
             case DORMANCY_DECAY -> DECAY_DEMOTION;
             case REVISION -> USER_REVISION;
             case MANUAL -> MANUAL;
+            case PROACTIVE_MAINTENANCE -> MANUAL;
         };
     }
 }

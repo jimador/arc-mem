@@ -29,6 +29,20 @@ class TrustPipelineBatchTest {
         };
     }
 
+    private TrustSignal absentSignal(String name) {
+        return new TrustSignal() {
+            @Override
+            public String name() {
+                return name;
+            }
+
+            @Override
+            public OptionalDouble evaluate(PropositionNode proposition, String contextId) {
+                return OptionalDouble.empty();
+            }
+        };
+    }
+
     private PropositionNode propositionNode(String text, double confidence) {
         return new PropositionNode(text, confidence);
     }
@@ -73,13 +87,16 @@ class TrustPipelineBatchTest {
         @Test
         @DisplayName("each proposition uses the same active profile")
         void batchEvaluateUsesActiveProfile() {
+            // Quality signals absent — redistribution restores NARRATIVE proportions; all at 0.65 -> score = 0.65
+            // NARRATIVE autoPromoteThreshold = 0.60, so 0.65 -> AUTO_PROMOTE
             var signals = List.<TrustSignal>of(
                     fixedSignal("sourceAuthority", 0.65),
                     fixedSignal("extractionConfidence", 0.65),
                     fixedSignal("graphConsistency", 0.65),
-                    fixedSignal("corroboration", 0.65)
+                    fixedSignal("corroboration", 0.65),
+                    absentSignal("novelty"),
+                    absentSignal("importance")
             );
-            // NARRATIVE profile autoPromoteThreshold = 0.60, so 0.65 -> AUTO_PROMOTE
             var pipeline = new TrustPipeline(signals);
 
             var contexts = List.of(

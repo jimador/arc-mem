@@ -5,15 +5,18 @@ import dev.dunnam.diceanchors.DiceAnchorsProperties;
 import dev.dunnam.diceanchors.anchor.Anchor;
 import dev.dunnam.diceanchors.anchor.AnchorEngine;
 import dev.dunnam.diceanchors.anchor.CompliancePolicy;
+import dev.dunnam.diceanchors.anchor.MaintenanceContext;
 import dev.dunnam.diceanchors.anchor.MemoryTier;
 import dev.dunnam.diceanchors.anchor.event.ArchiveReason;
 import dev.dunnam.diceanchors.assembly.AnchorsLlmReference;
 import dev.dunnam.diceanchors.assembly.CompactedContextProvider;
 import dev.dunnam.diceanchors.assembly.CompactionResult;
+import dev.dunnam.diceanchors.assembly.ComplianceContext;
 import dev.dunnam.diceanchors.assembly.PropositionsLlmReference;
 import dev.dunnam.diceanchors.assembly.RelevanceScorer;
 import dev.dunnam.diceanchors.assembly.TokenCounter;
 import dev.dunnam.diceanchors.persistence.AnchorRepository;
+import dev.dunnam.diceanchors.persistence.TieredAnchorRepository;
 import dev.dunnam.diceanchors.prompt.PromptPathConstants;
 import dev.dunnam.diceanchors.prompt.PromptTemplates;
 import io.micrometer.observation.annotation.Observed;
@@ -68,8 +71,10 @@ public class SimulationTurnExecutor {
     private final TokenCounter tokenCounter;
     private final SimulationExtractionService extractionService;
     private final RelevanceScorer relevanceScorer;
+    private final TieredAnchorRepository tieredRepository;
     private final DiceAnchorsProperties.AnchorConfig anchorConfig;
     private final String driftEvalSystemPrompt;
+    private final SimulationTurnServices turnServices;
 
     public SimulationTurnExecutor(
             ChatModelHolder chatModel,
@@ -78,16 +83,19 @@ public class SimulationTurnExecutor {
             DiceAnchorsProperties properties,
             CompliancePolicy compliancePolicy,
             TokenCounter tokenCounter,
-            SimulationExtractionService extractionService,
-            RelevanceScorer relevanceScorer) {
+            RelevanceScorer relevanceScorer,
+            TieredAnchorRepository tieredRepository,
+            SimulationTurnServices turnServices) {
         this.chatModel = chatModel;
         this.anchorEngine = anchorEngine;
         this.anchorRepository = anchorRepository;
         this.properties = properties;
         this.compliancePolicy = compliancePolicy;
         this.tokenCounter = tokenCounter;
-        this.extractionService = extractionService;
+        this.turnServices = turnServices;
+        this.extractionService = turnServices.extractionService();
         this.relevanceScorer = relevanceScorer;
+        this.tieredRepository = tieredRepository;
         this.anchorConfig = properties != null ? properties.anchor() : null;
         this.driftEvalSystemPrompt = PromptTemplates.load(PromptPathConstants.DRIFT_EVALUATION_SYSTEM);
     }
@@ -128,7 +136,9 @@ public class SimulationTurnExecutor {
                 tokenCounter,
                 null,
                 properties.retrieval(),
-                relevanceScorer);
+                relevanceScorer,
+                false,
+                tieredRepository);
         var propositionRef = new PropositionsLlmReference(
                 anchorRepository,
                 contextId,
@@ -149,7 +159,11 @@ public class SimulationTurnExecutor {
         var systemPrompt = buildSystemPrompt(setting, anchorBlock, propositionBlock);
         var userPrompt = buildUserPrompt(playerMessage, conversationHistory);
 
+        int injectionPatternsDetected = scanForInjectionPatterns(playerMessage);
+
         var dmResponse = callLlm(systemPrompt, userPrompt);
+
+        var complianceSnapshot = enforceCompliance(dmResponse, anchors, injectionEnabled);
 
         // token estimates: ~4 chars per token
         var anchorTokens = injectedContextBlock.length() / 4;
@@ -159,7 +173,10 @@ public class SimulationTurnExecutor {
                 anchors, injectionEnabled, injectedContextBlock,
                 systemPrompt, userPrompt,
                 tokenBudget > 0,
-                anchorRef.getLastBudgetResult().excluded().size());
+                anchorRef.getLastBudgetResult().excluded().size(),
+                0, 0, 0, List.of(),
+                hotCount, warmCount, coldCount,
+                complianceSnapshot, injectionPatternsDetected, SweepSnapshot.none());
 
         var verdicts = shouldEvaluate(turnType, groundTruth)
                 ? evaluateDrift(dmResponse, groundTruth, playerMessage, anchors)
@@ -313,7 +330,9 @@ public class SimulationTurnExecutor {
                 tokenCounter,
                 null,
                 properties.retrieval(),
-                relevanceScorer);
+                relevanceScorer,
+                false,
+                tieredRepository);
         var propositionRef = new PropositionsLlmReference(
                 anchorRepository,
                 contextId,
@@ -334,8 +353,12 @@ public class SimulationTurnExecutor {
         var systemPrompt = buildSystemPrompt(setting, anchorBlock, propositionBlock);
         var userPrompt = buildUserPrompt(playerMessage, conversationHistory);
 
+        int injectionPatternsDetected = scanForInjectionPatterns(playerMessage);
+
         // sequential — must complete before forking
         var dmResponse = callLlm(systemPrompt, userPrompt);
+
+        var complianceSnapshot = enforceCompliance(dmResponse, anchors, injectionEnabled);
 
         // token estimates: ~4 chars per token
         var anchorTokens = injectedContextBlock.length() / 4;
@@ -345,7 +368,10 @@ public class SimulationTurnExecutor {
                 anchors, injectionEnabled, injectedContextBlock,
                 systemPrompt, userPrompt,
                 tokenBudget > 0,
-                anchorRef.getLastBudgetResult().excluded().size());
+                anchorRef.getLastBudgetResult().excluded().size(),
+                0, 0, 0, List.of(),
+                hotCount, warmCount, coldCount,
+                complianceSnapshot, injectionPatternsDetected, SweepSnapshot.none());
 
         // effectively-final captures for lambdas
         final var finalDmResponse = dmResponse;
@@ -509,6 +535,8 @@ public class SimulationTurnExecutor {
             }
         }
 
+        var sweepSnapshot = runMaintenanceIfNeeded(contextId, turnNumber, turn.contextTrace().injectedAnchors());
+
         var currentAnchors = anchorEngine.inject(contextId);
         var dormancyLifecycleEnabled = rankMutationEnabled
                                        && dormancyConfig != null
@@ -538,7 +566,9 @@ public class SimulationTurnExecutor {
                 extractionResult.extractedCount(), extractionResult.promotedCount(),
                 extractionResult.degradedConflictCount(),
                 extractionResult.extractedTexts(),
-                originalTrace.hotCount(), originalTrace.warmCount(), originalTrace.coldCount());
+                originalTrace.hotCount(), originalTrace.warmCount(), originalTrace.coldCount(),
+                originalTrace.complianceSnapshot(), originalTrace.injectionPatternsDetected(),
+                sweepSnapshot);
         turn = new SimulationTurn(
                 turn.turnNumber(), turn.playerMessage(), turn.dmResponse(),
                 turn.turnType(), turn.attackStrategies(), enrichedTrace,
@@ -572,6 +602,73 @@ public class SimulationTurnExecutor {
         }
 
         return new TurnExecutionResult(enrichedTurn, Map.copyOf(currentState), compactionResult);
+    }
+
+    private int scanForInjectionPatterns(String playerMessage) {
+        try {
+            return turnServices.injectionEnforcer().scan(playerMessage);
+        } catch (Exception e) {
+            logger.warn("Injection pattern scan failed: {}", e.getMessage());
+            return 0;
+        }
+    }
+
+    private ComplianceSnapshot enforceCompliance(String dmResponse, List<Anchor> anchors, boolean injectionEnabled) {
+        if (!injectionEnabled || turnServices.complianceEnforcer() == null) {
+            return ComplianceSnapshot.none();
+        }
+        try {
+            var ctx = new ComplianceContext(dmResponse, anchors, ComplianceContext.CompliancePolicy.tiered());
+            var result = turnServices.complianceEnforcer().enforce(ctx);
+            for (var violation : result.violations()) {
+                logger.warn("Compliance violation on anchor {}: {}", violation.anchorId(), violation.description());
+            }
+            return new ComplianceSnapshot(
+                    result.violations().size(),
+                    result.suggestedAction().name(),
+                    result.suggestedAction() == dev.dunnam.diceanchors.assembly.ComplianceAction.RETRY
+                    || result.suggestedAction() == dev.dunnam.diceanchors.assembly.ComplianceAction.REJECT,
+                    result.validationDuration().toMillis());
+        } catch (Exception e) {
+            logger.warn("Compliance enforcement failed: {}", e.getMessage());
+            return ComplianceSnapshot.none();
+        }
+    }
+
+    private SweepSnapshot runMaintenanceIfNeeded(String contextId, int turnNumber, List<Anchor> activeAnchors) {
+        try {
+            var metadata = new HashMap<String, Object>();
+            if (shouldApplyPressureOverride(contextId, activeAnchors)) {
+                metadata.put("pressureOverride", Boolean.TRUE);
+            }
+            var maintenanceContext = new MaintenanceContext(contextId, activeAnchors, turnNumber, metadata);
+            turnServices.maintenanceStrategy().onTurnComplete(maintenanceContext);
+            if (turnServices.maintenanceStrategy().shouldRunSweep(maintenanceContext)) {
+                var result = turnServices.maintenanceStrategy().executeSweep(maintenanceContext);
+                return new SweepSnapshot(true, result.summary());
+            }
+            return SweepSnapshot.none();
+        } catch (Exception e) {
+            logger.warn("Maintenance strategy failed at turn {}: {}", turnNumber, e.getMessage());
+            return SweepSnapshot.none();
+        }
+    }
+
+    private boolean shouldApplyPressureOverride(String contextId, List<Anchor> activeAnchors) {
+        if (turnServices.pressureGauge() == null) {
+            return false;
+        }
+        if (properties.maintenance() == null || properties.maintenance().proactive() == null) {
+            return false;
+        }
+        try {
+            var budgetCap = anchorConfig != null ? anchorConfig.budget() : 20;
+            var pressure = turnServices.pressureGauge().computePressure(contextId, activeAnchors.size(), budgetCap);
+            return pressure.total() >= properties.maintenance().proactive().softPrunePressureThreshold();
+        } catch (Exception e) {
+            logger.warn("Pressure computation failed: {}", e.getMessage());
+            return false;
+        }
     }
 
     /**

@@ -21,6 +21,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -47,11 +48,12 @@ class AnchorPromoterTest {
 
     @BeforeEach
     void setUp() {
-        var anchorConfig = new DiceAnchorsProperties.AnchorConfig(20, INITIAL_RANK, 100, 900, true, THRESHOLD, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null);
+        var anchorConfig = new DiceAnchorsProperties.AnchorConfig(20, INITIAL_RANK, 100, 900, true, THRESHOLD, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null, null);
         var properties = new DiceAnchorsProperties(
-                anchorConfig, null, null, null, null, null, null, new DiceAnchorsProperties.AssemblyConfig(0), null, null, null
+                anchorConfig, null, null, null, null, null, null, new DiceAnchorsProperties.AssemblyConfig(0, false, dev.dunnam.diceanchors.assembly.EnforcementStrategy.PROMPT_ONLY), null, null, null, null, null, null, null
         );
-        promoter = new AnchorPromoter(engine, properties, trustPipeline, repository, duplicateDetector);
+        promoter = new AnchorPromoter(engine, properties, trustPipeline, repository, duplicateDetector,
+                Optional.empty());
     }
 
     private Proposition activeProposition(String id, String text, double confidence) {
@@ -321,6 +323,116 @@ class AnchorPromoterTest {
             promoter.evaluateAndPromote(CONTEXT_ID, List.of(prop));
 
             verify(engine).reEvaluateTrust("a1");
+        }
+    }
+
+    @Nested
+    @DisplayName("conflict pre-check gate")
+    class ConflictPreCheckGate {
+
+        private ConflictIndex mockIndex;
+        private Anchor reliableAnchor;
+
+        @org.junit.jupiter.api.BeforeEach
+        void setUpPrecheck() {
+            mockIndex = mock(ConflictIndex.class);
+            reliableAnchor = Anchor.withoutTrust("a1", "established text", 700, Authority.RELIABLE, false, 0.9, 0);
+        }
+
+        private AnchorPromoter promoterWithIndex(ConflictIndex index) {
+            var anchorConfig = new DiceAnchorsProperties.AnchorConfig(20, INITIAL_RANK, 100, 900, true, THRESHOLD,
+                    DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200,
+                    null, null, null, null, null);
+            var simConfig = new DiceAnchorsProperties.SimConfig("gpt-4.1-mini", 30, 30, 10, true, 4);
+            var properties = new DiceAnchorsProperties(
+                    anchorConfig, null, null, null, simConfig, null, null,
+                    new DiceAnchorsProperties.AssemblyConfig(0, false, dev.dunnam.diceanchors.assembly.EnforcementStrategy.PROMPT_ONLY), null, null, null, null, null, null, null);
+            return new AnchorPromoter(engine, properties, trustPipeline, repository, duplicateDetector,
+                    Optional.of(index));
+        }
+
+        @Test
+        @DisplayName("filters proposition conflicting with RELIABLE anchor")
+        void precheckFiltersPropositionConflictingWithReliableAnchor() {
+            when(mockIndex.size()).thenReturn(1);
+            when(engine.inject(CONTEXT_ID)).thenReturn(List.of(reliableAnchor));
+            var entry = new ConflictEntry("a1", "incoming proposition", Authority.RELIABLE,
+                    ConflictType.CONTRADICTION, 0.9, Instant.now());
+            when(mockIndex.getConflicts("a1")).thenReturn(Set.of(entry));
+
+            var prop = activeProposition("p1", "incoming proposition", 0.9);
+            var precheck = promoterWithIndex(mockIndex);
+
+            var result = precheck.evaluateAndPromote(CONTEXT_ID, List.of(prop));
+
+            assertThat(result).isZero();
+            verify(duplicateDetector, never()).isDuplicate(anyString(), anyList());
+        }
+
+        @Test
+        @DisplayName("passes proposition conflicting with PROVISIONAL anchor")
+        void precheckPassesPropositionConflictingWithProvisionalAnchor() {
+            when(mockIndex.size()).thenReturn(1);
+            var provisionalAnchor = Anchor.withoutTrust("a1", "established text", 500, Authority.PROVISIONAL,
+                    false, 0.8, 0);
+            when(engine.inject(CONTEXT_ID)).thenReturn(List.of(provisionalAnchor));
+            var entry = new ConflictEntry("a1", "incoming proposition", Authority.PROVISIONAL,
+                    ConflictType.CONTRADICTION, 0.7, Instant.now());
+            when(mockIndex.getConflicts("a1")).thenReturn(Set.of(entry));
+
+            var prop = activeProposition("p1", "incoming proposition", 0.9);
+            allowPromotion("p1");
+            var precheck = promoterWithIndex(mockIndex);
+
+            var result = precheck.evaluateAndPromote(CONTEXT_ID, List.of(prop));
+
+            assertThat(result).isEqualTo(1);
+            verify(duplicateDetector).isDuplicate(anyString(), anyList());
+        }
+
+        @Test
+        @DisplayName("skips pre-check when index is empty")
+        void precheckSkippedWhenIndexIsEmpty() {
+            when(mockIndex.size()).thenReturn(0);
+            var prop = activeProposition("p1", "Any proposition", 0.9);
+            allowPromotion("p1");
+            var precheck = promoterWithIndex(mockIndex);
+
+            var result = precheck.evaluateAndPromote(CONTEXT_ID, List.of(prop));
+
+            assertThat(result).isEqualTo(1);
+            verify(mockIndex, never()).getConflicts(anyString());
+        }
+
+        @Test
+        @DisplayName("skips pre-check when index is absent")
+        void precheckSkippedWhenIndexIsAbsent() {
+            var prop = activeProposition("p1", "Any proposition", 0.9);
+            allowPromotion("p1");
+
+            var result = promoter.evaluateAndPromote(CONTEXT_ID, List.of(prop));
+
+            assertThat(result).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("batch path filters propositions conflicting with RELIABLE anchor")
+        void batchPathIncludesPrecheck() {
+            when(mockIndex.size()).thenReturn(1);
+            var existingAnchor = Anchor.withoutTrust("a1", "established text", 700, Authority.RELIABLE,
+                    false, 0.9, 0);
+            when(engine.findByContext(CONTEXT_ID)).thenReturn(List.of(existingAnchor));
+            var entry = new ConflictEntry("a1", "conflicting proposition", Authority.RELIABLE,
+                    ConflictType.CONTRADICTION, 0.9, Instant.now());
+            when(mockIndex.getConflicts("a1")).thenReturn(Set.of(entry));
+
+            var prop = activeProposition("p1", "conflicting proposition", 0.9);
+            var precheck = promoterWithIndex(mockIndex);
+
+            var result = precheck.batchEvaluateAndPromote(CONTEXT_ID, List.of(prop));
+
+            assertThat(result).isZero();
+            verify(duplicateDetector, never()).batchIsDuplicate(anyList(), anyList());
         }
     }
 

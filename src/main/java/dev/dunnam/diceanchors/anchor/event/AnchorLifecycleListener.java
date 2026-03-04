@@ -65,4 +65,10 @@ public class AnchorLifecycleListener {
                 event.getContextId(), event.getRuleId(), event.getStrength(),
                 event.getBlockedAction(), event.getAnchorId(), event.getConstraintDescription());
     }
+
+    @EventListener
+    public void onPressureThresholdBreached(AnchorLifecycleEvent.PressureThresholdBreached event) {
+        logger.warn("[LIFECYCLE] Pressure threshold breached: {} score={} context={}",
+                event.getThresholdType(), event.getPressureScore().total(), event.getContextId());
+    }
 }

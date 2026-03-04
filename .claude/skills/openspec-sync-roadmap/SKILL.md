@@ -40,7 +40,7 @@ Optionally specify a roadmap slug. If omitted, prompt for selection.
    Parse the Proposal Waves table to find change slugs. For each change slug:
 
    a. Check if `openspec/changes/<slug>/` exists
-   b. Check if `openspec/archive/<slug>/` exists (archived)
+   b. Check if `openspec/changes/archive/<slug>/` exists (archived)
    c. If neither exists, mark as `pending`
 
 3. **For each linked change, gather current state**

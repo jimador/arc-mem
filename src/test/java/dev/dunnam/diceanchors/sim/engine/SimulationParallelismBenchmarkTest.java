@@ -6,6 +6,11 @@ import dev.dunnam.diceanchors.anchor.DedupStrategy;
 import dev.dunnam.diceanchors.anchor.Authority;
 import dev.dunnam.diceanchors.anchor.Anchor;
 import dev.dunnam.diceanchors.anchor.CompliancePolicy;
+import dev.dunnam.diceanchors.anchor.DecayPolicy;
+import dev.dunnam.diceanchors.anchor.MemoryPressureGauge;
+import dev.dunnam.diceanchors.anchor.ReactiveMaintenanceStrategy;
+import dev.dunnam.diceanchors.anchor.ReinforcementPolicy;
+import dev.dunnam.diceanchors.assembly.ComplianceEnforcer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -50,6 +55,8 @@ class SimulationParallelismBenchmarkTest {
     @Mock private dev.dunnam.diceanchors.anchor.AnchorEngine anchorEngine;
     @Mock private dev.dunnam.diceanchors.persistence.AnchorRepository anchorRepository;
     @Mock private SimulationExtractionService extractionService;
+    @Mock private ComplianceEnforcer complianceEnforcer;
+    @Mock private MemoryPressureGauge pressureGauge;
 
     @Test
     @DisplayName("parallel mode is faster than sequential for ATTACK turns with concurrent drift+extraction")
@@ -120,11 +127,16 @@ class SimulationParallelismBenchmarkTest {
     private SimulationTurnExecutor buildExecutor(boolean parallel) {
         var properties = new DiceAnchorsProperties(
                 new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65,
-                        DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null),
+                        DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null, null),
                 null, null, null,
                 new DiceAnchorsProperties.SimConfig("gpt-4.1-mini", 30, 30, 10, parallel, 4),
                 null, null,
-                new DiceAnchorsProperties.AssemblyConfig(0), null, null, null);
+                new DiceAnchorsProperties.AssemblyConfig(0, false, dev.dunnam.diceanchors.assembly.EnforcementStrategy.PROMPT_ONLY), null, null, null, null, null, null, null);
+        var injectionEnforcer = new LoggingPromptInjectionEnforcer();
+        var maintenanceStrategy = new ReactiveMaintenanceStrategy(
+                DecayPolicy.exponential(1000.0), ReinforcementPolicy.threshold());
+        var turnServices = new SimulationTurnServices(
+                extractionService, maintenanceStrategy, complianceEnforcer, pressureGauge, injectionEnforcer);
         return new SimulationTurnExecutor(
                 chatModel,
                 anchorEngine,
@@ -132,8 +144,9 @@ class SimulationParallelismBenchmarkTest {
                 properties,
                 CompliancePolicy.flat(),
                 text -> Math.max(1, text.length() / 4),
-                extractionService,
-                null);
+                null,
+                null,
+                turnServices);
     }
 
     private static long measureMs(ThrowingRunnable action) throws Exception {

@@ -2,6 +2,7 @@ package dev.dunnam.diceanchors.assembly;
 
 import dev.dunnam.diceanchors.DiceAnchorsProperties;
 import dev.dunnam.diceanchors.anchor.AnchorEngine;
+import dev.dunnam.diceanchors.anchor.BudgetStrategyFactory;
 import dev.dunnam.diceanchors.anchor.CanonizationGate;
 import dev.dunnam.diceanchors.anchor.InvariantRuleProvider;
 import dev.dunnam.diceanchors.persistence.AnchorRepository;
@@ -62,6 +63,8 @@ class SimulationServiceCleanupTest {
     private CanonizationGate canonizationGate;
     @Mock
     private InvariantRuleProvider invariantRuleProvider;
+    @Mock
+    private BudgetStrategyFactory budgetStrategyFactory;
 
     private SimulationService service;
 
@@ -70,7 +73,7 @@ class SimulationServiceCleanupTest {
         service = new SimulationService(
                 turnExecutor, anchorEngine, anchorRepository, graphObjectManager,
                 chatModel, properties, assertionRegistry, runStore,
-                compactedContextProvider, scoringService, canonizationGate, invariantRuleProvider);
+                compactedContextProvider, scoringService, canonizationGate, invariantRuleProvider, budgetStrategyFactory);
     }
 
     private SimulationScenario minimalScenario() {
@@ -101,7 +104,10 @@ class SimulationServiceCleanupTest {
                 List.of(),                                                // highlights
                 null,                                                     // adversaryMode
                 null,                                                     // adversaryConfig
-                null                                                      // invariants
+                null,                                                     // invariants
+                null,                                                     // enforcementStrategy
+                null,                                                     // budgetStrategy
+                null                                                      // tieredStorageEnabled
         );
     }
 

@@ -17,6 +17,7 @@ import dev.dunnam.diceanchors.assembly.RelevanceScorer;
 import dev.dunnam.diceanchors.assembly.RetrievalMode;
 import dev.dunnam.diceanchors.assembly.TokenCounter;
 import dev.dunnam.diceanchors.persistence.AnchorRepository;
+import dev.dunnam.diceanchors.persistence.TieredAnchorRepository;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +26,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -51,7 +53,8 @@ public record ChatActions(
         CompliancePolicy compliancePolicy,
         TokenCounter tokenCounter,
         RelevanceScorer relevanceScorer,
-        ChatContextInitializer chatContextInitializer
+        ChatContextInitializer chatContextInitializer,
+        Optional<TieredAnchorRepository> tieredRepository
 ) {
 
     private static final Logger logger = LoggerFactory.getLogger(ChatActions.class);
@@ -80,7 +83,9 @@ public record ChatActions(
                 tokenCounter,
                 null,
                 properties.retrieval(),
-                relevanceScorer);
+                relevanceScorer,
+                false,
+                tieredRepository.orElse(null));
         var propositionRef = new PropositionsLlmReference(
                 anchorRepository,
                 contextId,

@@ -73,25 +73,31 @@ public record DomainProfile(
     /**
      * Graph-heavy weights, strict thresholds.
      * Favors propositions with strong graph consistency.
+     * Quality signals (novelty, importance) are tie-breakers at 0.05 each;
+     * their weight redistributes to present signals when disabled.
      */
     public static final DomainProfile SECURE = new DomainProfile("SECURE",
-                                                                 Map.of("sourceAuthority", 0.2, "extractionConfidence", 0.2, "graphConsistency", 0.4, "corroboration", 0.2),
+                                                                 Map.of("sourceAuthority", 0.18, "extractionConfidence", 0.18, "graphConsistency", 0.36, "corroboration", 0.18, "novelty", 0.05, "importance", 0.05),
                                                                  0.85, 0.50, 0.30);
 
     /**
      * Source-heavy weights, permissive thresholds.
      * Trusts DM-sourced propositions more readily.
+     * Quality signals (novelty, importance) are tie-breakers at 0.05 each;
+     * their weight redistributes to present signals when disabled.
      */
     public static final DomainProfile NARRATIVE = new DomainProfile("NARRATIVE",
-                                                                    Map.of("sourceAuthority", 0.4, "extractionConfidence", 0.3, "graphConsistency", 0.15, "corroboration", 0.15),
+                                                                    Map.of("sourceAuthority", 0.35, "extractionConfidence", 0.25, "graphConsistency", 0.15, "corroboration", 0.15, "novelty", 0.05, "importance", 0.05),
                                                                     0.60, 0.35, 0.20);
 
     /**
      * Equal weights, moderate thresholds.
      * Default profile when no specific domain bias is needed.
+     * Quality signals (novelty, importance) at 0.06 each;
+     * their weight redistributes to present signals when disabled.
      */
     public static final DomainProfile BALANCED = new DomainProfile("BALANCED",
-                                                                   Map.of("sourceAuthority", 0.25, "extractionConfidence", 0.25, "graphConsistency", 0.25, "corroboration", 0.25),
+                                                                   Map.of("sourceAuthority", 0.22, "extractionConfidence", 0.22, "graphConsistency", 0.22, "corroboration", 0.22, "novelty", 0.06, "importance", 0.06),
                                                                    0.70, 0.40, 0.25);
 
     /**

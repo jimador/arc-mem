@@ -1,6 +1,7 @@
 id: budget-starvation-interference
 category: adversarial
 adversarial: true
+budgetStrategy: INTERFERENCE_DENSITY
 persona:
   name: Nira Quickquill
   description: Hyper-verbal courier who mixes critical updates with overwhelming irrelevant detail.

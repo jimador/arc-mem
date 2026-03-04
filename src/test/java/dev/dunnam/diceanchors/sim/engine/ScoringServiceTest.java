@@ -42,7 +42,10 @@ class ScoringServiceTest {
                 List.of(),
                 0,
                 0,
-                0);
+                0,
+                ComplianceSnapshot.none(),
+                0,
+                SweepSnapshot.none());
         return new SimulationRunRecord.TurnSnapshot(
                 turnNumber, TurnType.ATTACK, List.of(),
                 "player message", "dm response",

@@ -3,9 +3,11 @@ package dev.dunnam.diceanchors.extract;
 import com.embabel.dice.proposition.Proposition;
 import com.embabel.dice.proposition.PropositionStatus;
 import dev.dunnam.diceanchors.DiceAnchorsProperties;
+import dev.dunnam.diceanchors.anchor.Anchor;
 import dev.dunnam.diceanchors.anchor.AnchorEngine;
 import dev.dunnam.diceanchors.anchor.Authority;
 import dev.dunnam.diceanchors.anchor.ConflictDetector;
+import dev.dunnam.diceanchors.anchor.ConflictIndex;
 import dev.dunnam.diceanchors.anchor.ConflictResolver;
 import dev.dunnam.diceanchors.anchor.ConflictType;
 import dev.dunnam.diceanchors.anchor.DemotionReason;
@@ -16,6 +18,7 @@ import dev.dunnam.diceanchors.anchor.TrustScore;
 import dev.dunnam.diceanchors.anchor.event.ArchiveReason;
 import dev.dunnam.diceanchors.persistence.AnchorRepository;
 import io.opentelemetry.api.trace.Span;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -23,6 +26,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -33,6 +37,12 @@ import java.util.stream.Collectors;
  * <ol>
  *   <li><strong>Confidence gate</strong> — drops propositions below the configured
  *       {@code autoActivateThreshold}. Fast, no I/O.</li>
+ *   <li><strong>Conflict pre-check gate</strong> — rejects propositions that conflict
+ *       with RELIABLE+ anchors according to the precomputed {@link ConflictIndex}.
+ *       O(1) lookup per anchor pair, no LLM calls. Skipped when the index is absent
+ *       or empty. Inspired by the Sleeping LLM hallucination firewall pattern
+ *       (Guo et al., 2025) — filter contradictions before injection rather than
+ *       detecting them after the fact. Uses {@link ConflictIndex} (F05) for O(1) lookup.</li>
  *   <li><strong>Dedup gate</strong> — rejects propositions that are semantically
  *       identical to existing active anchors. Uses {@link DuplicateDetector} which
  *       combines fast normalized-string matching with optional LLM verification.
@@ -56,7 +66,7 @@ import java.util.stream.Collectors;
  * </ol>
  *
  * <h2>Batch vs. Sequential Processing</h2>
- * {@link #batchEvaluateAndPromote} processes all candidates together through Gates 1–4
+ * {@link #batchEvaluateAndPromote} processes all candidates together through Gates 1–5
  * using batch LLM calls, then promotes sequentially to preserve budget enforcement.
  * {@link #evaluateAndPromote} processes each proposition independently through the full
  * gate sequence. Both methods produce the same result for a single proposition; batch
@@ -74,8 +84,9 @@ import java.util.stream.Collectors;
  *       The dedup gate (both LLM and exact-text cross-reference) enforces this.</li>
  *   <li><strong>P2</strong>: Conflict resolution decisions MUST always be acted upon.
  *       Every non-null resolution outcome changes anchor or proposition state.</li>
- *   <li><strong>P3</strong>: Gate sequence is preserved — confidence → dedup → conflict
- *       → trust → promote. No gate is skipped or reordered.</li>
+ *   <li><strong>P3</strong>: Gate sequence is preserved — confidence → conflict pre-check
+ *       → dedup → conflict → trust → promote. The pre-check gate is skipped when
+ *       {@link ConflictIndex} is absent or empty.</li>
  *   <li><strong>P4</strong>: Budget enforcement is applied per {@link AnchorEngine#promote}
  *       call, not at the batch level. Batch size is capped at the configured maximum.</li>
  * </ul>
@@ -102,15 +113,19 @@ public class AnchorPromoter {
     private final TrustPipeline trustPipeline;
     private final AnchorRepository repository;
     private final DuplicateDetector duplicateDetector;
+    @Nullable
+    private final ConflictIndex conflictIndex;
 
     public AnchorPromoter(AnchorEngine engine, DiceAnchorsProperties properties,
                           TrustPipeline trustPipeline, AnchorRepository repository,
-                          DuplicateDetector duplicateDetector) {
+                          DuplicateDetector duplicateDetector,
+                          Optional<ConflictIndex> conflictIndex) {
         this.engine = engine;
         this.properties = properties;
         this.trustPipeline = trustPipeline;
         this.repository = repository;
         this.duplicateDetector = duplicateDetector;
+        this.conflictIndex = conflictIndex.orElse(null);
     }
 
     public int evaluateAndPromote(String contextId, List<Proposition> propositions) {
@@ -120,6 +135,7 @@ public class AnchorPromoter {
     public PromotionOutcome evaluateAndPromoteWithOutcome(String contextId, List<Proposition> propositions) {
         int total = 0;
         int postConfidence = 0;
+        int postPrecheck = 0;
         int postDedup = 0;
         int postConflict = 0;
         int postTrust = 0;
@@ -142,6 +158,11 @@ public class AnchorPromoter {
                 continue;
             }
             postConfidence++;
+
+            if (shouldRunPrecheck() && isFilteredByPrecheck(prop.getText(), anchors)) {
+                continue;
+            }
+            postPrecheck++;
 
             if (duplicateDetector.isDuplicate(prop.getText(), anchors)) {
                 logger.info("Proposition {} is duplicate, filtering at dedup gate", prop.getId());
@@ -193,9 +214,10 @@ public class AnchorPromoter {
             promoted++;
         }
 
-        logger.info("Promotion funnel for context {}: {} active, {} post-confidence, {} post-dedup, " +
-                        "{} post-conflict, {} post-trust, {} promoted, {} degraded-conflict(s)",
-                contextId, total, postConfidence, postDedup, postConflict, postTrust, promoted, degradedConflictCount);
+        logger.info("Promotion funnel for context {}: {} active, {} post-confidence, {} post-precheck, " +
+                        "{} post-dedup, {} post-conflict, {} post-trust, {} promoted, {} degraded-conflict(s)",
+                contextId, total, postConfidence, postPrecheck, postDedup, postConflict, postTrust, promoted,
+                degradedConflictCount);
         return new PromotionOutcome(promoted, degradedConflictCount);
     }
 
@@ -232,10 +254,22 @@ public class AnchorPromoter {
         }
 
         var existingAnchors = engine.findByContext(contextId);
+
+        var postPrecheck = shouldRunPrecheck()
+                ? confident.stream()
+                        .filter(p -> !isFilteredByPrecheck(p.getText(), existingAnchors))
+                        .toList()
+                : confident;
+
+        if (postPrecheck.isEmpty()) {
+            logger.info("Batch promotion: all candidates filtered at conflict pre-check gate");
+            return PromotionOutcome.empty();
+        }
+
         var existingTexts = existingAnchors.stream()
-                .map(dev.dunnam.diceanchors.anchor.Anchor::text)
+                .map(Anchor::text)
                 .collect(Collectors.toSet());
-        var postExistingDedup = confident.stream()
+        var postExistingDedup = postPrecheck.stream()
                 .filter(p -> !existingTexts.contains(p.getText()))
                 .toList();
 
@@ -309,15 +343,36 @@ public class AnchorPromoter {
             promoted++;
         }
 
-        logger.info("Batch promotion funnel for context {}: {} input, {} post-confidence, {} post-dedup, " +
-                        "{} post-conflict, {} post-trust, {} promoted, {} degraded-conflict(s)",
-                contextId, propositions.size(), confident.size(), postDedup.size(),
+        logger.info("Batch promotion funnel for context {}: {} input, {} post-confidence, {} post-precheck, " +
+                        "{} post-dedup, {} post-conflict, {} post-trust, {} promoted, {} degraded-conflict(s)",
+                contextId, propositions.size(), confident.size(), postPrecheck.size(), postDedup.size(),
                 postConflict.size(), postTrust.size(), promoted, degradedConflictCount);
         return new PromotionOutcome(promoted, degradedConflictCount);
     }
 
+    private boolean shouldRunPrecheck() {
+        return conflictIndex != null && conflictIndex.size() > 0;
+    }
+
+    private boolean isFilteredByPrecheck(String propositionText, List<Anchor> existingAnchors) {
+        for (var anchor : existingAnchors) {
+            var conflicts = conflictIndex.getConflicts(anchor.id());
+            for (var entry : conflicts) {
+                if (entry.anchorText().equals(propositionText) && entry.authority().isAtLeast(Authority.RELIABLE)) {
+                    logger.info("promotion.precheck.rejected anchorId={} conflicting={} authority={} confidence={}",
+                            anchor.id(), propositionText.length() > 80
+                                    ? propositionText.substring(0, 80) + "..."
+                                    : propositionText,
+                            entry.authority(), entry.confidence());
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     private Map<String, Boolean> batchDedupWithFallback(List<String> candidates,
-                                                         List<dev.dunnam.diceanchors.anchor.Anchor> anchors) {
+                                                         List<Anchor> anchors) {
         try {
             return duplicateDetector.batchIsDuplicate(candidates, anchors);
         } catch (Exception e) {

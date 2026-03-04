@@ -36,9 +36,28 @@ dice-anchors:
       hot-decay-multiplier: 1.5
       warm-decay-multiplier: 1.0
       cold-decay-multiplier: 0.6
+    quality-scoring:
+      enabled: false
+
+  maintenance:
+    mode: PROACTIVE # REACTIVE | HYBRID
+    proactive:
+      min-turns-between-sweeps: 5
+      hard-prune-threshold: 0.1
+      soft-prune-threshold: 0.3
+      soft-prune-pressure-threshold: 0.6
+      candidacy-min-reinforcements: 10
+      candidacy-min-audit-score: 0.8
+      candidacy-min-age: 5
+      rank-boost-amount: 50
+      rank-penalty-amount: 50
+      llm-audit-enabled: false
+      prolog-pre-filter-enabled: true
 
   assembly:
     prompt-token-budget: 0
+    adaptive-footprint-enabled: false
+    enforcement-strategy: PROMPT_ONLY
 
   chat:
     persona: dm
@@ -106,6 +125,28 @@ dice-anchors:
     heat-drop-threshold: 0.2
     cluster-drift-min-anchors: 3
     max-expected-events-per-window: 20
+
+  tiered-storage:
+    enabled: false
+    max-cache-size: 1000
+    ttl-minutes: 60
+
+  budget:
+    strategy: COUNT
+    density-warning-threshold: 0.6
+    density-reduction-threshold: 0.8
+    density-reduction-factor: 0.5
+
+  pressure:
+    enabled: true
+    budget-weight: 0.4
+    conflict-weight: 0.3
+    decay-weight: 0.2
+    compaction-weight: 0.1
+    light-sweep-threshold: 0.4
+    full-sweep-threshold: 0.8
+    budget-exponent: 1.5
+    conflict-window-size: 5
 
 spring:
   ai:

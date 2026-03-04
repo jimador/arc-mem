@@ -1,8 +1,10 @@
 package dev.dunnam.diceanchors.anchor;
 
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -14,6 +16,9 @@ import java.util.Map;
  * <p>
  * Uses {@link SubjectFilter} to reduce semantic LLM calls by pre-filtering
  * anchors to those sharing subjects with the incoming text.
+ * <p>
+ * When strategy is {@link ConflictDetectionStrategy#INDEXED}, consults the
+ * {@link ConflictIndex} first and falls back to semantic detection on cache miss.
  */
 public class CompositeConflictDetector implements ConflictDetector {
 
@@ -23,15 +28,38 @@ public class CompositeConflictDetector implements ConflictDetector {
     private final ConflictDetector semanticDetector;
     private final SubjectFilter subjectFilter;
     private final ConflictDetectionStrategy strategy;
+    private final @Nullable ConflictIndex conflictIndex;
+    private final @Nullable PrologConflictDetector logicalDetector;
 
     public CompositeConflictDetector(NegationConflictDetector lexicalDetector,
                                      ConflictDetector semanticDetector,
                                      SubjectFilter subjectFilter,
-                                     ConflictDetectionStrategy strategy) {
+                                     ConflictDetectionStrategy strategy,
+                                     @Nullable ConflictIndex conflictIndex,
+                                     @Nullable PrologConflictDetector logicalDetector) {
         this.lexicalDetector = lexicalDetector;
         this.semanticDetector = semanticDetector;
         this.subjectFilter = subjectFilter;
         this.strategy = strategy;
+        this.conflictIndex = conflictIndex;
+        this.logicalDetector = logicalDetector;
+    }
+
+    /** Backward-compatible 5-parameter constructor -- delegates with null logical detector. */
+    public CompositeConflictDetector(NegationConflictDetector lexicalDetector,
+                                     ConflictDetector semanticDetector,
+                                     SubjectFilter subjectFilter,
+                                     ConflictDetectionStrategy strategy,
+                                     @Nullable ConflictIndex conflictIndex) {
+        this(lexicalDetector, semanticDetector, subjectFilter, strategy, conflictIndex, null);
+    }
+
+    /** Backward-compatible 4-parameter constructor -- delegates with null index and null logical detector. */
+    public CompositeConflictDetector(NegationConflictDetector lexicalDetector,
+                                     ConflictDetector semanticDetector,
+                                     SubjectFilter subjectFilter,
+                                     ConflictDetectionStrategy strategy) {
+        this(lexicalDetector, semanticDetector, subjectFilter, strategy, null, null);
     }
 
     @Override
@@ -44,6 +72,14 @@ public class CompositeConflictDetector implements ConflictDetector {
             case LEXICAL_ONLY -> lexicalDetector.detect(incomingText, existingAnchors);
             case SEMANTIC_ONLY -> detectSemantic(incomingText, existingAnchors);
             case LEXICAL_THEN_SEMANTIC -> detectLexicalThenSemantic(incomingText, existingAnchors);
+            case INDEXED -> detectIndexed(incomingText, existingAnchors);
+            case LOGICAL -> {
+                if (logicalDetector != null) {
+                    yield logicalDetector.detect(incomingText, existingAnchors);
+                }
+                throw new UnsupportedOperationException(
+                        "LOGICAL conflict detection requires PrologConflictDetector -- none injected");
+            }
         };
     }
 
@@ -58,7 +94,70 @@ public class CompositeConflictDetector implements ConflictDetector {
             case LEXICAL_ONLY -> lexicalDetector.batchDetect(candidateTexts, existingAnchors);
             case SEMANTIC_ONLY -> semanticDetector.batchDetect(candidateTexts, existingAnchors);
             case LEXICAL_THEN_SEMANTIC -> batchDetectLexicalThenSemantic(candidateTexts, existingAnchors);
+            case INDEXED -> batchDetectIndexed(candidateTexts, existingAnchors);
+            case LOGICAL -> {
+                if (logicalDetector != null) {
+                    yield logicalDetector.batchDetect(candidateTexts, existingAnchors);
+                }
+                throw new UnsupportedOperationException(
+                        "LOGICAL conflict detection requires PrologConflictDetector -- none injected");
+            }
         };
+    }
+
+    private List<Conflict> detectIndexed(String incomingText, List<Anchor> existingAnchors) {
+        if (conflictIndex == null) {
+            logger.warn("INDEXED strategy requested but no ConflictIndex available -- falling back to LEXICAL_THEN_SEMANTIC");
+            return detectLexicalThenSemantic(incomingText, existingAnchors);
+        }
+
+        var conflicts = new ArrayList<Conflict>();
+        var missAnchors = new ArrayList<Anchor>();
+
+        for (var anchor : existingAnchors) {
+            var entries = conflictIndex.getConflicts(anchor.id());
+            var hit = entries.stream().findFirst();
+            if (hit.isPresent()) {
+                var entry = hit.get();
+                conflicts.add(new Conflict(anchor, incomingText, entry.confidence(),
+                        "index hit: " + entry.conflictType(), DetectionQuality.FULL, entry.conflictType()));
+            } else {
+                missAnchors.add(anchor);
+            }
+        }
+
+        if (!missAnchors.isEmpty()) {
+            var semanticResults = detectSemantic(incomingText, missAnchors);
+            for (var conflict : semanticResults) {
+                if (conflict.existing() != null) {
+                    var anchor = conflict.existing();
+                    var conflictType = conflict.conflictType() != null
+                            ? conflict.conflictType()
+                            : ConflictType.CONTRADICTION;
+                    var entry = new ConflictEntry(
+                            anchor.id(),
+                            anchor.text(),
+                            anchor.authority(),
+                            conflictType,
+                            conflict.confidence(),
+                            Instant.now()
+                    );
+                    conflictIndex.recordConflict(anchor.id(), entry);
+                }
+                conflicts.add(conflict);
+            }
+        }
+
+        return conflicts;
+    }
+
+    private Map<String, List<Conflict>> batchDetectIndexed(
+            List<String> candidateTexts, List<Anchor> existingAnchors) {
+        var result = new LinkedHashMap<String, List<Conflict>>();
+        for (var candidate : candidateTexts) {
+            result.put(candidate, detectIndexed(candidate, existingAnchors));
+        }
+        return result;
     }
 
     private Map<String, List<Conflict>> batchDetectLexicalThenSemantic(

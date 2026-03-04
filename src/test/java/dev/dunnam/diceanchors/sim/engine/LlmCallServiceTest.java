@@ -172,14 +172,14 @@ class LlmCallServiceTest {
                 true,
                 4);
         return new DiceAnchorsProperties(
-                new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null),
+                new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null, null),
                 new DiceAnchorsProperties.ChatConfig("dm", 200, null),
                 new DiceAnchorsProperties.MemoryConfig(true, null, null, "text-embedding-3-small", 20, 5, 2),
                 new DiceAnchorsProperties.PersistenceConfig(false),
                 simConfig,
                 new DiceAnchorsProperties.ConflictDetectionConfig(dev.dunnam.diceanchors.anchor.ConflictStrategy.LLM, "gpt-4o-nano"),
                 new DiceAnchorsProperties.RunHistoryConfig(RunHistoryStoreType.MEMORY),
-                new DiceAnchorsProperties.AssemblyConfig(0),
-                null, null, null);
+                new DiceAnchorsProperties.AssemblyConfig(0, false, dev.dunnam.diceanchors.assembly.EnforcementStrategy.PROMPT_ONLY),
+                null, null, null, null, null, null, null);
     }
 }

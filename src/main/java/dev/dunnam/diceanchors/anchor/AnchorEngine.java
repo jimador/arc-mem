@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -65,6 +66,10 @@ public class AnchorEngine {
     private final TrustPipeline trustPipeline;
     private final CanonizationGate canonizationGate;
     private final InvariantEvaluator invariantEvaluator;
+    private final BudgetStrategy budgetStrategy;
+
+    /** Per-context strategy overrides; populated by {@link #registerBudgetStrategy}. */
+    private final Map<String, BudgetStrategy> contextBudgetStrategies = new ConcurrentHashMap<>();
 
     /** Trust re-evaluation audit log (ATR1). Thread-safe, in-memory for demo. */
     private final List<TrustAuditRecord> trustAuditLog = new CopyOnWriteArrayList<>();
@@ -79,7 +84,8 @@ public class AnchorEngine {
             ApplicationEventPublisher eventPublisher,
             @Lazy TrustPipeline trustPipeline,
             CanonizationGate canonizationGate,
-            InvariantEvaluator invariantEvaluator) {
+            InvariantEvaluator invariantEvaluator,
+            BudgetStrategy budgetStrategy) {
         this.repository = repository;
         this.config = properties.anchor();
         this.conflictDetector = conflictDetector;
@@ -91,6 +97,7 @@ public class AnchorEngine {
         this.trustPipeline = trustPipeline;
         this.canonizationGate = canonizationGate;
         this.invariantEvaluator = invariantEvaluator;
+        this.budgetStrategy = budgetStrategy;
     }
 
     /**
@@ -196,23 +203,19 @@ public class AnchorEngine {
                 }
             }
 
-            if (protectedIds.isEmpty()) {
-                var evicted = repository.evictLowestRanked(contextId, config.budget());
-                for (var e : evicted) {
-                    publish(AnchorLifecycleEvent.evicted(this, contextId, e.anchorId(), e.previousRank()));
-                }
-            } else {
-                if (allAnchors.size() > config.budget()) {
-                    int toEvict = allAnchors.size() - config.budget();
-                    var evictable = allAnchors.stream()
-                            .filter(a -> !a.pinned() && !protectedIds.contains(a.id()))
-                            .sorted(java.util.Comparator.comparingInt(Anchor::rank))
-                            .limit(toEvict)
-                            .toList();
-                    for (var victim : evictable) {
-                        repository.archiveAnchor(victim.id());
-                        publish(AnchorLifecycleEvent.evicted(this, contextId, victim.id(), victim.rank()));
-                    }
+            var activeStrategy = resolveStrategy(contextId);
+            int effectiveBudget = activeStrategy.computeEffectiveBudget(allAnchors, config.budget());
+            if (allAnchors.size() > effectiveBudget) {
+                int excess = allAnchors.size() - effectiveBudget;
+                // Strategy proposes candidates; engine filters invariant-protected anchors
+                var candidates = activeStrategy.selectForEviction(allAnchors, excess + protectedIds.size());
+                var evictable = candidates.stream()
+                        .filter(a -> !protectedIds.contains(a.id()))
+                        .limit(excess)
+                        .toList();
+                for (var victim : evictable) {
+                    repository.archiveAnchor(victim.id());
+                    publish(AnchorLifecycleEvent.evicted(this, contextId, victim.id(), victim.rank()));
                 }
             }
         } else {
@@ -741,6 +744,36 @@ public class AnchorEngine {
         var status = node.getStatus();
         var activeStatus = status == null || status == PropositionStatus.ACTIVE || status == PropositionStatus.PROMOTED;
         return node.getRank() > 0 && activeStatus;
+    }
+
+    /**
+     * Register a per-context budget strategy override for a simulation run.
+     * The override takes precedence over the global {@link BudgetStrategy} bean
+     * for any {@link #promote} call within the given context.
+     *
+     * <p>Call {@link #clearBudgetStrategy} when the run completes to avoid memory leaks.
+     *
+     * @param contextId the simulation context ID
+     * @param strategy  the strategy to use for this context
+     */
+    public void registerBudgetStrategy(String contextId, BudgetStrategy strategy) {
+        contextBudgetStrategies.put(contextId, strategy);
+        logger.info("budget.strategy.override contextId={} strategy={}", contextId,
+                strategy.getClass().getSimpleName());
+    }
+
+    /**
+     * Remove the per-context budget strategy override for the given context.
+     * Should be called when a simulation run completes or is cancelled.
+     *
+     * @param contextId the simulation context ID
+     */
+    public void clearBudgetStrategy(String contextId) {
+        contextBudgetStrategies.remove(contextId);
+    }
+
+    private BudgetStrategy resolveStrategy(String contextId) {
+        return contextBudgetStrategies.getOrDefault(contextId, budgetStrategy);
     }
 
     /**

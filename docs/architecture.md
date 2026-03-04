@@ -20,7 +20,7 @@ Everything shares the same anchor lifecycle engine and persistence layer.
 
 Simulation path:
 
-`ScenarioLoader -> SimulationService -> SimulationTurnExecutor -> (LLM call + extraction + promotion + scoring) -> RunHistoryStore`
+`ScenarioLoader -> SimulationService -> SimulationTurnExecutor -> (LLM call + ComplianceEnforcer.enforce()) -> (extraction + ConflictPreCheck + AnchorPromoter) -> (MaintenanceStrategy.onTurnComplete()) -> ScoringService -> RunHistoryStore`
 
 Chat path:
 
@@ -58,11 +58,11 @@ flowchart LR
 
 ## Package map
 
-- `anchor/`: rank/authority lifecycle, conflict resolution, decay, trust re-eval
-- `assembly/`: context assembly, lock, relevance scoring, compaction/token budget
+- `anchor/`: rank/authority lifecycle, conflict resolution, decay, trust re-eval, maintenance strategies (reactive/proactive/hybrid), memory pressure gauge, conflict index, budget strategies, Prolog integration
+- `assembly/`: context assembly, lock, relevance scoring, compaction/token budget, compliance enforcement
 - `extract/`: proposition-to-anchor gate pipeline
 - `chat/`: Embabel action/tool integration + chat UI
-- `persistence/`: Neo4j entities/repository
+- `persistence/`: Neo4j entities/repository, tiered anchor storage (HOT/WARM/COLD)
 - `sim/`: scenario execution, judge scoring, benchmarking, report output, UI panels
 
 ## Core data model
@@ -140,12 +140,37 @@ promote()
 
 Default budget is `20` active anchors per context.
 
+## Maintenance strategies
+
+`MaintenanceStrategy` sealed interface with three modes:
+
+- `REACTIVE` (default): per-turn `DecayPolicy` + `ReinforcementPolicy` — identical to pre-optimization behavior
+- `PROACTIVE`: 5-step sleeping-LLM-inspired sweep (audit → refresh → consolidate → prune → validate) triggered by `MemoryPressureGauge` thresholds
+- `HYBRID`: reactive per-turn hooks + proactive sweeps
+
+`MemoryPressureGauge` computes composite `[0.0, 1.0]` pressure from budget usage, conflict rate, decay demotions, and compaction frequency. Light-sweep at 0.4, full-sweep at 0.8.
+
+Strategy is selectable globally via `DiceAnchorsProperties` and per-scenario via YAML for A/B comparison.
+
+## Compliance enforcement
+
+`ComplianceEnforcer` interface: `enforce(ComplianceContext) → ComplianceResult`.
+
+Implementations:
+- `PromptInjectionEnforcer` — current behavior, always ACCEPT (default)
+- `PostGenerationValidator` — LLM validates response against CANON/RELIABLE anchors after generation
+- `PrologInvariantEnforcer` — deterministic rule-based checking via DICE tuProlog
+
+Authority-based strictness: CANON enforced by default; lower authorities configurable.
+
 ## Conflict handling
 
 Available detector strategies:
 - `llm` (default): semantic contradiction detection
 - `lexical`: negation marker + token overlap heuristic
 - `composite`: multi-detector chaining
+- `indexed`: O(1) lookup via precomputed `ConflictIndex` (Neo4j `CONFLICTS_WITH` relationships)
+- `logical`: Prolog backward chaining via DICE tuProlog (deterministic, no LLM calls)
 
 Resolver default (authority-biased):
 
@@ -246,6 +271,13 @@ Run storage is behind `RunHistoryStore`:
 | `run-history.store` | `memory` |
 | `anchor.revision.enabled` | `true` |
 | `anchor.revision.reliable-revisable` | `false` |
+| `anchor.maintenance.mode` | `REACTIVE` |
+| `anchor.pressure.light-sweep-threshold` | `0.4` |
+| `anchor.pressure.full-sweep-threshold` | `0.8` |
+| `anchor.budget.strategy` | `COUNT` |
+| `compliance.enforcement-strategy` | `PROMPT_ONLY` |
+| `tiered-storage.enabled` | `false` |
+| `quality-scoring.enabled` | `false` |
 
 ## External dependencies
 

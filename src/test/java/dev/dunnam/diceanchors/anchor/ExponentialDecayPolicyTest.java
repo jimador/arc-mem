@@ -101,7 +101,7 @@ class ExponentialDecayPolicyTest {
                         20, 500, 100, 900, true, 0.65,
                         DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED,
                         true, true, true,
-                        0.6, 400, 200, null, null, null, null);
+                        0.6, 400, 200, null, null, null, null, null);
 
         private final DecayPolicy policyWithThresholds = DecayPolicy.exponential(24.0, anchorConfig);
 

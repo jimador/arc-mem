@@ -6,6 +6,12 @@ import dev.dunnam.diceanchors.anchor.DedupStrategy;
 import dev.dunnam.diceanchors.anchor.Anchor;
 import dev.dunnam.diceanchors.anchor.CompliancePolicy;
 import dev.dunnam.diceanchors.anchor.Authority;
+import dev.dunnam.diceanchors.anchor.DecayPolicy;
+import dev.dunnam.diceanchors.anchor.MemoryPressureGauge;
+import dev.dunnam.diceanchors.anchor.ReactiveMaintenanceStrategy;
+import dev.dunnam.diceanchors.anchor.ReinforcementPolicy;
+import dev.dunnam.diceanchors.assembly.ComplianceEnforcer;
+import dev.dunnam.diceanchors.assembly.ComplianceResult;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -17,6 +23,7 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.Prompt;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,14 +43,21 @@ class SimulationTurnExecutorParallelTest {
     @Mock private dev.dunnam.diceanchors.anchor.AnchorEngine anchorEngine;
     @Mock private dev.dunnam.diceanchors.persistence.AnchorRepository anchorRepository;
     @Mock private SimulationExtractionService extractionService;
+    @Mock private ComplianceEnforcer complianceEnforcer;
+    @Mock private MemoryPressureGauge pressureGauge;
 
     private SimulationTurnExecutor executorWithFlag(boolean parallelPostResponse) {
         var properties = new DiceAnchorsProperties(
-                new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null),
+                new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null, null),
                 null, null, null,
                 new DiceAnchorsProperties.SimConfig("gpt-4.1-mini", 30, 30, 10, parallelPostResponse, 4),
                 null, null,
-                new DiceAnchorsProperties.AssemblyConfig(0), null, null, null);
+                new DiceAnchorsProperties.AssemblyConfig(0, false, dev.dunnam.diceanchors.assembly.EnforcementStrategy.PROMPT_ONLY), null, null, null, null, null, null, null);
+        var injectionEnforcer = new LoggingPromptInjectionEnforcer();
+        var maintenanceStrategy = new ReactiveMaintenanceStrategy(
+                DecayPolicy.exponential(1000.0), ReinforcementPolicy.threshold());
+        var turnServices = new SimulationTurnServices(
+                extractionService, maintenanceStrategy, complianceEnforcer, pressureGauge, injectionEnforcer);
         return new SimulationTurnExecutor(
                 chatModel,
                 anchorEngine,
@@ -51,8 +65,9 @@ class SimulationTurnExecutorParallelTest {
                 properties,
                 CompliancePolicy.flat(),
                 text -> Math.max(1, text.length() / 4),
-                extractionService,
-                null);
+                null,
+                null,
+                turnServices);
     }
 
     private static Anchor anchor(String id, String text) {
@@ -75,6 +90,7 @@ class SimulationTurnExecutorParallelTest {
             stubDmResponse("The dungeon stretches ahead.");
             var injectedAnchor = anchor("a1", "The dungeon is dark");
 
+            when(complianceEnforcer.enforce(any())).thenReturn(ComplianceResult.compliant(Duration.ZERO));
             when(anchorEngine.inject("ctx")).thenReturn(
                     List.of(injectedAnchor),
                     List.of(injectedAnchor));
@@ -148,6 +164,7 @@ class SimulationTurnExecutorParallelTest {
             var executor = executorWithFlag(true);
             stubDmResponse("The tavern is warm and inviting.");
 
+            when(complianceEnforcer.enforce(any())).thenReturn(ComplianceResult.compliant(Duration.ZERO));
             when(anchorEngine.inject("ctx")).thenReturn(List.of(), List.of());
             when(extractionService.extract("ctx", "The tavern is warm and inviting."))
                     .thenReturn(new ExtractionResult(2, 0, 0, List.of("The tavern is warm.", "The tavern is inviting.")));
@@ -220,6 +237,7 @@ class SimulationTurnExecutorParallelTest {
             stubDmResponse("Ancient ruins hide many secrets.");
             var existingAnchor = anchor("a1", "The ruins are ancient");
 
+            when(complianceEnforcer.enforce(any())).thenReturn(ComplianceResult.compliant(Duration.ZERO));
             when(anchorEngine.inject("ctx")).thenReturn(
                     List.of(existingAnchor),
                     List.of(existingAnchor));

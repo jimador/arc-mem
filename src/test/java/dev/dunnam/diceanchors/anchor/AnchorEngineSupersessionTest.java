@@ -79,7 +79,8 @@ class AnchorEngineSupersessionTest {
                 eventPublisher,
                 trustPipeline,
                 canonizationGate,
-                invariantEvaluator);
+                invariantEvaluator,
+                new CountBasedBudgetStrategy());
     }
 
     @Nested
@@ -283,8 +284,15 @@ class AnchorEngineSupersessionTest {
             var proposition = org.mockito.Mockito.mock(com.embabel.dice.proposition.Proposition.class);
             when(proposition.getContextIdValue()).thenReturn(CONTEXT_ID);
             when(repository.findById("p1")).thenReturn(proposition);
-            when(repository.evictLowestRanked(CONTEXT_ID, 20))
-                    .thenReturn(List.of(new EvictedAnchorInfo("evicted-1", 150)));
+            // 21 anchors over the budget of 20; eviction archives the lowest-rank anchor directly,
+            // never creating a supersession link (budget eviction != supersession)
+            var victim = anchorNode("evicted-1", 150, Authority.PROVISIONAL);
+            var overBudgetAnchors = new java.util.ArrayList<PropositionNode>();
+            overBudgetAnchors.add(victim);
+            for (int i = 0; i < 20; i++) {
+                overBudgetAnchors.add(anchorNode("a" + i, 300 + i, Authority.PROVISIONAL));
+            }
+            when(repository.findActiveAnchors(CONTEXT_ID)).thenReturn(overBudgetAnchors);
 
             engine.promote("p1", 500);
 
@@ -321,7 +329,7 @@ class AnchorEngineSupersessionTest {
                 0.6,
                 400,
                 200,
-                null, null, null, null);
+                null, null, null, null, null);
         return new DiceAnchorsProperties(
                 anchorConfig,
                 new DiceAnchorsProperties.ChatConfig("dm", 200, null),
@@ -330,7 +338,7 @@ class AnchorEngineSupersessionTest {
                 new DiceAnchorsProperties.SimConfig("gpt-4.1-mini", 30, 30, 10, true, 4),
                 new DiceAnchorsProperties.ConflictDetectionConfig(ConflictStrategy.LLM, "gpt-4o-nano"),
                 new DiceAnchorsProperties.RunHistoryConfig(RunHistoryStoreType.MEMORY),
-                new DiceAnchorsProperties.AssemblyConfig(0),
-                null, null, null);
+                new DiceAnchorsProperties.AssemblyConfig(0, false, dev.dunnam.diceanchors.assembly.EnforcementStrategy.PROMPT_ONLY),
+                null, null, null, null, null, null, null);
     }
 }

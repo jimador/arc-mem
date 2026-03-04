@@ -5,6 +5,7 @@ import dev.dunnam.diceanchors.anchor.Anchor;
 import dev.dunnam.diceanchors.anchor.AnchorEngine;
 import dev.dunnam.diceanchors.anchor.Authority;
 import dev.dunnam.diceanchors.anchor.CompliancePolicy;
+import dev.dunnam.diceanchors.persistence.TieredAnchorRepository;
 import dev.dunnam.diceanchors.prompt.PromptPathConstants;
 import dev.dunnam.diceanchors.prompt.PromptTemplates;
 import io.opentelemetry.api.trace.Span;
@@ -49,6 +50,8 @@ public class AnchorsLlmReference {
     private final AnchorCacheInvalidator cacheInvalidator;
     private final @Nullable RetrievalConfig retrievalConfig;
     private final @Nullable RelevanceScorer relevanceScorer;
+    private final boolean adaptiveFootprintEnabled;
+    private final @Nullable TieredAnchorRepository tieredRepository;
 
     private List<Anchor> cachedAnchors;
     private List<Anchor> selectedAnchors;
@@ -56,14 +59,14 @@ public class AnchorsLlmReference {
 
     public AnchorsLlmReference(AnchorEngine engine, String contextId, int budget,
                                CompliancePolicy compliancePolicy) {
-        this(engine, contextId, budget, compliancePolicy, 0, null, null, null, null);
+        this(engine, contextId, budget, compliancePolicy, 0, null, null, null, null, false, null);
     }
 
     public AnchorsLlmReference(AnchorEngine engine, String contextId, int budget,
                                CompliancePolicy compliancePolicy,
                                int tokenBudget,
                                TokenCounter tokenCounter) {
-        this(engine, contextId, budget, compliancePolicy, tokenBudget, tokenCounter, null, null, null);
+        this(engine, contextId, budget, compliancePolicy, tokenBudget, tokenCounter, null, null, null, false, null);
     }
 
     public AnchorsLlmReference(AnchorEngine engine, String contextId, int budget,
@@ -72,7 +75,7 @@ public class AnchorsLlmReference {
                                TokenCounter tokenCounter,
                                AnchorCacheInvalidator cacheInvalidator) {
         this(engine, contextId, budget, compliancePolicy, tokenBudget, tokenCounter,
-                cacheInvalidator, null, null);
+                cacheInvalidator, null, null, false, null);
     }
 
     public AnchorsLlmReference(AnchorEngine engine, String contextId, int budget,
@@ -82,6 +85,31 @@ public class AnchorsLlmReference {
                                @Nullable AnchorCacheInvalidator cacheInvalidator,
                                @Nullable RetrievalConfig retrievalConfig,
                                @Nullable RelevanceScorer relevanceScorer) {
+        this(engine, contextId, budget, compliancePolicy, tokenBudget, tokenCounter,
+                cacheInvalidator, retrievalConfig, relevanceScorer, false, null);
+    }
+
+    public AnchorsLlmReference(AnchorEngine engine, String contextId, int budget,
+                               CompliancePolicy compliancePolicy,
+                               int tokenBudget,
+                               TokenCounter tokenCounter,
+                               @Nullable AnchorCacheInvalidator cacheInvalidator,
+                               @Nullable RetrievalConfig retrievalConfig,
+                               @Nullable RelevanceScorer relevanceScorer,
+                               boolean adaptiveFootprintEnabled) {
+        this(engine, contextId, budget, compliancePolicy, tokenBudget, tokenCounter,
+                cacheInvalidator, retrievalConfig, relevanceScorer, adaptiveFootprintEnabled, null);
+    }
+
+    public AnchorsLlmReference(AnchorEngine engine, String contextId, int budget,
+                               CompliancePolicy compliancePolicy,
+                               int tokenBudget,
+                               TokenCounter tokenCounter,
+                               @Nullable AnchorCacheInvalidator cacheInvalidator,
+                               @Nullable RetrievalConfig retrievalConfig,
+                               @Nullable RelevanceScorer relevanceScorer,
+                               boolean adaptiveFootprintEnabled,
+                               @Nullable TieredAnchorRepository tieredRepository) {
         this.engine = engine;
         this.contextId = contextId;
         this.budget = budget;
@@ -92,12 +120,18 @@ public class AnchorsLlmReference {
         this.cacheInvalidator = cacheInvalidator;
         this.retrievalConfig = retrievalConfig;
         this.relevanceScorer = relevanceScorer;
+        this.adaptiveFootprintEnabled = adaptiveFootprintEnabled;
+        this.tieredRepository = tieredRepository;
     }
 
     public String getContent() {
         ensureAnchorsLoaded();
         if (selectedAnchors.isEmpty()) {
             return "";
+        }
+
+        if (adaptiveFootprintEnabled) {
+            return getContentWithAdaptiveFootprint();
         }
 
         var grouped = selectedAnchors.stream()
@@ -124,6 +158,54 @@ public class AnchorsLlmReference {
         var content = PromptTemplates.render(PromptPathConstants.ANCHORS_REFERENCE, Map.of("tiers", tiers));
         logger.debug("Injected {} anchors for context {}", selectedAnchors.size(), contextId);
         return content;
+    }
+
+    private String getContentWithAdaptiveFootprint() {
+        var grouped = selectedAnchors.stream()
+                .collect(Collectors.groupingBy(Anchor::authority));
+        var result = new StringBuilder();
+
+        for (var authority : List.of(Authority.CANON, Authority.RELIABLE,
+                Authority.UNRELIABLE, Authority.PROVISIONAL)) {
+            var group = grouped.getOrDefault(authority, List.of());
+            if (group.isEmpty()) {
+                continue;
+            }
+
+            var strength = compliancePolicy.getStrengthFor(authority);
+            var complianceLanguage = switch (strength.name()) {
+                case "STRICT" -> "MUST be preserved - absolute requirement";
+                case "MODERATE" -> "SHOULD be considered - treat with caution";
+                default -> "MAY be reconsidered - low confidence";
+            };
+
+            result.append("=== ").append(authority.name()).append(" FACTS (")
+                    .append(complianceLanguage).append(") ===\n");
+
+            var index = 1;
+            for (var anchor : group) {
+                var template = templateForAuthority(authority);
+                var rendered = PromptTemplates.render(template, Map.of(
+                        "index", index,
+                        "text", anchor.text(),
+                        "rank", anchor.rank()));
+                result.append(rendered);
+                index++;
+            }
+            result.append("\n");
+        }
+
+        logger.debug("Injected {} anchors for context {} (adaptive footprint enabled)", selectedAnchors.size(), contextId);
+        return result.toString();
+    }
+
+    private String templateForAuthority(Authority authority) {
+        return switch (authority) {
+            case CANON -> PromptPathConstants.ANCHOR_TEMPLATE_CANON;
+            case RELIABLE -> PromptPathConstants.ANCHOR_TEMPLATE_RELIABLE;
+            case UNRELIABLE -> PromptPathConstants.ANCHOR_TEMPLATE_UNRELIABLE;
+            case PROVISIONAL -> PromptPathConstants.ANCHOR_TEMPLATE_PROVISIONAL;
+        };
     }
 
     public String getLabel() {
@@ -182,12 +264,14 @@ public class AnchorsLlmReference {
 
     private void loadBulkMode() {
         if (cachedAnchors == null) {
-            cachedAnchors = engine.inject(contextId);
+            cachedAnchors = tieredRepository != null
+                    ? tieredRepository.findActiveAnchorsForAssembly(contextId)
+                    : engine.inject(contextId);
         }
 
         var limited = cachedAnchors.stream().limit(budget).toList();
         if (tokenBudget > 0 && tokenCounter != null) {
-            lastBudgetResult = budgetEnforcer.enforce(limited, tokenBudget, tokenCounter, compliancePolicy);
+            lastBudgetResult = budgetEnforcer.enforce(limited, tokenBudget, tokenCounter, compliancePolicy, adaptiveFootprintEnabled);
             selectedAnchors = lastBudgetResult.included();
         } else {
             selectedAnchors = limited;
@@ -214,7 +298,9 @@ public class AnchorsLlmReference {
 
     private void loadHybridMode() {
         if (cachedAnchors == null) {
-            cachedAnchors = engine.inject(contextId);
+            cachedAnchors = tieredRepository != null
+                    ? tieredRepository.findActiveAnchorsForAssembly(contextId)
+                    : engine.inject(contextId);
         }
 
         var allAnchors = cachedAnchors.stream().limit(budget).toList();
@@ -261,7 +347,7 @@ public class AnchorsLlmReference {
                 allAnchors.size(), canonAnchors.size(), topAnchors.size(), topK, minRelevance);
 
         if (tokenBudget > 0 && tokenCounter != null) {
-            lastBudgetResult = budgetEnforcer.enforce(baseline, tokenBudget, tokenCounter, compliancePolicy);
+            lastBudgetResult = budgetEnforcer.enforce(baseline, tokenBudget, tokenCounter, compliancePolicy, adaptiveFootprintEnabled);
             selectedAnchors = lastBudgetResult.included();
         } else {
             selectedAnchors = List.copyOf(baseline);

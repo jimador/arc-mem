@@ -3,6 +3,7 @@ package dev.dunnam.diceanchors.sim.engine;
 import dev.dunnam.diceanchors.DiceAnchorsProperties;
 import dev.dunnam.diceanchors.anchor.Anchor;
 import dev.dunnam.diceanchors.anchor.AnchorEngine;
+import dev.dunnam.diceanchors.anchor.BudgetStrategyFactory;
 import dev.dunnam.diceanchors.anchor.CanonizationGate;
 import dev.dunnam.diceanchors.anchor.InvariantRuleProvider;
 import dev.dunnam.diceanchors.assembly.CompactedContextProvider;
@@ -69,6 +70,8 @@ public class SimulationService {
     private final CanonizationGate canonizationGate;
     private final InvariantRuleProvider invariantRuleProvider;
 
+    private final BudgetStrategyFactory budgetStrategyFactory;
+
     private final Set<SimulationRunContext> activeContexts = ConcurrentHashMap.newKeySet();
     private volatile SimulationRunContext lastRunContext;
 
@@ -84,7 +87,8 @@ public class SimulationService {
             CompactedContextProvider compactedContextProvider,
             ScoringService scoringService,
             CanonizationGate canonizationGate,
-            InvariantRuleProvider invariantRuleProvider) {
+            InvariantRuleProvider invariantRuleProvider,
+            BudgetStrategyFactory budgetStrategyFactory) {
         this.turnExecutor = turnExecutor;
         this.anchorEngine = anchorEngine;
         this.anchorRepository = anchorRepository;
@@ -97,6 +101,7 @@ public class SimulationService {
         this.scoringService = scoringService;
         this.canonizationGate = canonizationGate;
         this.invariantRuleProvider = invariantRuleProvider;
+        this.budgetStrategyFactory = budgetStrategyFactory;
     }
 
     /**
@@ -138,8 +143,15 @@ public class SimulationService {
         activeContexts.add(ctx);
         this.lastRunContext = ctx;
         var startedAt = Instant.now();
+        var enforcementStrategy = scenario.effectiveEnforcementStrategy();
+        var scenarioBudgetStrategyType = scenario.effectiveBudgetStrategy();
+        logger.info("compliance.strategy={} budget.strategy={} scenario={} contextId={}",
+                enforcementStrategy, scenarioBudgetStrategyType, scenario.id(), contextId);
 
         try {
+            var scenarioBudgetStrategy = budgetStrategyFactory.create(scenarioBudgetStrategyType);
+            anchorEngine.registerBudgetStrategy(contextId, scenarioBudgetStrategy);
+
             onProgress.accept(progress(
                     SimulationProgress.SimulationPhase.SETUP, null, 0, maxTurns,
                     "Seeding anchors and preparing context...", List.of(),
@@ -403,6 +415,7 @@ public class SimulationService {
             ctx.complete();
             activeContexts.remove(ctx);
             try {
+                anchorEngine.clearBudgetStrategy(contextId);
                 canonizationGate.markContextRequestsStale(contextId);
                 invariantRuleProvider.deregisterForContext(contextId);
                 compactedContextProvider.clearContext(contextId);

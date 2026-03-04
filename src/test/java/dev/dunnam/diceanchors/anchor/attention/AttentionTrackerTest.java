@@ -36,7 +36,7 @@ class AttentionTrackerTest {
             new DiceAnchorsProperties.AttentionConfig(false, Duration.ofMinutes(5), 0.5, 3, 0.7, 0.2, 3, 20);
 
     private AttentionTracker tracker(DiceAnchorsProperties.AttentionConfig config) {
-        var props = new DiceAnchorsProperties(null, null, null, null, null, null, null, null, null, null, config);
+        var props = new DiceAnchorsProperties(null, null, null, null, null, null, null, null, null, null, config, null, null, null, null);
         return new AttentionTracker(publisher, props);
     }
 

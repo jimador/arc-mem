@@ -13,5 +13,7 @@ public enum ArchiveReason {
     /** Archived because user-intended revision superseded the anchor. */
     REVISION,
     /** Archived via explicit operator or system action. */
-    MANUAL
+    MANUAL,
+    /** Archived by the proactive maintenance sweep (low audit score). */
+    PROACTIVE_MAINTENANCE
 }

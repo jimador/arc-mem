@@ -58,13 +58,14 @@ class AnchorPromoterBatchTest {
     @BeforeEach
     void setUp() {
         var anchorConfig = new DiceAnchorsProperties.AnchorConfig(
-                20, INITIAL_RANK, 100, 900, true, THRESHOLD, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null);
+                20, INITIAL_RANK, 100, 900, true, THRESHOLD, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null, null);
         var simConfig = new DiceAnchorsProperties.SimConfig(
                 "gpt-4.1-mini", 30, 30, BATCH_MAX_SIZE, true, 4);
         var properties = new DiceAnchorsProperties(
                 anchorConfig, null, null, null, simConfig, null, null,
-                new DiceAnchorsProperties.AssemblyConfig(0), null, null, null);
-        promoter = new AnchorPromoter(engine, properties, trustPipeline, repository, duplicateDetector);
+                new DiceAnchorsProperties.AssemblyConfig(0, false, dev.dunnam.diceanchors.assembly.EnforcementStrategy.PROMPT_ONLY), null, null, null, null, null, null, null);
+        promoter = new AnchorPromoter(engine, properties, trustPipeline, repository, duplicateDetector,
+                Optional.empty());
     }
 
     private Proposition activeProposition(String id, String text, double confidence) {

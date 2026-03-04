@@ -134,7 +134,8 @@ public class BenchmarkRunner {
                 scenario.compactionConfig(), scenario.assertions(), scenario.dormancyConfig(),
                 scenario.sessions(), scenario.category(), scenario.extractionEnabled(),
                 scenario.title(), scenario.objective(), scenario.testFocus(), scenario.highlights(),
-                scenario.adversaryMode(), scenario.adversaryConfig(), scenario.invariants());
+                scenario.adversaryMode(), scenario.adversaryConfig(), scenario.invariants(),
+                scenario.enforcementStrategy(), scenario.budgetStrategy(), scenario.tieredStorageEnabled());
 
         Supplier<Boolean> effectiveInjectionSupplier = condition.injectionEnabled()
                 ? injectionStateSupplier

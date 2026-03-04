@@ -4,6 +4,7 @@ import dev.dunnam.diceanchors.DiceAnchorsProperties;
 import dev.dunnam.diceanchors.anchor.CompliancePolicyMode;
 import dev.dunnam.diceanchors.anchor.ConflictStrategy;
 import dev.dunnam.diceanchors.anchor.DedupStrategy;
+import dev.dunnam.diceanchors.persistence.AnchorRepository;
 import dev.dunnam.diceanchors.sim.engine.LlmCallService;
 import dev.dunnam.diceanchors.sim.engine.RunHistoryStoreType;
 import org.junit.jupiter.api.DisplayName;
@@ -22,6 +23,11 @@ class AnchorConfigurationRevisionTest {
             .withBean(ChatModel.class, () -> mock(ChatModel.class))
             .withBean(LlmCallService.class, () -> mock(LlmCallService.class))
             .withBean(AnchorMutationStrategy.class, HitlOnlyMutationStrategy::new)
+            .withBean(MemoryPressureGauge.class, () -> mock(MemoryPressureGauge.class))
+            .withBean(AnchorEngine.class, () -> mock(AnchorEngine.class))
+            .withBean(AnchorRepository.class, () -> mock(AnchorRepository.class))
+            .withBean(CanonizationGate.class, () -> mock(CanonizationGate.class))
+            .withBean(InvariantEvaluator.class, () -> mock(InvariantEvaluator.class))
             .withPropertyValues(
                     "dice-anchors.conflict-detection.strategy=llm",
                     "dice-anchors.conflict-detection.model=gpt-4o-nano",
@@ -51,6 +57,7 @@ class AnchorConfigurationRevisionTest {
                 0.6,
                 400,
                 200,
+                null,
                 null,
                 null,
                 null,
@@ -128,6 +135,7 @@ class AnchorConfigurationRevisionTest {
                 null,
                 new DiceAnchorsProperties.RevisionConfig(enabled, reliableRevisable, threshold),
                 null,
+                null,
                 null);
         return new DiceAnchorsProperties(
                 anchor,
@@ -137,9 +145,9 @@ class AnchorConfigurationRevisionTest {
                 new DiceAnchorsProperties.SimConfig("gpt-4.1-mini", 30, 30, 10, true, 4),
                 new DiceAnchorsProperties.ConflictDetectionConfig(ConflictStrategy.LLM, "gpt-4o-nano"),
                 new DiceAnchorsProperties.RunHistoryConfig(RunHistoryStoreType.MEMORY),
-                new DiceAnchorsProperties.AssemblyConfig(0),
+                new DiceAnchorsProperties.AssemblyConfig(0, false, dev.dunnam.diceanchors.assembly.EnforcementStrategy.PROMPT_ONLY),
                 new DiceAnchorsProperties.ConflictConfig(0.5, 0.9, 0.8, 0.6,
                         new DiceAnchorsProperties.TierModifierConfig(0.1, 0.0, -0.1)),
-                null, null);
+                null, null, null, null, null, null);
     }
 }

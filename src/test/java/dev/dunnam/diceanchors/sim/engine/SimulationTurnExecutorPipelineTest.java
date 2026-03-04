@@ -6,6 +6,13 @@ import dev.dunnam.diceanchors.anchor.DedupStrategy;
 import dev.dunnam.diceanchors.anchor.Anchor;
 import dev.dunnam.diceanchors.anchor.CompliancePolicy;
 import dev.dunnam.diceanchors.anchor.Authority;
+import dev.dunnam.diceanchors.anchor.DecayPolicy;
+import dev.dunnam.diceanchors.anchor.MemoryPressureGauge;
+import dev.dunnam.diceanchors.anchor.ReactiveMaintenanceStrategy;
+import dev.dunnam.diceanchors.anchor.ReinforcementPolicy;
+import dev.dunnam.diceanchors.assembly.ComplianceEnforcer;
+import dev.dunnam.diceanchors.assembly.ComplianceResult;
+import dev.dunnam.diceanchors.assembly.EnforcementStrategy;
 import dev.dunnam.diceanchors.persistence.PropositionNode;
 import com.embabel.dice.proposition.PropositionStatus;
 import org.junit.jupiter.api.DisplayName;
@@ -19,6 +26,7 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.Prompt;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
@@ -38,23 +46,41 @@ class SimulationTurnExecutorPipelineTest {
     @Mock private dev.dunnam.diceanchors.anchor.AnchorEngine anchorEngine;
     @Mock private dev.dunnam.diceanchors.persistence.AnchorRepository anchorRepository;
     @Mock private SimulationExtractionService extractionService;
+    @Mock private ComplianceEnforcer complianceEnforcer;
+    @Mock private MemoryPressureGauge pressureGauge;
 
-    @Test
-    @DisplayName("executeTurnFull refreshes anchors after extraction and reinforces injected anchors")
-    void executeTurnFullRefreshesAnchorsAfterExtractionAndReinforcesInjectedAnchors() {
-        var properties = new DiceAnchorsProperties(
-                new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null),
-                null, null, null, null, null, null,
-                new DiceAnchorsProperties.AssemblyConfig(0), null, null, null);
-        var executor = new SimulationTurnExecutor(
+    private SimulationTurnExecutor buildExecutor(DiceAnchorsProperties properties) {
+        var injectionEnforcer = new LoggingPromptInjectionEnforcer();
+        var maintenanceStrategy = new ReactiveMaintenanceStrategy(
+                DecayPolicy.exponential(1000.0), ReinforcementPolicy.threshold());
+        var turnServices = new SimulationTurnServices(
+                extractionService, maintenanceStrategy, complianceEnforcer, pressureGauge, injectionEnforcer);
+        return new SimulationTurnExecutor(
                 chatModel,
                 anchorEngine,
                 anchorRepository,
                 properties,
                 CompliancePolicy.flat(),
                 text -> Math.max(1, text.length() / 4),
-                extractionService,
-                null);
+                null,
+                null,
+                turnServices);
+    }
+
+    private DiceAnchorsProperties defaultProperties() {
+        return new DiceAnchorsProperties(
+                new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null, null),
+                null, null, null, null, null, null,
+                new DiceAnchorsProperties.AssemblyConfig(0, false, EnforcementStrategy.PROMPT_ONLY), null, null, null, null, null, null, null);
+    }
+
+    @Test
+    @DisplayName("executeTurnFull refreshes anchors after extraction and reinforces injected anchors")
+    void executeTurnFullRefreshesAnchorsAfterExtractionAndReinforcesInjectedAnchors() {
+        var properties = defaultProperties();
+        var executor = buildExecutor(properties);
+
+        when(complianceEnforcer.enforce(any())).thenReturn(ComplianceResult.compliant(Duration.ZERO));
 
         var dmResponse = new ChatResponse(List.of(new Generation(new AssistantMessage("DM response text"))));
         when(chatModel.call(any(Prompt.class))).thenReturn(dmResponse);
@@ -104,19 +130,10 @@ class SimulationTurnExecutorPipelineTest {
     @Test
     @DisplayName("executeTurn injects working propositions into the system prompt")
     void executeTurnInjectsWorkingPropositionsIntoSystemPrompt() {
-        var properties = new DiceAnchorsProperties(
-                new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null),
-                null, null, null, null, null, null,
-                new DiceAnchorsProperties.AssemblyConfig(0), null, null, null);
-        var executor = new SimulationTurnExecutor(
-                chatModel,
-                anchorEngine,
-                anchorRepository,
-                properties,
-                CompliancePolicy.flat(),
-                text -> Math.max(1, text.length() / 4),
-                extractionService,
-                null);
+        var properties = defaultProperties();
+        var executor = buildExecutor(properties);
+
+        when(complianceEnforcer.enforce(any())).thenReturn(ComplianceResult.compliant(Duration.ZERO));
 
         var dmResponse = new ChatResponse(List.of(new Generation(new AssistantMessage("DM response text"))));
         when(chatModel.call(any(Prompt.class))).thenReturn(dmResponse);
@@ -165,19 +182,10 @@ class SimulationTurnExecutorPipelineTest {
     @Test
     @DisplayName("executeTurn renders anchor tiers without duplicate compliance headers or blank rows")
     void executeTurnRendersAnchorsWithoutDuplicateHeaders() {
-        var properties = new DiceAnchorsProperties(
-                new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null),
-                null, null, null, null, null, null,
-                new DiceAnchorsProperties.AssemblyConfig(0), null, null, null);
-        var executor = new SimulationTurnExecutor(
-                chatModel,
-                anchorEngine,
-                anchorRepository,
-                properties,
-                CompliancePolicy.flat(),
-                text -> Math.max(1, text.length() / 4),
-                extractionService,
-                null);
+        var properties = defaultProperties();
+        var executor = buildExecutor(properties);
+
+        when(complianceEnforcer.enforce(any())).thenReturn(ComplianceResult.compliant(Duration.ZERO));
 
         var dmResponse = new ChatResponse(List.of(new Generation(new AssistantMessage("DM response text"))));
         when(chatModel.call(any(Prompt.class))).thenReturn(dmResponse);
@@ -217,19 +225,8 @@ class SimulationTurnExecutorPipelineTest {
     @Test
     @DisplayName("executeTurnFull applies dormancy decay and emits DECAYED event")
     void executeTurnFullAppliesDormancyDecayAndEmitsDecayedEvent() {
-        var properties = new DiceAnchorsProperties(
-                new DiceAnchorsProperties.AnchorConfig(20, 500, 100, 900, true, 0.65, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null),
-                null, null, null, null, null, null,
-                new DiceAnchorsProperties.AssemblyConfig(0), null, null, null);
-        var executor = new SimulationTurnExecutor(
-                chatModel,
-                anchorEngine,
-                anchorRepository,
-                properties,
-                CompliancePolicy.flat(),
-                text -> Math.max(1, text.length() / 4),
-                extractionService,
-                null);
+        var properties = defaultProperties();
+        var executor = buildExecutor(properties);
 
         var dmResponse = new ChatResponse(List.of(new Generation(new AssistantMessage("DM response text"))));
         when(chatModel.call(any(Prompt.class))).thenReturn(dmResponse);

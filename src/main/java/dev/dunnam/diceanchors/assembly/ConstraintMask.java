@@ -1,0 +1,19 @@
+package dev.dunnam.diceanchors.assembly;
+
+/**
+ * Vocabulary mask for constrained decoding.
+ * <p>
+ * At each decoding step, tokens where {@code allowedTokens[i] == false} have their
+ * logits set to negative infinity, making them structurally impossible to generate.
+ * This is the STATIC architecture adapted to the dice-anchors domain.
+ *
+ * @param allowedTokens  boolean mask over the full vocabulary; {@code allowedTokens[i] == false}
+ *                       means token {@code i} is suppressed at every decoding step
+ * @param constraintCount number of anchor constraints encoded in this mask
+ * @param vocabularySize  total vocabulary size (length of {@code allowedTokens})
+ */
+public record ConstraintMask(
+        boolean[] allowedTokens,
+        int constraintCount,
+        int vocabularySize
+) {}

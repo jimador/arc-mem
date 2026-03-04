@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Applies token-budget constraints to anchor prompt assembly while preserving
@@ -59,6 +60,7 @@ public class PromptBudgetEnforcer {
      *
      * @param anchors     candidate anchors to fit within budget; MUST NOT be null
      * @param tokenBudget maximum allowed tokens; pass {@code <= 0} to skip enforcement
+     * @param counter     token counter for estimation
      * @param policy      compliance policy (currently unused in budget math, reserved)
      * @return a {@link BudgetResult} where {@link BudgetResult#included()} are the anchors
      *         that fit within budget and {@link BudgetResult#excluded()} are those dropped
@@ -67,18 +69,43 @@ public class PromptBudgetEnforcer {
                                 int tokenBudget,
                                 TokenCounter counter,
                                 CompliancePolicy policy) {
+        return enforce(anchors, tokenBudget, counter, policy, false);
+    }
+
+    /**
+     * Enforce the token budget on a list of candidate anchors with adaptive footprint option.
+     * <p>
+     * When {@code adaptiveFootprintEnabled} is true, per-anchor token estimation uses
+     * authority-specific templates, resulting in different costs per authority level
+     * (CANON anchors cost fewer tokens, PROVISIONAL anchors cost more).
+     * <p>
+     * When {@code adaptiveFootprintEnabled} is false, all anchors are estimated uniformly.
+     *
+     * @param anchors                  candidate anchors to fit within budget; MUST NOT be null
+     * @param tokenBudget              maximum allowed tokens; pass {@code <= 0} to skip enforcement
+     * @param counter                  token counter for estimation
+     * @param policy                   compliance policy (currently unused in budget math, reserved)
+     * @param adaptiveFootprintEnabled whether to use authority-specific template estimation
+     * @return a {@link BudgetResult} where {@link BudgetResult#included()} are the anchors
+     *         that fit within budget and {@link BudgetResult#excluded()} are those dropped
+     */
+    public BudgetResult enforce(List<Anchor> anchors,
+                                int tokenBudget,
+                                TokenCounter counter,
+                                CompliancePolicy policy,
+                                boolean adaptiveFootprintEnabled) {
         if (anchors == null || anchors.isEmpty()) {
             var baseTokens = counter.estimate(MANDATORY_OVERHEAD);
             return new BudgetResult(List.of(), List.of(), baseTokens, baseTokens > tokenBudget);
         }
         if (tokenBudget <= 0) {
-            return new BudgetResult(List.copyOf(anchors), List.of(), estimateTotal(counter, anchors), false);
+            return new BudgetResult(List.copyOf(anchors), List.of(), estimateTotal(counter, anchors, adaptiveFootprintEnabled), false);
         }
 
         var included = new ArrayList<>(anchors);
         var excluded = new ArrayList<Anchor>();
 
-        var estimated = estimateTotal(counter, included);
+        var estimated = estimateTotal(counter, included, adaptiveFootprintEnabled);
         var budgetExceeded = estimated > tokenBudget;
         if (!budgetExceeded) {
             return new BudgetResult(List.copyOf(included), List.of(), estimated, false);
@@ -100,7 +127,7 @@ public class PromptBudgetEnforcer {
                 }
                 included.remove(candidate);
                 excluded.add(candidate);
-                estimated = estimateTotal(counter, included);
+                estimated = estimateTotal(counter, included, adaptiveFootprintEnabled);
             }
         }
 
@@ -118,11 +145,32 @@ public class PromptBudgetEnforcer {
                 estimated > tokenBudget || !excluded.isEmpty());
     }
 
-    private int estimateTotal(TokenCounter counter, List<Anchor> anchors) {
+    private int estimateTotal(TokenCounter counter, List<Anchor> anchors, boolean adaptiveFootprintEnabled) {
         var tokens = counter.estimate(MANDATORY_OVERHEAD);
         for (var anchor : anchors) {
-            tokens += counter.estimate(anchor.text()) + counter.estimate(" (rank: 999)");
+            tokens += estimateAnchorTokens(counter, anchor, adaptiveFootprintEnabled);
         }
         return tokens;
+    }
+
+    private int estimateAnchorTokens(TokenCounter counter, Anchor anchor, boolean adaptiveFootprintEnabled) {
+        if (!adaptiveFootprintEnabled) {
+            return counter.estimate(anchor.text()) + counter.estimate(" (rank: 999)");
+        }
+        var template = templateForAuthority(anchor.authority());
+        var rendered = PromptTemplates.render(template, Map.of(
+                "index", 1,
+                "text", anchor.text(),
+                "rank", anchor.rank()));
+        return counter.estimate(rendered);
+    }
+
+    private String templateForAuthority(Authority authority) {
+        return switch (authority) {
+            case CANON -> PromptPathConstants.ANCHOR_TEMPLATE_CANON;
+            case RELIABLE -> PromptPathConstants.ANCHOR_TEMPLATE_RELIABLE;
+            case UNRELIABLE -> PromptPathConstants.ANCHOR_TEMPLATE_UNRELIABLE;
+            case PROVISIONAL -> PromptPathConstants.ANCHOR_TEMPLATE_PROVISIONAL;
+        };
     }
 }

@@ -1,5 +1,6 @@
 package dev.dunnam.diceanchors.anchor;
 
+import dev.dunnam.diceanchors.DiceAnchorsProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -31,6 +32,16 @@ class TrustConfiguration {
     @Bean
     GraphConsistencySignal graphConsistencySignal(AnchorEngine anchorEngine) {
         return new GraphConsistencySignal(anchorEngine);
+    }
+
+    @Bean
+    NoveltySignal noveltySignal(AnchorEngine anchorEngine, DiceAnchorsProperties properties) {
+        return new NoveltySignal(anchorEngine, properties);
+    }
+
+    @Bean
+    ImportanceSignal importanceSignal(AnchorEngine anchorEngine, DiceAnchorsProperties properties) {
+        return new ImportanceSignal(anchorEngine, properties);
     }
 
     @Bean

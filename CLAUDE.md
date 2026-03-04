@@ -111,6 +111,9 @@ See `.dice-anchors/coding-style.md` for the complete reference.
 - **DICE extraction** for proposition management in chat flow
 - **Simulation harness** with YAML-defined adversarial/baseline scenarios, turn-by-turn execution, drift evaluation, scene-setting turn 0
 - **Benchmarking** with multi-condition ablation experiments, statistical aggregation, resilience scoring, and Markdown report export
+- **Maintenance strategies** -- `MaintenanceStrategy` sealed interface supports REACTIVE (per-turn decay/reinforcement), PROACTIVE (sleeping-LLM-inspired sweep triggered by `MemoryPressureGauge`), and HYBRID modes. Strategy selectable globally and per-simulation for A/B comparison.
+- **Compliance enforcement** -- `ComplianceEnforcer` abstracts compliance over prompt injection, post-generation validation, and Prolog invariant checking. Strictness configurable per authority level.
+- **DICE Prolog integration** -- `AnchorPrologProjector` projects anchors as tuProlog facts (via DICE 0.1.0-SNAPSHOT). Backs LOGICAL conflict detection, audit pre-filtering, and invariant enforcement. Every Prolog implementation is A/B testable against its LLM/heuristic counterpart.
 
 ## Testing
 
@@ -142,6 +145,16 @@ See `.dice-anchors/coding-style.md` for the complete reference.
 | Memory tier | `src/main/java/dev/dunnam/diceanchors/anchor/MemoryTier.java` |
 | Domain profile | `src/main/java/dev/dunnam/diceanchors/anchor/DomainProfile.java` |
 | Lifecycle events | `src/main/java/dev/dunnam/diceanchors/anchor/event/` |
+| Maintenance strategy | `src/main/java/dev/dunnam/diceanchors/anchor/MaintenanceStrategy.java` |
+| Reactive maintenance | `src/main/java/dev/dunnam/diceanchors/anchor/ReactiveMaintenanceStrategy.java` |
+| Proactive maintenance | `src/main/java/dev/dunnam/diceanchors/anchor/ProactiveMaintenanceStrategy.java` |
+| Memory pressure gauge | `src/main/java/dev/dunnam/diceanchors/anchor/MemoryPressureGauge.java` |
+| Conflict index | `src/main/java/dev/dunnam/diceanchors/anchor/ConflictIndex.java` |
+| Budget strategy | `src/main/java/dev/dunnam/diceanchors/anchor/BudgetStrategy.java` |
+| Prolog anchor projector | `src/main/java/dev/dunnam/diceanchors/anchor/AnchorPrologProjector.java` |
+| Compliance enforcer | `src/main/java/dev/dunnam/diceanchors/assembly/ComplianceEnforcer.java` |
+| Post-generation validator | `src/main/java/dev/dunnam/diceanchors/assembly/PostGenerationValidator.java` |
+| Tiered anchor repository | `src/main/java/dev/dunnam/diceanchors/persistence/TieredAnchorRepository.java` |
 | Neo4j persistence | `src/main/java/dev/dunnam/diceanchors/persistence/AnchorRepository.java` |
 | Proposition node | `src/main/java/dev/dunnam/diceanchors/persistence/PropositionNode.java` |
 | Proposition view | `src/main/java/dev/dunnam/diceanchors/persistence/PropositionView.java` |
@@ -213,6 +226,15 @@ See `.dice-anchors/coding-style.md` for the complete reference.
 15. **Memory tiers** — `MemoryTier` classifies propositions as `COLD`, `WARM`, or `HOT`. Tier influences decay rates and eviction priority.
 16. **Invariant rules** — `InvariantEvaluator` checks propositions against domain-specific invariant rules provided by `InvariantRuleProvider`. Violations can block promotion or trigger alerts.
 17. **Canonization gating** — `CanonizationGate` controls CANON authority assignment. CANON is never auto-assigned; requires explicit operator action through the gate.
+18. **Unified maintenance strategy** — `MaintenanceStrategy` sealed interface with REACTIVE, PROACTIVE, and HYBRID modes. `ReactiveMaintenanceStrategy` wraps existing `DecayPolicy`/`ReinforcementPolicy` as backward-compatible default. Mode selectable globally and per-scenario YAML.
+19. **Compliance enforcement layer** — `ComplianceEnforcer` interface (`ComplianceContext` → `ComplianceResult`) with three implementations: `PromptInjectionEnforcer` (default, always ACCEPT), `PostGenerationValidator` (LLM-based), `PrologInvariantEnforcer` (deterministic).
+20. **Memory pressure gauge** — Composite `[0.0, 1.0]` score across budget, conflict rate, decay demotions, and compaction frequency. Light-sweep threshold 0.4, full-sweep threshold 0.8. No LLM calls.
+21. **Precomputed conflict index** — `ConflictIndex` stores `CONFLICTS_WITH` relationships in Neo4j for O(1) conflict lookup. Updates incrementally on lifecycle events. Falls back to `LlmConflictDetector` on miss.
+22. **Proactive maintenance cycle** — 5-step sleeping-LLM-inspired sweep (audit, refresh, consolidate, prune, validate) triggered by memory pressure. Prolog pre-filter identifies logically inconsistent anchors before LLM calls.
+23. **Adaptive prompt footprint** — Authority-graduated templates: PROVISIONAL (full), RELIABLE (condensed), CANON (minimal reference). Higher authority = less token budget.
+24. **Pluggable budget strategy** — `BudgetStrategy` interface with `CountBasedBudgetStrategy` (default) and `InterferenceDensityBudgetStrategy` (cluster-aware eviction). Inspired by sleeping-LLM phase transition at 13-14 related facts.
+25. **Tiered anchor storage** — `TieredAnchorRepository` decorates `AnchorRepository`: HOT from Caffeine cache, WARM from Neo4j, COLD excluded from prompt assembly. Opt-in (default disabled).
+26. **Prolog integration layer** — Three Prolog-backed implementations behind existing interfaces: `PrologConflictDetector` (LOGICAL strategy), `PrologAuditPreFilter`, `PrologInvariantEnforcer`. Zero new dependencies (tuProlog via DICE). All A/B testable per-simulation.
 
 ## OpenSpec (Spec-Driven Development)
 

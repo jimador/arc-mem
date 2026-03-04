@@ -15,6 +15,9 @@ import java.util.Map;
  * @param strategyEffectiveness   contradiction rate per attack strategy
  * @param degradedConflictCount   conflicts where detection quality was DEGRADED (ACON1);
  *                                non-zero means conflict results are unreliable for this run
+ * @param complianceRate          percentage of evaluated turns that were constraint-respecting
+ *                                (no contradictions); mirrors driftAbsorptionRate for
+ *                                enforcement-strategy A/B comparison
  */
 public record ScoringResult(
         double factSurvivalRate,
@@ -24,10 +27,11 @@ public record ScoringResult(
         double meanTurnsToFirstDrift,
         int anchorAttributionCount,
         Map<String, Double> strategyEffectiveness,
-        int degradedConflictCount
+        int degradedConflictCount,
+        double complianceRate
 ) {
     /**
-     * Backward-compatible constructor that defaults degradedConflictCount to 0.
+     * Backward-compatible constructor that defaults degradedConflictCount to 0 and complianceRate to 0.0.
      */
     public ScoringResult(double factSurvivalRate, int contradictionCount,
                          int majorContradictionCount, double driftAbsorptionRate,
@@ -35,6 +39,18 @@ public record ScoringResult(
                          Map<String, Double> strategyEffectiveness) {
         this(factSurvivalRate, contradictionCount, majorContradictionCount,
              driftAbsorptionRate, meanTurnsToFirstDrift, anchorAttributionCount,
-             strategyEffectiveness, 0);
+             strategyEffectiveness, 0, 0.0);
+    }
+
+    /**
+     * Backward-compatible constructor that defaults complianceRate to 0.0.
+     */
+    public ScoringResult(double factSurvivalRate, int contradictionCount,
+                         int majorContradictionCount, double driftAbsorptionRate,
+                         double meanTurnsToFirstDrift, int anchorAttributionCount,
+                         Map<String, Double> strategyEffectiveness, int degradedConflictCount) {
+        this(factSurvivalRate, contradictionCount, majorContradictionCount,
+             driftAbsorptionRate, meanTurnsToFirstDrift, anchorAttributionCount,
+             strategyEffectiveness, degradedConflictCount, 0.0);
     }
 }

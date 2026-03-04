@@ -2,11 +2,14 @@ package dev.dunnam.diceanchors;
 
 import com.embabel.common.ai.model.LlmOptions;
 import dev.dunnam.diceanchors.anchor.Authority;
+import dev.dunnam.diceanchors.anchor.BudgetStrategyType;
 import dev.dunnam.diceanchors.anchor.CompliancePolicyMode;
 import dev.dunnam.diceanchors.anchor.ConflictStrategy;
 import dev.dunnam.diceanchors.anchor.DedupStrategy;
 import dev.dunnam.diceanchors.anchor.InvariantRuleType;
 import dev.dunnam.diceanchors.anchor.InvariantStrength;
+import dev.dunnam.diceanchors.anchor.MaintenanceMode;
+import dev.dunnam.diceanchors.assembly.EnforcementStrategy;
 import dev.dunnam.diceanchors.assembly.RetrievalMode;
 import dev.dunnam.diceanchors.sim.engine.RunHistoryStoreType;
 import jakarta.validation.Valid;
@@ -38,8 +41,16 @@ public record DiceAnchorsProperties(
         @Valid @NestedConfigurationProperty AssemblyConfig assembly,
         @Valid @NestedConfigurationProperty ConflictConfig conflict,
         @Valid @NestedConfigurationProperty RetrievalConfig retrieval,
-        @Nullable @NestedConfigurationProperty AttentionConfig attention
+        @Nullable @NestedConfigurationProperty AttentionConfig attention,
+        @NestedConfigurationProperty MaintenanceConfig maintenance,
+        @Valid @NestedConfigurationProperty PressureConfig pressure,
+        @Nullable @NestedConfigurationProperty TieredStorageConfig tieredStorage,
+        @Valid @NestedConfigurationProperty BudgetConfig budget
 ) {
+
+    public record QualityScoringConfig(
+            @DefaultValue("false") boolean enabled
+    ) {}
 
     public record AnchorConfig(
             @Positive @DefaultValue("20") int budget,
@@ -59,7 +70,8 @@ public record DiceAnchorsProperties(
             @Valid @NestedConfigurationProperty TierConfig tier,
             @Valid @NestedConfigurationProperty RevisionConfig revision,
             @Nullable InvariantConfig invariants,
-            @Nullable ChatSeedConfig chatSeed
+            @Nullable ChatSeedConfig chatSeed,
+            @Nullable @NestedConfigurationProperty QualityScoringConfig qualityScoring
     ) {
         public AnchorConfig {
             if (revision == null) {
@@ -99,7 +111,9 @@ public record DiceAnchorsProperties(
     ) {}
 
     public record AssemblyConfig(
-            @Min(0) @DefaultValue("0") int promptTokenBudget
+            @Min(0) @DefaultValue("0") int promptTokenBudget,
+            @DefaultValue("false") boolean adaptiveFootprintEnabled,
+            @DefaultValue("PROMPT_ONLY") EnforcementStrategy enforcementStrategy
     ) {}
 
     public record ChatConfig(
@@ -218,5 +232,74 @@ public record DiceAnchorsProperties(
             @DecimalMin("0.0") @DecimalMax("1.0") @DefaultValue("0.2") double heatDropThreshold,
             @Min(2) @DefaultValue("3") int clusterDriftMinAnchors,
             @Positive @DefaultValue("20") int maxExpectedEventsPerWindow
+    ) {}
+
+    public record MaintenanceConfig(
+            @DefaultValue("REACTIVE") MaintenanceMode mode,
+            @Valid @NestedConfigurationProperty ProactiveConfig proactive
+    ) {}
+
+    public record ProactiveConfig(
+            @Min(1) @DefaultValue("10") int minTurnsBetweenSweeps,
+            @DecimalMin("0.0") @DecimalMax("1.0") @DefaultValue("0.1") double hardPruneThreshold,
+            @DecimalMin("0.0") @DecimalMax("1.0") @DefaultValue("0.3") double softPruneThreshold,
+            @DecimalMin("0.0") @DecimalMax("1.0") @DefaultValue("0.6") double softPrunePressureThreshold,
+            @Min(1) @DefaultValue("10") int candidacyMinReinforcements,
+            @DecimalMin("0.0") @DecimalMax("1.0") @DefaultValue("0.8") double candidacyMinAuditScore,
+            @Min(1) @DefaultValue("5") int candidacyMinAge,
+            @Min(1) @Max(200) @DefaultValue("50") int rankBoostAmount,
+            @Min(1) @Max(200) @DefaultValue("50") int rankPenaltyAmount,
+            @DefaultValue("false") boolean llmAuditEnabled,
+            @DefaultValue("false") boolean prologPreFilterEnabled
+    ) {
+        @AssertTrue(message = "hardPruneThreshold must be less than softPruneThreshold")
+        public boolean isHardBelowSoft() {
+            return hardPruneThreshold < softPruneThreshold;
+        }
+    }
+
+    /**
+     * Configuration for three-tier anchor storage (HOT/WARM/COLD).
+     * Disabled by default; opt-in via {@code dice-anchors.tiered-storage.enabled=true}.
+     */
+    public record TieredStorageConfig(
+            @DefaultValue("false") boolean enabled,
+            @Positive @DefaultValue("1000") int maxCacheSize,
+            @Positive @DefaultValue("60") int ttlMinutes
+    ) {}
+
+    public record PressureConfig(
+            @DefaultValue("true") boolean enabled,
+            @DecimalMin("0.0") @DecimalMax("1.0") @DefaultValue("0.4") double budgetWeight,
+            @DecimalMin("0.0") @DecimalMax("1.0") @DefaultValue("0.3") double conflictWeight,
+            @DecimalMin("0.0") @DecimalMax("1.0") @DefaultValue("0.2") double decayWeight,
+            @DecimalMin("0.0") @DecimalMax("1.0") @DefaultValue("0.1") double compactionWeight,
+            @DecimalMin("0.0") @DecimalMax("1.0") @DefaultValue("0.4") double lightSweepThreshold,
+            @DecimalMin("0.0") @DecimalMax("1.0") @DefaultValue("0.8") double fullSweepThreshold,
+            @DecimalMin("0.0") @DefaultValue("1.5") double budgetExponent,
+            @Min(1) @DefaultValue("5") int conflictWindowSize
+    ) {
+        @AssertTrue(message = "pressure weights must sum to 1.0 (tolerance 0.001)")
+        public boolean isWeightSumValid() {
+            return Math.abs(budgetWeight + conflictWeight + decayWeight + compactionWeight - 1.0) <= 0.001;
+        }
+
+        @AssertTrue(message = "fullSweepThreshold must be greater than lightSweepThreshold")
+        public boolean isFullSweepGreaterThanLight() {
+            return fullSweepThreshold > lightSweepThreshold;
+        }
+    }
+
+    /**
+     * Configuration for pluggable budget enforcement strategy.
+     * <p>
+     * {@code strategy} selects the implementation. Threshold/factor fields apply only
+     * when {@code INTERFERENCE_DENSITY} is selected; they are ignored for {@code COUNT}.
+     */
+    public record BudgetConfig(
+            @DefaultValue("COUNT") BudgetStrategyType strategy,
+            @DecimalMin("0.0") @DecimalMax("1.0") @DefaultValue("0.6") double densityWarningThreshold,
+            @DecimalMin("0.0") @DecimalMax("1.0") @DefaultValue("0.8") double densityReductionThreshold,
+            @DecimalMin("0.0") @DecimalMax("1.0") @DefaultValue("0.5") double densityReductionFactor
     ) {}
 }

@@ -78,3 +78,29 @@ What still needs work:
 Anchor operations emit OTel spans with useful fields (invariants, degraded conflict counts, trust outcomes).
 
 Langfuse integration through OTEL is useful for model-call debugging, but this setup is not tuned for production-scale telemetry.
+
+## 8. Research origins
+
+This codebase adopts techniques from two papers:
+
+- **Sleeping LLM** (Zenodo 18778768/18779159): Wake/sleep memory consolidation. Key finding: proactive sleep cycles recover degraded knowledge from 40% to 100% recall within 4 cycles. The "drowsiness signal" is the basis for `MemoryPressureGauge`. The 5-step proactive maintenance cycle maps to sleeping-llm's sleep phases. Known risks: pruning death spiral, "Aria Effect" (some facts inherently harder to maintain), phase transition at 13-14 facts (recall drops from 0.92 to 0.57).
+
+- **Google AI STATIC**: Sparse matrix constrained decoding. Key result: 100% constraint compliance at 0.25% inference time. Basis for `ComplianceEnforcer` abstraction, precomputed conflict index (offline-index-for-online-lookup), and fixed-size batch padding. Full constrained decoding requires local model infrastructure not available via OpenAI API.
+
+## 9. A/B testability constraint
+
+Every new subsystem is A/B testable in the simulation harness. Every strategy, enforcer, or scorer has a counterpart behind the same interface. The simulator selects between them per-scenario YAML. This enables quantitative validation (e.g., SEMANTIC vs. LOGICAL conflict detection; REACTIVE vs. PROACTIVE maintenance) using existing adversarial scenarios.
+
+## 10. Prolog integration choices
+
+- Drools/KIE (30 JARs, forward chaining) and Evrete (forward chaining only) were rejected. Prolog backward chaining is strictly more capable and already available via DICE 0.1.0-SNAPSHOT.
+- Prolog is a pre-filter, not a replacement. Semantic contradictions still require LLM judgment.
+- All DICE Prolog interaction encapsulated in `AnchorPrologProjector` to isolate from `PrologEngine` API changes.
+
+## 11. Interference-density calibration caveat
+
+The sleeping-llm phase transition threshold (13-14 facts) was measured for weight-editing (8B model, MEMIT), not prompt-injection. Empirical calibration via simulation benchmarks is required before activating `InterferenceDensityBudgetStrategy`. Count-based strategy remains the default until calibrated.
+
+## 12. Adaptive prompt footprint limitation
+
+The sleeping-llm analogy (MEMIT scale-down as LoRA absorbs edits) does not directly translate to prompt-based systems — each API call is a fresh context window. Authority-graduated templates are an efficiency bet, not a correctness guarantee. `ComplianceEnforcer` is the safety net for compliance degradation when templates are condensed.

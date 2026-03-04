@@ -4,8 +4,10 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import dev.dunnam.diceanchors.anchor.Authority;
+import dev.dunnam.diceanchors.anchor.BudgetStrategyType;
 import dev.dunnam.diceanchors.anchor.InvariantRuleType;
 import dev.dunnam.diceanchors.anchor.InvariantStrength;
+import dev.dunnam.diceanchors.assembly.EnforcementStrategy;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -46,7 +48,10 @@ public record SimulationScenario(
         List<String> highlights,
         @Nullable String adversaryMode,
         @Nullable AdversaryConfig adversaryConfig,
-        @Nullable List<InvariantRuleDef> invariants
+        @Nullable List<InvariantRuleDef> invariants,
+        @Nullable EnforcementStrategy enforcementStrategy,
+        @Nullable String budgetStrategy,
+        @JsonProperty("tieredStorageEnabled") @Nullable Boolean tieredStorageEnabled
 ) {
     /**
      * Configuration for the player character persona during simulation.
@@ -159,6 +164,28 @@ public record SimulationScenario(
      */
     public double effectiveTemperature() {
         return temperature != null ? temperature : 0.7;
+    }
+
+    /**
+     * Returns the budget strategy type for this scenario, defaulting to COUNT.
+     * Scenarios may opt into INTERFERENCE_DENSITY for density-aware budget enforcement.
+     */
+    public BudgetStrategyType effectiveBudgetStrategy() {
+        if (budgetStrategy == null || budgetStrategy.isBlank()) {
+            return BudgetStrategyType.COUNT;
+        }
+        try {
+            return BudgetStrategyType.valueOf(budgetStrategy.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            return BudgetStrategyType.COUNT;
+        }
+    }
+
+    /**
+     * Returns the enforcement strategy for this scenario, defaulting to PROMPT_ONLY.
+     */
+    public EnforcementStrategy effectiveEnforcementStrategy() {
+        return enforcementStrategy != null ? enforcementStrategy : EnforcementStrategy.PROMPT_ONLY;
     }
 
     /**

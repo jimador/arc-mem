@@ -1,0 +1,16 @@
+schema: spec-driven
+created: 2026-03-03
+artifacts:
+  proposal:
+    status: complete
+    created: 2026-03-03
+  specs:
+    tiered-storage:
+      status: complete
+      created: 2026-03-03
+  design:
+    status: complete
+    created: 2026-03-03
+  tasks:
+    status: complete
+    created: 2026-03-03

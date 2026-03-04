@@ -81,7 +81,8 @@ class AnchorEngineLifecycleEventsTest {
                 eventPublisher,
                 trustPipeline,
                 canonizationGate,
-                invariantEvaluator);
+                invariantEvaluator,
+                new CountBasedBudgetStrategy());
 
         disabledEngine = new AnchorEngine(
                 repository,
@@ -93,7 +94,8 @@ class AnchorEngineLifecycleEventsTest {
                 eventPublisher,
                 trustPipeline,
                 canonizationGate,
-                invariantEvaluator);
+                invariantEvaluator,
+                new CountBasedBudgetStrategy());
     }
 
     @Test
@@ -228,8 +230,8 @@ class AnchorEngineLifecycleEventsTest {
         var proposition = org.mockito.Mockito.mock(com.embabel.dice.proposition.Proposition.class);
         when(proposition.getContextIdValue()).thenReturn(CONTEXT_ID);
         when(repository.findById("p1")).thenReturn(proposition);
-        // evictLowestRanked returns empty list (no eviction needed)
-        when(repository.evictLowestRanked(CONTEXT_ID, 20)).thenReturn(List.of());
+        // Active count within budget — findActiveAnchors returns empty list, no eviction needed
+        when(repository.findActiveAnchors(CONTEXT_ID)).thenReturn(List.of());
 
         enabledEngine.promote("p1", 500);
 
@@ -242,8 +244,14 @@ class AnchorEngineLifecycleEventsTest {
         var proposition = org.mockito.Mockito.mock(com.embabel.dice.proposition.Proposition.class);
         when(proposition.getContextIdValue()).thenReturn(CONTEXT_ID);
         when(repository.findById("p1")).thenReturn(proposition);
-        when(repository.evictLowestRanked(CONTEXT_ID, 20))
-                .thenReturn(List.of(new dev.dunnam.diceanchors.anchor.EvictedAnchorInfo("ev-1", 150)));
+        // 21 anchors over the budget of 20; lowest-rank non-pinned anchor (rank=150) is the eviction target
+        var victim = anchorNode("ev-1", 150, Authority.PROVISIONAL, 0);
+        var overBudgetAnchors = new java.util.ArrayList<PropositionNode>();
+        overBudgetAnchors.add(victim);
+        for (int i = 0; i < 20; i++) {
+            overBudgetAnchors.add(anchorNode("a" + i, 300 + i, Authority.PROVISIONAL, 0));
+        }
+        when(repository.findActiveAnchors(CONTEXT_ID)).thenReturn(overBudgetAnchors);
 
         enabledEngine.promote("p1", 500);
 
@@ -259,8 +267,14 @@ class AnchorEngineLifecycleEventsTest {
         var proposition = org.mockito.Mockito.mock(com.embabel.dice.proposition.Proposition.class);
         when(proposition.getContextIdValue()).thenReturn(CONTEXT_ID);
         when(repository.findById("p1")).thenReturn(proposition);
-        when(repository.evictLowestRanked(CONTEXT_ID, 20))
-                .thenReturn(List.of(new dev.dunnam.diceanchors.anchor.EvictedAnchorInfo("ev-1", 150)));
+        // 21 anchors over the budget of 20; lowest-rank non-pinned anchor (rank=150) is the eviction target
+        var victim = anchorNode("ev-1", 150, Authority.PROVISIONAL, 0);
+        var overBudgetAnchors = new java.util.ArrayList<PropositionNode>();
+        overBudgetAnchors.add(victim);
+        for (int i = 0; i < 20; i++) {
+            overBudgetAnchors.add(anchorNode("a" + i, 300 + i, Authority.PROVISIONAL, 0));
+        }
+        when(repository.findActiveAnchors(CONTEXT_ID)).thenReturn(overBudgetAnchors);
 
         var publishedEvents = new java.util.ArrayList<AnchorLifecycleEvent>();
         org.mockito.Mockito.doAnswer(inv -> {
@@ -414,7 +428,7 @@ class AnchorEngineLifecycleEventsTest {
                 0.6,
                 400,
                 200,
-                null, null, null, null);
+                null, null, null, null, null);
         return new DiceAnchorsProperties(
                 anchorConfig,
                 new DiceAnchorsProperties.ChatConfig("dm", 200, null),
@@ -423,7 +437,7 @@ class AnchorEngineLifecycleEventsTest {
                 new DiceAnchorsProperties.SimConfig("gpt-4.1-mini", 30, 30, 10, true, 4),
                 new DiceAnchorsProperties.ConflictDetectionConfig(ConflictStrategy.LLM, "gpt-4o-nano"),
                 new DiceAnchorsProperties.RunHistoryConfig(RunHistoryStoreType.MEMORY),
-                new DiceAnchorsProperties.AssemblyConfig(0),
-                null, null, null);
+                new DiceAnchorsProperties.AssemblyConfig(0, false, dev.dunnam.diceanchors.assembly.EnforcementStrategy.PROMPT_ONLY),
+                null, null, null, null, null, null, null);
     }
 }

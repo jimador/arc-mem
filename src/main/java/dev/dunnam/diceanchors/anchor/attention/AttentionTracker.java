@@ -90,7 +90,8 @@ public class AttentionTracker {
                     e.getAnchorId() != null
                             ? List.of(new EventEntry(e.getAnchorId(), EventCategory.GENERAL))
                             : List.of();
-            case AnchorLifecycleEvent.Archived _, AnchorLifecycleEvent.Evicted _ -> List.of();
+            case AnchorLifecycleEvent.Archived _, AnchorLifecycleEvent.Evicted _,
+                 AnchorLifecycleEvent.PressureThresholdBreached _ -> List.of();
         };
     }
 

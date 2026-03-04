@@ -250,7 +250,7 @@ class ChatContextInitializerTest {
                 20, 500, 100, 900, true, 0.65,
                 DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED,
                 true, true, true,
-                0.6, 400, 200, null, null, null, chatSeed);
+                0.6, 400, 200, null, null, null, chatSeed, null);
         return new DiceAnchorsProperties(
                 anchorConfig,
                 new DiceAnchorsProperties.ChatConfig("dm", 200, null),
@@ -259,7 +259,7 @@ class ChatContextInitializerTest {
                 new DiceAnchorsProperties.SimConfig("gpt-4.1-mini", 30, 30, 10, true, 4),
                 new DiceAnchorsProperties.ConflictDetectionConfig(ConflictStrategy.LLM, "gpt-4o-nano"),
                 new DiceAnchorsProperties.RunHistoryConfig(RunHistoryStoreType.MEMORY),
-                new DiceAnchorsProperties.AssemblyConfig(0),
-                null, null, null);
+                new DiceAnchorsProperties.AssemblyConfig(0, false, dev.dunnam.diceanchors.assembly.EnforcementStrategy.PROMPT_ONLY),
+                null, null, null, null, null, null, null);
     }
 }

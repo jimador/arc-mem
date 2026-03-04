@@ -170,7 +170,15 @@ class DriftEvaluationTest {
     class FullParsePipeline {
 
         private final SimulationTurnExecutor executor = new SimulationTurnExecutor(
-                null, null, null, null, dev.dunnam.diceanchors.anchor.CompliancePolicy.tiered(), null, null, null);
+                null, null, null, null, dev.dunnam.diceanchors.anchor.CompliancePolicy.tiered(), null, null, null,
+                new SimulationTurnServices(
+                        null,
+                        new dev.dunnam.diceanchors.anchor.ReactiveMaintenanceStrategy(
+                                dev.dunnam.diceanchors.anchor.DecayPolicy.exponential(1000.0),
+                                dev.dunnam.diceanchors.anchor.ReinforcementPolicy.threshold()),
+                        ctx -> dev.dunnam.diceanchors.assembly.ComplianceResult.compliant(java.time.Duration.ZERO),
+                        null,
+                        new LoggingPromptInjectionEnforcer()));
 
         private List<SimulationScenario.GroundTruth> groundTruth(String... ids) {
             var list = new java.util.ArrayList<SimulationScenario.GroundTruth>();

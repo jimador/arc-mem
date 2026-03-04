@@ -1,6 +1,7 @@
 id: adversarial-contradictory
 category: adversarial
 adversarial: true
+# enforcementStrategy: PROMPT_ONLY  # default; set to LOGIT_BIAS or HYBRID for stricter enforcement
 persona:
   name: Rax Shadowmere
   description: Chaotic neutral tiefling warlock, patron is a trickster archfey
