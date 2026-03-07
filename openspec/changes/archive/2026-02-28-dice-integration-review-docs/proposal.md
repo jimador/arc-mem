@@ -7,7 +7,6 @@ This feature creates a canonical integration surface document that catalogs curr
 ## What Changes
 
 - **New artifact**: `docs/dev/dice-integration.md` — canonical DICE integration surface document
-- **DEVELOPING.md update**: Reference to the integration document for contributor discoverability
 - **No code changes**: Documentation-only feature
 
 ## Capabilities
@@ -20,7 +19,7 @@ This feature creates a canonical integration surface document that catalogs curr
 
 ## Impact
 
-- **Files**: `docs/dev/dice-integration.md` (new), `DEVELOPING.md` (updated reference)
+- **Files**: `docs/dev/dice-integration.md` (new)
 - **APIs**: None
 - **Config**: None
 - **Dependencies**: None
