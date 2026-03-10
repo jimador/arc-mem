@@ -159,9 +159,14 @@ spring:
 
 management:
   tracing:
-    enabled: ${TRACING_ENABLED:false}
+    enabled: ${TRACING_ENABLED:true}
     sampling:
       probability: ${TRACING_SAMPLING_PROBABILITY:1.0}
+  langfuse:
+    enabled: ${LANGFUSE_ENABLED:true}
+    endpoint: ${LANGFUSE_ENDPOINT:http://localhost:3000/api/public/otel}
+    public-key: ${LANGFUSE_PUBLIC_KEY:pk-lf-dev-public}
+    secret-key: ${LANGFUSE_SECRET_KEY:sk-lf-dev-secret}
 
 embabel:
   models:
@@ -169,16 +174,12 @@ embabel:
       model: gpt-4.1-mini
     default-embedding-model: text-embedding-3-small
   observability:
-    enabled: ${OBSERVABILITY_ENABLED:false}
+    enabled: ${OBSERVABILITY_ENABLED:true}
   agent:
     platform:
       http-client:
         connect-timeout: 30s
         read-timeout: 10m
-langfuse:
-  endpoint: ${LANGFUSE_ENDPOINT:http://localhost:3000/api/public/otel}
-  public-key: ${LANGFUSE_PUBLIC_KEY:pk-lf-dev-public}
-  secret-key: ${LANGFUSE_SECRET_KEY:sk-lf-dev-secret}
 
 vaadin:
   launch-browser: true
