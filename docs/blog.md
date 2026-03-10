@@ -46,27 +46,35 @@ And it helped. But it did not solve the core problem.
 
 A knowledge graph can tell you what facts exist for a given context. Retrieval can tell you what might be relevant. Neither one, by itself, tells the system which facts should matter most in a given moment, which ones should stay salient, which ones should be harder to contradict, or which updates should be treated as untrusted. That is the gap I kept running into.
 
-You can see adjacent systems circling the same space from different directions. [MemGPT](https://arxiv.org/abs/2310.08560) treats memory as a systems problem and focuses on paging information in and out of context. [Graphiti](https://arxiv.org/abs/2501.13956) is especially interesting for temporal knowledge and invalidation of prior facts. Both are useful, but neither fully answers the question I cared about most: not just what the system can recover, but what should continue to carry weight inside an ongoing conversation.
+You can see adjacent systems circling the same space from different directions. [MemGPT](https://arxiv.org/abs/2310.08560) treats memory as a systems problem and focuses on paging information in and out of context. [Graphiti](https://arxiv.org/abs/2501.13956) is especially interesting for temporal knowledge and invalidation of prior facts. [Cognitive Workspace](https://arxiv.org/abs/2508.13171) pushes toward active memory management in the reasoning loop itself. [HiAgent](https://arxiv.org/abs/2408.09559) explores hierarchical working memory for long-horizon agent tasks. Storage-oriented systems such as [Mem0](https://arxiv.org/abs/2504.19413) and [A-MEM](https://arxiv.org/abs/2502.12110) improve extraction and persistence. All of that is useful, but it still leaves the question I cared about most: not just what the system can recover, but what should continue to carry weight inside an ongoing conversation.
 
 ## The Missing Layer: Governed Working Memory
 
-What I actually needed was not just a better way to store or retrieve facts. I needed a way to keep certain facts explicitly in play as the conversation evolved.
+The problem was not whether the system knew something somewhere. The problem was whether that thing was still active enough to shape the next turn.
 
-The raw context window is a kind of working memory, but it is volatile working memory. It gets crowded, compacted, summarized, and reweighted every turn. What I was missing was a bounded, governed working set: facts that stay active, stay visible to the model, and stay harder to overwrite even as the rest of the conversation shifts.
+That is where the raw context window starts to break down. It already acts like a kind of working memory, but it is volatile. Every turn adds more tokens, more pressure, more chances for summarization, compaction, reframing, and distraction. Facts that should still be constraining the conversation do not just stay active on their own. They get diluted by everything else going on.
 
-Once you look at it that way, the shape of the solution becomes clearer: you need a bounded set of facts that stays in play, distinguishes trusted constraints from tentative claims, handles contradiction and revision differently, and remains present even as the rest of the conversation shifts.
+Once I started looking at it that way, the architecture got a lot simpler in my head. Recent turns are volatile context. A graph like DICE is closer to structured semantic memory. Documents, notes, and logs are archival memory. What was missing was the layer in between: a bounded working set that stays active in the prompt and keeps load-bearing state from quietly dropping out just because the conversation wandered.
 
-This is not a replacement for archival recall. It sits on top of it. Facts can fall out of the active set and later come back into play when the conversation makes them relevant again. The job of governed working memory is to decide which facts should stay active now, which ones can fade, and how they re-enter the conversation when they matter again.
+That is what I mean by governed working memory.
 
-## Working Memory in Practice
+The concrete mechanism I have been using for that layer is ARC, short for Activation-Ranked Context. Borrowing from the [ACT-R](https://act-r.psy.cmu.edu/) cognitive architecture, the basic idea is that facts, claims, events, or whatever semantic unit you want to work with should not stay active just because they were stored somewhere. They should stay active because they are still earning it. Maybe they were mentioned recently. Maybe they have been reinforced over several turns. Maybe they are highly relevant to the current exchange. Maybe they come from a more trusted source. Maybe they are under contradiction pressure and need to stay visible for that reason.
+
+If those signals weaken, the unit can fade out of the active set. If the conversation comes back around, it can come back in. The point is not just to remember things somewhere in the system. The point is to keep the right things active in the part of the system that is actually shaping the next response.
+
+ARC does not replace retrieval or long-term storage. It sits between them and the prompt. Its job is to keep the few things that still matter from having to win a brand new relevance contest every turn.
+
+## ARC in Practice
 
 My current proof of concept for this is [**Anchors**](https://github.com/jimador/dice-anchors).
 
-DICE handles proposition extraction and persistence. Embabel handles orchestration. Anchors sits on top of that and governs which extracted propositions are promoted into active working memory and how they persist there over time.
+DICE handles proposition extraction and persistence. Embabel handles orchestration. Anchors is the current proposition-based prototype implementation of ARC.
 
-In this model, an anchor is a DICE proposition that has been promoted and given additional structure. The key fields are rank, authority, and membership in a bounded working set. In practice, that means the system maintains a small active pool of facts rather than feeding everything it has ever seen back into the prompt.
+In this prototype, propositions are the semantic units. An anchor is a DICE proposition that has been promoted and given additional structure. The key fields are rank, authority, and membership in a bounded working set. In practice, that means the system maintains a small active pool of facts rather than feeding everything it has ever seen back into the prompt. Operationally, that rank is standing in for the activation idea: higher-ranked units earn retention in the active context.
 
-At runtime, anchors are injected into prompts as a ranked established-facts block. That is an important design choice. Retrieval-based memory is opportunistic: the system may surface the right fact, or it may not. Anchors, by contrast, are deliberately kept in play. They are explicitly marked and budgeted as part of prompt assembly itself.
+The architecture is straightforward: conversation produces semantic units, DICE persists them as structured knowledge, ARC selects the bounded working set, and that working set is injected into the prompt as a protected block before the model reasons over the next turn.
+
+At runtime, anchors are injected into prompts as a ranked established-facts block. Retrieval-based memory is opportunistic: the system may surface the right fact, or it may not. ARC, by contrast, is about deliberately keeping certain state in play. In the current prototype, Anchors makes that policy visible by explicitly marking and budgeting which units remain active in prompt assembly itself.
 
 The more interesting part is how that active set is managed.
 
