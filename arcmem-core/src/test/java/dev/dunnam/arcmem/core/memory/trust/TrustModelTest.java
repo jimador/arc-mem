@@ -25,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.OptionalDouble;
 import java.util.UUID;
 
@@ -647,12 +648,6 @@ class TrustModelTest {
         }
 
         @Test
-        @DisplayName("byName returns NARRATIVE for 'NARRATIVE'")
-        void byName_narrative_returnsNarrativeProfile() {
-            assertThat(DomainProfile.byName("NARRATIVE")).isSameAs(DomainProfile.NARRATIVE);
-        }
-
-        @Test
         @DisplayName("byName returns BALANCED for 'BALANCED'")
         void byName_balanced_returnsBalancedProfile() {
             assertThat(DomainProfile.byName("BALANCED")).isSameAs(DomainProfile.BALANCED);
@@ -662,8 +657,13 @@ class TrustModelTest {
         @DisplayName("byName is case-insensitive")
         void byName_lowercase_returnsCaseInsensitiveMatch() {
             assertThat(DomainProfile.byName("secure")).isSameAs(DomainProfile.SECURE);
-            assertThat(DomainProfile.byName("narrative")).isSameAs(DomainProfile.NARRATIVE);
             assertThat(DomainProfile.byName("Balanced")).isSameAs(DomainProfile.BALANCED);
+        }
+
+        @Test
+        @DisplayName("byName returns BALANCED for unregistered profile name")
+        void byName_narrative_returnsBalancedFallback() {
+            assertThat(DomainProfile.byName("NARRATIVE")).isSameAs(DomainProfile.BALANCED);
         }
 
         @Test
@@ -680,10 +680,10 @@ class TrustModelTest {
         }
 
         @Test
-        @DisplayName("SECURE profile has stricter autoPromoteThreshold than NARRATIVE")
-        void secureProfile_hasStricterThresholdThanNarrative() {
+        @DisplayName("SECURE profile has stricter autoPromoteThreshold than BALANCED")
+        void secureProfile_hasStricterThresholdThanBalanced() {
             assertThat(DomainProfile.SECURE.autoPromoteThreshold())
-                    .isGreaterThan(DomainProfile.NARRATIVE.autoPromoteThreshold());
+                    .isGreaterThan(DomainProfile.BALANCED.autoPromoteThreshold());
         }
 
         @Test
@@ -701,28 +701,12 @@ class TrustModelTest {
         }
 
         @Test
-        @DisplayName("NARRATIVE weights sum to 1.0")
-        void narrativeProfile_weightsSumToOne() {
-            double sum = DomainProfile.NARRATIVE.weights().values().stream().mapToDouble(d -> d).sum();
-            assertThat(sum).isCloseTo(1.0, within(0.001));
-        }
-
-        @Test
         @DisplayName("SECURE graphConsistency weight is highest among its signals")
         void secureProfile_graphConsistencyWeightIsHighest() {
             var weights = DomainProfile.SECURE.weights();
             assertThat(weights.get("graphConsistency"))
                     .isGreaterThan(weights.get("sourceAuthority"))
                     .isGreaterThan(weights.get("extractionConfidence"));
-        }
-
-        @Test
-        @DisplayName("NARRATIVE sourceAuthority weight is highest among its signals")
-        void narrativeProfile_sourceAuthorityWeightIsHighest() {
-            var weights = DomainProfile.NARRATIVE.weights();
-            assertThat(weights.get("sourceAuthority"))
-                    .isGreaterThan(weights.get("graphConsistency"))
-                    .isGreaterThan(weights.get("corroboration"));
         }
     }
 
@@ -735,18 +719,18 @@ class TrustModelTest {
     class TrustPipelineTests {
 
         @Test
-        @DisplayName("defaults to NARRATIVE profile")
-        void constructor_defaultProfile_isNarrative() {
+        @DisplayName("defaults to BALANCED profile")
+        void constructor_defaultProfile_isBalanced() {
             var pipeline = new TrustPipeline(List.of());
 
-            assertThat(pipeline.getActiveProfile()).isSameAs(DomainProfile.NARRATIVE);
+            assertThat(pipeline.getActiveProfile()).isSameAs(DomainProfile.BALANCED);
         }
 
         @Test
         @DisplayName("evaluates proposition using composed signals")
         void evaluate_withSignals_delegatesToEvaluator() {
-            // Quality signals absent — weight redistributes; NARRATIVE core weights 0.35,0.25,0.15,0.15 -> sum=0.90
-            // Effective weights after redistribution: 0.389, 0.278, 0.167, 0.167
+            // Quality signals absent — weight redistributes; BALANCED core weights 0.22,0.22,0.22,0.22 -> sum=0.88
+            // Effective weights after redistribution: each 0.22/0.88 = 0.25
             var signals = List.<TrustSignal>of(
                     namedSignal("sourceAuthority", 0.8),
                     namedSignal("extractionConfidence", 0.7),
@@ -760,8 +744,8 @@ class TrustModelTest {
 
             var result = pipeline.evaluate(prop, CONTEXT_ID);
 
-            // NARRATIVE (redistributed): 0.389*0.8 + 0.278*0.7 + 0.167*0.6 + 0.167*0.9 = 0.755
-            assertThat(result.score()).isCloseTo(0.755, within(0.001));
+            // BALANCED (redistributed): 0.25*0.8 + 0.25*0.7 + 0.25*0.6 + 0.25*0.9 = 0.75
+            assertThat(result.score()).isCloseTo(0.75, within(0.001));
             assertThat(result).isNotNull();
             assertThat(result.signalAudit()).isNotEmpty();
         }
@@ -781,7 +765,7 @@ class TrustModelTest {
         @DisplayName("evaluates with switched profile thresholds")
         void evaluate_afterProfileSwitch_usesNewProfileThresholds() {
             // Quality signals absent — redistribution preserves proportions; all core signals at 0.65 -> score = 0.65
-            // 0.65 is above NARRATIVE autoPromote (0.60) but below BALANCED autoPromote (0.70)
+            // 0.65 is below BALANCED autoPromote (0.70) but above a permissive profile (0.60)
             var signals = List.<TrustSignal>of(
                     namedSignal("sourceAuthority", 0.65),
                     namedSignal("extractionConfidence", 0.65),
@@ -793,23 +777,26 @@ class TrustModelTest {
             var pipeline = new TrustPipeline(signals);
             var prop = proposition("test", 0.65);
 
-            // With NARRATIVE default (autoPromote=0.60), score=0.65 -> AUTO_PROMOTE
-            var narrativeResult = pipeline.evaluate(prop, CONTEXT_ID);
-            assertThat(narrativeResult.promotionZone()).isEqualTo(PromotionZone.AUTO_PROMOTE);
-
-            // Switch to BALANCED (autoPromote=0.70), score=0.65 -> REVIEW
-            pipeline.withProfile(DomainProfile.BALANCED);
+            // With BALANCED default (autoPromote=0.70), score=0.65 -> REVIEW
             var balancedResult = pipeline.evaluate(prop, CONTEXT_ID);
             assertThat(balancedResult.promotionZone()).isEqualTo(PromotionZone.REVIEW);
+
+            // Switch to permissive profile (autoPromote=0.60), score=0.65 -> AUTO_PROMOTE
+            var permissive = new DomainProfile("PERMISSIVE",
+                    Map.of("sourceAuthority", 0.25, "extractionConfidence", 0.25,
+                           "graphConsistency", 0.25, "corroboration", 0.25),
+                    0.60, 0.35, 0.20);
+            pipeline.withProfile(permissive);
+            var permissiveResult = pipeline.evaluate(prop, CONTEXT_ID);
+            assertThat(permissiveResult.promotionZone()).isEqualTo(PromotionZone.AUTO_PROMOTE);
         }
 
         @Test
         @DisplayName("handles absent signals through evaluator redistribution")
         void evaluate_absentSignal_redistributesViaEvaluator() {
             // corroboration, novelty, importance all absent — 3 core signals present
-            // NARRATIVE: present weight = 0.35+0.25+0.15 = 0.75, absent = 0.15+0.05+0.05 = 0.25
-            // Redistribution factor = 1/0.75 = 1.333...; each signal: 0.8 * (weight * 1.333)
-            // score = 0.8 * (0.35/0.75 + 0.25/0.75 + 0.15/0.75) = 0.8 * 1.0 = 0.8
+            // BALANCED: present weight = 0.22+0.22+0.22 = 0.66, absent = 0.22+0.06+0.06 = 0.34
+            // All present signals at 0.8 -> redistribution preserves 0.8 as score
             var signals = List.<TrustSignal>of(
                     namedSignal("sourceAuthority", 0.8),
                     namedSignal("extractionConfidence", 0.8),
