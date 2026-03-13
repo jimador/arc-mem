@@ -23,7 +23,7 @@ docker-compose*.yml
 
 # Claude / AI
 .claude/
-.dice-anchors/
+.arc-mem/
 
 # OpenSpec
 openspec/

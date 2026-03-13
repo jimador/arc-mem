@@ -158,7 +158,7 @@ The system SHALL support defining operator invariants via YAML configuration und
 The configuration schema SHALL be:
 
 ```yaml
-dice-anchors:
+arc-mem:
   invariants:
     rules:
       - rule-id: protect-cursed-blade

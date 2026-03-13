@@ -1,6 +1,6 @@
 ### Requirement: 13 ported scenarios
 
-Thirteen simulation scenarios SHALL be ported from tor and adapted to the dice-anchors `SimulationScenario` format. The scenarios SHALL be organized in `src/main/resources/simulations/` as YAML files. The 13 scenarios SHALL be: `trust-evaluation-basic`, `trust-evaluation-full-signals`, `adversarial-contradictory`, `adversarial-poisoned-player`, `adversarial-displacement`, `dungeon-of-mirrors`, `dead-kingdom`, `compaction-stress`, `balanced-campaign`, `narrative-dm-driven`, `dormancy-revival`, `episodic-recall`, and `multi-session-campaign`.
+Thirteen simulation scenarios SHALL be ported from tor and adapted to the arc-mem `SimulationScenario` format. The scenarios SHALL be organized in `src/main/resources/simulations/` as YAML files. The 13 scenarios SHALL be: `trust-evaluation-basic`, `trust-evaluation-full-signals`, `adversarial-contradictory`, `adversarial-poisoned-player`, `adversarial-displacement`, `dungeon-of-mirrors`, `dead-kingdom`, `compaction-stress`, `balanced-campaign`, `narrative-dm-driven`, `dormancy-revival`, `episodic-recall`, and `multi-session-campaign`.
 
 #### Scenario: All 13 scenario files exist
 - **WHEN** the `src/main/resources/simulations/` directory is listed

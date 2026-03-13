@@ -66,7 +66,7 @@ ARC does not replace retrieval or long-term storage. It sits between them and th
 
 ## ARC in Practice
 
-ARC is the mechanism. [**ARC-Mem**](https://github.com/jimador/dice-anchors) is my current implementation of it, built on DICE for proposition extraction and Embabel for agent orchestration.
+ARC is the mechanism. [**ARC-Mem**](https://github.com/jimador/arc-mem) is my current implementation of it, built on DICE for proposition extraction and Embabel for agent orchestration.
 
 A memory unit is a DICE proposition that has been promoted and given additional structure: an activation score, an authority level, and membership in a bounded working set. In practice, the system maintains a small active pool of facts — currently capped at 20 — rather than feeding everything it has ever seen back into the prompt. That working set is injected as a protected block before the model reasons over the next turn. Retrieval-based memory is opportunistic; ARC is deliberate. If a fact is in the working set, it is there every turn until something explicitly displaces it.
 
