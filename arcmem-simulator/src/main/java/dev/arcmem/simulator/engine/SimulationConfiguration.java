@@ -21,13 +21,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.arcmem.core.config.ArcMemProperties;
 import dev.arcmem.core.persistence.PassThroughTieredRepository;
 import dev.arcmem.core.persistence.TieredMemoryUnitRepository;
+import dev.arcmem.simulator.config.ArcMemSimulatorProperties;
 import org.drivine.manager.PersistenceManager;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
+@EnableConfigurationProperties(ArcMemSimulatorProperties.class)
 public class SimulationConfiguration {
 
     @Bean

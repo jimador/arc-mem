@@ -73,8 +73,8 @@ class ProactiveMaintenanceStrategyTest {
     void setUp() {
         var maintenance = new ArcMemProperties.MaintenanceConfig(MaintenanceMode.PROACTIVE, PROACTIVE_CONFIG);
         var properties = new ArcMemProperties(
-                UNIT_CONFIG, null, null, null, null, null, null, null, null, null, null,
-                maintenance, PRESSURE_CONFIG, null, null);
+                UNIT_CONFIG, null, null, null, null, null, null, null,
+                maintenance, PRESSURE_CONFIG, null, null, new ArcMemProperties.LlmCallConfig(30, 10));
         strategy = new ProactiveMaintenanceStrategy(pressureGauge, arcMemEngine, repository,
                 canonizationGate, invariantEvaluator, llmCallService, properties);
     }

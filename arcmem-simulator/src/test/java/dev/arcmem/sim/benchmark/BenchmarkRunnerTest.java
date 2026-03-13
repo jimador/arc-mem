@@ -18,7 +18,7 @@ import dev.arcmem.simulator.engine.*;
 import dev.arcmem.simulator.history.*;
 import dev.arcmem.simulator.scenario.*;
 
-import dev.arcmem.core.config.ArcMemProperties;
+import dev.arcmem.simulator.config.ArcMemSimulatorProperties;
 import dev.arcmem.simulator.history.RunHistoryStore;
 import dev.arcmem.simulator.engine.ScoringResult;
 import dev.arcmem.simulator.engine.SimulationProgress;
@@ -69,10 +69,10 @@ class BenchmarkRunnerTest {
     private RunHistoryStore runHistoryStore;
 
     @Mock
-    private ArcMemProperties properties;
+    private ArcMemSimulatorProperties properties;
 
     @Mock
-    private ArcMemProperties.SimConfig simConfig;
+    private ArcMemSimulatorProperties.SimConfig simConfig;
 
     private BenchmarkRunner runner;
 

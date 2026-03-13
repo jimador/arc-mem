@@ -15,7 +15,6 @@ import dev.arcmem.core.assembly.retrieval.*;
 
 import com.embabel.dice.proposition.PropositionStatus;
 import dev.arcmem.core.config.ArcMemProperties;
-import dev.arcmem.core.spi.llm.RunHistoryStoreType;
 import dev.arcmem.core.memory.event.MemoryUnitLifecycleEvent;
 import dev.arcmem.core.memory.event.ArchiveReason;
 import dev.arcmem.core.memory.event.SupersessionReason;
@@ -348,13 +347,10 @@ class ArcMemEngineSupersessionTest {
                 null, null, null, null, null);
         return new ArcMemProperties(
                 unitConfig,
-                new ArcMemProperties.ChatConfig("dm", 200, null),
                 new ArcMemProperties.MemoryConfig(true, null, null, "text-embedding-3-small", 20, 5, 2),
                 new ArcMemProperties.PersistenceConfig(false),
-                new ArcMemProperties.SimConfig("gpt-4.1-mini", 30, 30, 10, true, 4),
                 new ArcMemProperties.ConflictDetectionConfig(ConflictStrategy.LLM, "gpt-4o-nano"),
-                new ArcMemProperties.RunHistoryConfig(RunHistoryStoreType.MEMORY),
                 new ArcMemProperties.AssemblyConfig(0, false, dev.arcmem.core.assembly.compliance.EnforcementStrategy.PROMPT_ONLY),
-                null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, new ArcMemProperties.LlmCallConfig(30, 10));
     }
 }

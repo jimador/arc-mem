@@ -103,7 +103,7 @@ class MaintenanceStrategyTest {
             var invariantEvaluator = mock(InvariantEvaluator.class);
             var llmCallService = mock(dev.arcmem.core.spi.llm.LlmCallService.class);
             var properties = new dev.arcmem.core.config.ArcMemProperties(
-                    null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+                    null, null, null, null, null, null, null, null, null, null, null, null, new dev.arcmem.core.config.ArcMemProperties.LlmCallConfig(30, 10));
             return new ProactiveMaintenanceStrategy(pressureGauge, arcMemEngine, repository,
                     canonizationGate, invariantEvaluator, llmCallService, properties);
         }

@@ -22,7 +22,7 @@ import dev.arcmem.simulator.scenario.*;
 import dev.arcmem.core.config.ArcMemProperties;
 import dev.arcmem.core.persistence.MemoryUnitRepository;
 import dev.arcmem.simulator.assertions.AssertionRegistry;
-import dev.arcmem.core.spi.llm.ChatModelHolder;
+import dev.arcmem.simulator.engine.ChatModelHolder;
 import dev.arcmem.simulator.history.RunHistoryStore;
 import dev.arcmem.simulator.engine.ScoringService;
 import dev.arcmem.simulator.scenario.SimulationScenario;

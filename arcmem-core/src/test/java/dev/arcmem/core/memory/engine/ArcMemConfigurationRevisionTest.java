@@ -16,7 +16,6 @@ import dev.arcmem.core.assembly.retrieval.*;
 import dev.arcmem.core.config.ArcMemProperties;
 import dev.arcmem.core.persistence.MemoryUnitRepository;
 import dev.arcmem.core.spi.llm.LlmCallService;
-import dev.arcmem.core.spi.llm.RunHistoryStoreType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.model.ChatModel;
@@ -149,15 +148,12 @@ class ArcMemConfigurationRevisionTest {
                 null);
         return new ArcMemProperties(
                 unit,
-                new ArcMemProperties.ChatConfig("dm", 200, null),
                 new ArcMemProperties.MemoryConfig(true, null, null, "text-embedding-3-small", 20, 5, 6),
                 new ArcMemProperties.PersistenceConfig(false),
-                new ArcMemProperties.SimConfig("gpt-4.1-mini", 30, 30, 10, true, 4),
                 new ArcMemProperties.ConflictDetectionConfig(ConflictStrategy.LLM, "gpt-4o-nano"),
-                new ArcMemProperties.RunHistoryConfig(RunHistoryStoreType.MEMORY),
                 new ArcMemProperties.AssemblyConfig(0, false, dev.arcmem.core.assembly.compliance.EnforcementStrategy.PROMPT_ONLY),
                 new ArcMemProperties.ConflictConfig(0.5, 0.9, 0.8, 0.6,
                         new ArcMemProperties.TierModifierConfig(0.1, 0.0, -0.1)),
-                null, null, null, null, null, null);
+                null, null, null, null, null, null, new ArcMemProperties.LlmCallConfig(30, 10));
     }
 }

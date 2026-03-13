@@ -185,7 +185,7 @@ class DriftEvaluationTest {
     class FullParsePipeline {
 
         private final SimulationTurnExecutor executor = new SimulationTurnExecutor(
-                null, null, null, null, dev.arcmem.core.memory.canon.CompliancePolicy.tiered(), null, null, null,
+                null, null, null, null, null, dev.arcmem.core.memory.canon.CompliancePolicy.tiered(), null, null, null,
                 new SimulationTurnServices(
                         null,
                         new dev.arcmem.core.memory.maintenance.ReactiveMaintenanceStrategy(

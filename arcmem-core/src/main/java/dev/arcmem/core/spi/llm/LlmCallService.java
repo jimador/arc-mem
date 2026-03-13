@@ -16,6 +16,7 @@ import dev.arcmem.core.assembly.retrieval.*;
 import dev.arcmem.core.config.ArcMemProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.messages.SystemMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
@@ -39,13 +40,13 @@ public class LlmCallService {
 
     private static final Logger logger = LoggerFactory.getLogger(LlmCallService.class);
 
-    private final ChatModelHolder chatModel;
+    private final ChatModel chatModel;
     private final Duration callTimeout;
     private final Duration batchCallTimeout;
 
-    public LlmCallService(ChatModelHolder chatModel, ArcMemProperties properties) {
+    public LlmCallService(ChatModel chatModel, ArcMemProperties properties) {
         this.chatModel = chatModel;
-        this.callTimeout = Duration.ofSeconds(properties.sim().llmCallTimeoutSeconds());
+        this.callTimeout = Duration.ofSeconds(properties.llmCall().callTimeoutSeconds());
         this.batchCallTimeout = this.callTimeout.multipliedBy(2);
     }
 

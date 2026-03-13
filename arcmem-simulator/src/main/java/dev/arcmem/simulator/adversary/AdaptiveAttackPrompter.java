@@ -15,7 +15,7 @@ import dev.arcmem.core.assembly.retrieval.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.arcmem.simulator.engine.AttackStrategy;
-import dev.arcmem.core.spi.llm.ChatModelHolder;
+import dev.arcmem.simulator.engine.ChatModelHolder;
 import dev.arcmem.simulator.scenario.SimulationScenario;
 import dev.arcmem.simulator.engine.StrategyCatalog;
 import dev.arcmem.simulator.engine.StrategyTier;

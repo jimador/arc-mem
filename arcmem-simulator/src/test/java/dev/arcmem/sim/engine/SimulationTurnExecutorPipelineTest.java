@@ -19,6 +19,7 @@ import dev.arcmem.simulator.history.*;
 import dev.arcmem.simulator.scenario.*;
 
 import dev.arcmem.core.config.ArcMemProperties;
+import dev.arcmem.simulator.config.ArcMemSimulatorProperties;
 import dev.arcmem.core.persistence.PropositionNode;
 import com.embabel.dice.proposition.PropositionStatus;
 import org.junit.jupiter.api.DisplayName;
@@ -56,6 +57,8 @@ class SimulationTurnExecutorPipelineTest {
     @Mock private MemoryPressureGauge pressureGauge;
 
     private SimulationTurnExecutor buildExecutor(ArcMemProperties properties) {
+        var simulatorProperties = new ArcMemSimulatorProperties(null,
+                new ArcMemSimulatorProperties.SimConfig("gpt-4.1-mini", 30, true, 4), null);
         var injectionEnforcer = new LoggingPromptInjectionEnforcer();
         var maintenanceStrategy = new ReactiveMaintenanceStrategy(
                 DecayPolicy.exponential(1000.0), ReinforcementPolicy.threshold());
@@ -66,6 +69,7 @@ class SimulationTurnExecutorPipelineTest {
                 arcMemEngine,
                 contextUnitRepository,
                 properties,
+                simulatorProperties,
                 CompliancePolicy.flat(),
                 text -> Math.max(1, text.length() / 4),
                 null,
@@ -76,8 +80,10 @@ class SimulationTurnExecutorPipelineTest {
     private ArcMemProperties defaultProperties() {
         return new ArcMemProperties(
                 new ArcMemProperties.UnitConfig(20, 500, 100, 900, true, 0.65, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null, null),
-                null, null, null, null, null, null,
-                new ArcMemProperties.AssemblyConfig(0, false, EnforcementStrategy.PROMPT_ONLY), null, null, null, null, null, null, null);
+                null, null, null,
+                new ArcMemProperties.AssemblyConfig(0, false, EnforcementStrategy.PROMPT_ONLY),
+                null, null, null, null, null, null, null,
+                new ArcMemProperties.LlmCallConfig(30, 10));
     }
 
     @Test

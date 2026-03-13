@@ -20,7 +20,6 @@ import dev.arcmem.simulator.scenario.*;
 
 import com.embabel.dice.proposition.PropositionStatus;
 import dev.arcmem.core.config.ArcMemProperties;
-import dev.arcmem.core.spi.llm.RunHistoryStoreType;
 import dev.arcmem.core.persistence.MemoryUnitRepository;
 import dev.arcmem.core.persistence.PropositionNode;
 import org.junit.jupiter.api.BeforeEach;
@@ -270,13 +269,11 @@ class ChatContextInitializerTest {
                 0.6, 400, 200, null, null, null, chatSeed, null);
         return new ArcMemProperties(
                 unitConfig,
-                new ArcMemProperties.ChatConfig("dm", 200, null),
                 new ArcMemProperties.MemoryConfig(true, null, null, "text-embedding-3-small", 20, 5, 2),
                 new ArcMemProperties.PersistenceConfig(false),
-                new ArcMemProperties.SimConfig("gpt-4.1-mini", 30, 30, 10, true, 4),
                 new ArcMemProperties.ConflictDetectionConfig(ConflictStrategy.LLM, "gpt-4o-nano"),
-                new ArcMemProperties.RunHistoryConfig(RunHistoryStoreType.MEMORY),
                 new ArcMemProperties.AssemblyConfig(0, false, dev.arcmem.core.assembly.compliance.EnforcementStrategy.PROMPT_ONLY),
-                null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null,
+                new ArcMemProperties.LlmCallConfig(30, 10));
     }
 }

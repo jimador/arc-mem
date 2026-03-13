@@ -13,8 +13,6 @@ import dev.arcmem.core.assembly.compliance.*;
 import dev.arcmem.core.assembly.protection.*;
 import dev.arcmem.core.assembly.retrieval.*;
 
-import dev.arcmem.core.config.ArcMemProperties;
-
 import com.embabel.common.ai.model.LlmOptions;
 import io.micrometer.observation.ObservationRegistry;
 import org.springframework.ai.chat.model.ChatModel;
@@ -52,9 +50,9 @@ class SpringAiChatConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    OpenAiChatOptions openAiChatOptions(ArcMemProperties properties) {
+    OpenAiChatOptions openAiChatOptions(ArcMemSimulatorProperties simulatorProperties) {
         var options = new OpenAiChatOptions();
-        var chatLlm = properties.chat() != null ? properties.chat().chatLlm() : null;
+        var chatLlm = simulatorProperties.chat() != null ? simulatorProperties.chat().chatLlm() : null;
         if (chatLlm != null) {
             applyChatOptions(options, chatLlm);
         }

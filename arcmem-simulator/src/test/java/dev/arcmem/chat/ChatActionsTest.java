@@ -27,7 +27,7 @@ import com.embabel.agent.core.ProcessOptions;
 import com.embabel.chat.AssistantMessage;
 import com.embabel.chat.Conversation;
 import dev.arcmem.core.config.ArcMemProperties;
-import dev.arcmem.core.spi.llm.RunHistoryStoreType;
+import dev.arcmem.simulator.config.ArcMemSimulatorProperties;
 import dev.arcmem.core.persistence.MemoryUnitRepository;
 import dev.arcmem.core.persistence.PropositionNode;
 import com.embabel.dice.proposition.PropositionStatus;
@@ -98,7 +98,7 @@ class ChatActionsTest {
         var properties = properties();
         var assistantMessage = new AssistantMessage("ok");
         var actions = new ChatActions(arcMemEngine, contextUnitRepository, eventPublisher, properties,
-                dev.arcmem.core.memory.canon.CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null, chatContextInitializer, Optional.empty());
+                simulatorProperties(), dev.arcmem.core.memory.canon.CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null, chatContextInitializer, Optional.empty());
 
         when(arcMemEngine.inject("chat")).thenReturn(List.of());
         when(actionContext.ai()).thenReturn(ai);
@@ -127,7 +127,7 @@ class ChatActionsTest {
         var properties = properties();
         var assistantMessage = new AssistantMessage("ok");
         var actions = new ChatActions(arcMemEngine, contextUnitRepository, eventPublisher, properties,
-                dev.arcmem.core.memory.canon.CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null, chatContextInitializer, Optional.empty());
+                simulatorProperties(), dev.arcmem.core.memory.canon.CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null, chatContextInitializer, Optional.empty());
 
         when(arcMemEngine.inject("chat")).thenReturn(List.of());
         when(actionContext.ai()).thenReturn(ai);
@@ -157,7 +157,7 @@ class ChatActionsTest {
         var properties = properties();
         var assistantMessage = new AssistantMessage("ok");
         var actions = new ChatActions(arcMemEngine, contextUnitRepository, eventPublisher, properties,
-                dev.arcmem.core.memory.canon.CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null, chatContextInitializer, Optional.empty());
+                simulatorProperties(), dev.arcmem.core.memory.canon.CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null, chatContextInitializer, Optional.empty());
 
         when(arcMemEngine.inject("chat")).thenReturn(List.of());
         when(contextUnitRepository.findActiveUnpromotedPropositions("chat", properties.unit().budget()))
@@ -202,14 +202,19 @@ class ChatActionsTest {
     private static ArcMemProperties properties() {
         return new ArcMemProperties(
                 new ArcMemProperties.UnitConfig(20, 500, 100, 900, true, 0.65, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null, null),
-                new ArcMemProperties.ChatConfig("dm", 200, null),
                 new ArcMemProperties.MemoryConfig(true, null, null, "text-embedding-3-small", 20, 5, 2),
                 new ArcMemProperties.PersistenceConfig(false),
-                new ArcMemProperties.SimConfig("gpt-4.1-mini", 30, 30, 10, true, 4),
                 new ArcMemProperties.ConflictDetectionConfig(ConflictStrategy.LLM, "gpt-4o-nano"),
-                new ArcMemProperties.RunHistoryConfig(RunHistoryStoreType.MEMORY),
                 new ArcMemProperties.AssemblyConfig(0, false, dev.arcmem.core.assembly.compliance.EnforcementStrategy.PROMPT_ONLY),
-                null, null, null, null, null, null, null
+                null, null, null, null, null, null, null,
+                new ArcMemProperties.LlmCallConfig(30, 10)
         );
+    }
+
+    private static ArcMemSimulatorProperties simulatorProperties() {
+        return new ArcMemSimulatorProperties(
+                new ArcMemSimulatorProperties.ChatConfig("dm", 200, null),
+                new ArcMemSimulatorProperties.SimConfig("gpt-4.1-mini", 30, true, 4),
+                null);
     }
 }

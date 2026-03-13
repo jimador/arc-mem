@@ -15,6 +15,7 @@ import dev.arcmem.core.assembly.retrieval.*;
 import dev.arcmem.simulator.compaction.CompactedContextProvider;
 
 import dev.arcmem.core.spi.llm.*;
+import dev.arcmem.simulator.config.ArcMemSimulatorProperties;
 import dev.arcmem.simulator.history.*;
 import dev.arcmem.simulator.scenario.*;
 
@@ -74,6 +75,7 @@ public class SimulationTurnExecutor {
     private final ArcMemEngine arcMemEngine;
     private final MemoryUnitRepository contextUnitRepository;
     private final ArcMemProperties properties;
+    private final ArcMemSimulatorProperties simulatorProperties;
     private final CompliancePolicy compliancePolicy;
     private final TokenCounter tokenCounter;
     private final SimulationExtractionService extractionService;
@@ -88,6 +90,7 @@ public class SimulationTurnExecutor {
             ArcMemEngine arcMemEngine,
             MemoryUnitRepository contextUnitRepository,
             ArcMemProperties properties,
+            ArcMemSimulatorProperties simulatorProperties,
             CompliancePolicy compliancePolicy,
             TokenCounter tokenCounter,
             RelevanceScorer relevanceScorer,
@@ -97,6 +100,7 @@ public class SimulationTurnExecutor {
         this.arcMemEngine = arcMemEngine;
         this.contextUnitRepository = contextUnitRepository;
         this.properties = properties;
+        this.simulatorProperties = simulatorProperties;
         this.compliancePolicy = compliancePolicy;
         this.tokenCounter = tokenCounter;
         this.turnServices = turnServices;
@@ -277,7 +281,7 @@ public class SimulationTurnExecutor {
             Map<String, Integer> dormancyState,
             boolean rankMutationEnabled,
             boolean authorityPromotionEnabled) {
-        if (properties.sim() != null && properties.sim().parallelPostResponse()) {
+        if (simulatorProperties.sim() != null && simulatorProperties.sim().parallelPostResponse()) {
             return executeTurnFullParallel(
                     contextId, turnNumber, playerMessage, turnType, attackStrategies,
                     setting, injectionEnabled, tokenBudget, groundTruth, conversationHistory,

@@ -236,7 +236,7 @@ public class SemanticUnitPromoter {
 
         var threshold = properties.unit().autoActivateThreshold();
         var initialRank = properties.unit().initialRank();
-        var maxBatch = properties.sim().batchMaxSize();
+        var maxBatch = properties.llmCall().batchMaxSize();
 
         // Extraction can produce identical text twice from one response; keep the first
         // occurrence so downstream Collectors.toMap() keyed by text never encounters a duplicate key.

@@ -20,6 +20,7 @@ import com.embabel.chat.Conversation;
 import com.embabel.chat.UserMessage;
 import dev.arcmem.core.config.ArcMemProperties;
 import dev.arcmem.core.persistence.MemoryUnitRepository;
+import dev.arcmem.simulator.config.ArcMemSimulatorProperties;
 import dev.arcmem.core.persistence.TieredMemoryUnitRepository;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
@@ -53,6 +54,7 @@ public record ChatActions(
         MemoryUnitRepository contextUnitRepository,
         ApplicationEventPublisher eventPublisher,
         ArcMemProperties properties,
+        ArcMemSimulatorProperties simulatorProperties,
         CompliancePolicy compliancePolicy,
         TokenCounter tokenCounter,
         RelevanceScorer relevanceScorer,
@@ -115,7 +117,7 @@ public record ChatActions(
         templateVars.put("properties", properties);
         templateVars.put("units", unitMaps);
         templateVars.put("proposition_block", propositionBlock);
-        templateVars.put("persona", properties.chat().persona());
+        templateVars.put("persona", simulatorProperties.chat().persona());
         templateVars.put("tiered", tiered);
 
         if (tiered) {

@@ -49,7 +49,7 @@ class AttentionTrackerTest {
             new ArcMemProperties.AttentionConfig(false, Duration.ofMinutes(5), 0.5, 3, 0.7, 0.2, 3, 20);
 
     private AttentionTracker tracker(ArcMemProperties.AttentionConfig config) {
-        var props = new ArcMemProperties(null, null, null, null, null, null, null, null, null, null, config, null, null, null, null);
+        var props = new ArcMemProperties(null, null, null, null, null, null, null, config, null, null, null, null, new ArcMemProperties.LlmCallConfig(30, 10));
         return new AttentionTracker(publisher, props);
     }
 

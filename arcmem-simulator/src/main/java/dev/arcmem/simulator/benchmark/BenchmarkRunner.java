@@ -13,7 +13,7 @@ import dev.arcmem.core.assembly.compliance.*;
 import dev.arcmem.core.assembly.protection.*;
 import dev.arcmem.core.assembly.retrieval.*;
 
-import dev.arcmem.core.config.ArcMemProperties;
+import dev.arcmem.simulator.config.ArcMemSimulatorProperties;
 import dev.arcmem.simulator.history.RunHistoryStore;
 import dev.arcmem.simulator.engine.ScoringResult;
 import dev.arcmem.simulator.engine.SimulationRuntimeConfig;
@@ -58,17 +58,17 @@ public class BenchmarkRunner {
     private final SimulationService simulationService;
     private final BenchmarkAggregator aggregator;
     private final RunHistoryStore runHistoryStore;
-    private final ArcMemProperties properties;
+    private final ArcMemSimulatorProperties simulatorProperties;
     private final AtomicBoolean cancelRequested = new AtomicBoolean(false);
 
     public BenchmarkRunner(SimulationService simulationService,
                            BenchmarkAggregator aggregator,
                            RunHistoryStore runHistoryStore,
-                           ArcMemProperties properties) {
+                           ArcMemSimulatorProperties simulatorProperties) {
         this.simulationService = simulationService;
         this.aggregator = aggregator;
         this.runHistoryStore = runHistoryStore;
-        this.properties = properties;
+        this.simulatorProperties = simulatorProperties;
     }
 
     /**
@@ -164,7 +164,7 @@ public class BenchmarkRunner {
         currentSpan.setAttribute("benchmark.rank_mutation_enabled", condition.rankMutationEnabled());
         currentSpan.setAttribute("benchmark.authority_promotion_enabled", condition.authorityPromotionEnabled());
 
-        var parallelism = properties.sim().benchmarkParallelism();
+        var parallelism = simulatorProperties.sim().benchmarkParallelism();
         logger.info("Starting benchmark: scenario='{}', runCount={}, condition='{}', parallelism={}",
                     scenario.id(), runCount, condition.name(), parallelism);
 

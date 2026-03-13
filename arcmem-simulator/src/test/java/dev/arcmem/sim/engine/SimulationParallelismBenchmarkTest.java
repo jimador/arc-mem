@@ -19,6 +19,7 @@ import dev.arcmem.simulator.history.*;
 import dev.arcmem.simulator.scenario.*;
 
 import dev.arcmem.core.config.ArcMemProperties;
+import dev.arcmem.simulator.config.ArcMemSimulatorProperties;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -137,9 +138,11 @@ class SimulationParallelismBenchmarkTest {
                 new ArcMemProperties.UnitConfig(20, 500, 100, 900, true, 0.65,
                         DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null, null),
                 null, null, null,
-                new ArcMemProperties.SimConfig("gpt-4.1-mini", 30, 30, 10, parallel, 4),
-                null, null,
-                new ArcMemProperties.AssemblyConfig(0, false, dev.arcmem.core.assembly.compliance.EnforcementStrategy.PROMPT_ONLY), null, null, null, null, null, null, null);
+                new ArcMemProperties.AssemblyConfig(0, false, dev.arcmem.core.assembly.compliance.EnforcementStrategy.PROMPT_ONLY),
+                null, null, null, null, null, null, null,
+                new ArcMemProperties.LlmCallConfig(30, 10));
+        var simulatorProperties = new ArcMemSimulatorProperties(null,
+                new ArcMemSimulatorProperties.SimConfig("gpt-4.1-mini", 30, parallel, 4), null);
         var injectionEnforcer = new LoggingPromptInjectionEnforcer();
         var maintenanceStrategy = new ReactiveMaintenanceStrategy(
                 DecayPolicy.exponential(1000.0), ReinforcementPolicy.threshold());
@@ -150,6 +153,7 @@ class SimulationParallelismBenchmarkTest {
                 arcMemEngine,
                 contextUnitRepository,
                 properties,
+                simulatorProperties,
                 CompliancePolicy.flat(),
                 text -> Math.max(1, text.length() / 4),
                 null,

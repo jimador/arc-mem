@@ -52,6 +52,7 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.server.VaadinSession;
 import dev.arcmem.core.config.ArcMemProperties;
+import dev.arcmem.simulator.config.ArcMemSimulatorProperties;
 import dev.arcmem.core.memory.event.ArchiveReason;
 import dev.arcmem.core.persistence.MemoryUnitRepository;
 import dev.arcmem.core.persistence.PropositionNode;
@@ -101,6 +102,7 @@ public class ChatView extends VerticalLayout implements BeforeEnterObserver {
     private final MemoryUnitRepository contextUnitRepository;
     private final GraphObjectManager graphObjectManager;
     private final ArcMemProperties properties;
+    private final ArcMemSimulatorProperties simulatorProperties;
     private final CompliancePolicy compliancePolicy;
     private final TokenCounter tokenCounter;
     private final RelevanceScorer relevanceScorer;
@@ -133,6 +135,7 @@ public class ChatView extends VerticalLayout implements BeforeEnterObserver {
     public ChatView(Chatbot chatbot, ArcMemEngine arcMemEngine, MemoryUnitRepository contextUnitRepository,
                     GraphObjectManager graphObjectManager,
                     ArcMemProperties properties,
+                    ArcMemSimulatorProperties simulatorProperties,
                     CompliancePolicy compliancePolicy,
                     TokenCounter tokenCounter,
                     RelevanceScorer relevanceScorer,
@@ -143,6 +146,7 @@ public class ChatView extends VerticalLayout implements BeforeEnterObserver {
         this.contextUnitRepository = contextUnitRepository;
         this.graphObjectManager = graphObjectManager;
         this.properties = properties;
+        this.simulatorProperties = simulatorProperties;
         this.compliancePolicy = compliancePolicy;
         this.tokenCounter = tokenCounter;
         this.relevanceScorer = relevanceScorer;
@@ -848,7 +852,7 @@ public class ChatView extends VerticalLayout implements BeforeEnterObserver {
         templateVars.put("properties", properties);
         templateVars.put("units", unitMaps);
         templateVars.put("proposition_block", propositionBlock);
-        templateVars.put("persona", properties.chat().persona());
+        templateVars.put("persona", simulatorProperties.chat().persona());
         templateVars.put("tiered", tiered);
 
         if (tiered) {

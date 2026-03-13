@@ -19,7 +19,6 @@ import dev.arcmem.simulator.history.*;
 import dev.arcmem.simulator.scenario.*;
 
 import dev.arcmem.core.config.ArcMemProperties;
-import io.micrometer.observation.ObservationRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -53,15 +52,12 @@ class LlmCallServiceTest {
     @Mock
     private ChatModel chatModel;
 
-    private ChatModelHolder chatModelHolder;
     private LlmCallService service;
 
     @BeforeEach
     void setUp() {
-        chatModelHolder = new ChatModelHolder(chatModel, ObservationRegistry.NOOP);
-        // 2-second timeout for fast test execution
         var properties = propertiesWithTimeout(2);
-        service = new LlmCallService(chatModelHolder, properties);
+        service = new LlmCallService(chatModel, properties);
     }
 
     @Nested
@@ -180,22 +176,13 @@ class LlmCallServiceTest {
     }
 
     private static ArcMemProperties propertiesWithTimeout(int timeoutSeconds) {
-        var simConfig = new ArcMemProperties.SimConfig(
-                "gpt-4.1-mini",
-                30,
-                timeoutSeconds,
-                10,
-                true,
-                4);
         return new ArcMemProperties(
                 new ArcMemProperties.UnitConfig(20, 500, 100, 900, true, 0.65, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null, null),
-                new ArcMemProperties.ChatConfig("dm", 200, null),
                 new ArcMemProperties.MemoryConfig(true, null, null, "text-embedding-3-small", 20, 5, 2),
                 new ArcMemProperties.PersistenceConfig(false),
-                simConfig,
                 new ArcMemProperties.ConflictDetectionConfig(dev.arcmem.core.memory.conflict.ConflictStrategy.LLM, "gpt-4o-nano"),
-                new ArcMemProperties.RunHistoryConfig(RunHistoryStoreType.MEMORY),
                 new ArcMemProperties.AssemblyConfig(0, false, dev.arcmem.core.assembly.compliance.EnforcementStrategy.PROMPT_ONLY),
-                null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null,
+                new ArcMemProperties.LlmCallConfig(timeoutSeconds, 10));
     }
 }

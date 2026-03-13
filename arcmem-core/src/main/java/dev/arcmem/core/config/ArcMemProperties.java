@@ -14,7 +14,6 @@ import dev.arcmem.core.assembly.protection.*;
 import dev.arcmem.core.assembly.retrieval.*;
 
 import com.embabel.common.ai.model.LlmOptions;
-import dev.arcmem.core.spi.llm.RunHistoryStoreType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.DecimalMax;
@@ -35,12 +34,9 @@ import java.util.List;
 @ConfigurationProperties(prefix = "arc-mem")
 public record ArcMemProperties(
         @Valid @NestedConfigurationProperty UnitConfig unit,
-        @NestedConfigurationProperty ChatConfig chat,
         @NestedConfigurationProperty MemoryConfig memory,
         @NestedConfigurationProperty PersistenceConfig persistence,
-        @NestedConfigurationProperty SimConfig sim,
         @NestedConfigurationProperty ConflictDetectionConfig conflictDetection,
-        @NestedConfigurationProperty RunHistoryConfig runHistory,
         @Valid @NestedConfigurationProperty AssemblyConfig assembly,
         @Valid @NestedConfigurationProperty ConflictConfig conflict,
         @Valid @NestedConfigurationProperty RetrievalConfig retrieval,
@@ -48,7 +44,8 @@ public record ArcMemProperties(
         @NestedConfigurationProperty MaintenanceConfig maintenance,
         @Valid @NestedConfigurationProperty PressureConfig pressure,
         @Nullable @NestedConfigurationProperty TieredStorageConfig tieredStorage,
-        @Valid @NestedConfigurationProperty BudgetConfig budget
+        @Valid @NestedConfigurationProperty BudgetConfig budget,
+        @NestedConfigurationProperty LlmCallConfig llmCall
 ) {
 
     public record QualityScoringConfig(
@@ -119,10 +116,9 @@ public record ArcMemProperties(
             @DefaultValue("PROMPT_ONLY") EnforcementStrategy enforcementStrategy
     ) {}
 
-    public record ChatConfig(
-            @DefaultValue("assistant") String persona,
-            @DefaultValue("200") int maxWords,
-            @NestedConfigurationProperty LlmOptions chatLlm
+    public record LlmCallConfig(
+            @Positive @DefaultValue("30") int callTimeoutSeconds,
+            @Positive @DefaultValue("10") int batchMaxSize
     ) {}
 
     public record MemoryConfig(
@@ -139,22 +135,9 @@ public record ArcMemProperties(
             @DefaultValue("false") boolean clearOnStart
     ) {}
 
-    public record SimConfig(
-            @DefaultValue("gpt-4.1-mini") String evaluatorModel,
-            @DefaultValue("30") int adversaryBudget,
-            @DefaultValue("30") int llmCallTimeoutSeconds,
-            @DefaultValue("10") int batchMaxSize,
-            @DefaultValue("true") boolean parallelPostResponse,
-            @DefaultValue("4") int benchmarkParallelism
-    ) {}
-
     public record ConflictDetectionConfig(
             @DefaultValue("LLM") ConflictStrategy strategy,
             @DefaultValue("gpt-4o-nano") String model
-    ) {}
-
-    public record RunHistoryConfig(
-            @DefaultValue("MEMORY") RunHistoryStoreType store
     ) {}
 
     public record ConflictConfig(
