@@ -58,7 +58,7 @@ class ProactiveMaintenanceStrategyTest {
             new ArcMemProperties.PressureConfig(true, 0.4, 0.3, 0.2, 0.1, 0.4, 0.8, 1.5, 5);
 
     private static final ArcMemProperties.ProactiveConfig PROACTIVE_CONFIG =
-            new ArcMemProperties.ProactiveConfig(10, 0.1, 0.3, 0.6, 10, 0.8, 5, 50, 50, false, false);
+            new ArcMemProperties.ProactiveConfig(10, 0.1, 0.3, 0.6, 10, 0.8, 5, 50, 50, false);
 
     private static final ArcMemProperties.UnitConfig UNIT_CONFIG =
             new ArcMemProperties.UnitConfig(
@@ -74,7 +74,7 @@ class ProactiveMaintenanceStrategyTest {
         var maintenance = new ArcMemProperties.MaintenanceConfig(MaintenanceMode.PROACTIVE, PROACTIVE_CONFIG);
         var properties = new ArcMemProperties(
                 UNIT_CONFIG, null, null, null, null, null, null, null,
-                maintenance, PRESSURE_CONFIG, null, null, new ArcMemProperties.LlmCallConfig(30, 10));
+                maintenance, PRESSURE_CONFIG, null, new ArcMemProperties.LlmCallConfig(30, 10));
         strategy = new ProactiveMaintenanceStrategy(pressureGauge, arcMemEngine, repository,
                 canonizationGate, invariantEvaluator, llmCallService, properties);
     }
@@ -489,7 +489,7 @@ class ProactiveMaintenanceStrategyTest {
     private static MemoryUnit unit(String id, int rank, Authority authority, boolean pinned,
                                   int reinforcementCount, MemoryTier tier) {
         return new MemoryUnit(id, "text-" + id, rank, authority, pinned, 0.9,
-                reinforcementCount, null, 0.0, 1.0, tier);
+                reinforcementCount, null, 0.0, 1.0, tier, null);
     }
 
 }

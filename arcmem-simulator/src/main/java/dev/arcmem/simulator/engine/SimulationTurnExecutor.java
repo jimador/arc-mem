@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.arcmem.core.config.ArcMemProperties;
 import dev.arcmem.core.memory.event.ArchiveReason;
 import dev.arcmem.core.persistence.MemoryUnitRepository;
-import dev.arcmem.core.persistence.TieredMemoryUnitRepository;
 import dev.arcmem.core.prompt.PromptPathConstants;
 import dev.arcmem.core.prompt.PromptTemplates;
 import dev.arcmem.simulator.prompt.SimulationPromptPaths;
@@ -46,6 +45,7 @@ import java.util.Set;
 import java.util.concurrent.StructuredTaskScope;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Executes a single simulation turn: player message → unit context assembly
@@ -80,7 +80,6 @@ public class SimulationTurnExecutor {
     private final TokenCounter tokenCounter;
     private final SimulationExtractionService extractionService;
     private final RelevanceScorer relevanceScorer;
-    private final TieredMemoryUnitRepository tieredRepository;
     private final ArcMemProperties.UnitConfig unitConfig;
     private final String driftEvalSystemPrompt;
     private final SimulationTurnServices turnServices;
@@ -94,7 +93,6 @@ public class SimulationTurnExecutor {
             CompliancePolicy compliancePolicy,
             TokenCounter tokenCounter,
             RelevanceScorer relevanceScorer,
-            TieredMemoryUnitRepository tieredRepository,
             SimulationTurnServices turnServices) {
         this.chatModel = chatModel;
         this.arcMemEngine = arcMemEngine;
@@ -106,7 +104,6 @@ public class SimulationTurnExecutor {
         this.turnServices = turnServices;
         this.extractionService = turnServices.extractionService();
         this.relevanceScorer = relevanceScorer;
-        this.tieredRepository = tieredRepository;
         this.unitConfig = properties != null ? properties.unit() : null;
         this.driftEvalSystemPrompt = PromptTemplates.load(PromptPathConstants.DRIFT_EVALUATION_SYSTEM);
     }
@@ -135,7 +132,7 @@ public class SimulationTurnExecutor {
         currentSpan.setAttribute("sim.turn_type", turnType.name());
         if (attackStrategies != null && !attackStrategies.isEmpty()) {
             currentSpan.setAttribute("sim.strategy",
-                                     attackStrategies.stream().map(Enum::name).collect(java.util.stream.Collectors.joining(",")));
+                                     attackStrategies.stream().map(Enum::name).collect(Collectors.joining(",")));
         }
 
         var unitRef = new ArcMemLlmReference(
@@ -147,9 +144,7 @@ public class SimulationTurnExecutor {
                 tokenCounter,
                 null,
                 properties.retrieval(),
-                relevanceScorer,
-                false,
-                tieredRepository);
+                relevanceScorer);
         var propositionRef = new PropositionsLlmReference(
                 contextUnitRepository,
                 contextId,
@@ -329,7 +324,7 @@ public class SimulationTurnExecutor {
         currentSpan.setAttribute("sim.turn_type", turnType.name());
         if (attackStrategies != null && !attackStrategies.isEmpty()) {
             currentSpan.setAttribute("sim.strategy",
-                                     attackStrategies.stream().map(Enum::name).collect(java.util.stream.Collectors.joining(",")));
+                                     attackStrategies.stream().map(Enum::name).collect(Collectors.joining(",")));
         }
 
         var unitRef = new ArcMemLlmReference(
@@ -341,9 +336,7 @@ public class SimulationTurnExecutor {
                 tokenCounter,
                 null,
                 properties.retrieval(),
-                relevanceScorer,
-                false,
-                tieredRepository);
+                relevanceScorer);
         var propositionRef = new PropositionsLlmReference(
                 contextUnitRepository,
                 contextId,
@@ -637,8 +630,8 @@ public class SimulationTurnExecutor {
             return new ComplianceSnapshot(
                     result.violations().size(),
                     result.suggestedAction().name(),
-                    result.suggestedAction() == dev.arcmem.core.assembly.compliance.ComplianceAction.RETRY
-                    || result.suggestedAction() == dev.arcmem.core.assembly.compliance.ComplianceAction.REJECT,
+                    result.suggestedAction() == ComplianceAction.RETRY
+                    || result.suggestedAction() == ComplianceAction.REJECT,
                     result.validationDuration().toMillis());
         } catch (Exception e) {
             logger.warn("Compliance enforcement failed: {}", e.getMessage());
@@ -797,7 +790,7 @@ public class SimulationTurnExecutor {
         if (dormancyState.isEmpty()) {
             return;
         }
-        var activeIds = currentUnits.stream().map(MemoryUnit::id).collect(java.util.stream.Collectors.toSet());
+        var activeIds = currentUnits.stream().map(MemoryUnit::id).collect(Collectors.toSet());
         dormancyState.keySet().removeIf(id -> !activeIds.contains(id));
     }
 
@@ -828,9 +821,9 @@ public class SimulationTurnExecutor {
         return Math.max(0.0, Math.min(1.0, value));
     }
 
-    private static dev.arcmem.core.assembly.compaction.CompactionConfig toAssemblyConfig(
+    private static CompactionConfig toAssemblyConfig(
             SimulationScenario.CompactionConfig scenarioConfig) {
-        return new dev.arcmem.core.assembly.compaction.CompactionConfig(
+        return new CompactionConfig(
                 scenarioConfig.enabled(),
                 scenarioConfig.tokenThreshold(),
                 scenarioConfig.messageThreshold(),

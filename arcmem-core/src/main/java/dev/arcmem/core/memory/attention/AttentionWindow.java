@@ -1,17 +1,4 @@
 package dev.arcmem.core.memory.attention;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -54,16 +41,16 @@ public record AttentionWindow(
         }
         var lastQuarterStart = windowStart.plusMillis(span * 3 / 4);
         var lastQuarterCount = eventTimestamps.stream()
-                .filter(t -> !t.isBefore(lastQuarterStart))
-                .count();
+                                              .filter(t -> !t.isBefore(lastQuarterStart))
+                                              .count();
         return (lastQuarterCount / (double) eventTimestamps.size()) / 0.25;
     }
 
     public AttentionWindow withEvent(Instant eventTime, Duration windowDuration) {
         var newWindowStart = laterOf(windowStart, eventTime.minus(windowDuration));
         var pruned = eventTimestamps.stream()
-                .filter(t -> !t.isBefore(newWindowStart))
-                .toList();
+                                    .filter(t -> !t.isBefore(newWindowStart))
+                                    .toList();
         var prunedCount = eventTimestamps.size() - pruned.size();
         var newTimestamps = new ArrayList<>(pruned);
         newTimestamps.add(eventTime);

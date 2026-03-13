@@ -1,19 +1,16 @@
 package dev.arcmem.core.config;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
 import com.embabel.common.ai.model.LlmOptions;
+import dev.arcmem.core.assembly.compliance.EnforcementStrategy;
+import dev.arcmem.core.assembly.retrieval.RetrievalMode;
+import dev.arcmem.core.memory.budget.BudgetStrategyType;
+import dev.arcmem.core.memory.canon.CompliancePolicyMode;
+import dev.arcmem.core.memory.canon.InvariantRuleType;
+import dev.arcmem.core.memory.canon.InvariantStrength;
+import dev.arcmem.core.memory.conflict.ConflictStrategy;
+import dev.arcmem.core.memory.maintenance.MaintenanceMode;
+import dev.arcmem.core.memory.model.Authority;
+import dev.arcmem.core.memory.mutation.DedupStrategy;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.DecimalMax;
@@ -43,7 +40,6 @@ public record ArcMemProperties(
         @Nullable @NestedConfigurationProperty AttentionConfig attention,
         @NestedConfigurationProperty MaintenanceConfig maintenance,
         @Valid @NestedConfigurationProperty PressureConfig pressure,
-        @Nullable @NestedConfigurationProperty TieredStorageConfig tieredStorage,
         @Valid @NestedConfigurationProperty BudgetConfig budget,
         @NestedConfigurationProperty LlmCallConfig llmCall
 ) {
@@ -235,24 +231,13 @@ public record ArcMemProperties(
             @Min(1) @DefaultValue("5") int candidacyMinAge,
             @Min(1) @Max(200) @DefaultValue("50") int rankBoostAmount,
             @Min(1) @Max(200) @DefaultValue("50") int rankPenaltyAmount,
-            @DefaultValue("false") boolean llmAuditEnabled,
-            @DefaultValue("false") boolean prologPreFilterEnabled
+            @DefaultValue("false") boolean llmAuditEnabled
     ) {
         @AssertTrue(message = "hardPruneThreshold must be less than softPruneThreshold")
         public boolean isHardBelowSoft() {
             return hardPruneThreshold < softPruneThreshold;
         }
     }
-
-    /**
-     * Configuration for three-tier unit storage (HOT/WARM/COLD).
-     * Disabled by default; opt-in via {@code arc-mem.tiered-storage.enabled=true}.
-     */
-    public record TieredStorageConfig(
-            @DefaultValue("false") boolean enabled,
-            @Positive @DefaultValue("1000") int maxCacheSize,
-            @Positive @DefaultValue("60") int ttlMinutes
-    ) {}
 
     public record PressureConfig(
             @DefaultValue("true") boolean enabled,
@@ -276,16 +261,7 @@ public record ArcMemProperties(
         }
     }
 
-    /**
-     * Configuration for pluggable budget enforcement strategy.
-     * <p>
-     * {@code strategy} selects the implementation. Threshold/factor fields apply only
-     * when {@code INTERFERENCE_DENSITY} is selected; they are ignored for {@code COUNT}.
-     */
     public record BudgetConfig(
-            @DefaultValue("COUNT") BudgetStrategyType strategy,
-            @DecimalMin("0.0") @DecimalMax("1.0") @DefaultValue("0.6") double densityWarningThreshold,
-            @DecimalMin("0.0") @DecimalMax("1.0") @DefaultValue("0.8") double densityReductionThreshold,
-            @DecimalMin("0.0") @DecimalMax("1.0") @DefaultValue("0.5") double densityReductionFactor
+            @DefaultValue("COUNT") BudgetStrategyType strategy
     ) {}
 }

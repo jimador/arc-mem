@@ -1,17 +1,4 @@
 package dev.arcmem.core.memory.attention;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
 import java.time.Duration;
 import java.util.List;
@@ -59,9 +46,9 @@ public record AttentionSnapshot(
         var totalReinforcements = windows.stream().mapToInt(AttentionWindow::reinforcementCount).sum();
         var totalEvents = windows.stream().mapToInt(AttentionWindow::totalEventCount).sum();
         var maxDuration = windows.stream()
-                .map(w -> Duration.between(w.windowStart(), w.lastEventAt()))
-                .reduce(Duration.ZERO, (a, b) -> a.compareTo(b) > 0 ? a : b);
+                                 .map(w -> Duration.between(w.windowStart(), w.lastEventAt()))
+                                 .reduce(Duration.ZERO, (a, b) -> a.compareTo(b) > 0 ? a : b);
         return new AttentionSnapshot(avgHeat, avgPressure, avgBurst,
-                totalConflicts, totalReinforcements, totalEvents, maxDuration, ids);
+                                     totalConflicts, totalReinforcements, totalEvents, maxDuration, ids);
     }
 }

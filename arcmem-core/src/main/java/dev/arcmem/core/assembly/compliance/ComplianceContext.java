@@ -1,27 +1,15 @@
 package dev.arcmem.core.assembly.compliance;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
+import dev.arcmem.core.memory.model.MemoryUnit;
 
 import java.util.List;
 
 /**
  * All inputs needed by a {@link ComplianceEnforcer} to validate a single LLM response.
  *
- * @param responseText  the LLM response text to validate
- * @param activeUnits active memory units to check the response against
- * @param policy        strictness configuration controlling which authority tiers are enforced
+ * @param responseText the LLM response text to validate
+ * @param activeUnits  active memory units to check the response against
+ * @param policy       strictness configuration controlling which authority tiers are enforced
  */
 public record ComplianceContext(
         String responseText,
@@ -48,12 +36,16 @@ public record ComplianceContext(
             boolean enforceProvisional
     ) {
 
-        /** Enforces only CANON memory units. Suitable for production with minimal overhead. */
+        /**
+         * Enforces only CANON memory units. Suitable for production with minimal overhead.
+         */
         public static CompliancePolicy canonOnly() {
             return new CompliancePolicy(true, false, false, false);
         }
 
-        /** Enforces CANON and RELIABLE memory units. Stricter coverage for high-stakes contexts. */
+        /**
+         * Enforces CANON and RELIABLE memory units. Stricter coverage for high-stakes contexts.
+         */
         public static CompliancePolicy tiered() {
             return new CompliancePolicy(true, true, false, false);
         }

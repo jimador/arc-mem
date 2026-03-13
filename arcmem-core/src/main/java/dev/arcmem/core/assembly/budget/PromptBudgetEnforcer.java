@@ -1,18 +1,8 @@
 package dev.arcmem.core.assembly.budget;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
+import dev.arcmem.core.memory.canon.CompliancePolicy;
+import dev.arcmem.core.memory.model.Authority;
+import dev.arcmem.core.memory.model.MemoryUnit;
 import dev.arcmem.core.prompt.PromptPathConstants;
 import dev.arcmem.core.prompt.PromptTemplates;
 import org.slf4j.Logger;
@@ -68,12 +58,13 @@ public class PromptBudgetEnforcer {
      * the result is returned with {@code budgetExceeded = true} and the full CANON
      * set still included.
      *
-     * @param units     candidate units to fit within budget; MUST NOT be null
+     * @param units       candidate units to fit within budget; MUST NOT be null
      * @param tokenBudget maximum allowed tokens; pass {@code <= 0} to skip enforcement
      * @param counter     token counter for estimation
      * @param policy      compliance policy (currently unused in budget math, reserved)
+     *
      * @return a {@link BudgetResult} where {@link BudgetResult#included()} are the units
-     *         that fit within budget and {@link BudgetResult#excluded()} are those dropped
+     * that fit within budget and {@link BudgetResult#excluded()} are those dropped
      */
     public BudgetResult enforce(List<MemoryUnit> units,
                                 int tokenBudget,
@@ -91,13 +82,14 @@ public class PromptBudgetEnforcer {
      * <p>
      * When {@code adaptiveFootprintEnabled} is false, all units are estimated uniformly.
      *
-     * @param units                  candidate units to fit within budget; MUST NOT be null
+     * @param units                    candidate units to fit within budget; MUST NOT be null
      * @param tokenBudget              maximum allowed tokens; pass {@code <= 0} to skip enforcement
      * @param counter                  token counter for estimation
      * @param policy                   compliance policy (currently unused in budget math, reserved)
      * @param adaptiveFootprintEnabled whether to use authority-specific template estimation
+     *
      * @return a {@link BudgetResult} where {@link BudgetResult#included()} are the units
-     *         that fit within budget and {@link BudgetResult#excluded()} are those dropped
+     * that fit within budget and {@link BudgetResult#excluded()} are those dropped
      */
     public BudgetResult enforce(List<MemoryUnit> units,
                                 int tokenBudget,
@@ -126,11 +118,11 @@ public class PromptBudgetEnforcer {
                 break;
             }
             var candidates = included.stream()
-                    .filter(unit -> unit.authority() == authority)
-                    .sorted(Comparator.comparingInt((MemoryUnit a) -> a.memoryTier().ordinal())
-                            .thenComparingDouble(MemoryUnit::diceImportance)
-                            .thenComparingInt(MemoryUnit::rank))
-                    .toList();
+                                     .filter(unit -> unit.authority() == authority)
+                                     .sorted(Comparator.comparingInt((MemoryUnit a) -> a.memoryTier().ordinal())
+                                                       .thenComparingDouble(MemoryUnit::diceImportance)
+                                                       .thenComparingInt(MemoryUnit::rank))
+                                     .toList();
             for (var candidate : candidates) {
                 if (estimated <= tokenBudget) {
                     break;
@@ -142,10 +134,10 @@ public class PromptBudgetEnforcer {
         }
 
         var canonOnlyExceeded = included.stream().allMatch(unit -> unit.authority() == Authority.CANON)
-                && estimated > tokenBudget;
+                                && estimated > tokenBudget;
         if (!excluded.isEmpty() || canonOnlyExceeded) {
             logger.info("Prompt token budget enforcement: budget={}, estimated={}, included={}, excluded={}, canonOnlyExceeded={}",
-                    tokenBudget, estimated, included.size(), excluded.size(), canonOnlyExceeded);
+                        tokenBudget, estimated, included.size(), excluded.size(), canonOnlyExceeded);
         }
 
         return new BudgetResult(

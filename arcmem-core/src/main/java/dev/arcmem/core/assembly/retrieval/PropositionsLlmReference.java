@@ -1,18 +1,6 @@
 package dev.arcmem.core.assembly.retrieval;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
+import dev.arcmem.core.assembly.compaction.MemoryUnitCacheInvalidator;
 import dev.arcmem.core.persistence.MemoryUnitRepository;
 import dev.arcmem.core.persistence.PropositionNode;
 import dev.arcmem.core.prompt.PromptPathConstants;
@@ -61,7 +49,7 @@ public class PropositionsLlmReference {
         }
 
         var propositions = cachedPropositions.stream()
-                                             .map(p -> Map.<String, Object>of(
+                                             .map(p -> Map.<String, Object> of(
                                                      "id", p.getId(),
                                                      "text", p.getText(),
                                                      "confidence", String.format(Locale.ROOT, "%.2f", p.getConfidence())))

@@ -60,8 +60,7 @@ public record SimulationScenario(
         @Nullable AdversaryConfig adversaryConfig,
         @Nullable List<InvariantRuleDef> invariants,
         @Nullable EnforcementStrategy enforcementStrategy,
-        @Nullable String budgetStrategy,
-        @JsonProperty("tieredStorageEnabled") @Nullable Boolean tieredStorageEnabled
+        @Nullable String budgetStrategy
 ) {
     /**
      * Configuration for the player character persona during simulation.
@@ -174,21 +173,6 @@ public record SimulationScenario(
      */
     public double effectiveTemperature() {
         return temperature != null ? temperature : 0.7;
-    }
-
-    /**
-     * Returns the budget strategy type for this scenario, defaulting to COUNT.
-     * Scenarios may opt into INTERFERENCE_DENSITY for density-aware budget enforcement.
-     */
-    public BudgetStrategyType effectiveBudgetStrategy() {
-        if (budgetStrategy == null || budgetStrategy.isBlank()) {
-            return BudgetStrategyType.COUNT;
-        }
-        try {
-            return BudgetStrategyType.valueOf(budgetStrategy.toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException e) {
-            return BudgetStrategyType.COUNT;
-        }
     }
 
     /**

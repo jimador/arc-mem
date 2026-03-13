@@ -1,18 +1,6 @@
 package dev.arcmem.core.memory.canon;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
+import dev.arcmem.core.memory.model.Authority;
 import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
@@ -35,21 +23,21 @@ import java.time.Instant;
  *       changes before the request is acted upon.</li>
  * </ol>
  *
- * @param id                  unique request ID (UUID string)
- * @param unitId            ID of the unit whose authority is changing
- * @param contextId           conversation or simulation context the unit belongs to
- * @param unitText          snapshot of the unit text at request creation time
- * @param currentAuthority    authority level at the time the request was created
- * @param requestedAuthority  authority level being requested (always CANON for promotions;
- *                            always the previous level for decanonizations)
- * @param reason              human-readable description of why this transition is requested
- * @param requestedBy         identifier of the actor requesting the change (e.g., "system",
- *                            "user", "llm-tool")
- * @param createdAt           timestamp when the request was created
- * @param status              current lifecycle status of this request
- * @param resolvedAt          timestamp when the request was approved, rejected, or marked stale (null while PENDING)
- * @param resolvedBy          identifier of the actor who resolved the request (null while PENDING)
- * @param resolutionNote      optional note attached when the request is resolved (null while PENDING)
+ * @param id                 unique request ID (UUID string)
+ * @param unitId             ID of the unit whose authority is changing
+ * @param contextId          conversation or simulation context the unit belongs to
+ * @param unitText           snapshot of the unit text at request creation time
+ * @param currentAuthority   authority level at the time the request was created
+ * @param requestedAuthority authority level being requested (always CANON for promotions;
+ *                           always the previous level for decanonizations)
+ * @param reason             human-readable description of why this transition is requested
+ * @param requestedBy        identifier of the actor requesting the change (e.g., "system",
+ *                           "user", "llm-tool")
+ * @param createdAt          timestamp when the request was created
+ * @param status             current lifecycle status of this request
+ * @param resolvedAt         timestamp when the request was approved, rejected, or marked stale (null while PENDING)
+ * @param resolvedBy         identifier of the actor who resolved the request (null while PENDING)
+ * @param resolutionNote     optional note attached when the request is resolved (null while PENDING)
  */
 public record CanonizationRequest(
         String id,

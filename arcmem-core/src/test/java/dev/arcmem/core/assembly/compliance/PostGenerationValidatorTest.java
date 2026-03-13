@@ -32,7 +32,7 @@ import static org.mockito.Mockito.when;
 class PostGenerationValidatorTest {
 
     private static MemoryUnit unit(String id, String text, Authority authority) {
-        return new MemoryUnit(id, text, 500, authority, false, 0.9, 0, null, 0.0, 0.0, MemoryTier.WARM);
+        return new MemoryUnit(id, text, 500, authority, false, 0.9, 0, null, 0.0, 0.0, MemoryTier.WARM, null);
     }
 
     private static ChatModel mockModel(String response) {

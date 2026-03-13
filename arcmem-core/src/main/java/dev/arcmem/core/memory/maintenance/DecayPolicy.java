@@ -1,19 +1,7 @@
 package dev.arcmem.core.memory.maintenance;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
 import dev.arcmem.core.config.ArcMemProperties;
+import dev.arcmem.core.memory.model.MemoryUnit;
 
 /**
  * Strategy interface for computing memory unit rank decay over time.
@@ -39,9 +27,10 @@ public interface DecayPolicy {
      *   <li>This method MUST NOT throw. On error, return {@code unit.rank()} as a safe default.</li>
      * </ul>
      *
-     * @param unit                  the unit to decay; never null
+     * @param unit                    the unit to decay; never null
      * @param hoursSinceReinforcement hours elapsed since the unit was last reinforced;
      *                                0 means no time has passed (result should equal current rank)
+     *
      * @return the new rank, clamped to [{@link MemoryUnit#MIN_RANK}, {@link MemoryUnit#MAX_RANK}]
      */
     int applyDecay(MemoryUnit unit, long hoursSinceReinforcement);
@@ -52,9 +41,10 @@ public interface DecayPolicy {
      * The {@code tierMultiplier} scales the effective half-life: values &gt; 1.0 slow decay,
      * values &lt; 1.0 accelerate it. Clamped to a minimum of 0.01 to prevent division by zero.
      *
-     * @param unit                  the unit to decay; never null
+     * @param unit                    the unit to decay; never null
      * @param hoursSinceReinforcement hours elapsed since last reinforcement
      * @param tierMultiplier          multiplier from the unit's memory tier
+     *
      * @return the new rank, clamped to [{@link MemoryUnit#MIN_RANK}, {@link MemoryUnit#MAX_RANK}]
      */
     default int applyDecay(MemoryUnit unit, long hoursSinceReinforcement, double tierMultiplier) {
@@ -66,8 +56,9 @@ public interface DecayPolicy {
      * CANON memory units are exempt from automatic decay-based demotion (invariant A3b).
      * PROVISIONAL has no lower threshold.
      *
-     * @param unit  the unit after rank decay has been applied
+     * @param unit    the unit after rank decay has been applied
      * @param newRank the new rank after decay
+     *
      * @return true if the unit should be demoted based on rank thresholds
      */
     boolean shouldDemoteAuthority(MemoryUnit unit, int newRank);
@@ -76,6 +67,7 @@ public interface DecayPolicy {
      * Static factory for exponential decay policy using default authority thresholds.
      *
      * @param halfLifeHours the halfLife of the decay
+     *
      * @return the decay policy
      */
     static DecayPolicy exponential(double halfLifeHours) {
@@ -86,7 +78,8 @@ public interface DecayPolicy {
      * Static factory for exponential decay policy with authority demotion support.
      *
      * @param halfLifeHours the halfLife of the decay
-     * @param unitConfig  unit config supplying rank thresholds for demotion checks
+     * @param unitConfig    unit config supplying rank thresholds for demotion checks
+     *
      * @return the decay policy
      */
     static DecayPolicy exponential(double halfLifeHours, ArcMemProperties.UnitConfig unitConfig) {

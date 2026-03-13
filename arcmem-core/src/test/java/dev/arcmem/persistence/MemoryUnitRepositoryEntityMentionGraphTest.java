@@ -50,8 +50,8 @@ class MemoryUnitRepositoryEntityMentionGraphTest {
                 null,
                 new ArcMemProperties.PersistenceConfig(false),
                 null,
-                new ArcMemProperties.AssemblyConfig(0, false, dev.arcmem.core.assembly.compliance.EnforcementStrategy.PROMPT_ONLY),
-                null, null, null, null, null, null, null, new ArcMemProperties.LlmCallConfig(30, 10));
+                new ArcMemProperties.AssemblyConfig(0, false, EnforcementStrategy.PROMPT_ONLY),
+                null, null, null, null, null, null, new ArcMemProperties.LlmCallConfig(30, 10));
         repository = new MemoryUnitRepository(graphObjectManager, persistenceManager, embeddingService, properties);
     }
 

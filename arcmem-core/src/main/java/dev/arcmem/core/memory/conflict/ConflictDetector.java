@@ -1,22 +1,11 @@
 package dev.arcmem.core.memory.conflict;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
+
+import dev.arcmem.core.memory.model.MemoryUnit;
+import org.jspecify.annotations.Nullable;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import org.jspecify.annotations.Nullable;
 
 /**
  * Strategy interface for detecting conflicts between an incoming proposition and existing units.
@@ -50,7 +39,7 @@ public interface ConflictDetector {
      *       marking the candidate as needing manual review</li>
      * </ul>
      */
-    enum DetectionQuality { FULL, FALLBACK, DEGRADED }
+    enum DetectionQuality {FULL, FALLBACK, DEGRADED}
 
     /**
      * Represents a detected conflict between an existing unit and an incoming proposition.
@@ -66,12 +55,16 @@ public interface ConflictDetector {
     record Conflict(@Nullable MemoryUnit existing, String incomingText, double confidence, String reason,
                     DetectionQuality detectionQuality, @Nullable ConflictType conflictType) {
 
-        /** Convenience constructor for full-quality detections (backward-compatible). */
+        /**
+         * Convenience constructor for full-quality detections (backward-compatible).
+         */
         public Conflict(MemoryUnit existing, String incomingText, double confidence, String reason) {
             this(existing, incomingText, confidence, reason, DetectionQuality.FULL, null);
         }
 
-        /** Convenience constructor preserving existing five-argument callers. */
+        /**
+         * Convenience constructor preserving existing five-argument callers.
+         */
         public Conflict(MemoryUnit existing, String incomingText, double confidence, String reason,
                         DetectionQuality detectionQuality) {
             this(existing, incomingText, confidence, reason, detectionQuality, null);
@@ -85,8 +78,9 @@ public interface ConflictDetector {
      * Postconditions: result is non-null; may be empty if no conflicts exist.
      * Error handling: MUST return an empty list on failure — never null, never throw.
      *
-     * @param incomingText    the new statement to check for conflicts; never null
+     * @param incomingText  the new statement to check for conflicts; never null
      * @param existingUnits the current active units to check against; never null
+     *
      * @return list of detected conflicts; empty if none found or on any error
      */
     List<Conflict> detect(String incomingText, List<MemoryUnit> existingUnits);
@@ -99,8 +93,9 @@ public interface ConflictDetector {
      * <p>
      * Error handling: MUST return a map with empty lists on failure — never null, never throw.
      *
-     * @param candidateTexts  list of incoming statements to check; never null
-     * @param existingUnits existing units to check against; never null
+     * @param candidateTexts list of incoming statements to check; never null
+     * @param existingUnits  existing units to check against; never null
+     *
      * @return map from candidate text to list of conflicts (empty list = no conflicts for that candidate)
      */
     default Map<String, List<Conflict>> batchDetect(List<String> candidateTexts, List<MemoryUnit> existingUnits) {

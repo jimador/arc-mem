@@ -304,8 +304,8 @@ class AdaptivePromptFootprintTest {
         return policy;
     }
 
-    private dev.arcmem.core.memory.engine.ArcMemEngine mockArcMemEngine(List<MemoryUnit> units) {
-        var engine = Mockito.mock(dev.arcmem.core.memory.engine.ArcMemEngine.class);
+    private ArcMemEngine mockArcMemEngine(List<MemoryUnit> units) {
+        var engine = Mockito.mock(ArcMemEngine.class);
         Mockito.when(engine.inject(Mockito.anyString())).thenReturn(units);
         return engine;
     }

@@ -1,18 +1,6 @@
 package dev.arcmem.core.memory.canon;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
+import dev.arcmem.core.memory.model.Authority;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -29,8 +17,12 @@ public sealed interface InvariantRule
                 InvariantRule.ArchiveProhibition {
 
     String id();
+
     InvariantStrength strength();
-    /** Context scope. Null means global (applies to all contexts). */
+
+    /**
+     * Context scope. Null means global (applies to all contexts).
+     */
     @Nullable String contextId();
 
     record AuthorityFloor(

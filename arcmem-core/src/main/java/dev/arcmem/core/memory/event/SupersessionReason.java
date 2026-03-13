@@ -1,17 +1,4 @@
 package dev.arcmem.core.memory.event;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
 /**
  * Reason one unit superseded another.
@@ -39,9 +26,13 @@ import dev.arcmem.core.assembly.retrieval.*;
  * @see ArchiveReason
  */
 public enum SupersessionReason {
-    /** Superseded because a conflicting proposition with higher authority/confidence replaced it. */
+    /**
+     * Superseded because a conflicting proposition with higher authority/confidence replaced it.
+     */
     CONFLICT_REPLACEMENT,
-    /** Superseded due to budget eviction of the lowest-ranked unit. */
+    /**
+     * Superseded due to budget eviction of the lowest-ranked unit.
+     */
     BUDGET_EVICTION,
     /**
      * Superseded due to decay-triggered demotion.
@@ -49,9 +40,13 @@ public enum SupersessionReason {
      * is included for completeness but may not be used with a SUPERSEDES relationship.
      */
     DECAY_DEMOTION,
-    /** Superseded via user-intended revision. */
+    /**
+     * Superseded via user-intended revision.
+     */
     USER_REVISION,
-    /** Superseded via explicit operator or system action. */
+    /**
+     * Superseded via explicit operator or system action.
+     */
     MANUAL;
 
     /**
@@ -63,6 +58,7 @@ public enum SupersessionReason {
      * terminology. This will be harmonized in a future change.
      *
      * @param archiveReason the archive reason to map
+     *
      * @return the corresponding supersession reason
      */
     public static SupersessionReason fromArchiveReason(ArchiveReason archiveReason) {

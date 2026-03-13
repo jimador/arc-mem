@@ -1,17 +1,7 @@
 package dev.arcmem.core.memory.mutation;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
+
+import dev.arcmem.core.memory.model.Authority;
+import dev.arcmem.core.memory.model.MemoryUnit;
 
 /**
  * Strategy for determining how an unit's rank and authority respond to reinforcement signals.
@@ -26,6 +16,7 @@ public interface ReinforcementPolicy {
      * Calculate the rank boost to apply when an unit is reinforced.
      *
      * @param unit the unit being reinforced (before the reinforcement is applied)
+     *
      * @return the number of rank points to add; MUST be {@code >= 0}
      */
     int calculateRankBoost(MemoryUnit unit);
@@ -38,8 +29,9 @@ public interface ReinforcementPolicy {
      * so the count reflects the post-reinforcement state.
      *
      * @param unit the unit after its reinforcement count has been incremented
+     *
      * @return {@code true} if the authority should advance to the next level;
-     *         MUST return {@code false} when {@code unit.authority() == Authority.CANON}
+     * MUST return {@code false} when {@code unit.authority() == Authority.CANON}
      */
     boolean shouldUpgradeAuthority(MemoryUnit unit);
 

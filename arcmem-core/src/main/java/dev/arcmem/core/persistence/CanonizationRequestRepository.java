@@ -35,9 +35,9 @@ public class CanonizationRequestRepository {
      * Create a canonization request node with a relationship to the target proposition.
      *
      * @param id                 unique request ID
-     * @param unitId           the unit whose authority is changing
+     * @param unitId             the unit whose authority is changing
      * @param contextId          the context the unit belongs to
-     * @param unitText         snapshot of unit text at request time
+     * @param unitText           snapshot of unit text at request time
      * @param currentAuthority   authority at request creation
      * @param requestedAuthority target authority
      * @param reason             human-readable reason
@@ -45,9 +45,9 @@ public class CanonizationRequestRepository {
      */
     @Transactional
     public void createCanonizationRequest(@NonNull String id, @NonNull String unitId,
-                                           @NonNull String contextId, @NonNull String unitText,
-                                           @NonNull String currentAuthority, @NonNull String requestedAuthority,
-                                           @NonNull String reason, @NonNull String requestedBy) {
+                                          @NonNull String contextId, @NonNull String unitText,
+                                          @NonNull String currentAuthority, @NonNull String requestedAuthority,
+                                          @NonNull String reason, @NonNull String requestedBy) {
         var cypher = """
                 CREATE (r:CanonizationRequest {
                     id: $id, unitId: $unitId, contextId: $contextId,
@@ -82,6 +82,7 @@ public class CanonizationRequestRepository {
      * Find all pending canonization requests for a specific context.
      *
      * @param contextId the context to query
+     *
      * @return list of request data maps
      */
     @Transactional(readOnly = true)
@@ -110,13 +111,14 @@ public class CanonizationRequestRepository {
      * Find a pending canonization request for a specific unit and requested authority.
      * Used for idempotency checks.
      *
-     * @param unitId           the unit ID
+     * @param unitId             the unit ID
      * @param requestedAuthority the requested authority level
+     *
      * @return the request data map if found
      */
     @Transactional(readOnly = true)
     public Optional<Map<String, Object>> findPendingCanonizationRequest(@NonNull String unitId,
-                                                                         @NonNull String requestedAuthority) {
+                                                                        @NonNull String requestedAuthority) {
         var cypher = """
                 MATCH (r:CanonizationRequest {unitId: $unitId, requestedAuthority: $requestedAuthority, status: 'PENDING'})
                 RETURN {id: r.id, unitId: r.unitId, contextId: r.contextId,
@@ -148,7 +150,7 @@ public class CanonizationRequestRepository {
      */
     @Transactional
     public void resolveCanonizationRequest(@NonNull String requestId, @NonNull String newStatus,
-                                            @Nullable String resolvedBy, @Nullable String note) {
+                                           @Nullable String resolvedBy, @Nullable String note) {
         var cypher = """
                 MATCH (r:CanonizationRequest {id: $id})
                 SET r.status = $newStatus,
@@ -173,6 +175,7 @@ public class CanonizationRequestRepository {
      * Find a canonization request by its ID (any status).
      *
      * @param requestId the request ID
+     *
      * @return the request data map if found
      */
     @Transactional(readOnly = true)

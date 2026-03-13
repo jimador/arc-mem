@@ -1,17 +1,8 @@
 package dev.arcmem.core.assembly.budget;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
+
+import dev.arcmem.core.assembly.compliance.ComplianceEnforcer;
+import dev.arcmem.core.assembly.protection.ConstraintMask;
+import dev.arcmem.core.assembly.protection.SemanticUnitConstraintIndex;
 
 /**
  * Interface for constrained decoding enforcement — the third tier of the compliance spectrum.
@@ -43,6 +34,7 @@ public interface ConstrainedDecodingEnforcer extends ComplianceEnforcer {
      *
      * @param index     constraint index built from active CANON/RELIABLE units
      * @param vocabSize total vocabulary size; defines the length of the returned mask
+     *
      * @return a constraint mask covering the full vocabulary
      */
     ConstraintMask computeConstraintMask(SemanticUnitConstraintIndex index, int vocabSize);

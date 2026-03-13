@@ -13,6 +13,9 @@ import dev.arcmem.core.assembly.compliance.*;
 import dev.arcmem.core.assembly.protection.*;
 import dev.arcmem.core.assembly.retrieval.*;
 
+import dev.arcmem.core.config.ArcMemProperties;
+import dev.arcmem.core.persistence.MemoryUnitRepository;
+import dev.arcmem.core.spi.llm.LlmCallService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -98,12 +101,12 @@ class MaintenanceStrategyTest {
 
         private ProactiveMaintenanceStrategy buildProactiveStrategy() {
             var arcMemEngine = mock(ArcMemEngine.class);
-            var repository = mock(dev.arcmem.core.persistence.MemoryUnitRepository.class);
+            var repository = mock(MemoryUnitRepository.class);
             var canonizationGate = mock(CanonizationGate.class);
             var invariantEvaluator = mock(InvariantEvaluator.class);
-            var llmCallService = mock(dev.arcmem.core.spi.llm.LlmCallService.class);
-            var properties = new dev.arcmem.core.config.ArcMemProperties(
-                    null, null, null, null, null, null, null, null, null, null, null, null, new dev.arcmem.core.config.ArcMemProperties.LlmCallConfig(30, 10));
+            var llmCallService = mock(LlmCallService.class);
+            var properties = new ArcMemProperties(
+                    null, null, null, null, null, null, null, null, null, null, null, new ArcMemProperties.LlmCallConfig(30, 10));
             return new ProactiveMaintenanceStrategy(pressureGauge, arcMemEngine, repository,
                     canonizationGate, invariantEvaluator, llmCallService, properties);
         }

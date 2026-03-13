@@ -1,18 +1,6 @@
 package dev.arcmem.core.memory.conflict;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
+import dev.arcmem.core.memory.model.MemoryUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,8 +40,8 @@ public class SubjectFilter {
         }
 
         var filtered = units.stream()
-                .filter(unit -> hasSubjectOverlap(incomingSubjects, extractSubjects(unit.text())))
-                .toList();
+                            .filter(unit -> hasSubjectOverlap(incomingSubjects, extractSubjects(unit.text())))
+                            .toList();
 
         logger.debug("Subject filter: {} subjects from incoming, {}/{} units have overlap",
                      incomingSubjects.size(), filtered.size(), units.size());

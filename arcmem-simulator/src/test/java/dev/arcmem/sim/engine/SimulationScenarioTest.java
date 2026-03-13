@@ -74,7 +74,6 @@ class SimulationScenarioTest {
                 null,
                 null,
                 null,
-                null,
                 null);
     }
 }

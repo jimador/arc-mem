@@ -151,9 +151,9 @@ class ArcMemConfigurationRevisionTest {
                 new ArcMemProperties.MemoryConfig(true, null, null, "text-embedding-3-small", 20, 5, 6),
                 new ArcMemProperties.PersistenceConfig(false),
                 new ArcMemProperties.ConflictDetectionConfig(ConflictStrategy.LLM, "gpt-4o-nano"),
-                new ArcMemProperties.AssemblyConfig(0, false, dev.arcmem.core.assembly.compliance.EnforcementStrategy.PROMPT_ONLY),
+                new ArcMemProperties.AssemblyConfig(0, false, EnforcementStrategy.PROMPT_ONLY),
                 new ArcMemProperties.ConflictConfig(0.5, 0.9, 0.8, 0.6,
                         new ArcMemProperties.TierModifierConfig(0.1, 0.0, -0.1)),
-                null, null, null, null, null, null, new ArcMemProperties.LlmCallConfig(30, 10));
+                null, null, null, null, null, new ArcMemProperties.LlmCallConfig(30, 10));
     }
 }

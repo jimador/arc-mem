@@ -19,6 +19,8 @@ import dev.arcmem.simulator.scenario.*;
 import dev.arcmem.simulator.ui.controllers.*;
 import dev.arcmem.simulator.ui.panels.*;
 
+import dev.arcmem.simulator.chat.ChatView;
+
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Nav;
@@ -85,10 +87,10 @@ public class NavigationLayout extends AppLayout {
      */
     private Class<? extends com.vaadin.flow.component.Component> getRouteClass(String route) {
         return switch (route) {
-            case "" -> dev.arcmem.simulator.ui.views.SimulationView.class;
-            case "chat" -> dev.arcmem.simulator.chat.ChatView.class;
-            case "run" -> dev.arcmem.simulator.ui.views.RunInspectorView.class;
-            default -> dev.arcmem.simulator.ui.views.SimulationView.class;
+            case "" -> SimulationView.class;
+            case "chat" -> ChatView.class;
+            case "run" -> RunInspectorView.class;
+            default -> SimulationView.class;
         };
     }
 }

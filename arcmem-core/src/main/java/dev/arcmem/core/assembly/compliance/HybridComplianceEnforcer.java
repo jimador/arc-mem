@@ -1,17 +1,4 @@
 package dev.arcmem.core.assembly.compliance;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +42,7 @@ public class HybridComplianceEnforcer implements ComplianceEnforcer {
                 result = layer.enforce(context);
             } catch (Exception e) {
                 logger.warn("compliance.hybrid layer={} failed — skipping: {}",
-                        layer.getClass().getSimpleName(), e.getMessage());
+                            layer.getClass().getSimpleName(), e.getMessage());
                 continue;
             }
             allViolations.addAll(result.violations());
@@ -67,7 +54,7 @@ public class HybridComplianceEnforcer implements ComplianceEnforcer {
         }
 
         logger.info("compliance.strategy=HYBRID layers={} compliant={} action={} duration={}ms",
-                layers.size(), compliant, worstAction, totalDuration.toMillis());
+                    layers.size(), compliant, worstAction, totalDuration.toMillis());
 
         return new ComplianceResult(compliant, List.copyOf(allViolations), worstAction, totalDuration);
     }

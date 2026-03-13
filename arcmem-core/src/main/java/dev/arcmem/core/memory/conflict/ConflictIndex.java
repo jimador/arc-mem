@@ -1,17 +1,4 @@
 package dev.arcmem.core.memory.conflict;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
 import java.util.Set;
 
@@ -42,12 +29,18 @@ public interface ConflictIndex {
      */
     void removeConflicts(String unitId);
 
-    /** Removes all conflict index entries for all units in the given context. */
+    /**
+     * Removes all conflict index entries for all units in the given context.
+     */
     void clear(String contextId);
 
-    /** Returns true if the given unit has any recorded conflicts. */
+    /**
+     * Returns true if the given unit has any recorded conflicts.
+     */
     boolean hasConflicts(String unitId);
 
-    /** Returns the total number of conflict entries across all units. */
+    /**
+     * Returns the total number of conflict entries across all units.
+     */
     int size();
 }

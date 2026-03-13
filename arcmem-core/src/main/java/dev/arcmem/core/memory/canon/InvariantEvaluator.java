@@ -1,18 +1,6 @@
 package dev.arcmem.core.memory.canon;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
+import dev.arcmem.core.memory.model.MemoryUnit;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
@@ -37,10 +25,11 @@ public class InvariantEvaluator {
     /**
      * Evaluate invariants applicable to a proposed action.
      *
-     * @param contextId    the context where the action is occurring
-     * @param action       the proposed lifecycle action
+     * @param contextId  the context where the action is occurring
+     * @param action     the proposed lifecycle action
      * @param units      current active units in the context
      * @param targetUnit the unit being acted upon (null for context-wide checks)
+     *
      * @return evaluation result with any violations
      */
     public InvariantEvaluation evaluate(
@@ -69,14 +58,10 @@ public class InvariantEvaluator {
             List<MemoryUnit> units, @Nullable MemoryUnit targetUnit) {
 
         return switch (rule) {
-            case InvariantRule.AuthorityFloor floor ->
-                    evaluateAuthorityFloor(floor, action, targetUnit);
-            case InvariantRule.EvictionImmunity immunity ->
-                    evaluateEvictionImmunity(immunity, action, targetUnit);
-            case InvariantRule.MinAuthorityCount minCount ->
-                    evaluateMinAuthorityCount(minCount, action, units, targetUnit);
-            case InvariantRule.ArchiveProhibition prohibition ->
-                    evaluateArchiveProhibition(prohibition, action, targetUnit);
+            case InvariantRule.AuthorityFloor floor -> evaluateAuthorityFloor(floor, action, targetUnit);
+            case InvariantRule.EvictionImmunity immunity -> evaluateEvictionImmunity(immunity, action, targetUnit);
+            case InvariantRule.MinAuthorityCount minCount -> evaluateMinAuthorityCount(minCount, action, units, targetUnit);
+            case InvariantRule.ArchiveProhibition prohibition -> evaluateArchiveProhibition(prohibition, action, targetUnit);
         };
     }
 
@@ -86,14 +71,18 @@ public class InvariantEvaluator {
         if (action != ProposedAction.DEMOTE && action != ProposedAction.AUTHORITY_CHANGE) {
             return null;
         }
-        if (targetUnit == null) return null;
-        if (!matchesPattern(targetUnit.text(), rule.unitTextPattern())) return null;
+        if (targetUnit == null) {
+            return null;
+        }
+        if (!matchesPattern(targetUnit.text(), rule.unitTextPattern())) {
+            return null;
+        }
 
         if (targetUnit.authority().isAtLeast(rule.minimumAuthority())) {
             return new InvariantViolationData(
                     rule.id(), rule.strength(), action,
                     "Demotion would violate authority floor of " + rule.minimumAuthority()
-                            + " for unit matching '" + rule.unitTextPattern() + "'",
+                    + " for unit matching '" + rule.unitTextPattern() + "'",
                     targetUnit.id());
         }
         return null;
@@ -102,9 +91,15 @@ public class InvariantEvaluator {
     private @Nullable InvariantViolationData evaluateEvictionImmunity(
             InvariantRule.EvictionImmunity rule, ProposedAction action,
             @Nullable MemoryUnit targetUnit) {
-        if (action != ProposedAction.EVICT) return null;
-        if (targetUnit == null) return null;
-        if (!matchesPattern(targetUnit.text(), rule.unitTextPattern())) return null;
+        if (action != ProposedAction.EVICT) {
+            return null;
+        }
+        if (targetUnit == null) {
+            return null;
+        }
+        if (!matchesPattern(targetUnit.text(), rule.unitTextPattern())) {
+            return null;
+        }
 
         return new InvariantViolationData(
                 rule.id(), rule.strength(), action,
@@ -116,20 +111,20 @@ public class InvariantEvaluator {
             InvariantRule.MinAuthorityCount rule, ProposedAction action,
             List<MemoryUnit> units, @Nullable MemoryUnit targetUnit) {
         if (action != ProposedAction.ARCHIVE && action != ProposedAction.EVICT
-                && action != ProposedAction.DEMOTE) {
+            && action != ProposedAction.DEMOTE) {
             return null;
         }
 
         long currentCount = units.stream()
-                .filter(a -> a.authority().isAtLeast(rule.minimumAuthority()))
-                .count();
+                                 .filter(a -> a.authority().isAtLeast(rule.minimumAuthority()))
+                                 .count();
 
         if (targetUnit != null && targetUnit.authority().isAtLeast(rule.minimumAuthority())) {
             if (currentCount - 1 < rule.minimumCount()) {
                 return new InvariantViolationData(
                         rule.id(), rule.strength(), action,
                         "Action would reduce " + rule.minimumAuthority()
-                                + " unit count below minimum of " + rule.minimumCount(),
+                        + " unit count below minimum of " + rule.minimumCount(),
                         targetUnit.id());
             }
         }
@@ -139,9 +134,15 @@ public class InvariantEvaluator {
     private @Nullable InvariantViolationData evaluateArchiveProhibition(
             InvariantRule.ArchiveProhibition rule, ProposedAction action,
             @Nullable MemoryUnit targetUnit) {
-        if (action != ProposedAction.ARCHIVE) return null;
-        if (targetUnit == null) return null;
-        if (!matchesPattern(targetUnit.text(), rule.unitTextPattern())) return null;
+        if (action != ProposedAction.ARCHIVE) {
+            return null;
+        }
+        if (targetUnit == null) {
+            return null;
+        }
+        if (!matchesPattern(targetUnit.text(), rule.unitTextPattern())) {
+            return null;
+        }
 
         return new InvariantViolationData(
                 rule.id(), rule.strength(), action,

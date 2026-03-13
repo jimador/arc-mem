@@ -1,17 +1,6 @@
 package dev.arcmem.core.memory.maintenance;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
+
+import dev.arcmem.core.memory.mutation.ReinforcementPolicy;
 
 /**
  * Unified coordination interface for unit memory maintenance.
@@ -68,6 +57,7 @@ public sealed interface MaintenanceStrategy
      * cycle is warranted. REACTIVE-only implementations always return {@code false}.
      *
      * @param context snapshot of the current runtime context; never null
+     *
      * @return true if {@link #executeSweep} should be called immediately
      */
     boolean shouldRunSweep(MaintenanceContext context);
@@ -82,6 +72,7 @@ public sealed interface MaintenanceStrategy
      * REACTIVE-only implementations return {@link SweepResult#empty()}.
      *
      * @param context snapshot of the current runtime context; never null
+     *
      * @return a non-null result describing what the sweep did
      */
     SweepResult executeSweep(MaintenanceContext context);

@@ -1,20 +1,6 @@
 package dev.arcmem.core.persistence;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
 import com.embabel.agent.rag.service.RetrievableIdentifier;
-import dev.arcmem.core.memory.event.SupersessionReason;
 import com.embabel.common.ai.model.EmbeddingService;
 import com.embabel.common.core.types.SimilarityResult;
 import com.embabel.common.core.types.SimpleSimilaritySearchResult;
@@ -23,6 +9,8 @@ import com.embabel.dice.proposition.Proposition;
 import com.embabel.dice.proposition.PropositionQuery;
 import com.embabel.dice.proposition.PropositionRepository;
 import com.embabel.dice.proposition.PropositionStatus;
+import dev.arcmem.core.memory.event.SupersessionReason;
+import dev.arcmem.core.memory.model.MemoryUnitEvictionInfo;
 import jakarta.annotation.PostConstruct;
 import org.drivine.manager.CascadeType;
 import org.drivine.manager.GraphObjectManager;
@@ -42,7 +30,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
+
+import dev.arcmem.core.config.ArcMemProperties;
 
 /**
  * Drivine-backed repository for propositions that also supports unit promotion,
@@ -64,13 +53,13 @@ public class MemoryUnitRepository implements PropositionRepository {
     private final GraphObjectManager graphObjectManager;
     private final PersistenceManager persistenceManager;
     private final EmbeddingService embeddingService;
-    private final dev.arcmem.core.config.ArcMemProperties properties;
+    private final ArcMemProperties properties;
 
     public MemoryUnitRepository(
             GraphObjectManager graphObjectManager,
             PersistenceManager persistenceManager,
             EmbeddingService embeddingService,
-            dev.arcmem.core.config.ArcMemProperties properties) {
+            ArcMemProperties properties) {
         this.graphObjectManager = graphObjectManager;
         this.persistenceManager = persistenceManager;
         this.embeddingService = embeddingService;
@@ -122,7 +111,7 @@ public class MemoryUnitRepository implements PropositionRepository {
             graphObjectManager.save(view, CascadeType.NONE);
         } catch (Exception e) {
             logger.error("graphObjectManager.save() failed for proposition {}: {}",
-                    proposition.getId(), e.getMessage(), e);
+                         proposition.getId(), e.getMessage(), e);
             throw e;
         }
 
@@ -217,6 +206,7 @@ public class MemoryUnitRepository implements PropositionRepository {
      * Prefer this over {@link #findById} when unit-specific fields are needed.
      *
      * @param id the proposition node ID
+     *
      * @return an Optional containing the PropositionNode, or empty if not found
      */
     @Transactional(readOnly = true)
@@ -596,7 +586,7 @@ public class MemoryUnitRepository implements PropositionRepository {
      * Useful when upstream extraction omits context propagation.
      *
      * @param propositionIds proposition IDs to update
-     * @param contextId context ID to assign
+     * @param contextId      context ID to assign
      *
      * @return number of rows updated
      */
@@ -639,6 +629,7 @@ public class MemoryUnitRepository implements PropositionRepository {
      *
      * @param propositionIds proposition IDs to tag
      * @param sourceId       source identifier (e.g., "system", "user-alice", "external-api")
+     *
      * @return number of rows updated
      */
     @Transactional
@@ -679,7 +670,7 @@ public class MemoryUnitRepository implements PropositionRepository {
      * NonUnit propositions are those with rank 0.
      *
      * @param contextId the context ID
-     * @param limit maximum propositions to return; values <= 0 return empty
+     * @param limit     maximum propositions to return; values <= 0 return empty
      *
      * @return propositions ordered by confidence/revision recency
      */
@@ -1161,13 +1152,13 @@ public class MemoryUnitRepository implements PropositionRepository {
 
     @Transactional
     public void promoteToUnit(@NonNull String propositionId, int rank, @NonNull String authority,
-                                @Nullable String memoryTier) {
+                              @Nullable String memoryTier) {
         promoteToUnit(propositionId, rank, authority, memoryTier, null);
     }
 
     @Transactional
     public void promoteToUnit(@NonNull String propositionId, int rank, @NonNull String authority,
-                                @Nullable String memoryTier, @Nullable String authorityCeiling) {
+                              @Nullable String memoryTier, @Nullable String authorityCeiling) {
         int clamped = Math.max(100, Math.min(900, rank));
         var cypher = """
                 MATCH (p:Proposition {id: $id})
@@ -1190,7 +1181,7 @@ public class MemoryUnitRepository implements PropositionRepository {
         try {
             persistenceManager.execute(QuerySpecification.withStatement(cypher).bind(params));
             logger.debug("Promoted proposition {} to unit with rank={} authority={} tier={} ceiling={}",
-                    propositionId, clamped, authority, memoryTier, authorityCeiling);
+                         propositionId, clamped, authority, memoryTier, authorityCeiling);
         } catch (Exception e) {
             logger.error("Failed to promote proposition {} to unit: {}", propositionId, e.getMessage(), e);
         }
@@ -1339,14 +1330,14 @@ public class MemoryUnitRepository implements PropositionRepository {
                     .transform(Map.class);
             var rows = persistenceManager.query(evictSpec);
             var evicted = rows.stream()
-                    .filter(row -> row != null)
-                    .map(row -> {
-                        var m = (java.util.Map<?, ?>) row;
-                        var unitId = (String) m.get("unitId");
-                        var rank = ((Number) m.get("rank")).intValue();
-                        return new MemoryUnitEvictionInfo(unitId, rank);
-                    })
-                    .toList();
+                              .filter(row -> row != null)
+                              .map(row -> {
+                                  var m = (java.util.Map<?, ?>) row;
+                                  var unitId = (String) m.get("unitId");
+                                  var rank = ((Number) m.get("rank")).intValue();
+                                  return new MemoryUnitEvictionInfo(unitId, rank);
+                              })
+                              .toList();
             logger.info("Evicted {} units from context {} (budget={}, was={})", evicted.size(), contextId, budget, current);
             return evicted;
         } catch (Exception e) {
@@ -1546,6 +1537,7 @@ public class MemoryUnitRepository implements PropositionRepository {
      *
      * @param hotThreshold  rank >= this → HOT
      * @param warmThreshold rank >= this (and < hotThreshold) → WARM; below → COLD
+     *
      * @return number of units migrated
      */
     @Transactional
@@ -1643,6 +1635,7 @@ public class MemoryUnitRepository implements PropositionRepository {
      *
      * @param contextId   the context to query
      * @param pointInTime the instant to check validity against
+     *
      * @return unit IDs whose valid-time window contains the given instant, ordered by rank DESC
      */
     @Transactional(readOnly = true)
@@ -1671,6 +1664,7 @@ public class MemoryUnitRepository implements PropositionRepository {
      * Depth is bounded to 50 to prevent runaway traversal.
      *
      * @param unitId the unit to start from
+     *
      * @return ordered list of unit IDs in the supersession chain (oldest first)
      */
     @Transactional(readOnly = true)
@@ -1709,6 +1703,7 @@ public class MemoryUnitRepository implements PropositionRepository {
      * O(1) lookup via the denormalized {@code supersedes} field.
      *
      * @param unitId the unit to query
+     *
      * @return the predecessor's ID, or empty if no predecessor
      */
     @Transactional(readOnly = true)
@@ -1723,6 +1718,7 @@ public class MemoryUnitRepository implements PropositionRepository {
      * O(1) lookup via the denormalized {@code supersededBy} field.
      *
      * @param unitId the unit to query
+     *
      * @return the successor's ID, or empty if not superseded
      */
     @Transactional(readOnly = true)

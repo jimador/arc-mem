@@ -170,7 +170,7 @@ class SimToChatBridgeTest {
             when(conversationService.createConversation(any())).thenReturn("conv-1");
             when(contextUnitRepository.saveNode(any())).thenAnswer(inv -> inv.getArgument(0));
             var unit = new MemoryUnit("a1", "Rich unit", 600, Authority.RELIABLE, false,
-                    0.9, 5, null, 0.85, 0.3, MemoryTier.HOT);
+                    0.9, 5, null, 0.85, 0.3, MemoryTier.HOT, null);
             var run = run("test", List.of(), List.of(unit));
 
             bridge.cloneRunToConversation(run);

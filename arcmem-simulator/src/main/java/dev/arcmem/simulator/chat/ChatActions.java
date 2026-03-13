@@ -21,7 +21,6 @@ import com.embabel.chat.UserMessage;
 import dev.arcmem.core.config.ArcMemProperties;
 import dev.arcmem.core.persistence.MemoryUnitRepository;
 import dev.arcmem.simulator.config.ArcMemSimulatorProperties;
-import dev.arcmem.core.persistence.TieredMemoryUnitRepository;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,8 +57,7 @@ public record ChatActions(
         CompliancePolicy compliancePolicy,
         TokenCounter tokenCounter,
         RelevanceScorer relevanceScorer,
-        ChatContextInitializer chatContextInitializer,
-        Optional<TieredMemoryUnitRepository> tieredRepository
+        ChatContextInitializer chatContextInitializer
 ) {
 
     private static final Logger logger = LoggerFactory.getLogger(ChatActions.class);
@@ -88,9 +86,7 @@ public record ChatActions(
                 tokenCounter,
                 null,
                 properties.retrieval(),
-                relevanceScorer,
-                false,
-                tieredRepository.orElse(null));
+                relevanceScorer);
         var propositionRef = new PropositionsLlmReference(
                 contextUnitRepository,
                 contextId,

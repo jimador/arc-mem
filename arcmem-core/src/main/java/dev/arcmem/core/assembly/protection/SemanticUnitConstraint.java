@@ -1,18 +1,6 @@
 package dev.arcmem.core.assembly.protection;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
+import dev.arcmem.core.memory.model.Authority;
 
 import java.util.Set;
 
@@ -24,10 +12,10 @@ import java.util.Set;
  * of the unit's total tokens translated to expressible constraints — a metric
  * for the gap between logit bias and full semantic enforcement.
  *
- * @param unitId           Neo4j node ID of the source unit
- * @param authority          authority level of the source unit (governs bias strength)
- * @param boostTokens        tokens to boost in the logit bias map (entity names)
- * @param suppressTokens     tokens to suppress (reserved for future negation-aware extraction)
+ * @param unitId              Neo4j node ID of the source unit
+ * @param authority           authority level of the source unit (governs bias strength)
+ * @param boostTokens         tokens to boost in the logit bias map (entity names)
+ * @param suppressTokens      tokens to suppress (reserved for future negation-aware extraction)
  * @param translationCoverage fraction of unit text tokens that became constraints [0.0, 1.0]
  */
 public record SemanticUnitConstraint(

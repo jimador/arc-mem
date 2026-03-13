@@ -53,7 +53,7 @@ class MemoryUnitLifecycleListenerTest {
         listener.onArchived(MemoryUnitLifecycleEvent.archived(this, "ctx", "a1", ArchiveReason.MANUAL));
         listener.onConflictDetected(MemoryUnitLifecycleEvent.conflictDetected(this, "ctx", "incoming", 1, List.of("a1")));
         listener.onConflictResolved(MemoryUnitLifecycleEvent.conflictResolved(this, "ctx", "a1", ConflictResolver.Resolution.COEXIST));
-        listener.onAuthorityChanged(MemoryUnitLifecycleEvent.authorityChanged(this, "ctx", "a1", Authority.PROVISIONAL, Authority.UNRELIABLE, dev.arcmem.core.memory.conflict.AuthorityChangeDirection.PROMOTED, "reinforcement"));
+        listener.onAuthorityChanged(MemoryUnitLifecycleEvent.authorityChanged(this, "ctx", "a1", Authority.PROVISIONAL, Authority.UNRELIABLE, AuthorityChangeDirection.PROMOTED, "reinforcement"));
 
         var events = appender.list;
         assertThat(events).hasSize(6);

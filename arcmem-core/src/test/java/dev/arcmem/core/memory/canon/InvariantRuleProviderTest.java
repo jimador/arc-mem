@@ -222,7 +222,7 @@ class InvariantRuleProviderTest {
                 new ArcMemProperties.MemoryConfig(true, null, null, "text-embedding-3-small", 20, 5, 2),
                 new ArcMemProperties.PersistenceConfig(false),
                 new ArcMemProperties.ConflictDetectionConfig(ConflictStrategy.LLM, "gpt-4o-nano"),
-                new ArcMemProperties.AssemblyConfig(0, false, dev.arcmem.core.assembly.compliance.EnforcementStrategy.PROMPT_ONLY),
-                null, null, null, null, null, null, null, new ArcMemProperties.LlmCallConfig(30, 10));
+                new ArcMemProperties.AssemblyConfig(0, false, EnforcementStrategy.PROMPT_ONLY),
+                null, null, null, null, null, null, new ArcMemProperties.LlmCallConfig(30, 10));
     }
 }

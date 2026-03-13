@@ -12,6 +12,8 @@ import dev.arcmem.core.assembly.compaction.*;
 import dev.arcmem.core.assembly.compliance.*;
 import dev.arcmem.core.assembly.protection.*;
 import dev.arcmem.core.assembly.retrieval.*;
+import dev.arcmem.simulator.ui.views.BenchmarkView;
+import dev.arcmem.simulator.ui.views.SimulationView;
 
 import com.embabel.agent.api.channel.MessageOutputChannelEvent;
 import com.embabel.agent.api.channel.OutputChannel;
@@ -75,6 +77,7 @@ import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * Vaadin chat view for the arc-mem demo.
@@ -192,9 +195,9 @@ public class ChatView extends VerticalLayout implements BeforeEnterObserver {
         var header = new H2("Bigby — Your D&D Dungeon Master");
         header.addClassName("ar-chat-header");
 
-        var benchmarkLink = new RouterLink("Benchmark", dev.arcmem.simulator.ui.views.BenchmarkView.class);
+        var benchmarkLink = new RouterLink("Benchmark", BenchmarkView.class);
         benchmarkLink.addClassName("ar-nav-link");
-        var simLink = new RouterLink("Simulator", dev.arcmem.simulator.ui.views.SimulationView.class);
+        var simLink = new RouterLink("Simulator", SimulationView.class);
         simLink.addClassName("ar-nav-link");
 
         var headerRow = new HorizontalLayout(header, simLink, benchmarkLink);
@@ -375,7 +378,7 @@ public class ChatView extends VerticalLayout implements BeforeEnterObserver {
     private void refreshUnitsTab() {
         try {
             var units = arcMemEngine.inject(getContextId());
-            var unitsById = units.stream().collect(java.util.stream.Collectors.toMap(
+            var unitsById = units.stream().collect(Collectors.toMap(
                     MemoryUnit::id, unit -> unit, (left, right) -> right, LinkedHashMap::new));
 
             unitCards.entrySet().removeIf(entry -> {
@@ -472,7 +475,7 @@ public class ChatView extends VerticalLayout implements BeforeEnterObserver {
             var propositions = contextUnitRepository.findByContextIdValue(getContextId());
             var unitIds = contextUnitRepository.findActiveUnits(getContextId()).stream()
                                             .map(n -> n.getId())
-                                            .collect(java.util.stream.Collectors.toSet());
+                                            .collect(Collectors.toSet());
             var nonUnits = propositions.stream()
                                          .filter(p -> !unitIds.contains(p.getId()))
                                          .toList();
@@ -524,7 +527,7 @@ public class ChatView extends VerticalLayout implements BeforeEnterObserver {
             var propositions = contextUnitRepository.findByContextIdValue(getContextId());
             var unitIds = contextUnitRepository.findActiveUnits(getContextId()).stream()
                                             .map(n -> n.getId())
-                                            .collect(java.util.stream.Collectors.toSet());
+                                            .collect(Collectors.toSet());
             var knowledge = propositions.stream()
                                         .filter(p -> !unitIds.contains(p.getId()))
                                         .toList();
@@ -857,7 +860,7 @@ public class ChatView extends VerticalLayout implements BeforeEnterObserver {
 
         if (tiered) {
             var grouped = units.stream()
-                    .collect(java.util.stream.Collectors.groupingBy(MemoryUnit::authority));
+                    .collect(Collectors.groupingBy(MemoryUnit::authority));
             for (var authority : Authority.values()) {
                 var key = authority.name().toLowerCase() + "_units";
                 var group = grouped.getOrDefault(authority, List.of()).stream()

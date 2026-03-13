@@ -1,18 +1,6 @@
 package dev.arcmem.core.memory.conflict;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
+import dev.arcmem.core.memory.model.MemoryUnit;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +10,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Composite conflict detector that chains lexical and semantic detection
@@ -42,37 +31,24 @@ public class CompositeConflictDetector implements ConflictDetector {
     private final SubjectFilter subjectFilter;
     private final ConflictDetectionStrategy strategy;
     private final @Nullable ConflictIndex conflictIndex;
-    private final @Nullable PrologConflictDetector logicalDetector;
 
-    public CompositeConflictDetector(NegationConflictDetector lexicalDetector,
-                                     ConflictDetector semanticDetector,
-                                     SubjectFilter subjectFilter,
-                                     ConflictDetectionStrategy strategy,
-                                     @Nullable ConflictIndex conflictIndex,
-                                     @Nullable PrologConflictDetector logicalDetector) {
-        this.lexicalDetector = lexicalDetector;
-        this.semanticDetector = semanticDetector;
-        this.subjectFilter = subjectFilter;
-        this.strategy = strategy;
-        this.conflictIndex = conflictIndex;
-        this.logicalDetector = logicalDetector;
-    }
-
-    /** Backward-compatible 5-parameter constructor -- delegates with null logical detector. */
     public CompositeConflictDetector(NegationConflictDetector lexicalDetector,
                                      ConflictDetector semanticDetector,
                                      SubjectFilter subjectFilter,
                                      ConflictDetectionStrategy strategy,
                                      @Nullable ConflictIndex conflictIndex) {
-        this(lexicalDetector, semanticDetector, subjectFilter, strategy, conflictIndex, null);
+        this.lexicalDetector = lexicalDetector;
+        this.semanticDetector = semanticDetector;
+        this.subjectFilter = subjectFilter;
+        this.strategy = strategy;
+        this.conflictIndex = conflictIndex;
     }
 
-    /** Backward-compatible 4-parameter constructor -- delegates with null index and null logical detector. */
     public CompositeConflictDetector(NegationConflictDetector lexicalDetector,
                                      ConflictDetector semanticDetector,
                                      SubjectFilter subjectFilter,
                                      ConflictDetectionStrategy strategy) {
-        this(lexicalDetector, semanticDetector, subjectFilter, strategy, null, null);
+        this(lexicalDetector, semanticDetector, subjectFilter, strategy, null);
     }
 
     @Override
@@ -86,13 +62,6 @@ public class CompositeConflictDetector implements ConflictDetector {
             case SEMANTIC_ONLY -> detectSemantic(incomingText, existingUnits);
             case LEXICAL_THEN_SEMANTIC -> detectLexicalThenSemantic(incomingText, existingUnits);
             case INDEXED -> detectIndexed(incomingText, existingUnits);
-            case LOGICAL -> {
-                if (logicalDetector != null) {
-                    yield logicalDetector.detect(incomingText, existingUnits);
-                }
-                throw new UnsupportedOperationException(
-                        "LOGICAL conflict detection requires PrologConflictDetector -- none injected");
-            }
         };
     }
 
@@ -100,7 +69,7 @@ public class CompositeConflictDetector implements ConflictDetector {
     public Map<String, List<Conflict>> batchDetect(List<String> candidateTexts, List<MemoryUnit> existingUnits) {
         if (existingUnits == null || existingUnits.isEmpty()) {
             return candidateTexts.stream()
-                    .collect(java.util.stream.Collectors.toMap(c -> c, c -> List.of()));
+                                 .collect(Collectors.toMap(c -> c, c -> List.of()));
         }
 
         return switch (strategy) {
@@ -108,13 +77,6 @@ public class CompositeConflictDetector implements ConflictDetector {
             case SEMANTIC_ONLY -> semanticDetector.batchDetect(candidateTexts, existingUnits);
             case LEXICAL_THEN_SEMANTIC -> batchDetectLexicalThenSemantic(candidateTexts, existingUnits);
             case INDEXED -> batchDetectIndexed(candidateTexts, existingUnits);
-            case LOGICAL -> {
-                if (logicalDetector != null) {
-                    yield logicalDetector.batchDetect(candidateTexts, existingUnits);
-                }
-                throw new UnsupportedOperationException(
-                        "LOGICAL conflict detection requires PrologConflictDetector -- none injected");
-            }
         };
     }
 
@@ -133,7 +95,7 @@ public class CompositeConflictDetector implements ConflictDetector {
             if (hit.isPresent()) {
                 var entry = hit.get();
                 conflicts.add(new Conflict(unit, incomingText, entry.confidence(),
-                        "index hit: " + entry.conflictType(), DetectionQuality.FULL, entry.conflictType()));
+                                           "index hit: " + entry.conflictType(), DetectionQuality.FULL, entry.conflictType()));
             } else {
                 missUnits.add(unit);
             }
@@ -195,7 +157,7 @@ public class CompositeConflictDetector implements ConflictDetector {
                 result.putAll(semanticResults);
             } catch (Exception e) {
                 logger.warn("Batch semantic conflict detection failed, falling back to per-candidate: {}",
-                        e.getMessage());
+                            e.getMessage());
                 for (var candidate : semanticBatch) {
                     result.put(candidate, detectSemantic(candidate, units));
                 }

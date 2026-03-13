@@ -15,6 +15,7 @@ import org.springframework.context.annotation.Import;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.Optional;
 
 @SpringBootApplication(scanBasePackages = {
         "dev.arcmem.core",
@@ -36,10 +37,10 @@ public class ArcMemApplication implements AppShellConfigurator {
         application.run(args);
     }
 
-    private static java.util.Optional<Map<String, Object>> configureVaadinProjectPaths() {
+    private static Optional<Map<String, Object>> configureVaadinProjectPaths() {
         if (System.getProperty("project.basedir") != null
             && System.getProperty("vaadin.frontend.frontend.folder") != null) {
-            return java.util.Optional.empty();
+            return Optional.empty();
         }
 
         var workingDirectory = Path.of("").toAbsolutePath().normalize();
@@ -49,13 +50,13 @@ public class ArcMemApplication implements AppShellConfigurator {
         var frontendDirectory = moduleDirectory.resolve("frontend");
 
         if (Files.isDirectory(frontendDirectory)) {
-            return java.util.Optional.of(Map.of(
+            return Optional.of(Map.of(
                     "project.basedir", moduleDirectory.toString(),
                     "vaadin.frontend.frontend.folder", frontendDirectory.toString(),
                     "vaadin.frontend.generated.folder", frontendDirectory.resolve("generated").toString()
             ));
         }
 
-        return java.util.Optional.empty();
+        return Optional.empty();
     }
 }

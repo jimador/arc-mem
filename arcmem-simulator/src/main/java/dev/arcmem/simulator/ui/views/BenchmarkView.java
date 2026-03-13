@@ -28,6 +28,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouterLink;
 import dev.arcmem.simulator.chat.ChatView;
+import dev.arcmem.simulator.benchmark.ExperimentDefinition;
 import dev.arcmem.simulator.benchmark.ExperimentReport;
 import dev.arcmem.simulator.benchmark.ExperimentRunner;
 import dev.arcmem.simulator.history.RunHistoryStore;
@@ -167,7 +168,7 @@ public class BenchmarkView extends VerticalLayout {
         }
     }
 
-    private void onRunExperiment(dev.arcmem.simulator.benchmark.ExperimentDefinition definition) {
+    private void onRunExperiment(ExperimentDefinition definition) {
         transitionTo(BenchmarkViewState.RUNNING);
         progressPanel.reset();
 

@@ -1,17 +1,4 @@
 package dev.arcmem.core.memory.maintenance;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
 import java.time.Duration;
 
@@ -35,12 +22,16 @@ public record SweepResult(
         String summary
 ) {
 
-    /** An empty sweep result representing a no-op execution. */
+    /**
+     * An empty sweep result representing a no-op execution.
+     */
     public static SweepResult empty() {
         return new SweepResult(0, 0, 0, 0, Duration.ZERO, "No sweep executed");
     }
 
-    /** An empty sweep result with a custom summary message. */
+    /**
+     * An empty sweep result with a custom summary message.
+     */
     public static SweepResult empty(String summary) {
         return new SweepResult(0, 0, 0, 0, Duration.ZERO, summary);
     }

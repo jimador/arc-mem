@@ -60,6 +60,8 @@ import java.util.stream.Collectors;
 @PageTitle("ARC-Mem Drift Simulator")
 public class SimulationView extends VerticalLayout {
 
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(SimulationView.class);
+
     private final SimulationService simulationService;
     private final ScenarioLoader scenarioLoader;
     private final ArcMemEngine arcMemEngine;
@@ -491,6 +493,7 @@ public class SimulationView extends VerticalLayout {
                                            simulationService.runSimulation(scenario, maxTurns, injectionToggle::getValue, this::resolveTokenBudget,
                                                                            progress -> ui.access(() -> applyProgress(progress, scenario)))
         ).exceptionally(ex -> {
+            logger.error("Simulation failed", ex);
             ui.access(() -> {
                 statusLabel.setText("Simulation error: " + ex.getMessage());
                 transitionTo(SimControlState.COMPLETED);

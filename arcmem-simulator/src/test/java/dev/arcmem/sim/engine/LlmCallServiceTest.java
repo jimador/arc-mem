@@ -180,9 +180,9 @@ class LlmCallServiceTest {
                 new ArcMemProperties.UnitConfig(20, 500, 100, 900, true, 0.65, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null, null),
                 new ArcMemProperties.MemoryConfig(true, null, null, "text-embedding-3-small", 20, 5, 2),
                 new ArcMemProperties.PersistenceConfig(false),
-                new ArcMemProperties.ConflictDetectionConfig(dev.arcmem.core.memory.conflict.ConflictStrategy.LLM, "gpt-4o-nano"),
-                new ArcMemProperties.AssemblyConfig(0, false, dev.arcmem.core.assembly.compliance.EnforcementStrategy.PROMPT_ONLY),
-                null, null, null, null, null, null, null,
+                new ArcMemProperties.ConflictDetectionConfig(ConflictStrategy.LLM, "gpt-4o-nano"),
+                new ArcMemProperties.AssemblyConfig(0, false, EnforcementStrategy.PROMPT_ONLY),
+                null, null, null, null, null, null,
                 new ArcMemProperties.LlmCallConfig(timeoutSeconds, 10));
     }
 }

@@ -1,18 +1,13 @@
 package dev.arcmem.core.memory.event;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
+import dev.arcmem.core.memory.canon.InvariantStrength;
+import dev.arcmem.core.memory.canon.InvariantViolationData;
+import dev.arcmem.core.memory.canon.ProposedAction;
+import dev.arcmem.core.memory.conflict.AuthorityChangeDirection;
+import dev.arcmem.core.memory.conflict.ConflictResolver;
+import dev.arcmem.core.memory.maintenance.PressureScore;
+import dev.arcmem.core.memory.model.Authority;
+import dev.arcmem.core.memory.model.MemoryTier;
 import org.jspecify.annotations.Nullable;
 import org.springframework.context.ApplicationEvent;
 
@@ -61,8 +56,13 @@ public abstract sealed class MemoryUnitLifecycleEvent extends ApplicationEvent
         this.occurredAt = Instant.now();
     }
 
-    public String getContextId() { return contextId; }
-    public Instant getOccurredAt() { return occurredAt; }
+    public String getContextId() {
+        return contextId;
+    }
+
+    public Instant getOccurredAt() {
+        return occurredAt;
+    }
 
     public static Promoted promoted(Object source, String contextId,
                                     String propositionId, String unitId, int initialRank) {
@@ -98,18 +98,18 @@ public abstract sealed class MemoryUnitLifecycleEvent extends ApplicationEvent
     }
 
     public static TierChanged tierChanged(Object source, String contextId,
-                                           String unitId, MemoryTier previousTier,
-                                           MemoryTier newTier) {
+                                          String unitId, MemoryTier previousTier,
+                                          MemoryTier newTier) {
         return new TierChanged(source, contextId, unitId, previousTier, newTier);
     }
 
     /**
      * Factory for authority change events (both promotions and demotions).
      *
-     * @param direction         PROMOTED or DEMOTED
-     * @param reason            human-readable reason (e.g., {@code DemotionReason.name()}
-     *                          for demotions, or "reinforcement" / "trust-evaluation" for
-     *                          promotions)
+     * @param direction PROMOTED or DEMOTED
+     * @param reason    human-readable reason (e.g., {@code DemotionReason.name()}
+     *                  for demotions, or "reinforcement" / "trust-evaluation" for
+     *                  promotions)
      */
     public static AuthorityChanged authorityChanged(Object source, String contextId,
                                                     String unitId, Authority previousAuthority,
@@ -117,7 +117,7 @@ public abstract sealed class MemoryUnitLifecycleEvent extends ApplicationEvent
                                                     AuthorityChangeDirection direction,
                                                     String reason) {
         return new AuthorityChanged(source, contextId, unitId, previousAuthority, newAuthority,
-                direction, reason);
+                                    direction, reason);
     }
 
     public static Superseded superseded(Object source, String contextId,
@@ -132,24 +132,26 @@ public abstract sealed class MemoryUnitLifecycleEvent extends ApplicationEvent
             ProposedAction blockedAction, String constraintDescription,
             @Nullable String unitId) {
         return new InvariantViolation(source, contextId, ruleId, strength,
-                blockedAction, constraintDescription, unitId);
+                                      blockedAction, constraintDescription, unitId);
     }
 
     public static InvariantViolation invariantViolation(
             Object source, String contextId, InvariantViolationData violation) {
         return new InvariantViolation(source, contextId, violation.ruleId(),
-                violation.strength(), violation.blockedAction(),
-                violation.constraintDescription(), violation.unitId());
+                                      violation.strength(), violation.blockedAction(),
+                                      violation.constraintDescription(), violation.unitId());
     }
 
     public static PressureThresholdBreached pressureThresholdBreached(Object source, String contextId,
-                                                                       PressureScore pressureScore,
-                                                                       String thresholdType) {
+                                                                      PressureScore pressureScore,
+                                                                      String thresholdType) {
         return new PressureThresholdBreached(source, contextId, pressureScore, thresholdType);
     }
 
 
-    /** Published when a proposition is promoted to unit status. */
+    /**
+     * Published when a proposition is promoted to unit status.
+     */
     public static final class Promoted extends MemoryUnitLifecycleEvent {
         private final String propositionId;
         private final String unitId;
@@ -163,12 +165,22 @@ public abstract sealed class MemoryUnitLifecycleEvent extends ApplicationEvent
             this.initialRank = initialRank;
         }
 
-        public String getPropositionId() { return propositionId; }
-        public String getUnitId() { return unitId; }
-        public int getInitialRank() { return initialRank; }
+        public String getPropositionId() {
+            return propositionId;
+        }
+
+        public String getUnitId() {
+            return unitId;
+        }
+
+        public int getInitialRank() {
+            return initialRank;
+        }
     }
 
-    /** Published when an existing unit's rank is boosted via reinforcement. */
+    /**
+     * Published when an existing unit's rank is boosted via reinforcement.
+     */
     public static final class Reinforced extends MemoryUnitLifecycleEvent {
         private final String unitId;
         private final int previousRank;
@@ -184,13 +196,26 @@ public abstract sealed class MemoryUnitLifecycleEvent extends ApplicationEvent
             this.reinforcementCount = reinforcementCount;
         }
 
-        public String getUnitId() { return unitId; }
-        public int getPreviousRank() { return previousRank; }
-        public int getNewRank() { return newRank; }
-        public int getReinforcementCount() { return reinforcementCount; }
+        public String getUnitId() {
+            return unitId;
+        }
+
+        public int getPreviousRank() {
+            return previousRank;
+        }
+
+        public int getNewRank() {
+            return newRank;
+        }
+
+        public int getReinforcementCount() {
+            return reinforcementCount;
+        }
     }
 
-    /** Published when an unit is archived (deactivated). */
+    /**
+     * Published when an unit is archived (deactivated).
+     */
     public static final class Archived extends MemoryUnitLifecycleEvent {
         private final String unitId;
         private final ArchiveReason reason;
@@ -201,8 +226,13 @@ public abstract sealed class MemoryUnitLifecycleEvent extends ApplicationEvent
             this.reason = reason;
         }
 
-        public String getUnitId() { return unitId; }
-        public ArchiveReason getReason() { return reason; }
+        public String getUnitId() {
+            return unitId;
+        }
+
+        public ArchiveReason getReason() {
+            return reason;
+        }
     }
 
     /**
@@ -221,11 +251,18 @@ public abstract sealed class MemoryUnitLifecycleEvent extends ApplicationEvent
             this.previousRank = previousRank;
         }
 
-        public String getUnitId() { return unitId; }
-        public int getPreviousRank() { return previousRank; }
+        public String getUnitId() {
+            return unitId;
+        }
+
+        public int getPreviousRank() {
+            return previousRank;
+        }
     }
 
-    /** Published when incoming text conflicts with one or more active units. */
+    /**
+     * Published when incoming text conflicts with one or more active units.
+     */
     public static final class ConflictDetected extends MemoryUnitLifecycleEvent {
         private final String incomingText;
         private final int conflictCount;
@@ -240,12 +277,22 @@ public abstract sealed class MemoryUnitLifecycleEvent extends ApplicationEvent
             this.conflictingUnitIds = List.copyOf(conflictingUnitIds);
         }
 
-        public String getIncomingText() { return incomingText; }
-        public int getConflictCount() { return conflictCount; }
-        public List<String> getConflictingUnitIds() { return conflictingUnitIds; }
+        public String getIncomingText() {
+            return incomingText;
+        }
+
+        public int getConflictCount() {
+            return conflictCount;
+        }
+
+        public List<String> getConflictingUnitIds() {
+            return conflictingUnitIds;
+        }
     }
 
-    /** Published after a conflict between an incoming proposition and an existing unit is resolved. */
+    /**
+     * Published after a conflict between an incoming proposition and an existing unit is resolved.
+     */
     public static final class ConflictResolved extends MemoryUnitLifecycleEvent {
         private final String existingUnitId;
         private final ConflictResolver.Resolution resolution;
@@ -257,8 +304,13 @@ public abstract sealed class MemoryUnitLifecycleEvent extends ApplicationEvent
             this.resolution = resolution;
         }
 
-        public String getExistingUnitId() { return existingUnitId; }
-        public ConflictResolver.Resolution getResolution() { return resolution; }
+        public String getExistingUnitId() {
+            return existingUnitId;
+        }
+
+        public ConflictResolver.Resolution getResolution() {
+            return resolution;
+        }
     }
 
     /**
@@ -279,9 +331,9 @@ public abstract sealed class MemoryUnitLifecycleEvent extends ApplicationEvent
         private final String reason;
 
         private AuthorityChanged(Object source, String contextId,
-                                  String unitId, Authority previousAuthority,
-                                  Authority newAuthority, AuthorityChangeDirection direction,
-                                  String reason) {
+                                 String unitId, Authority previousAuthority,
+                                 Authority newAuthority, AuthorityChangeDirection direction,
+                                 String reason) {
             super(source, contextId);
             this.unitId = unitId;
             this.previousAuthority = previousAuthority;
@@ -290,11 +342,25 @@ public abstract sealed class MemoryUnitLifecycleEvent extends ApplicationEvent
             this.reason = reason;
         }
 
-        public String getUnitId() { return unitId; }
-        public Authority getPreviousAuthority() { return previousAuthority; }
-        public Authority getNewAuthority() { return newAuthority; }
-        public AuthorityChangeDirection getDirection() { return direction; }
-        public String getReason() { return reason; }
+        public String getUnitId() {
+            return unitId;
+        }
+
+        public Authority getPreviousAuthority() {
+            return previousAuthority;
+        }
+
+        public Authority getNewAuthority() {
+            return newAuthority;
+        }
+
+        public AuthorityChangeDirection getDirection() {
+            return direction;
+        }
+
+        public String getReason() {
+            return reason;
+        }
     }
 
     /**
@@ -315,9 +381,17 @@ public abstract sealed class MemoryUnitLifecycleEvent extends ApplicationEvent
             this.newTier = newTier;
         }
 
-        public String getUnitId() { return unitId; }
-        public MemoryTier getPreviousTier() { return previousTier; }
-        public MemoryTier getNewTier() { return newTier; }
+        public String getUnitId() {
+            return unitId;
+        }
+
+        public MemoryTier getPreviousTier() {
+            return previousTier;
+        }
+
+        public MemoryTier getNewTier() {
+            return newTier;
+        }
     }
 
     /**
@@ -338,12 +412,22 @@ public abstract sealed class MemoryUnitLifecycleEvent extends ApplicationEvent
             this.reason = reason;
         }
 
-        public String getPredecessorId() { return predecessorId; }
-        public String getSuccessorId() { return successorId; }
-        public SupersessionReason getReason() { return reason; }
+        public String getPredecessorId() {
+            return predecessorId;
+        }
+
+        public String getSuccessorId() {
+            return successorId;
+        }
+
+        public SupersessionReason getReason() {
+            return reason;
+        }
     }
 
-    /** Published when an operator invariant rule is violated by a proposed lifecycle action. */
+    /**
+     * Published when an operator invariant rule is violated by a proposed lifecycle action.
+     */
     public static final class InvariantViolation extends MemoryUnitLifecycleEvent {
         private final String ruleId;
         private final InvariantStrength strength;
@@ -364,11 +448,25 @@ public abstract sealed class MemoryUnitLifecycleEvent extends ApplicationEvent
             this.unitId = unitId;
         }
 
-        public String getRuleId() { return ruleId; }
-        public InvariantStrength getStrength() { return strength; }
-        public ProposedAction getBlockedAction() { return blockedAction; }
-        public String getConstraintDescription() { return constraintDescription; }
-        public @Nullable String getUnitId() { return unitId; }
+        public String getRuleId() {
+            return ruleId;
+        }
+
+        public InvariantStrength getStrength() {
+            return strength;
+        }
+
+        public ProposedAction getBlockedAction() {
+            return blockedAction;
+        }
+
+        public String getConstraintDescription() {
+            return constraintDescription;
+        }
+
+        public @Nullable String getUnitId() {
+            return unitId;
+        }
     }
 
     public static final class PressureThresholdBreached extends MemoryUnitLifecycleEvent {
@@ -382,7 +480,12 @@ public abstract sealed class MemoryUnitLifecycleEvent extends ApplicationEvent
             this.thresholdType = thresholdType;
         }
 
-        public PressureScore getPressureScore() { return pressureScore; }
-        public String getThresholdType() { return thresholdType; }
+        public PressureScore getPressureScore() {
+            return pressureScore;
+        }
+
+        public String getThresholdType() {
+            return thresholdType;
+        }
     }
 }

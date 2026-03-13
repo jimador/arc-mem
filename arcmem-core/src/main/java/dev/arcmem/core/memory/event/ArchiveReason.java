@@ -1,32 +1,31 @@
 package dev.arcmem.core.memory.event;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
 /**
  * Reason an unit was archived (transitioned from active to inactive).
  */
 public enum ArchiveReason {
-    /** Archived because a conflicting proposition replaced it. */
+    /**
+     * Archived because a conflicting proposition replaced it.
+     */
     CONFLICT_REPLACEMENT,
-    /** Archived due to budget eviction of the lowest-ranked unit. */
+    /**
+     * Archived due to budget eviction of the lowest-ranked unit.
+     */
     BUDGET_EVICTION,
-    /** Archived because it stayed dormant and decayed below lifecycle threshold. */
+    /**
+     * Archived because it stayed dormant and decayed below lifecycle threshold.
+     */
     DORMANCY_DECAY,
-    /** Archived because user-intended revision superseded the unit. */
+    /**
+     * Archived because user-intended revision superseded the unit.
+     */
     REVISION,
-    /** Archived via explicit operator or system action. */
+    /**
+     * Archived via explicit operator or system action.
+     */
     MANUAL,
-    /** Archived by the proactive maintenance sweep (low audit score). */
+    /**
+     * Archived by the proactive maintenance sweep (low audit score).
+     */
     PROACTIVE_MAINTENANCE
 }

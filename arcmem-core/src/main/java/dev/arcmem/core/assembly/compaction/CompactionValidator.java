@@ -1,18 +1,6 @@
 package dev.arcmem.core.assembly.compaction;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
+import dev.arcmem.core.memory.model.MemoryUnit;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,7 +21,8 @@ public final class CompactionValidator {
             "for", "with", "that", "this", "has", "had", "have"
     );
 
-    private CompactionValidator() {}
+    private CompactionValidator() {
+    }
 
     /**
      * Validates that protected units are represented in the compaction summary.
@@ -41,6 +30,7 @@ public final class CompactionValidator {
      * (length &gt; 3, not stop words) appear in the normalized summary.
      *
      * @param minMatchRatio minimum ratio of significant words required; must be in [0.0, 1.0]
+     *
      * @return loss events for units not adequately represented in the summary
      */
     public static List<CompactionLossEvent> validate(String summary, List<MemoryUnit> protectedUnits,

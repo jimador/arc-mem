@@ -19,8 +19,9 @@ import dev.arcmem.simulator.history.*;
 import dev.arcmem.simulator.scenario.*;
 
 import dev.arcmem.core.config.ArcMemProperties;
-import dev.arcmem.simulator.config.ArcMemSimulatorProperties;
+import dev.arcmem.core.persistence.MemoryUnitRepository;
 import dev.arcmem.core.persistence.PropositionNode;
+import dev.arcmem.simulator.config.ArcMemSimulatorProperties;
 import com.embabel.dice.proposition.PropositionStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,8 @@ import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.Prompt;
 
 import java.time.Duration;
+import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -50,8 +53,8 @@ import static org.mockito.Mockito.when;
 class SimulationTurnExecutorPipelineTest {
 
     @Mock private ChatModelHolder chatModel;
-    @Mock private dev.arcmem.core.memory.engine.ArcMemEngine arcMemEngine;
-    @Mock private dev.arcmem.core.persistence.MemoryUnitRepository contextUnitRepository;
+    @Mock private ArcMemEngine arcMemEngine;
+    @Mock private MemoryUnitRepository contextUnitRepository;
     @Mock private SimulationExtractionService extractionService;
     @Mock private ComplianceEnforcer complianceEnforcer;
     @Mock private MemoryPressureGauge pressureGauge;
@@ -73,7 +76,6 @@ class SimulationTurnExecutorPipelineTest {
                 CompliancePolicy.flat(),
                 text -> Math.max(1, text.length() / 4),
                 null,
-                null,
                 turnServices);
     }
 
@@ -82,7 +84,7 @@ class SimulationTurnExecutorPipelineTest {
                 new ArcMemProperties.UnitConfig(20, 500, 100, 900, true, 0.65, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null, null),
                 null, null, null,
                 new ArcMemProperties.AssemblyConfig(0, false, EnforcementStrategy.PROMPT_ONLY),
-                null, null, null, null, null, null, null,
+                null, null, null, null, null, null,
                 new ArcMemProperties.LlmCallConfig(30, 10));
     }
 
@@ -123,7 +125,7 @@ class SimulationTurnExecutorPipelineTest {
                 null,
                 true,
                 null,
-                new java.util.HashMap<>());
+                new HashMap<>());
 
         verify(arcMemEngine).reinforce("a1", true, true);
 
@@ -159,8 +161,8 @@ class SimulationTurnExecutorPipelineTest {
                         0.0,
                         null,
                         List.of(),
-                        java.time.Instant.now(),
-                        java.time.Instant.now(),
+                        Instant.now(),
+                        Instant.now(),
                         PropositionStatus.ACTIVE,
                         null,
                         List.of()
@@ -267,7 +269,7 @@ class SimulationTurnExecutorPipelineTest {
                 null,
                 false,
                 new SimulationScenario.DormancyConfig(0.2, 0.1, 1),
-                new java.util.HashMap<>());
+                new HashMap<>());
 
         verify(arcMemEngine, never()).reinforce(any(), anyBoolean(), anyBoolean());
         verify(arcMemEngine).applyDecay(eq("a1"), eq(400));

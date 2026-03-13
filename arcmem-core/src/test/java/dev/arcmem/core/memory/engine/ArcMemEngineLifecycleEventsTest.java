@@ -204,7 +204,7 @@ class ArcMemEngineLifecycleEventsTest {
                 "incoming",
                 0.9,
                 "negation");
-        when(conflictResolver.resolve(conflict)).thenReturn(ConflictResolver.Resolution.COEXIST);
+        when(conflictResolver.resolve(eq(conflict), any(ResolutionContext.class))).thenReturn(ConflictResolver.Resolution.COEXIST);
         when(repository.findPropositionNodeById("a1")).thenReturn(Optional.of(unitNode("a1", 500, Authority.RELIABLE, 0)));
 
         enabledEngine.resolveConflict(conflict);
@@ -449,7 +449,7 @@ class ArcMemEngineLifecycleEventsTest {
                 new ArcMemProperties.MemoryConfig(true, null, null, "text-embedding-3-small", 20, 5, 2),
                 new ArcMemProperties.PersistenceConfig(false),
                 new ArcMemProperties.ConflictDetectionConfig(ConflictStrategy.LLM, "gpt-4o-nano"),
-                new ArcMemProperties.AssemblyConfig(0, false, dev.arcmem.core.assembly.compliance.EnforcementStrategy.PROMPT_ONLY),
-                null, null, null, null, null, null, null, new ArcMemProperties.LlmCallConfig(30, 10));
+                new ArcMemProperties.AssemblyConfig(0, false, EnforcementStrategy.PROMPT_ONLY),
+                null, null, null, null, null, null, new ArcMemProperties.LlmCallConfig(30, 10));
     }
 }

@@ -1,17 +1,7 @@
 package dev.arcmem.core.memory.budget;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
+
+import dev.arcmem.core.memory.model.Authority;
+import dev.arcmem.core.memory.model.MemoryUnit;
 
 import java.util.Comparator;
 import java.util.List;
@@ -33,9 +23,9 @@ public final class CountBasedBudgetStrategy implements BudgetStrategy {
     @Override
     public List<MemoryUnit> selectForEviction(List<MemoryUnit> activeUnits, int excess) {
         return activeUnits.stream()
-                .filter(a -> !a.pinned() && a.authority() != Authority.CANON)
-                .sorted(Comparator.comparingInt(MemoryUnit::rank))
-                .limit(excess)
-                .toList();
+                          .filter(a -> !a.pinned() && a.authority() != Authority.CANON)
+                          .sorted(Comparator.comparingInt(MemoryUnit::rank))
+                          .limit(excess)
+                          .toList();
     }
 }

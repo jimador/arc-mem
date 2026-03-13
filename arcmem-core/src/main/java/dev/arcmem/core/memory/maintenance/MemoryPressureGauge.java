@@ -1,19 +1,7 @@
 package dev.arcmem.core.memory.maintenance;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
 import dev.arcmem.core.config.ArcMemProperties;
+import dev.arcmem.core.memory.conflict.AuthorityChangeDirection;
 import dev.arcmem.core.memory.event.MemoryUnitLifecycleEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,15 +66,15 @@ public class MemoryPressureGauge {
         total = Math.max(0.0, Math.min(1.0, total));
 
         var score = new PressureScore(total, weightedBudget, weightedConflict, weightedDecay,
-                weightedCompaction, Instant.now());
+                                      weightedCompaction, Instant.now());
 
         state.recordPressureSnapshot(score);
         checkThresholdTransitions(contextId, score, state, config);
 
         logger.info("Memory pressure for {}: total={} budget={} conflict={} decay={} compaction={}",
-                contextId, String.format("%.3f", total), String.format("%.3f", weightedBudget),
-                String.format("%.3f", weightedConflict), String.format("%.3f", weightedDecay),
-                String.format("%.3f", weightedCompaction));
+                    contextId, String.format("%.3f", total), String.format("%.3f", weightedBudget),
+                    String.format("%.3f", weightedConflict), String.format("%.3f", weightedDecay),
+                    String.format("%.3f", weightedCompaction));
 
         state.advanceWindow();
 
@@ -125,8 +113,8 @@ public class MemoryPressureGauge {
     }
 
     private void checkThresholdTransitions(String contextId, PressureScore score,
-                                          ContextPressureState state,
-                                          ArcMemProperties.PressureConfig config) {
+                                           ContextPressureState state,
+                                           ArcMemProperties.PressureConfig config) {
         boolean breachesLight = score.total() >= config.lightSweepThreshold();
         boolean breachesFull = score.total() >= config.fullSweepThreshold();
 

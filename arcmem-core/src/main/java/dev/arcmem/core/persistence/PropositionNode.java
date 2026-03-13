@@ -1,17 +1,4 @@
 package dev.arcmem.core.persistence;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
 import com.embabel.dice.proposition.PropositionStatus;
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -274,9 +261,9 @@ public class PropositionNode {
             @Nullable String supersededBy,
             @Nullable String supersedes) {
         this(id, contextId, text, confidence, decay, reasoning, grounding, created, revised,
-                status, uri, sourceIds, rank, authority, pinned, decayType, lastReinforced,
-                reinforcementCount, importance, memoryTier, validFrom, validTo,
-                transactionStart, transactionEnd, supersededBy, supersedes, null);
+             status, uri, sourceIds, rank, authority, pinned, decayType, lastReinforced,
+             reinforcementCount, importance, memoryTier, validFrom, validTo,
+             transactionStart, transactionEnd, supersededBy, supersedes, null);
     }
 
     /**

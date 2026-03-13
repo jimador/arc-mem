@@ -1,17 +1,4 @@
 package dev.arcmem.core.memory.model;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
 /**
  * Memory tier classification for memory units, reflecting recency and reinforcement freshness.
@@ -47,6 +34,7 @@ public enum MemoryTier {
      * @param rank          the unit's current rank
      * @param hotThreshold  rank at or above which the unit is HOT
      * @param warmThreshold rank at or above which (but below hotThreshold) the unit is WARM
+     *
      * @return the computed memory tier
      */
     public static MemoryTier fromRank(int rank, int hotThreshold, int warmThreshold) {

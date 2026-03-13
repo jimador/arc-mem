@@ -1,17 +1,4 @@
 package dev.arcmem.core.memory.conflict;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
 import dev.arcmem.core.memory.event.MemoryUnitLifecycleEvent;
 import org.slf4j.Logger;
@@ -75,7 +62,7 @@ public class InMemoryConflictIndex implements ConflictIndex {
             entries.removeIf(e -> units.contains(e.unitId()));
         }
         logger.info("Cleared conflict index for context {}: {} units, {} entries removed",
-                contextId, unitCount, entriesRemoved);
+                    contextId, unitCount, entriesRemoved);
     }
 
     @Override
@@ -88,7 +75,9 @@ public class InMemoryConflictIndex implements ConflictIndex {
         return index.values().stream().mapToInt(Set::size).sum();
     }
 
-    /** Tracks unit-to-context mapping to support context-scoped cleanup. */
+    /**
+     * Tracks unit-to-context mapping to support context-scoped cleanup.
+     */
     void registerUnit(String unitId, String contextId) {
         contextUnits.computeIfAbsent(contextId, k -> ConcurrentHashMap.newKeySet()).add(unitId);
     }
@@ -97,7 +86,7 @@ public class InMemoryConflictIndex implements ConflictIndex {
     public void onPromoted(MemoryUnitLifecycleEvent.Promoted event) {
         registerUnit(event.getUnitId(), event.getContextId());
         logger.debug("Registered unit {} in context {} for conflict index tracking",
-                event.getUnitId(), event.getContextId());
+                     event.getUnitId(), event.getContextId());
     }
 
     @EventListener

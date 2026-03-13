@@ -1,20 +1,9 @@
 package dev.arcmem.core.assembly.compliance;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.arcmem.core.memory.model.Authority;
+import dev.arcmem.core.memory.model.MemoryUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.model.ChatModel;
@@ -26,6 +15,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Post-generation compliance validator that checks LLM responses against active units
@@ -69,21 +59,21 @@ public class PostGenerationValidator implements ComplianceEnforcer {
         var duration = Duration.between(start, Instant.now());
 
         violations.forEach(v -> logger.warn("compliance.violation unitId={} authority={} description={}",
-                v.unitId(), v.unitAuthority(), v.description()));
+                                            v.unitId(), v.unitAuthority(), v.description()));
 
         var action = determineAction(violations);
         var compliant = violations.isEmpty();
 
         logger.info("compliance.check strategy=POST_GENERATION units={} result={} duration={}ms",
-                unitsToEnforce.size(), action, duration.toMillis());
+                    unitsToEnforce.size(), action, duration.toMillis());
 
         return new ComplianceResult(compliant, violations, action, duration);
     }
 
     private List<MemoryUnit> filterByPolicy(List<MemoryUnit> units, ComplianceContext.CompliancePolicy policy) {
         return units.stream()
-                .filter(a -> shouldEnforce(a.authority(), policy))
-                .toList();
+                    .filter(a -> shouldEnforce(a.authority(), policy))
+                    .toList();
     }
 
     private boolean shouldEnforce(Authority authority, ComplianceContext.CompliancePolicy policy) {
@@ -99,18 +89,18 @@ public class PostGenerationValidator implements ComplianceEnforcer {
         var unitLines = new StringBuilder();
         for (var unit : units) {
             unitLines.append("[").append(unit.id()).append("] (")
-                       .append(unit.authority().name()).append("): ")
-                       .append(unit.text()).append("\n");
+                     .append(unit.authority().name()).append("): ")
+                     .append(unit.text()).append("\n");
         }
 
         return """
                 You are a compliance validator. Check if the following response contradicts any of the established facts.
-
+                
                 Established facts (MUST NOT be contradicted):
                 %s
                 Response to validate:
                 %s
-
+                
                 For each fact, determine if the response contradicts it. Respond in JSON format:
                 {"violations": [{"unitId": "...", "description": "...", "confidence": 0.0-1.0}]}
                 If no violations, respond: {"violations": []}
@@ -125,7 +115,7 @@ public class PostGenerationValidator implements ComplianceEnforcer {
     private List<ComplianceViolation> parseViolations(String rawResponse, List<MemoryUnit> enforcedUnits) {
         var unitById = Map.copyOf(
                 enforcedUnits.stream().collect(
-                        java.util.stream.Collectors.toMap(MemoryUnit::id, a -> a, (a, b) -> a)));
+                        Collectors.toMap(MemoryUnit::id, a -> a, (a, b) -> a)));
 
         try {
             var json = stripCodeFences(rawResponse);
@@ -139,7 +129,7 @@ public class PostGenerationValidator implements ComplianceEnforcer {
                 var unit = unitById.get(entry.unitId());
                 if (unit == null) {
                     logger.warn("compliance.parse unknown unitId={} in validator response — skipping",
-                            entry.unitId());
+                                entry.unitId());
                     continue;
                 }
                 result.add(new ComplianceViolation(
@@ -161,7 +151,7 @@ public class PostGenerationValidator implements ComplianceEnforcer {
             return ComplianceAction.ACCEPT;
         }
         boolean canonViolated = violations.stream()
-                .anyMatch(v -> v.unitAuthority() == Authority.CANON);
+                                          .anyMatch(v -> v.unitAuthority() == Authority.CANON);
         return canonViolated ? ComplianceAction.REJECT : ComplianceAction.RETRY;
     }
 

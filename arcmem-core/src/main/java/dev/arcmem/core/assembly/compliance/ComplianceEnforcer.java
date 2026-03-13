@@ -1,17 +1,4 @@
 package dev.arcmem.core.assembly.compliance;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
 /**
  * Strategy interface for validating LLM responses against active memory units.
@@ -49,6 +36,7 @@ public interface ComplianceEnforcer {
      * the suggested action for the caller.
      *
      * @param context everything needed to perform enforcement
+     *
      * @return validation result; never null
      */
     ComplianceResult enforce(ComplianceContext context);

@@ -1,17 +1,4 @@
 package dev.arcmem.core.assembly.budget;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
 import java.util.Map;
 
@@ -36,16 +23,24 @@ public record LogitBiasMap(
         double coverage,
         int overflowCount
 ) {
-    /** OpenAI maximum logit_bias entries per request. */
+    /**
+     * OpenAI maximum logit_bias entries per request.
+     */
     public static final int MAX_TOKENS = 300;
 
-    /** Bias value applied to tokens from CANON units (RFC 2119 MUST). */
+    /**
+     * Bias value applied to tokens from CANON units (RFC 2119 MUST).
+     */
     public static final int CANON_BIAS = 100;
 
-    /** Bias value applied to tokens from RELIABLE units (RFC 2119 SHOULD). */
+    /**
+     * Bias value applied to tokens from RELIABLE units (RFC 2119 SHOULD).
+     */
     public static final int RELIABLE_BIAS = 50;
 
-    /** Empty map with no constraints. */
+    /**
+     * Empty map with no constraints.
+     */
     public static LogitBiasMap empty() {
         return new LogitBiasMap(Map.of(), 0, 0.0, 0);
     }

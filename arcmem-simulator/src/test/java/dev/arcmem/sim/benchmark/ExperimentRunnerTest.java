@@ -66,7 +66,7 @@ class ExperimentRunnerTest {
         return new SimulationScenario(
                 id, null, null, null, 10, 0, false, null,
                 List.of(), List.of(), List.of(), null, null, null, null, null,
-                null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null, null, null, null, null);
     }
 
     private static BenchmarkReport sampleBenchmarkReport(String scenarioId) {

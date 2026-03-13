@@ -52,7 +52,6 @@ arc-mem:
       rank-boost-amount: 50
       rank-penalty-amount: 50
       llm-audit-enabled: false
-      prolog-pre-filter-enabled: true
 
   assembly:
     prompt-token-budget: 0
@@ -128,16 +127,8 @@ arc-mem:
     cluster-drift-min-units: 3
     max-expected-events-per-window: 20
 
-  tiered-storage:
-    enabled: false
-    max-cache-size: 1000
-    ttl-minutes: 60
-
   budget:
     strategy: COUNT
-    density-warning-threshold: 0.6
-    density-reduction-threshold: 0.8
-    density-reduction-factor: 0.5
 
   pressure:
     enabled: true

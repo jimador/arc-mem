@@ -25,6 +25,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -185,18 +187,18 @@ class DriftEvaluationTest {
     class FullParsePipeline {
 
         private final SimulationTurnExecutor executor = new SimulationTurnExecutor(
-                null, null, null, null, null, dev.arcmem.core.memory.canon.CompliancePolicy.tiered(), null, null, null,
+                null, null, null, null, null, CompliancePolicy.tiered(), null, null,
                 new SimulationTurnServices(
                         null,
-                        new dev.arcmem.core.memory.maintenance.ReactiveMaintenanceStrategy(
-                                dev.arcmem.core.memory.maintenance.DecayPolicy.exponential(1000.0),
-                                dev.arcmem.core.memory.mutation.ReinforcementPolicy.threshold()),
-                        ctx -> dev.arcmem.core.assembly.compliance.ComplianceResult.compliant(java.time.Duration.ZERO),
+                        new ReactiveMaintenanceStrategy(
+                                DecayPolicy.exponential(1000.0),
+                                ReinforcementPolicy.threshold()),
+                        ctx -> ComplianceResult.compliant(Duration.ZERO),
                         null,
                         new LoggingPromptInjectionEnforcer()));
 
         private List<SimulationScenario.GroundTruth> groundTruth(String... ids) {
-            var list = new java.util.ArrayList<SimulationScenario.GroundTruth>();
+            var list = new ArrayList<SimulationScenario.GroundTruth>();
             for (var id : ids) {
                 list.add(new SimulationScenario.GroundTruth(id, "Fact " + id));
             }

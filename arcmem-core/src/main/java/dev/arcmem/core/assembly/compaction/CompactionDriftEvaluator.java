@@ -1,17 +1,4 @@
 package dev.arcmem.core.assembly.compaction;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +16,9 @@ public class CompactionDriftEvaluator {
 
     private static final Logger logger = LoggerFactory.getLogger(CompactionDriftEvaluator.class);
 
-    /** A content item that was protected before compaction but missing after. */
+    /**
+     * A content item that was protected before compaction but missing after.
+     */
     public record CompactionLoss(
             String lostContentId,
             String lostText

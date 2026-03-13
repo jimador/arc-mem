@@ -1,19 +1,7 @@
 package dev.arcmem.core.memory.conflict;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.arcmem.core.memory.model.MemoryUnit;
 import dev.arcmem.core.prompt.PromptPathConstants;
 import dev.arcmem.core.prompt.PromptTemplates;
 import dev.arcmem.core.spi.llm.LlmCallService;
@@ -111,38 +99,38 @@ public class LlmConflictDetector implements ConflictDetector {
             var json = responseText.replaceAll("(?s)```[a-z]*\\s*", "").replaceAll("```", "").trim();
             var parsed = MAPPER.readValue(json, BatchConflictResult.class);
             var unitByText = units.stream()
-                    .collect(Collectors.toMap(MemoryUnit::text, a -> a, (a, b) -> a));
+                                  .collect(Collectors.toMap(MemoryUnit::text, a -> a, (a, b) -> a));
             var result = new LinkedHashMap<String, List<Conflict>>();
-            var entries = parsed.results() != null ? parsed.results() : List.<BatchConflictResult.Entry>of();
+            var entries = parsed.results() != null ? parsed.results() : List.<BatchConflictResult.Entry> of();
             for (var entry : entries) {
                 var matches = entry.contradictingUnits() != null
                         ? entry.contradictingUnits()
-                        : List.<BatchConflictResult.UnitMatch>of();
+                        : List.<BatchConflictResult.UnitMatch> of();
                 var conflicts = matches.stream()
-                        .filter(match -> match.conflictType() != ConflictType.WORLD_PROGRESSION)
-                        .map(match -> {
-                            var unit = unitByText.get(match.unitText());
-                            if (unit == null) {
-                                return null;
-                            }
-                            var reason = match.reasoning() != null && !match.reasoning().isBlank()
-                                    ? match.reasoning()
-                                    : "batch LLM conflict";
-                            var conflictType = match.conflictType() != null
-                                    ? match.conflictType()
-                                    : ConflictType.CONTRADICTION;
-                            return new Conflict(unit, entry.candidate(), llmConfidence, reason,
-                                    DetectionQuality.FULL, conflictType);
-                        })
-                        .filter(Objects::nonNull)
-                        .toList();
+                                       .filter(match -> match.conflictType() != ConflictType.WORLD_PROGRESSION)
+                                       .map(match -> {
+                                           var unit = unitByText.get(match.unitText());
+                                           if (unit == null) {
+                                               return null;
+                                           }
+                                           var reason = match.reasoning() != null && !match.reasoning().isBlank()
+                                                   ? match.reasoning()
+                                                   : "batch LLM conflict";
+                                           var conflictType = match.conflictType() != null
+                                                   ? match.conflictType()
+                                                   : ConflictType.CONTRADICTION;
+                                           return new Conflict(unit, entry.candidate(), llmConfidence, reason,
+                                                               DetectionQuality.FULL, conflictType);
+                                       })
+                                       .filter(Objects::nonNull)
+                                       .toList();
                 result.put(entry.candidate(), conflicts);
             }
             candidates.forEach(c -> result.putIfAbsent(c, List.of()));
             return result;
         } catch (Exception e) {
             logger.warn("Batch conflict parse failed — marking {} candidates as DEGRADED (ACON1): {}",
-                    candidates.size(), e.getMessage());
+                        candidates.size(), e.getMessage());
             return markDegraded(candidates);
         }
     }
@@ -155,8 +143,8 @@ public class LlmConflictDetector implements ConflictDetector {
         return candidates.stream().collect(Collectors.toMap(
                 c -> c,
                 c -> List.of(new Conflict(null, c, 0.0,
-                        "conflict detection degraded — parse failure",
-                        DetectionQuality.DEGRADED))));
+                                          "conflict detection degraded — parse failure",
+                                          DetectionQuality.DEGRADED))));
     }
 
     private Conflict evaluatePair(String incomingText, MemoryUnit unit) {
@@ -181,21 +169,21 @@ public class LlmConflictDetector implements ConflictDetector {
             if (contradicts) {
                 var reason = !reasoning.isBlank() ? reasoning : explanation;
                 return new Conflict(unit, incomingText, llmConfidence, reason,
-                        DetectionQuality.FULL, parseConflictType(node.path("conflictType")));
+                                    DetectionQuality.FULL, parseConflictType(node.path("conflictType")));
             }
             return null;
         } catch (Exception e) {
             logger.warn("LLM conflict parse failed for unit {} — falling back to text scan: {}",
-                    unit.id(), e.getMessage());
+                        unit.id(), e.getMessage());
             if (raw != null && raw.toLowerCase().contains("true")) {
                 return new Conflict(unit, incomingText, llmConfidence,
-                        "LLM indicated contradiction (fallback parse)",
-                        DetectionQuality.FALLBACK,
-                        ConflictType.CONTRADICTION);
+                                    "LLM indicated contradiction (fallback parse)",
+                                    DetectionQuality.FALLBACK,
+                                    ConflictType.CONTRADICTION);
             }
             return new Conflict(unit, incomingText, 0.0,
-                    "conflict detection degraded — parse failure",
-                    DetectionQuality.DEGRADED);
+                                "conflict detection degraded — parse failure",
+                                DetectionQuality.DEGRADED);
         }
     }
 

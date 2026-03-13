@@ -1,17 +1,6 @@
 package dev.arcmem.core.memory.canon;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
+
+import dev.arcmem.core.memory.model.Authority;
 
 /**
  * Policy that maps authority levels to compliance strengths.
@@ -22,7 +11,9 @@ public interface CompliancePolicy {
 
     ComplianceStrength getStrengthFor(Authority authority);
 
-    /** All authorities treated as {@link ComplianceStrength#STRICT}. Backward-compatible default. */
+    /**
+     * All authorities treated as {@link ComplianceStrength#STRICT}. Backward-compatible default.
+     */
     static CompliancePolicy flat() {
         return _ -> ComplianceStrength.STRICT;
     }

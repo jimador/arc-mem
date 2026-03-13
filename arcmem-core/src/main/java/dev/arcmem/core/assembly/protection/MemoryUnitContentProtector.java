@@ -1,18 +1,6 @@
 package dev.arcmem.core.assembly.protection;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
+import dev.arcmem.core.memory.engine.ArcMemEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -38,13 +26,13 @@ public class MemoryUnitContentProtector implements ProtectedContentProvider {
     public List<ProtectedContent> getProtectedContent(String contextId) {
         var units = arcMemEngine.inject(contextId);
         var result = units.stream()
-                            .map(unit -> new ProtectedContent(
-                                    unit.id(),
-                                    unit.text(),
-                                    unit.rank(),
-                                    "Active unit [%s] rank=%d".formatted(unit.authority().name(), unit.rank())
-                            ))
-                            .toList();
+                          .map(unit -> new ProtectedContent(
+                                  unit.id(),
+                                  unit.text(),
+                                  unit.rank(),
+                                  "Active unit [%s] rank=%d".formatted(unit.authority().name(), unit.rank())
+                          ))
+                          .toList();
         logger.debug("Protected {} unit-backed items for context {}", result.size(), contextId);
         return result;
     }

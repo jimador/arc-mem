@@ -51,6 +51,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 /**
  * Vaadin view for inspecting a completed simulation run's turn-by-turn data.
@@ -427,15 +428,15 @@ public class RunInspectorView extends VerticalLayout implements BeforeEnterObser
         driftTabContent.add(summaryHeader);
 
         long contradictions = primaryRun.turnSnapshots().stream()
-                                        .flatMap(t -> t.verdicts() != null ? t.verdicts().stream() : java.util.stream.Stream.empty())
+                                        .flatMap(t -> t.verdicts() != null ? t.verdicts().stream() : Stream.empty())
                                         .filter(v -> v.verdict() == EvalVerdict.Verdict.CONTRADICTED)
                                         .count();
         long confirmed = primaryRun.turnSnapshots().stream()
-                                   .flatMap(t -> t.verdicts() != null ? t.verdicts().stream() : java.util.stream.Stream.empty())
+                                   .flatMap(t -> t.verdicts() != null ? t.verdicts().stream() : Stream.empty())
                                    .filter(v -> v.verdict() == EvalVerdict.Verdict.CONFIRMED)
                                    .count();
         long notMentioned = primaryRun.turnSnapshots().stream()
-                                      .flatMap(t -> t.verdicts() != null ? t.verdicts().stream() : java.util.stream.Stream.empty())
+                                      .flatMap(t -> t.verdicts() != null ? t.verdicts().stream() : Stream.empty())
                                       .filter(v -> v.verdict() == EvalVerdict.Verdict.NOT_MENTIONED)
                                       .count();
 

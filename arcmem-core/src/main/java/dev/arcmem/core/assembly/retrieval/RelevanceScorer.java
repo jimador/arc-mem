@@ -1,21 +1,11 @@
 package dev.arcmem.core.assembly.retrieval;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.arcmem.core.config.ArcMemProperties.RetrievalConfig;
 import dev.arcmem.core.config.ArcMemProperties.ScoringConfig;
+import dev.arcmem.core.memory.model.Authority;
+import dev.arcmem.core.memory.model.MemoryTier;
+import dev.arcmem.core.memory.model.MemoryUnit;
 import dev.arcmem.core.prompt.PromptPathConstants;
 import dev.arcmem.core.prompt.PromptTemplates;
 import dev.arcmem.core.spi.llm.LlmCallService;
@@ -65,6 +55,7 @@ public class RelevanceScorer {
      * Computes a heuristic relevance score for an unit based on authority, tier, and confidence.
      *
      * @param scoring weight configuration; if null, uses multiplicative fallback
+     *
      * @return score in [0.0, 1.0]
      */
     public double computeHeuristicScore(MemoryUnit unit, @Nullable ScoringConfig scoring) {
@@ -75,24 +66,25 @@ public class RelevanceScorer {
             return authorityVal * tierVal * confidence;
         }
         return (scoring.authorityWeight() * authorityVal)
-             + (scoring.tierWeight() * tierVal)
-             + (scoring.confidenceWeight() * confidence);
+               + (scoring.tierWeight() * tierVal)
+               + (scoring.confidenceWeight() * confidence);
     }
 
     /**
      * Scores and ranks units using heuristic signals only.
      *
      * @param scoring weight configuration
+     *
      * @return units sorted by descending relevance score
      */
     public List<ScoredMemoryUnit> scoreAndRank(List<MemoryUnit> units, @Nullable ScoringConfig scoring) {
         return units.stream()
-                .map(a -> new ScoredMemoryUnit(
-                        a.id(), a.text(), a.rank(), a.authority(),
-                        a.confidence(), a.memoryTier(),
-                        computeHeuristicScore(a, scoring)))
-                .sorted(Comparator.comparingDouble(ScoredMemoryUnit::relevanceScore).reversed())
-                .toList();
+                    .map(a -> new ScoredMemoryUnit(
+                            a.id(), a.text(), a.rank(), a.authority(),
+                            a.confidence(), a.memoryTier(),
+                            computeHeuristicScore(a, scoring)))
+                    .sorted(Comparator.comparingDouble(ScoredMemoryUnit::relevanceScore).reversed())
+                    .toList();
     }
 
     /**
@@ -101,10 +93,11 @@ public class RelevanceScorer {
      *
      * @param query  the user query or conversational context
      * @param config retrieval configuration containing scoring weights
+     *
      * @return units sorted by descending blended relevance score
      */
     public List<ScoredMemoryUnit> scoreByRelevance(String query, List<MemoryUnit> units,
-                                                RetrievalConfig config) {
+                                                   RetrievalConfig config) {
         var scoring = config != null ? config.scoring() : null;
 
         if (chatModel == null || llmCallService == null) {
@@ -123,8 +116,8 @@ public class RelevanceScorer {
 
     private Map<String, Double> callLlmForScores(String query, List<MemoryUnit> units) {
         var unitEntries = units.stream()
-                .map(a -> Map.<String, Object>of("id", a.id(), "text", a.text()))
-                .toList();
+                               .map(a -> Map.<String, Object> of("id", a.id(), "text", a.text()))
+                               .toList();
 
         var systemPrompt = "You are a relevance scoring engine. Rate how relevant each unit is to the query.";
         var userPrompt = PromptTemplates.render(PromptPathConstants.RELEVANCE_SCORING, Map.of(
@@ -149,25 +142,25 @@ public class RelevanceScorer {
             }
         } catch (Exception e) {
             logger.warn("Failed to parse LLM relevance scores (response truncated to 200 chars: '{}'): {}",
-                    responseText != null ? responseText.substring(0, Math.min(200, responseText.length())) : "<null>",
-                    e.getMessage());
+                        responseText != null ? responseText.substring(0, Math.min(200, responseText.length())) : "<null>",
+                        e.getMessage());
         }
         return scores;
     }
 
     private List<ScoredMemoryUnit> blendScores(List<MemoryUnit> units, Map<String, Double> llmScores,
-                                            @Nullable ScoringConfig scoring) {
+                                               @Nullable ScoringConfig scoring) {
         return units.stream()
-                .map(a -> {
-                    var heuristic = computeHeuristicScore(a, scoring);
-                    var llmScore = llmScores.getOrDefault(a.id(), heuristic);
-                    var blended = (LLM_WEIGHT * llmScore) + (HEURISTIC_WEIGHT * heuristic);
-                    return new ScoredMemoryUnit(
-                            a.id(), a.text(), a.rank(), a.authority(),
-                            a.confidence(), a.memoryTier(), blended);
-                })
-                .sorted(Comparator.comparingDouble(ScoredMemoryUnit::relevanceScore).reversed())
-                .toList();
+                    .map(a -> {
+                        var heuristic = computeHeuristicScore(a, scoring);
+                        var llmScore = llmScores.getOrDefault(a.id(), heuristic);
+                        var blended = (LLM_WEIGHT * llmScore) + (HEURISTIC_WEIGHT * heuristic);
+                        return new ScoredMemoryUnit(
+                                a.id(), a.text(), a.rank(), a.authority(),
+                                a.confidence(), a.memoryTier(), blended);
+                    })
+                    .sorted(Comparator.comparingDouble(ScoredMemoryUnit::relevanceScore).reversed())
+                    .toList();
     }
 
     static double authorityValue(Authority authority) {

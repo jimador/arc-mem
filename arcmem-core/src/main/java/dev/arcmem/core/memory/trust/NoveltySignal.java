@@ -1,19 +1,7 @@
 package dev.arcmem.core.memory.trust;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
 import dev.arcmem.core.config.ArcMemProperties;
+import dev.arcmem.core.memory.engine.ArcMemEngine;
 import dev.arcmem.core.persistence.PropositionNode;
 
 import java.util.Arrays;
@@ -58,9 +46,9 @@ public record NoveltySignal(ArcMemEngine arcMemEngine, ArcMemProperties properti
 
             var propositionTokens = tokenize(proposition.getText());
             var maxSimilarity = units.stream()
-                    .mapToDouble(unit -> jaccardSimilarity(propositionTokens, tokenize(unit.text())))
-                    .max()
-                    .orElse(0.0);
+                                     .mapToDouble(unit -> jaccardSimilarity(propositionTokens, tokenize(unit.text())))
+                                     .max()
+                                     .orElse(0.0);
 
             return OptionalDouble.of(Math.max(0.0, Math.min(1.0, 1.0 - maxSimilarity)));
         } catch (Exception e) {
@@ -73,9 +61,9 @@ public record NoveltySignal(ArcMemEngine arcMemEngine, ArcMemProperties properti
             return Set.of();
         }
         return Arrays.stream(text.toLowerCase().split("\\W+"))
-                .filter(w -> w.length() > 2)
-                .filter(w -> !STOP_WORDS.contains(w))
-                .collect(Collectors.toSet());
+                     .filter(w -> w.length() > 2)
+                     .filter(w -> !STOP_WORDS.contains(w))
+                     .collect(Collectors.toSet());
     }
 
     static double jaccardSimilarity(Set<String> a, Set<String> b) {

@@ -1,20 +1,7 @@
 package dev.arcmem.core.memory.trust;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
+import dev.arcmem.core.memory.model.DomainProfile;
 import dev.arcmem.core.persistence.PropositionNode;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.OptionalDouble;
@@ -57,6 +44,7 @@ public interface TrustSignal {
      *
      * @param proposition the proposition node to evaluate; never null
      * @param contextId   the conversation or session context identifier; never null
+     *
      * @return signal value in {@code [0.0, 1.0]}, or empty if not applicable
      */
     OptionalDouble evaluate(PropositionNode proposition, String contextId);
@@ -71,7 +59,9 @@ public interface TrustSignal {
     static TrustSignal extractionConfidence() {
         return new TrustSignal() {
             @Override
-            public String name() { return "extractionConfidence"; }
+            public String name() {
+                return "extractionConfidence";
+            }
 
             @Override
             public OptionalDouble evaluate(PropositionNode proposition, String contextId) {
@@ -89,7 +79,6 @@ public interface TrustSignal {
     static TrustSignal corroboration() {
         return new CorroborationSignal();
     }
-
 
 
     /**

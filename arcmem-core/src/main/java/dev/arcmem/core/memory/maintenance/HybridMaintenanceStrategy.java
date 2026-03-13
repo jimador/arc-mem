@@ -1,17 +1,4 @@
 package dev.arcmem.core.memory.maintenance;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,7 +49,7 @@ public non-sealed class HybridMaintenanceStrategy implements MaintenanceStrategy
     public SweepResult executeSweep(MaintenanceContext context) {
         var result = proactive.executeSweep(context);
         logger.debug("Hybrid sweep completed for context={} audited={} pruned={}",
-                context.contextId(), result.unitsAudited(), result.unitsPruned());
+                     context.contextId(), result.unitsAudited(), result.unitsPruned());
         return result;
     }
 }

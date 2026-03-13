@@ -1,18 +1,11 @@
 package dev.arcmem.core.assembly.budget;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
+import dev.arcmem.core.assembly.compliance.ComplianceContext;
+import dev.arcmem.core.assembly.compliance.ComplianceEnforcer;
+import dev.arcmem.core.assembly.compliance.ComplianceResult;
+import dev.arcmem.core.assembly.protection.SemanticUnitConstraintIndex;
+import dev.arcmem.core.memory.model.Authority;
+import dev.arcmem.core.memory.model.MemoryUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -62,14 +55,14 @@ public class LogitBiasEnforcer implements ComplianceEnforcer {
         var duration = Duration.between(start, Instant.now());
 
         logger.info("compliance.strategy=LOGIT_BIAS constraint_count={} token_count={} coverage={} overflow={}",
-                biasMap.constraintCount(),
-                biasMap.tokenBiases().size(),
-                biasMap.coverage(),
-                biasMap.overflowCount());
+                    biasMap.constraintCount(),
+                    biasMap.tokenBiases().size(),
+                    biasMap.coverage(),
+                    biasMap.overflowCount());
 
         if (biasMap.overflowCount() > 0) {
             logger.warn("compliance.logit_bias.overflow={} tokens dropped due to {}-token limit",
-                    biasMap.overflowCount(), LogitBiasMap.MAX_TOKENS);
+                        biasMap.overflowCount(), LogitBiasMap.MAX_TOKENS);
         }
 
         return ComplianceResult.compliant(duration);
@@ -136,7 +129,7 @@ public class LogitBiasEnforcer implements ComplianceEnforcer {
      * Build a logit bias map from a set of units and check model support.
      * Returns empty map if the model does not support logit bias.
      */
-    public LogitBiasMap buildBiasMapForModel(List<dev.arcmem.core.memory.model.MemoryUnit> units, String modelId) {
+    public LogitBiasMap buildBiasMapForModel(List<MemoryUnit> units, String modelId) {
         if (!capabilityDetector.supportsLogitBias(modelId)) {
             logger.warn("compliance.capability.logit_bias_supported=false model={} — degrading gracefully", modelId);
             return LogitBiasMap.empty();

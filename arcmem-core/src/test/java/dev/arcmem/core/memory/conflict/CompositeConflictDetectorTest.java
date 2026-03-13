@@ -190,49 +190,4 @@ class CompositeConflictDetectorTest {
         }
     }
 
-    @Nested
-    @DisplayName("LOGICAL strategy")
-    class LogicalStrategy {
-
-        private final MemoryUnitPrologProjector prologProjector = new MemoryUnitPrologProjector();
-        private final PrologConflictDetector logicalDetector = new PrologConflictDetector(prologProjector);
-
-        @Test
-        @DisplayName("delegates to PrologConflictDetector when injected")
-        void logical_delegatesToPrologDetectorWhenInjected() {
-            var detector = new CompositeConflictDetector(
-                    lexicalDetector, semanticDetector, subjectFilter,
-                    ConflictDetectionStrategy.LOGICAL, null, logicalDetector);
-
-            var units = List.of(unit("The guardian is alive"));
-            var result = detector.detect("The guardian is dead", units);
-
-            assertThat(result).isNotEmpty();
-            assertThat(result.getFirst().confidence()).isEqualTo(1.0);
-        }
-
-        @Test
-        @DisplayName("throws UnsupportedOperationException on detect when logicalDetector is null")
-        void logical_throwsOnDetectWhenNull() {
-            var detector = new CompositeConflictDetector(
-                    lexicalDetector, semanticDetector, subjectFilter,
-                    ConflictDetectionStrategy.LOGICAL, null, null);
-
-            assertThatThrownBy(() -> detector.detect("text", List.of(unit("unit"))))
-                    .isInstanceOf(UnsupportedOperationException.class)
-                    .hasMessageContaining("LOGICAL");
-        }
-
-        @Test
-        @DisplayName("throws UnsupportedOperationException on batchDetect when logicalDetector is null")
-        void logical_throwsOnBatchDetectWhenNull() {
-            var detector = new CompositeConflictDetector(
-                    lexicalDetector, semanticDetector, subjectFilter,
-                    ConflictDetectionStrategy.LOGICAL, null, null);
-
-            assertThatThrownBy(() -> detector.batchDetect(List.of("text"), List.of(unit("unit"))))
-                    .isInstanceOf(UnsupportedOperationException.class)
-                    .hasMessageContaining("LOGICAL");
-        }
-    }
 }

@@ -44,7 +44,7 @@ class MemoryPressureGaugeTest {
                 true, 0.4, 0.3, 0.2, 0.1, 0.4, 0.8, 1.5, 5
         );
         var props = new ArcMemProperties(
-                null, null, null, null, null, null, null, null, null, config, null, null, new ArcMemProperties.LlmCallConfig(30, 10)
+                null, null, null, null, null, null, null, null, null, config, null, new ArcMemProperties.LlmCallConfig(30, 10)
         );
         gauge = new MemoryPressureGauge(eventPublisher, props);
     }

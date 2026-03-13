@@ -1,17 +1,4 @@
 package dev.arcmem.core.memory.attention;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
 import dev.arcmem.core.config.ArcMemProperties;
 import dev.arcmem.core.memory.event.MemoryUnitLifecycleEvent;
@@ -55,7 +42,9 @@ public class AttentionTracker {
 
     @EventListener
     public void onLifecycleEvent(MemoryUnitLifecycleEvent event) {
-        if (!config.enabled()) return;
+        if (!config.enabled()) {
+            return;
+        }
 
         var contextId = event.getContextId();
         var eventTime = event.getOccurredAt();
@@ -79,30 +68,22 @@ public class AttentionTracker {
 
     private record EventEntry(String unitId, EventCategory category) {}
 
-    private enum EventCategory { CONFLICT, REINFORCEMENT, GENERAL }
+    private enum EventCategory {CONFLICT, REINFORCEMENT, GENERAL}
 
     private List<EventEntry> extractEntries(MemoryUnitLifecycleEvent event) {
         return switch (event) {
-            case MemoryUnitLifecycleEvent.ConflictDetected e ->
-                    e.getConflictingUnitIds().stream()
-                            .map(id -> new EventEntry(id, EventCategory.CONFLICT))
-                            .toList();
-            case MemoryUnitLifecycleEvent.Reinforced e ->
-                    List.of(new EventEntry(e.getUnitId(), EventCategory.REINFORCEMENT));
-            case MemoryUnitLifecycleEvent.Promoted e ->
-                    List.of(new EventEntry(e.getUnitId(), EventCategory.GENERAL));
-            case MemoryUnitLifecycleEvent.ConflictResolved e ->
-                    List.of(new EventEntry(e.getExistingUnitId(), EventCategory.GENERAL));
-            case MemoryUnitLifecycleEvent.AuthorityChanged e ->
-                    List.of(new EventEntry(e.getUnitId(), EventCategory.GENERAL));
-            case MemoryUnitLifecycleEvent.TierChanged e ->
-                    List.of(new EventEntry(e.getUnitId(), EventCategory.GENERAL));
-            case MemoryUnitLifecycleEvent.Superseded e ->
-                    List.of(new EventEntry(e.getPredecessorId(), EventCategory.GENERAL));
-            case MemoryUnitLifecycleEvent.InvariantViolation e ->
-                    e.getUnitId() != null
-                            ? List.of(new EventEntry(e.getUnitId(), EventCategory.GENERAL))
-                            : List.of();
+            case MemoryUnitLifecycleEvent.ConflictDetected e -> e.getConflictingUnitIds().stream()
+                                                                 .map(id -> new EventEntry(id, EventCategory.CONFLICT))
+                                                                 .toList();
+            case MemoryUnitLifecycleEvent.Reinforced e -> List.of(new EventEntry(e.getUnitId(), EventCategory.REINFORCEMENT));
+            case MemoryUnitLifecycleEvent.Promoted e -> List.of(new EventEntry(e.getUnitId(), EventCategory.GENERAL));
+            case MemoryUnitLifecycleEvent.ConflictResolved e -> List.of(new EventEntry(e.getExistingUnitId(), EventCategory.GENERAL));
+            case MemoryUnitLifecycleEvent.AuthorityChanged e -> List.of(new EventEntry(e.getUnitId(), EventCategory.GENERAL));
+            case MemoryUnitLifecycleEvent.TierChanged e -> List.of(new EventEntry(e.getUnitId(), EventCategory.GENERAL));
+            case MemoryUnitLifecycleEvent.Superseded e -> List.of(new EventEntry(e.getPredecessorId(), EventCategory.GENERAL));
+            case MemoryUnitLifecycleEvent.InvariantViolation e -> e.getUnitId() != null
+                    ? List.of(new EventEntry(e.getUnitId(), EventCategory.GENERAL))
+                    : List.of();
             case MemoryUnitLifecycleEvent.Archived _, MemoryUnitLifecycleEvent.Evicted _,
                  MemoryUnitLifecycleEvent.PressureThresholdBreached _ -> List.of();
         };
@@ -135,16 +116,16 @@ public class AttentionTracker {
         var maxEvents = config.maxExpectedEventsPerWindow();
 
         checkThreshold(key, window, active, AttentionSignalType.PRESSURE_SPIKE,
-                window.pressureScore() >= config.pressureThreshold()
-                        && window.conflictCount() >= config.minConflictsForPressure(),
-                maxEvents);
+                       window.pressureScore() >= config.pressureThreshold()
+                       && window.conflictCount() >= config.minConflictsForPressure(),
+                       maxEvents);
 
         checkThreshold(key, window, active, AttentionSignalType.HEAT_PEAK,
-                window.heatScore(maxEvents) >= config.heatPeakThreshold(),
-                maxEvents);
+                       window.heatScore(maxEvents) >= config.heatPeakThreshold(),
+                       maxEvents);
 
         var heatDropCondition = active.contains(AttentionSignalType.HEAT_PEAK)
-                && window.heatScore(maxEvents) < config.heatDropThreshold();
+                                && window.heatScore(maxEvents) < config.heatDropThreshold();
         if (heatDropCondition && !active.contains(AttentionSignalType.HEAT_DROP)) {
             active.add(AttentionSignalType.HEAT_DROP);
             publishSignal(key.unitId(), key.contextId(), AttentionSignalType.HEAT_DROP, window, maxEvents);
@@ -155,7 +136,7 @@ public class AttentionTracker {
     }
 
     private void checkThreshold(AttentionKey key, AttentionWindow window, EnumSet<AttentionSignalType> active,
-                                 AttentionSignalType type, boolean thresholdMet, int maxEvents) {
+                                AttentionSignalType type, boolean thresholdMet, int maxEvents) {
         if (thresholdMet && !active.contains(type)) {
             active.add(type);
             publishSignal(key.unitId(), key.contextId(), type, window, maxEvents);
@@ -165,7 +146,7 @@ public class AttentionTracker {
     }
 
     private void publishSignal(String unitId, String contextId, AttentionSignalType type,
-                                AttentionWindow window, int maxEvents) {
+                               AttentionWindow window, int maxEvents) {
         var snapshot = AttentionSnapshot.of(window, maxEvents);
         var signal = new AttentionSignal(this, unitId, contextId, type, snapshot);
         logger.info("[ATTENTION] {} for unit {} in context {}", type, unitId, contextId);
@@ -174,13 +155,13 @@ public class AttentionTracker {
 
     private void evaluateClusterDrift(String contextId) {
         var droppingWindows = windows.entrySet().stream()
-                .filter(e -> e.getKey().contextId().equals(contextId))
-                .filter(e -> {
-                    var signals = activeSignals.get(e.getKey());
-                    return signals != null && signals.contains(AttentionSignalType.HEAT_DROP);
-                })
-                .map(Map.Entry::getValue)
-                .toList();
+                                     .filter(e -> e.getKey().contextId().equals(contextId))
+                                     .filter(e -> {
+                                         var signals = activeSignals.get(e.getKey());
+                                         return signals != null && signals.contains(AttentionSignalType.HEAT_DROP);
+                                     })
+                                     .map(Map.Entry::getValue)
+                                     .toList();
 
         var clusterKey = new AttentionKey("__cluster__", contextId);
         if (droppingWindows.size() >= config.clusterDriftMinUnits()) {
@@ -213,28 +194,28 @@ public class AttentionTracker {
     public List<AttentionWindow> getHottestUnits(String contextId, int limit) {
         var maxEvents = config.maxExpectedEventsPerWindow();
         return windows.entrySet().stream()
-                .filter(e -> e.getKey().contextId().equals(contextId))
-                .map(Map.Entry::getValue)
-                .sorted(Comparator.comparingDouble((AttentionWindow w) -> w.heatScore(maxEvents)).reversed())
-                .limit(limit)
-                .toList();
+                      .filter(e -> e.getKey().contextId().equals(contextId))
+                      .map(Map.Entry::getValue)
+                      .sorted(Comparator.comparingDouble((AttentionWindow w) -> w.heatScore(maxEvents)).reversed())
+                      .limit(limit)
+                      .toList();
     }
 
     public List<AttentionWindow> getAllWindows(String contextId) {
         return windows.entrySet().stream()
-                .filter(e -> e.getKey().contextId().equals(contextId))
-                .map(Map.Entry::getValue)
-                .toList();
+                      .filter(e -> e.getKey().contextId().equals(contextId))
+                      .map(Map.Entry::getValue)
+                      .toList();
     }
 
     public Map<String, AttentionSnapshot> snapshot(String contextId) {
         var maxEvents = config.maxExpectedEventsPerWindow();
         return windows.entrySet().stream()
-                .filter(e -> e.getKey().contextId().equals(contextId))
-                .collect(Collectors.toMap(
-                        e -> e.getKey().unitId(),
-                        e -> AttentionSnapshot.of(e.getValue(), maxEvents)
-                ));
+                      .filter(e -> e.getKey().contextId().equals(contextId))
+                      .collect(Collectors.toMap(
+                              e -> e.getKey().unitId(),
+                              e -> AttentionSnapshot.of(e.getValue(), maxEvents)
+                      ));
     }
 
     public void cleanupContext(String contextId) {

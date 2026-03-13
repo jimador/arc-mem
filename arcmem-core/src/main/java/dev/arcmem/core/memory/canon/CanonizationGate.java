@@ -1,20 +1,9 @@
 package dev.arcmem.core.memory.canon;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
 import dev.arcmem.core.config.ArcMemProperties;
+import dev.arcmem.core.memory.conflict.AuthorityChangeDirection;
 import dev.arcmem.core.memory.event.MemoryUnitLifecycleEvent;
+import dev.arcmem.core.memory.model.Authority;
 import dev.arcmem.core.persistence.CanonizationRequestRepository;
 import dev.arcmem.core.persistence.MemoryUnitRepository;
 import org.slf4j.Logger;
@@ -87,19 +76,20 @@ public class CanonizationGate {
      * (idempotency). If auto-approve is enabled for simulation contexts, the request is
      * immediately approved.
      *
-     * @param unitId          the unit to canonize
-     * @param contextId         the context the unit belongs to
-     * @param unitText        snapshot of unit text at request time
-     * @param currentAuthority  the unit's current authority (pre-transition)
-     * @param reason            human-readable reason for the transition
-     * @param requestedBy       identifier of the requesting actor
+     * @param unitId           the unit to canonize
+     * @param contextId        the context the unit belongs to
+     * @param unitText         snapshot of unit text at request time
+     * @param currentAuthority the unit's current authority (pre-transition)
+     * @param reason           human-readable reason for the transition
+     * @param requestedBy      identifier of the requesting actor
+     *
      * @return the created (or existing) CanonizationRequest
      */
     public CanonizationRequest requestCanonization(String unitId, String contextId,
                                                    String unitText, Authority currentAuthority,
                                                    String reason, String requestedBy) {
         return createRequest(unitId, contextId, unitText, currentAuthority, Authority.CANON,
-                reason, requestedBy);
+                             reason, requestedBy);
     }
 
     /**
@@ -107,18 +97,19 @@ public class CanonizationGate {
      * <p>
      * If a pending request already exists for this unit, the existing request is returned.
      *
-     * @param unitId          the unit to decanonize
-     * @param contextId         the context the unit belongs to
-     * @param unitText        snapshot of unit text at request time
-     * @param reason            human-readable reason (e.g., DemotionReason name)
-     * @param requestedBy       identifier of the requesting actor
+     * @param unitId      the unit to decanonize
+     * @param contextId   the context the unit belongs to
+     * @param unitText    snapshot of unit text at request time
+     * @param reason      human-readable reason (e.g., DemotionReason name)
+     * @param requestedBy identifier of the requesting actor
+     *
      * @return the created (or existing) CanonizationRequest
      */
     public CanonizationRequest requestDecanonization(String unitId, String contextId,
                                                      String unitText, String reason,
                                                      String requestedBy) {
         return createRequest(unitId, contextId, unitText, Authority.CANON,
-                Authority.CANON.previousLevel(), reason, requestedBy);
+                             Authority.CANON.previousLevel(), reason, requestedBy);
     }
 
     /**
@@ -128,7 +119,8 @@ public class CanonizationGate {
      * {@link CanonizationRequest#currentAuthority()}, the request is marked STALE and
      * the transition is not applied.
      *
-     * @param requestId  the ID of the request to approve
+     * @param requestId the ID of the request to approve
+     *
      * @return the updated request, or empty if not found
      */
     public Optional<CanonizationRequest> approve(String requestId) {
@@ -141,6 +133,7 @@ public class CanonizationGate {
      * @param requestId  the ID of the request to approve
      * @param resolvedBy identifier of the resolving actor (nullable)
      * @param note       optional resolution note (nullable)
+     *
      * @return the updated request, or empty if not found
      */
     public Optional<CanonizationRequest> approve(String requestId, String resolvedBy, String note) {
@@ -167,7 +160,7 @@ public class CanonizationGate {
                 ? Authority.valueOf(currentAuthStr) : Authority.PROVISIONAL;
         if (currentAuth != request.currentAuthority()) {
             logger.warn("Stale canonization request {}: expected {} but found {}",
-                    requestId, request.currentAuthority(), currentAuth);
+                        requestId, request.currentAuthority(), currentAuth);
             canonizationRequestRepository.resolveCanonizationRequest(requestId, CanonizationStatus.STALE.name(), resolvedBy, note);
             return Optional.of(withStatus(request, CanonizationStatus.STALE, resolvedBy, note));
         }
@@ -187,7 +180,7 @@ public class CanonizationGate {
         canonizationRequestRepository.resolveCanonizationRequest(requestId, CanonizationStatus.APPROVED.name(), resolvedBy, note);
         var approved = withStatus(request, CanonizationStatus.APPROVED, resolvedBy, note);
         logger.info("Canonization request {} approved: unit {} {} -> {}",
-                requestId, request.unitId(), request.currentAuthority(), request.requestedAuthority());
+                    requestId, request.unitId(), request.currentAuthority(), request.requestedAuthority());
         return Optional.of(approved);
     }
 
@@ -195,6 +188,7 @@ public class CanonizationGate {
      * Reject a pending canonization request. The unit's authority is unchanged.
      *
      * @param requestId the ID of the request to reject
+     *
      * @return the updated request, or empty if not found
      */
     public Optional<CanonizationRequest> reject(String requestId) {
@@ -207,6 +201,7 @@ public class CanonizationGate {
      * @param requestId  the ID of the request to reject
      * @param resolvedBy identifier of the resolving actor (nullable)
      * @param note       optional resolution note (nullable)
+     *
      * @return the updated request, or empty if not found
      */
     public Optional<CanonizationRequest> reject(String requestId, String resolvedBy, String note) {
@@ -240,8 +235,8 @@ public class CanonizationGate {
      */
     public List<CanonizationRequest> pendingRequests(String contextId) {
         return canonizationRequestRepository.findPendingCanonizationRequests(contextId).stream()
-                .map(this::toCanonizationRequest)
-                .toList();
+                                            .map(this::toCanonizationRequest)
+                                            .toList();
     }
 
     /**
@@ -263,13 +258,13 @@ public class CanonizationGate {
         if (existingOpt.isPresent()) {
             var existing = toCanonizationRequest(existingOpt.get());
             logger.debug("Returning existing pending canonization request {} for unit {}",
-                    existing.id(), unitId);
+                         existing.id(), unitId);
             return existing;
         }
 
         var id = UUID.randomUUID().toString();
         canonizationRequestRepository.createCanonizationRequest(id, unitId, contextId, unitText,
-                currentAuthority.name(), requestedAuthority.name(), reason, requestedBy);
+                                                                currentAuthority.name(), requestedAuthority.name(), reason, requestedBy);
 
         var request = new CanonizationRequest(
                 id, unitId, contextId, unitText,
@@ -280,7 +275,7 @@ public class CanonizationGate {
                 null, null, null
         );
         logger.info("Canonization request {} created: unit {} {} -> {} (requestedBy={})",
-                request.id(), unitId, currentAuthority, requestedAuthority, requestedBy);
+                    request.id(), unitId, currentAuthority, requestedAuthority, requestedBy);
 
         // Auto-approve promotions only. Decanonization always requires HITL — CANON is world-defining (A3b).
         if (config.autoApprovePromotions() && requestedAuthority == Authority.CANON) {
@@ -297,8 +292,8 @@ public class CanonizationGate {
 
     private List<CanonizationRequest> findAllPendingRequests() {
         return canonizationRequestRepository.findAllPendingCanonizationRequests().stream()
-                .map(this::toCanonizationRequest)
-                .toList();
+                                            .map(this::toCanonizationRequest)
+                                            .toList();
     }
 
     private CanonizationRequest toCanonizationRequest(Map<String, Object> row) {
@@ -319,8 +314,8 @@ public class CanonizationGate {
         var resolvedBy = (String) row.get("resolvedBy");
         var resolutionNote = (String) row.get("resolutionNote");
         return new CanonizationRequest(id, unitId, ctxId, unitText,
-                currentAuth, requestedAuth, reason, requestedBy,
-                createdAt, status, resolvedAt, resolvedBy, resolutionNote);
+                                       currentAuth, requestedAuth, reason, requestedBy,
+                                       createdAt, status, resolvedAt, resolvedBy, resolutionNote);
     }
 
     private static Instant parseInstant(String text) {
@@ -333,10 +328,10 @@ public class CanonizationGate {
     }
 
     private static CanonizationRequest withStatus(CanonizationRequest r, CanonizationStatus newStatus,
-                                                   String resolvedBy, String note) {
+                                                  String resolvedBy, String note) {
         return new CanonizationRequest(r.id(), r.unitId(), r.contextId(), r.unitText(),
-                r.currentAuthority(), r.requestedAuthority(), r.reason(), r.requestedBy(),
-                r.createdAt(), newStatus,
-                Instant.now(), resolvedBy, note);
+                                       r.currentAuthority(), r.requestedAuthority(), r.reason(), r.requestedBy(),
+                                       r.createdAt(), newStatus,
+                                       Instant.now(), resolvedBy, note);
     }
 }
