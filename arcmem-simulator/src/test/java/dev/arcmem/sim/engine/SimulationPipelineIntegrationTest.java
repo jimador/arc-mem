@@ -19,6 +19,7 @@ import dev.arcmem.simulator.history.*;
 import dev.arcmem.simulator.scenario.*;
 
 import dev.arcmem.core.config.ArcMemProperties;
+import dev.arcmem.core.persistence.MemoryUnitRepository;
 import dev.arcmem.simulator.config.ArcMemSimulatorProperties;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -46,8 +47,8 @@ import static org.mockito.Mockito.when;
 class SimulationPipelineIntegrationTest {
 
     @Mock private ChatModelHolder chatModel;
-    @Mock private dev.arcmem.core.memory.engine.ArcMemEngine arcMemEngine;
-    @Mock private dev.arcmem.core.persistence.MemoryUnitRepository contextUnitRepository;
+    @Mock private ArcMemEngine arcMemEngine;
+    @Mock private MemoryUnitRepository contextUnitRepository;
     @Mock private SimulationExtractionService extractionService;
     @Mock private ComplianceEnforcer complianceEnforcer;
     @Mock private MemoryPressureGauge pressureGauge;
@@ -65,8 +66,8 @@ class SimulationPipelineIntegrationTest {
                                     true, true, true, 0.6, 400, 200, null, null, null, null, null),
                             null, null, null,
                             new ArcMemProperties.AssemblyConfig(0, false,
-                                    dev.arcmem.core.assembly.compliance.EnforcementStrategy.PROMPT_ONLY),
-                            null, null, null, null, null, null, null,
+                                    EnforcementStrategy.PROMPT_ONLY),
+                            null, null, null, null, null, null,
                             new ArcMemProperties.LlmCallConfig(30, 10)));
             this.fixedSummary = fixedSummary;
         }
@@ -89,8 +90,8 @@ class SimulationPipelineIntegrationTest {
                         true, true, true, 0.6, 400, 200, null, null, null, null, null),
                 null, null, null,
                 new ArcMemProperties.AssemblyConfig(0, false,
-                        dev.arcmem.core.assembly.compliance.EnforcementStrategy.PROMPT_ONLY),
-                null, null, null, null, null, null, null,
+                        EnforcementStrategy.PROMPT_ONLY),
+                null, null, null, null, null, null,
                 new ArcMemProperties.LlmCallConfig(30, 10));
         var simulatorProperties = new ArcMemSimulatorProperties(null,
                 new ArcMemSimulatorProperties.SimConfig("gpt-4.1-mini", 30, true, 4), null);
@@ -100,7 +101,7 @@ class SimulationPipelineIntegrationTest {
         return new SimulationTurnExecutor(
                 chatModel, arcMemEngine, contextUnitRepository, properties, simulatorProperties,
                 CompliancePolicy.flat(), text -> Math.max(1, text.length() / 4),
-                null, null, turnServices);
+                null, turnServices);
     }
 
     private SimulationTurnExecutor buildExecutor() {

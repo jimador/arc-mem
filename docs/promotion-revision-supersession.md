@@ -83,31 +83,57 @@ Conflict typing:
 - `CONTRADICTION`: assert opposite
 - `WORLD_PROGRESSION`: state changed over narrative time
 
-`RevisionAwareConflictResolver` applies authority-aware policy:
+`RevisionAwareConflictResolver` applies source-aware and authority-aware policy:
 
 ```text
-if revision disabled -> delegate to AuthorityConflictResolver
-if WORLD_PROGRESSION -> COEXIST
-if CONTRADICTION     -> delegate
+if revision disabled        -> delegate to AuthorityConflictResolver
+if mutation strategy denies  -> delegate (e.g., HITL-only mode)
+if WORLD_PROGRESSION        -> COEXIST
+if CONTRADICTION or null    -> delegate
 if REVISION:
-  CANON       -> KEEP_EXISTING
-  PROVISIONAL -> REPLACE
-  UNRELIABLE  -> REPLACE when confidence >= revision threshold
-  RELIABLE    -> REPLACE only if reliable-revisable is enabled and threshold passes
+  1. check source relation (ResolutionContext):
+     SAME_SOURCE       -> REPLACE (self-revision)
+     INCOMING_OUTRANKS -> REPLACE (higher authority override)
+     EXISTING_OUTRANKS -> delegate (lower can't revise higher)
+     UNKNOWN           -> fall through to authority-based logic
+  2. authority-based fallback (UNKNOWN source):
+     CANON       -> KEEP_EXISTING
+     PROVISIONAL -> REPLACE
+     UNRELIABLE  -> REPLACE when confidence >= revision threshold
+     RELIABLE    -> REPLACE only if reliable-revisable is enabled and threshold passes
 ```
 
 ```mermaid
 flowchart TD
-    R["ConflictType=REVISION"] --> A{"Authority"}
+    R["ConflictType=REVISION"] --> MS{"MutationStrategy allows?"}
+    MS -->|no| D["delegate to AuthorityConflictResolver"]
+    MS -->|yes| SR{"SourceRelation?"}
+    SR -->|SAME_SOURCE| P["REPLACE"]
+    SR -->|INCOMING_OUTRANKS| P
+    SR -->|EXISTING_OUTRANKS| D
+    SR -->|UNKNOWN| A{"Authority"}
     A -->|CANON| K["KEEP_EXISTING"]
-    A -->|PROVISIONAL| P["REPLACE"]
+    A -->|PROVISIONAL| P
     A -->|UNRELIABLE| U{"confidence >= revisionThreshold?"}
     U -->|yes| P
-    U -->|no| D["delegate to AuthorityConflictResolver"]
+    U -->|no| D
     A -->|RELIABLE| RL{"reliableRevisable && threshold pass?"}
     RL -->|yes| P
     RL -->|no| D
 ```
+
+### Source ownership
+
+Each `MemoryUnit` carries an optional `sourceId` identifying who established the fact. `SemanticUnitPromoter` reads the incoming proposition's `sourceIds[0]` from `PropositionNode` and compares it against the existing unit's `sourceId` via a caller-provided `SourceAuthorityResolver`. The result is a `ResolutionContext` with one of four `SourceAuthorityRelation` values:
+
+| Relation | Meaning | Revision behavior |
+|---|---|---|
+| `SAME_SOURCE` | Same entity that established the fact | Permissive: REPLACE |
+| `INCOMING_OUTRANKS` | Incoming source has higher authority | REPLACE |
+| `EXISTING_OUTRANKS` | Existing source has higher authority | Delegate to authority resolver |
+| `UNKNOWN` | Source info unavailable | Fall through to authority-based logic |
+
+Core defines `SourceAuthorityResolver` as a `@FunctionalInterface`. The simulator provides a concrete implementation (DM outranks player). Core never references domain-specific roles.
 
 ## 4) MemoryUnitMutationStrategy gate
 

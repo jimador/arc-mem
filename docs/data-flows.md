@@ -56,7 +56,8 @@ sequenceDiagram
             CA->>CD: detect(text, existingUnits)
             alt conflict detected
                 CD-->>CA: List<Conflict>
-                CA->>AE: resolveConflict(conflict)
+                Note over CA,AE: Build ResolutionContext from sourceIds + SourceAuthorityResolver
+                CA->>AE: resolveConflict(conflict, resolutionContext)
                 Note over AE: KEEP_EXISTING / REPLACE / COEXIST / DEMOTE_EXISTING
             end
             CA->>UP: promote candidate
@@ -150,8 +151,9 @@ sequenceDiagram
     UP->>CD: detect("Baron Krell has four arms", existingUnits)
     CD-->>UP: Conflict(existing=two-arms, confidence=0.88, type=SEMANTIC)
 
-    UP->>CR: resolve(conflict)
-    Note over CR: existing.authority = PROVISIONAL<br/>incoming.confidence = 0.9 > 0.8
+    Note over UP: Build ResolutionContext from sourceIds
+    UP->>CR: resolve(conflict, resolutionContext)
+    Note over CR: existing.authority = PROVISIONAL<br/>incoming.confidence = 0.9 > 0.8<br/>sourceRelation = UNKNOWN (fallback to authority logic)
     CR-->>UP: Resolution.REPLACE
 
     UP->>AE: supersede(predecessorId="two-arms", successorId="four-arms", reason=CONFLICT_REPLACEMENT)

@@ -5,7 +5,7 @@
 {% endif %}
 === {{ tier.authority }} FACTS ({{ compliance_language }}) ===
 {% for unit in tier.units %}
-{{ loop.index }}. {{ unit.text }} (activation score: {{ unit.rank }})
+{{ loop.index }}. {{ unit.text }} (activation score: {{ unit.rank }}){% if unit.source is defined %} [source: {{ unit.source }}]{% endif %}
 {% endfor %}
 
 {% endfor %}

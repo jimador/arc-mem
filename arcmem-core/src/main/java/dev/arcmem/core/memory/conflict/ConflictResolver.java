@@ -1,17 +1,6 @@
 package dev.arcmem.core.memory.conflict;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
+
+import dev.arcmem.core.memory.model.Authority;
 
 /**
  * Strategy interface for resolving conflicts between existing units and incoming propositions.
@@ -68,9 +57,18 @@ public interface ConflictResolver {
      * </ul>
      *
      * @param conflict the detected conflict; never null
+     *
      * @return the resolution decision; never null
      */
     Resolution resolve(ConflictDetector.Conflict conflict);
+
+    /**
+     * Resolve a conflict with source-ownership context.
+     * Default delegates to {@link #resolve(ConflictDetector.Conflict)} for backward compatibility.
+     */
+    default Resolution resolve(ConflictDetector.Conflict conflict, ResolutionContext context) {
+        return resolve(conflict);
+    }
 
     /**
      * Resolves by authority level: defends RELIABLE/CANON units unconditionally;

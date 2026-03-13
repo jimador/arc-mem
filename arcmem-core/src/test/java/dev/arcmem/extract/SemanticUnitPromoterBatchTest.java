@@ -65,9 +65,9 @@ class SemanticUnitPromoterBatchTest {
                 20, INITIAL_RANK, 100, 900, true, THRESHOLD, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null, null);
         var properties = new ArcMemProperties(
                 unitConfig, null, null, null,
-                new ArcMemProperties.AssemblyConfig(0, false, dev.arcmem.core.assembly.compliance.EnforcementStrategy.PROMPT_ONLY), null, null, null, null, null, null, null, new ArcMemProperties.LlmCallConfig(30, BATCH_MAX_SIZE));
+                new ArcMemProperties.AssemblyConfig(0, false, EnforcementStrategy.PROMPT_ONLY), null, null, null, null, null, null, new ArcMemProperties.LlmCallConfig(30, BATCH_MAX_SIZE));
         promoter = new SemanticUnitPromoter(engine, properties, trustPipeline, repository, duplicateDetector,
-                Optional.empty());
+                Optional.empty(), Optional.empty());
     }
 
     private SemanticUnit activeUnit(String id, String text, double confidence) {

@@ -58,7 +58,7 @@ flowchart LR
 
 ## Package map
 
-- `memory/`: activation score/authority lifecycle, conflict resolution, decay, trust re-eval, maintenance strategies (reactive/proactive/hybrid), memory pressure gauge, conflict index, budget strategies, Prolog integration
+- `memory/`: activation score/authority lifecycle, conflict resolution (including source-aware revision via `ResolutionContext`/`SourceAuthorityResolver`), decay, trust re-eval, maintenance strategies (reactive/proactive/hybrid), memory pressure gauge, conflict index, budget strategies
 - `assembly/`: context assembly, lock, relevance scoring, compaction/token budget, compliance enforcement
 - `extraction/`: proposition-to-memory-unit gate pipeline
 - `chat/`: Embabel action/tool integration + chat UI
@@ -83,7 +83,8 @@ record MemoryUnit(
     @Nullable TrustScore trustScore,
     double diceImportance,
     double diceDecay,
-    MemoryTier memoryTier      // COLD/WARM/HOT
+    MemoryTier memoryTier,     // COLD/WARM/HOT
+    @Nullable String sourceId  // who established this fact (null = unknown)
 )
 ```
 
@@ -125,7 +126,7 @@ Strict invariants:
 - `promote(propositionId, initialRank, authorityCeiling?)`: promote then enforce budget
 - `reinforce(unitId)`: increment reinforcement, apply activation score bump, maybe authority upgrade
 - `detectConflicts(contextId, text)`: delegate to configured detector
-- `resolveConflict(conflict)`: delegate to configured resolver
+- `resolveConflict(conflict, context)`: delegate to configured resolver with source-aware `ResolutionContext`
 - `supersede(predecessorId, successorId, reason)`: archive + lineage link
 
 ### Budget enforcement
@@ -159,8 +160,6 @@ Strategy is selectable globally via `ArcMemProperties` and per-scenario via YAML
 Implementations:
 - `PromptInjectionEnforcer` — current behavior, always ACCEPT (default)
 - `PostGenerationValidator` — LLM validates response against CANON/RELIABLE memory units after generation
-- `PrologInvariantEnforcer` — deterministic rule-based checking via DICE tuProlog
-
 Authority-based strictness: CANON enforced by default; lower authorities configurable.
 
 ## Conflict handling
@@ -170,7 +169,6 @@ Available detector strategies:
 - `lexical`: negation marker + token overlap heuristic
 - `composite`: multi-detector chaining
 - `indexed`: O(1) lookup via precomputed `ConflictIndex` (Neo4j `CONFLICTS_WITH` relationships)
-- `logical`: Prolog backward chaining via DICE tuProlog (deterministic, no LLM calls)
 
 Resolver default (authority-biased):
 
@@ -179,6 +177,19 @@ if existing.authority >= RELIABLE -> KEEP_EXISTING
 else if incoming.confidence > 0.8 -> REPLACE
 else                              -> COEXIST
 ```
+
+### Source-aware conflict resolution
+
+`RevisionAwareConflictResolver` accepts a `ResolutionContext` carrying source ownership information. When a `SourceAuthorityResolver` is configured, the resolver compares the incoming source against the existing unit's `sourceId`:
+
+| Source Relation | Resolution |
+|---|---|
+| `SAME_SOURCE` | `REPLACE` (self-revision) |
+| `INCOMING_OUTRANKS` | `REPLACE` (higher authority override) |
+| `EXISTING_OUTRANKS` | delegate to `AuthorityConflictResolver` |
+| `UNKNOWN` | fall through to authority-based logic |
+
+Core defines `SourceAuthorityResolver` as a `@FunctionalInterface` — callers (e.g., the simulator) provide the domain-specific authority hierarchy. Core never knows about players, DMs, or other domain roles.
 
 Conflict outcomes:
 - `KEEP_EXISTING`
@@ -202,9 +213,9 @@ Profile thresholds:
 
 | Profile | Auto Promote | Review | Archive |
 |---|---:|---:|---:|
-| `BALANCED` | `>= 0.70` | `>= 0.40` | `< 0.40` |
-| `SECURE` | `>= 0.85` | `>= 0.50` | `< 0.50` |
-| `NARRATIVE` | `>= 0.60` | `>= 0.35` | `< 0.35` |
+| `BALANCED` | `>= 0.65` | `>= 0.40` | `< 0.25` |
+| `SECURE` | `>= 0.85` | `>= 0.50` | `< 0.30` |
+| `NARRATIVE` | `>= 0.60` | `>= 0.35` | `< 0.20` |
 
 ## Prompt assembly and compaction
 
@@ -231,11 +242,13 @@ Current limitation: validator is detect-only, no automatic retry/recovery.
 
 `RevisionAwareConflictResolver` treats `REVISION` separately from `CONTRADICTION` and `WORLD_PROGRESSION`.
 
-High-level policy:
+High-level policy (applied after source-aware resolution for `UNKNOWN` source relation):
 - `CANON`: immutable
 - `RELIABLE`: configurable revisability
 - `UNRELIABLE`: revisable above confidence threshold
 - `PROVISIONAL`: revisable
+
+When source ownership is known, source relation takes precedence over authority-based policy (see "Source-aware conflict resolution" above).
 
 `REPLACE` typically leads to:
 

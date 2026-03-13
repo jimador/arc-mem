@@ -1,18 +1,6 @@
 package dev.arcmem.core.memory.model;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
+import dev.arcmem.core.memory.trust.TrustScore;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -97,7 +85,8 @@ public record MemoryUnit(
         @Nullable TrustScore trustScore,
         double diceImportance,
         double diceDecay,
-        MemoryTier memoryTier
+        MemoryTier memoryTier,
+        @Nullable String sourceId
 ) {
     public static final int MIN_RANK = 100;
     public static final int MAX_RANK = 900;
@@ -117,8 +106,8 @@ public record MemoryUnit(
      * in trust evaluation, DICE field population, or tier management.
      */
     public static MemoryUnit withoutTrust(String id, String text, int rank, Authority authority,
-                                      boolean pinned, double confidence, int reinforcementCount) {
+                                          boolean pinned, double confidence, int reinforcementCount) {
         return new MemoryUnit(id, text, rank, authority, pinned, confidence, reinforcementCount,
-                null, 0.0, 1.0, MemoryTier.WARM);
+                              null, 0.0, 1.0, MemoryTier.WARM, null);
     }
 }

@@ -43,34 +43,34 @@ class ArcMemLlmReferenceRetrievalTest {
         var units = new ArrayList<MemoryUnit>();
         // 2 CANON units
         units.add(new MemoryUnit("canon1", "Canon fact one", 800, Authority.CANON, true, 0.9, 10,
-                null, 0.0, 1.0, MemoryTier.HOT));
+                null, 0.0, 1.0, MemoryTier.HOT, null));
         units.add(new MemoryUnit("canon2", "Canon fact two", 850, Authority.CANON, true, 0.95, 12,
-                null, 0.0, 1.0, MemoryTier.HOT));
+                null, 0.0, 1.0, MemoryTier.HOT, null));
         // 13 non-CANON units with varying authority/tier/confidence
         units.add(new MemoryUnit("rel1", "Reliable hot fact", 700, Authority.RELIABLE, false, 0.85, 7,
-                null, 0.0, 1.0, MemoryTier.HOT));
+                null, 0.0, 1.0, MemoryTier.HOT, null));
         units.add(new MemoryUnit("rel2", "Reliable warm fact", 600, Authority.RELIABLE, false, 0.75, 5,
-                null, 0.0, 1.0, MemoryTier.WARM));
+                null, 0.0, 1.0, MemoryTier.WARM, null));
         units.add(new MemoryUnit("rel3", "Reliable cold fact", 400, Authority.RELIABLE, false, 0.65, 3,
-                null, 0.0, 1.0, MemoryTier.COLD));
+                null, 0.0, 1.0, MemoryTier.COLD, null));
         units.add(new MemoryUnit("unr1", "Unreliable hot fact", 500, Authority.UNRELIABLE, false, 0.7, 2,
-                null, 0.0, 1.0, MemoryTier.HOT));
+                null, 0.0, 1.0, MemoryTier.HOT, null));
         units.add(new MemoryUnit("unr2", "Unreliable warm fact", 400, Authority.UNRELIABLE, false, 0.6, 1,
-                null, 0.0, 1.0, MemoryTier.WARM));
+                null, 0.0, 1.0, MemoryTier.WARM, null));
         units.add(new MemoryUnit("unr3", "Unreliable cold fact", 300, Authority.UNRELIABLE, false, 0.5, 0,
-                null, 0.0, 1.0, MemoryTier.COLD));
+                null, 0.0, 1.0, MemoryTier.COLD, null));
         units.add(new MemoryUnit("prov1", "Provisional hot fact", 400, Authority.PROVISIONAL, false, 0.6, 0,
-                null, 0.0, 1.0, MemoryTier.HOT));
+                null, 0.0, 1.0, MemoryTier.HOT, null));
         units.add(new MemoryUnit("prov2", "Provisional warm fact", 350, Authority.PROVISIONAL, false, 0.5, 0,
-                null, 0.0, 1.0, MemoryTier.WARM));
+                null, 0.0, 1.0, MemoryTier.WARM, null));
         units.add(new MemoryUnit("prov3", "Provisional cold fact", 200, Authority.PROVISIONAL, false, 0.4, 0,
-                null, 0.0, 1.0, MemoryTier.COLD));
+                null, 0.0, 1.0, MemoryTier.COLD, null));
         units.add(new MemoryUnit("prov4", "Provisional cold low", 150, Authority.PROVISIONAL, false, 0.3, 0,
-                null, 0.0, 1.0, MemoryTier.COLD));
+                null, 0.0, 1.0, MemoryTier.COLD, null));
         units.add(new MemoryUnit("prov5", "Provisional cold lowest", 120, Authority.PROVISIONAL, false, 0.25, 0,
-                null, 0.0, 1.0, MemoryTier.COLD));
+                null, 0.0, 1.0, MemoryTier.COLD, null));
         units.add(new MemoryUnit("prov6", "Provisional cold extra", 110, Authority.PROVISIONAL, false, 0.2, 0,
-                null, 0.0, 1.0, MemoryTier.COLD));
+                null, 0.0, 1.0, MemoryTier.COLD, null));
         return units;
     }
 

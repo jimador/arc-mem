@@ -84,6 +84,7 @@ public class SimulationService {
     private final InvariantRuleProvider invariantRuleProvider;
 
     private final BudgetStrategyFactory budgetStrategyFactory;
+    private final TrustPipeline trustPipeline;
 
     private final Set<SimulationRunContext> activeContexts = ConcurrentHashMap.newKeySet();
     private volatile SimulationRunContext lastRunContext;
@@ -101,7 +102,8 @@ public class SimulationService {
             ScoringService scoringService,
             CanonizationGate canonizationGate,
             InvariantRuleProvider invariantRuleProvider,
-            BudgetStrategyFactory budgetStrategyFactory) {
+            BudgetStrategyFactory budgetStrategyFactory,
+            TrustPipeline trustPipeline) {
         this.turnExecutor = turnExecutor;
         this.arcMemEngine = arcMemEngine;
         this.contextUnitRepository = contextUnitRepository;
@@ -115,6 +117,7 @@ public class SimulationService {
         this.canonizationGate = canonizationGate;
         this.invariantRuleProvider = invariantRuleProvider;
         this.budgetStrategyFactory = budgetStrategyFactory;
+        this.trustPipeline = trustPipeline;
     }
 
     /**
@@ -157,9 +160,12 @@ public class SimulationService {
         this.lastRunContext = ctx;
         var startedAt = Instant.now();
         var enforcementStrategy = scenario.effectiveEnforcementStrategy();
-        var scenarioBudgetStrategyType = scenario.effectiveBudgetStrategy();
+        var scenarioBudgetStrategyType = BudgetStrategyType.COUNT;
         logger.info("compliance.strategy={} budget.strategy={} scenario={} contextId={}",
                 enforcementStrategy, scenarioBudgetStrategyType, scenario.id(), contextId);
+
+        var previousProfile = trustPipeline.getActiveProfile();
+        trustPipeline.withProfile(DomainProfile.NARRATIVE);
 
         try {
             var scenarioBudgetStrategy = budgetStrategyFactory.create(scenarioBudgetStrategyType);
@@ -425,6 +431,7 @@ public class SimulationService {
                     SimulationProgress.SimulationPhase.COMPLETE, null, 0, maxTurns,
                     "Simulation failed: " + e.getMessage(), List.of(), false, null));
         } finally {
+            trustPipeline.withProfile(previousProfile);
             ctx.complete();
             activeContexts.remove(ctx);
             try {

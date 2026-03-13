@@ -661,9 +661,9 @@ class TrustModelTest {
         }
 
         @Test
-        @DisplayName("byName returns BALANCED for unregistered profile name")
-        void byName_narrative_returnsBalancedFallback() {
-            assertThat(DomainProfile.byName("NARRATIVE")).isSameAs(DomainProfile.BALANCED);
+        @DisplayName("byName resolves NARRATIVE profile")
+        void byName_narrative_returnsNarrativeProfile() {
+            assertThat(DomainProfile.byName("NARRATIVE")).isSameAs(DomainProfile.NARRATIVE);
         }
 
         @Test

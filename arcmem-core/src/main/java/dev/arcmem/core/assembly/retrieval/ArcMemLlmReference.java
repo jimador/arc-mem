@@ -1,20 +1,14 @@
 package dev.arcmem.core.assembly.retrieval;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
+import dev.arcmem.core.assembly.budget.BudgetResult;
+import dev.arcmem.core.assembly.budget.PromptBudgetEnforcer;
+import dev.arcmem.core.assembly.budget.TokenCounter;
+import dev.arcmem.core.assembly.compaction.MemoryUnitCacheInvalidator;
 import dev.arcmem.core.config.ArcMemProperties.RetrievalConfig;
-import dev.arcmem.core.persistence.TieredMemoryUnitRepository;
+import dev.arcmem.core.memory.canon.CompliancePolicy;
+import dev.arcmem.core.memory.engine.ArcMemEngine;
+import dev.arcmem.core.memory.model.Authority;
+import dev.arcmem.core.memory.model.MemoryUnit;
 import dev.arcmem.core.prompt.PromptPathConstants;
 import dev.arcmem.core.prompt.PromptTemplates;
 import io.opentelemetry.api.trace.Span;
@@ -23,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -60,65 +55,51 @@ public class ArcMemLlmReference {
     private final @Nullable RetrievalConfig retrievalConfig;
     private final @Nullable RelevanceScorer relevanceScorer;
     private final boolean adaptiveFootprintEnabled;
-    private final @Nullable TieredMemoryUnitRepository tieredRepository;
 
     private List<MemoryUnit> cachedUnits;
     private List<MemoryUnit> selectedUnits;
     private BudgetResult lastBudgetResult;
 
     public ArcMemLlmReference(ArcMemEngine engine, String contextId, int budget,
-                               CompliancePolicy compliancePolicy) {
-        this(engine, contextId, budget, compliancePolicy, 0, null, null, null, null, false, null);
+                              CompliancePolicy compliancePolicy) {
+        this(engine, contextId, budget, compliancePolicy, 0, null, null, null, null, false);
     }
 
     public ArcMemLlmReference(ArcMemEngine engine, String contextId, int budget,
-                               CompliancePolicy compliancePolicy,
-                               int tokenBudget,
-                               TokenCounter tokenCounter) {
-        this(engine, contextId, budget, compliancePolicy, tokenBudget, tokenCounter, null, null, null, false, null);
+                              CompliancePolicy compliancePolicy,
+                              int tokenBudget,
+                              TokenCounter tokenCounter) {
+        this(engine, contextId, budget, compliancePolicy, tokenBudget, tokenCounter, null, null, null, false);
     }
 
     public ArcMemLlmReference(ArcMemEngine engine, String contextId, int budget,
-                               CompliancePolicy compliancePolicy,
-                               int tokenBudget,
-                               TokenCounter tokenCounter,
-                               MemoryUnitCacheInvalidator cacheInvalidator) {
+                              CompliancePolicy compliancePolicy,
+                              int tokenBudget,
+                              TokenCounter tokenCounter,
+                              MemoryUnitCacheInvalidator cacheInvalidator) {
         this(engine, contextId, budget, compliancePolicy, tokenBudget, tokenCounter,
-                cacheInvalidator, null, null, false, null);
+             cacheInvalidator, null, null, false);
     }
 
     public ArcMemLlmReference(ArcMemEngine engine, String contextId, int budget,
-                               CompliancePolicy compliancePolicy,
-                               int tokenBudget,
-                               TokenCounter tokenCounter,
-                               @Nullable MemoryUnitCacheInvalidator cacheInvalidator,
-                               @Nullable RetrievalConfig retrievalConfig,
-                               @Nullable RelevanceScorer relevanceScorer) {
+                              CompliancePolicy compliancePolicy,
+                              int tokenBudget,
+                              TokenCounter tokenCounter,
+                              @Nullable MemoryUnitCacheInvalidator cacheInvalidator,
+                              @Nullable RetrievalConfig retrievalConfig,
+                              @Nullable RelevanceScorer relevanceScorer) {
         this(engine, contextId, budget, compliancePolicy, tokenBudget, tokenCounter,
-                cacheInvalidator, retrievalConfig, relevanceScorer, false, null);
+             cacheInvalidator, retrievalConfig, relevanceScorer, false);
     }
 
     public ArcMemLlmReference(ArcMemEngine engine, String contextId, int budget,
-                               CompliancePolicy compliancePolicy,
-                               int tokenBudget,
-                               TokenCounter tokenCounter,
-                               @Nullable MemoryUnitCacheInvalidator cacheInvalidator,
-                               @Nullable RetrievalConfig retrievalConfig,
-                               @Nullable RelevanceScorer relevanceScorer,
-                               boolean adaptiveFootprintEnabled) {
-        this(engine, contextId, budget, compliancePolicy, tokenBudget, tokenCounter,
-                cacheInvalidator, retrievalConfig, relevanceScorer, adaptiveFootprintEnabled, null);
-    }
-
-    public ArcMemLlmReference(ArcMemEngine engine, String contextId, int budget,
-                               CompliancePolicy compliancePolicy,
-                               int tokenBudget,
-                               TokenCounter tokenCounter,
-                               @Nullable MemoryUnitCacheInvalidator cacheInvalidator,
-                               @Nullable RetrievalConfig retrievalConfig,
-                               @Nullable RelevanceScorer relevanceScorer,
-                               boolean adaptiveFootprintEnabled,
-                               @Nullable TieredMemoryUnitRepository tieredRepository) {
+                              CompliancePolicy compliancePolicy,
+                              int tokenBudget,
+                              TokenCounter tokenCounter,
+                              @Nullable MemoryUnitCacheInvalidator cacheInvalidator,
+                              @Nullable RetrievalConfig retrievalConfig,
+                              @Nullable RelevanceScorer relevanceScorer,
+                              boolean adaptiveFootprintEnabled) {
         this.engine = engine;
         this.contextId = contextId;
         this.budget = budget;
@@ -130,7 +111,6 @@ public class ArcMemLlmReference {
         this.retrievalConfig = retrievalConfig;
         this.relevanceScorer = relevanceScorer;
         this.adaptiveFootprintEnabled = adaptiveFootprintEnabled;
-        this.tieredRepository = tieredRepository;
     }
 
     public String getContent() {
@@ -144,20 +124,26 @@ public class ArcMemLlmReference {
         }
 
         var grouped = selectedUnits.stream()
-                .collect(Collectors.groupingBy(MemoryUnit::authority));
+                                   .collect(Collectors.groupingBy(MemoryUnit::authority));
         var tiers = new java.util.ArrayList<Map<String, Object>>();
         for (var authority : List.of(Authority.CANON, Authority.RELIABLE,
-                Authority.UNRELIABLE, Authority.PROVISIONAL)) {
+                                     Authority.UNRELIABLE, Authority.PROVISIONAL)) {
             var group = grouped.getOrDefault(authority, List.of());
             if (group.isEmpty()) {
                 continue;
             }
             var unitMaps = group.stream()
-                                  .map(unit -> Map.<String, Object>of(
-                                          "id", unit.id(),
-                                          "text", unit.text(),
-                                          "rank", unit.rank()))
-                                  .toList();
+                                .map(unit -> {
+                                    var map = new HashMap<>(Map.<String, Object>of(
+                                            "id", unit.id(),
+                                            "text", unit.text(),
+                                            "rank", unit.rank()));
+                                    if (unit.sourceId() != null) {
+                                        map.put("source", unit.sourceId());
+                                    }
+                                    return map;
+                                })
+                                .toList();
             var strength = compliancePolicy.getStrengthFor(authority);
             tiers.add(Map.of(
                     "authority", authority.name(),
@@ -171,11 +157,11 @@ public class ArcMemLlmReference {
 
     private String getContentWithAdaptiveFootprint() {
         var grouped = selectedUnits.stream()
-                .collect(Collectors.groupingBy(MemoryUnit::authority));
+                                   .collect(Collectors.groupingBy(MemoryUnit::authority));
         var result = new StringBuilder();
 
         for (var authority : List.of(Authority.CANON, Authority.RELIABLE,
-                Authority.UNRELIABLE, Authority.PROVISIONAL)) {
+                                     Authority.UNRELIABLE, Authority.PROVISIONAL)) {
             var group = grouped.getOrDefault(authority, List.of());
             if (group.isEmpty()) {
                 continue;
@@ -189,7 +175,7 @@ public class ArcMemLlmReference {
             };
 
             result.append("=== ").append(authority.name()).append(" FACTS (")
-                    .append(complianceLanguage).append(") ===\n");
+                  .append(complianceLanguage).append(") ===\n");
 
             var index = 1;
             for (var unit : group) {
@@ -273,9 +259,7 @@ public class ArcMemLlmReference {
 
     private void loadBulkMode() {
         if (cachedUnits == null) {
-            cachedUnits = tieredRepository != null
-                    ? tieredRepository.findActiveUnitsForAssembly(contextId)
-                    : engine.inject(contextId);
+            cachedUnits = engine.inject(contextId);
         }
 
         var limited = cachedUnits.stream().limit(budget).toList();
@@ -307,9 +291,7 @@ public class ArcMemLlmReference {
 
     private void loadHybridMode() {
         if (cachedUnits == null) {
-            cachedUnits = tieredRepository != null
-                    ? tieredRepository.findActiveUnitsForAssembly(contextId)
-                    : engine.inject(contextId);
+            cachedUnits = engine.inject(contextId);
         }
 
         var allUnits = cachedUnits.stream().limit(budget).toList();
@@ -324,36 +306,36 @@ public class ArcMemLlmReference {
         var scored = relevanceScorer.scoreAndRank(allUnits, scoring);
 
         var canonUnits = allUnits.stream()
-                .filter(a -> a.authority() == Authority.CANON)
-                .toList();
+                                 .filter(a -> a.authority() == Authority.CANON)
+                                 .toList();
         var canonIds = canonUnits.stream().map(MemoryUnit::id).collect(Collectors.toSet());
 
         var minRelevance = retrievalConfig != null ? retrievalConfig.minRelevance() : 0.0;
         var topK = retrievalConfig != null ? retrievalConfig.baselineTopK() : 5;
 
         var topNonCanon = scored.stream()
-                .filter(sa -> !canonIds.contains(sa.id()))
-                .filter(sa -> sa.relevanceScore() >= minRelevance)
-                .limit(topK)
-                .toList();
+                                .filter(sa -> !canonIds.contains(sa.id()))
+                                .filter(sa -> sa.relevanceScore() >= minRelevance)
+                                .limit(topK)
+                                .toList();
 
         var selectedIds = topNonCanon.stream().map(ScoredMemoryUnit::id).collect(Collectors.toSet());
         var topUnits = allUnits.stream()
-                .filter(a -> selectedIds.contains(a.id()))
-                .toList();
+                               .filter(a -> selectedIds.contains(a.id()))
+                               .toList();
 
         var baseline = new ArrayList<>(canonUnits);
         baseline.addAll(topUnits);
 
         var filteredCount = (int) scored.stream()
-                .filter(sa -> !canonIds.contains(sa.id()))
-                .filter(sa -> sa.relevanceScore() < minRelevance)
-                .count();
+                                        .filter(sa -> !canonIds.contains(sa.id()))
+                                        .filter(sa -> sa.relevanceScore() < minRelevance)
+                                        .count();
         var avgScore = scored.isEmpty() ? 0.0
                 : scored.stream().mapToDouble(ScoredMemoryUnit::relevanceScore).average().orElse(0.0);
 
         logger.debug("HYBRID retrieval: {} total units, {} CANON always-included, {} non-CANON selected (top-k={}, minRelevance={})",
-                allUnits.size(), canonUnits.size(), topUnits.size(), topK, minRelevance);
+                     allUnits.size(), canonUnits.size(), topUnits.size(), topK, minRelevance);
 
         if (tokenBudget > 0 && tokenCounter != null) {
             lastBudgetResult = budgetEnforcer.enforce(baseline, tokenBudget, tokenCounter, compliancePolicy, adaptiveFootprintEnabled);

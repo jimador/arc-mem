@@ -1,19 +1,8 @@
 package dev.arcmem.core.memory.conflict;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
 import dev.arcmem.core.config.ArcMemProperties.TierModifierConfig;
+import dev.arcmem.core.memory.model.Authority;
+import dev.arcmem.core.memory.model.MemoryTier;
 import io.opentelemetry.api.trace.Span;
 
 /**
@@ -43,6 +32,11 @@ public class AuthorityConflictResolver implements ConflictResolver {
 
     public AuthorityConflictResolver() {
         this(0.8, 0.6, null);
+    }
+
+    @Override
+    public Resolution resolve(ConflictDetector.Conflict conflict, ResolutionContext context) {
+        return resolve(conflict);
     }
 
     @Override
@@ -91,10 +85,10 @@ public class AuthorityConflictResolver implements ConflictResolver {
     }
 
     private void setSpanAttributes(Authority existingAuthority, double confidence,
-                                    MemoryTier existingTier, Resolution resolution) {
+                                   MemoryTier existingTier, Resolution resolution) {
         var span = Span.current();
         span.setAttribute("conflict.existing_authority",
-                existingAuthority != null ? existingAuthority.name() : "DEGRADED");
+                          existingAuthority != null ? existingAuthority.name() : "DEGRADED");
         span.setAttribute("conflict.incoming_confidence_band", confidenceBand(confidence));
         span.setAttribute("conflict.existing_tier", existingTier != null ? existingTier.name() : "UNKNOWN");
         span.setAttribute("conflict.resolution", resolution.name());
@@ -115,8 +109,12 @@ public class AuthorityConflictResolver implements ConflictResolver {
      * Returns the confidence band label for OTEL observation key-value pairs.
      */
     public static String confidenceBand(double confidence) {
-        if (confidence < 0.4) return "LOW";
-        if (confidence <= 0.8) return "MEDIUM";
+        if (confidence < 0.4) {
+            return "LOW";
+        }
+        if (confidence <= 0.8) {
+            return "MEDIUM";
+        }
         return "HIGH";
     }
 }

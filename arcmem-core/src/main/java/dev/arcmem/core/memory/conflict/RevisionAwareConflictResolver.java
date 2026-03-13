@@ -1,18 +1,9 @@
 package dev.arcmem.core.memory.conflict;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
+import dev.arcmem.core.memory.mutation.MemoryUnitMutationStrategy;
+import dev.arcmem.core.memory.mutation.MutationDecision;
+import dev.arcmem.core.memory.mutation.MutationRequest;
+import dev.arcmem.core.memory.mutation.MutationSource;
 import io.opentelemetry.api.trace.Span;
 
 public class RevisionAwareConflictResolver implements ConflictResolver {
@@ -41,6 +32,11 @@ public class RevisionAwareConflictResolver implements ConflictResolver {
 
     @Override
     public Resolution resolve(ConflictDetector.Conflict conflict) {
+        return resolve(conflict, ResolutionContext.NONE);
+    }
+
+    @Override
+    public Resolution resolve(ConflictDetector.Conflict conflict, ResolutionContext context) {
         var conflictType = normalize(conflict.conflictType());
         setConflictTypeAttributes(conflictType, conflict.reason());
         if (!enabled) {
@@ -52,16 +48,30 @@ public class RevisionAwareConflictResolver implements ConflictResolver {
         if (conflictType == ConflictType.CONTRADICTION || conflict.existing() == null) {
             return delegateWithDecision(conflict, "delegated", "contradiction_path");
         }
-        return resolveRevision(conflict);
+        return resolveRevision(conflict, context);
     }
 
-    private Resolution resolveRevision(ConflictDetector.Conflict conflict) {
+    private Resolution resolveRevision(ConflictDetector.Conflict conflict, ResolutionContext context) {
         var probe = new MutationRequest(
                 conflict.existing().id(), conflict.incomingText(),
                 MutationSource.CONFLICT_RESOLVER, "conflict-resolver");
         if (mutationStrategy.evaluate(probe) instanceof MutationDecision.Deny) {
             return delegateWithDecision(conflict, "delegated", "mutation_strategy_denied");
         }
+
+        var sourceRelation = context.sourceRelation();
+        Span.current().setAttribute("conflict.source_relation", sourceRelation.name());
+
+        if (sourceRelation == ResolutionContext.SourceAuthorityRelation.SAME_SOURCE) {
+            return resolveDirectly(Resolution.REPLACE, "accepted", "same_source_revision");
+        }
+        if (sourceRelation == ResolutionContext.SourceAuthorityRelation.INCOMING_OUTRANKS) {
+            return resolveDirectly(Resolution.REPLACE, "accepted", "incoming_outranks_revision");
+        }
+        if (sourceRelation == ResolutionContext.SourceAuthorityRelation.EXISTING_OUTRANKS) {
+            return delegateWithDecision(conflict, "delegated", "existing_outranks_revision");
+        }
+
         var authority = conflict.existing().authority();
         var confidence = conflict.confidence();
         return switch (authority) {
