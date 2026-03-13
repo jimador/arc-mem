@@ -273,7 +273,7 @@ class ChatContextInitializerTest {
                 new ArcMemProperties.PersistenceConfig(false),
                 new ArcMemProperties.ConflictDetectionConfig(ConflictStrategy.LLM, "gpt-4o-nano"),
                 new ArcMemProperties.AssemblyConfig(0, false, EnforcementStrategy.PROMPT_ONLY),
-                null, null, null, null, null, null,
+                null, null, null, null, null, null, null,
                 new ArcMemProperties.LlmCallConfig(30, 10));
     }
 }

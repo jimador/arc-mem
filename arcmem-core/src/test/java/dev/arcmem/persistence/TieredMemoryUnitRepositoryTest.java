@@ -55,7 +55,7 @@ class TieredMemoryUnitRepositoryTest {
 
     private MemoryUnit unit(String id, int rank, MemoryTier tier) {
         return new MemoryUnit(id, "text-" + id, rank, Authority.RELIABLE, false, 0.9, 1,
-                null, 0.0, 1.0, tier);
+                null, 0.0, 1.0, tier, null);
     }
 
     @Nested

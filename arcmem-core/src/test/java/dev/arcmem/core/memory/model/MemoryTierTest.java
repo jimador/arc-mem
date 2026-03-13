@@ -94,7 +94,7 @@ class MemoryTierTest {
         @DisplayName("memory unit constructed with HOT tier has correct memoryTier")
         void unitConstructedWithHotTierHasCorrectMemoryTier() {
             var unit = new MemoryUnit("1", "test", 700, Authority.RELIABLE, false, 0.9, 0,
-                    null, 0.5, 1.0, MemoryTier.HOT);
+                    null, 0.5, 1.0, MemoryTier.HOT, null);
             assertThat(unit.memoryTier()).isEqualTo(MemoryTier.HOT);
         }
 
@@ -116,7 +116,7 @@ class MemoryTierTest {
         @DisplayName("HOT tier (multiplier 1.5) decays slower than WARM (1.0)")
         void hotTierDecaysSlowerThanWarm() {
             var unit = new MemoryUnit("1", "test", 500, Authority.RELIABLE, false, 0.9, 0,
-                    null, 0.0, 1.0, MemoryTier.HOT);
+                    null, 0.0, 1.0, MemoryTier.HOT, null);
 
             var hotDecayed = policy.applyDecay(unit, 24, 1.5);
             var warmDecayed = policy.applyDecay(unit, 24, 1.0);
@@ -128,7 +128,7 @@ class MemoryTierTest {
         @DisplayName("COLD tier (multiplier 0.6) decays faster than WARM (1.0)")
         void coldTierDecaysFasterThanWarm() {
             var unit = new MemoryUnit("1", "test", 500, Authority.RELIABLE, false, 0.9, 0,
-                    null, 0.0, 1.0, MemoryTier.COLD);
+                    null, 0.0, 1.0, MemoryTier.COLD, null);
 
             var coldDecayed = policy.applyDecay(unit, 24, 0.6);
             var warmDecayed = policy.applyDecay(unit, 24, 1.0);
@@ -140,9 +140,9 @@ class MemoryTierTest {
         @DisplayName("tier multiplier composes with diceDecay: diceDecay=2.0 + HOT still decays slower than COLD + diceDecay=2.0")
         void tierMultiplierComposesWithDiceDecay() {
             var hotUnit = new MemoryUnit("1", "test", 500, Authority.RELIABLE, false, 0.9, 0,
-                    null, 0.0, 2.0, MemoryTier.HOT);
+                    null, 0.0, 2.0, MemoryTier.HOT, null);
             var coldUnit = new MemoryUnit("2", "test", 500, Authority.RELIABLE, false, 0.9, 0,
-                    null, 0.0, 2.0, MemoryTier.COLD);
+                    null, 0.0, 2.0, MemoryTier.COLD, null);
 
             var hotDecayed = policy.applyDecay(hotUnit, 24, 1.5);
             var coldDecayed = policy.applyDecay(coldUnit, 24, 0.6);
@@ -157,7 +157,7 @@ class MemoryTierTest {
         @DisplayName("tierMultiplier=1.0 produces same result as 2-arg applyDecay (backward compatibility)")
         void tierMultiplierOneMatchesTwoArgDecay() {
             var unit = new MemoryUnit("1", "test", 500, Authority.RELIABLE, false, 0.9, 0,
-                    null, 0.0, 1.0, MemoryTier.WARM);
+                    null, 0.0, 1.0, MemoryTier.WARM, null);
 
             var twoArgResult = policy.applyDecay(unit, 48);
             var threeArgResult = policy.applyDecay(unit, 48, 1.0);
@@ -182,11 +182,11 @@ class MemoryTierTest {
         @DisplayName("within same authority band, COLD is dropped before WARM before HOT")
         void coldDroppedBeforeWarmBeforeHotInSameAuthority() {
             var cold = new MemoryUnit("cold", "cold text", 500, Authority.RELIABLE, false, 0.9, 0,
-                    null, 0.5, 1.0, MemoryTier.COLD);
+                    null, 0.5, 1.0, MemoryTier.COLD, null);
             var warm = new MemoryUnit("warm", "warm text", 500, Authority.RELIABLE, false, 0.9, 0,
-                    null, 0.5, 1.0, MemoryTier.WARM);
+                    null, 0.5, 1.0, MemoryTier.WARM, null);
             var hot = new MemoryUnit("hot", "hot text", 500, Authority.RELIABLE, false, 0.9, 0,
-                    null, 0.5, 1.0, MemoryTier.HOT);
+                    null, 0.5, 1.0, MemoryTier.HOT, null);
 
             // Budget tight enough to force dropping one unit:
             // overhead=10, each unit=10+1=11, total=10+33=43
@@ -212,9 +212,9 @@ class MemoryTierTest {
         void tierTakesPrecedenceOverDiceImportance() {
             // COLD with high importance vs WARM with low importance -- COLD is dropped first
             var coldHighImportance = new MemoryUnit("cold-hi", "cold-hi text", 500, Authority.RELIABLE, false, 0.9, 0,
-                    null, 0.9, 1.0, MemoryTier.COLD);
+                    null, 0.9, 1.0, MemoryTier.COLD, null);
             var warmLowImportance = new MemoryUnit("warm-lo", "warm-lo text", 500, Authority.RELIABLE, false, 0.9, 0,
-                    null, 0.1, 1.0, MemoryTier.WARM);
+                    null, 0.1, 1.0, MemoryTier.WARM, null);
 
             // Budget tight enough to force one drop: overhead=10, 2 units=22, total=32
             // budget=21 forces dropping one
@@ -234,9 +234,9 @@ class MemoryTierTest {
         @DisplayName("CANON memory units never dropped regardless of tier")
         void canonNeverDroppedRegardlessOfTier() {
             var canonCold = new MemoryUnit("canon-cold", "canon-cold text", 200, Authority.CANON, false, 0.5, 0,
-                    null, 0.0, 1.0, MemoryTier.COLD);
+                    null, 0.0, 1.0, MemoryTier.COLD, null);
             var reliableHot = new MemoryUnit("reliable-hot", "reliable-hot text", 800, Authority.RELIABLE, false, 0.9, 0,
-                    null, 0.9, 1.0, MemoryTier.HOT);
+                    null, 0.9, 1.0, MemoryTier.HOT, null);
 
             // Budget forces one drop: overhead=10, 2 units=22, total=32
             // budget=21 forces dropping one

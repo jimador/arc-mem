@@ -66,9 +66,9 @@ class ExponentialDecayPolicyTest {
             // diceDecay=1.0 standard: effectiveHalfLife = 24h
             // At 48h: standard loses 75%, permanent loses a tiny fraction
             var permanentUnit = new MemoryUnit("1", "test", 500, Authority.RELIABLE, false, 0.9, 0,
-                    null, 0.0, 0.0, MemoryTier.WARM);
+                    null, 0.0, 0.0, MemoryTier.WARM, null);
             var standardUnit = new MemoryUnit("2", "test", 500, Authority.RELIABLE, false, 0.9, 0,
-                    null, 0.0, 1.0, MemoryTier.WARM);
+                    null, 0.0, 1.0, MemoryTier.WARM, null);
             var standardPolicy = DecayPolicy.exponential(24.0);
             var permanentDecayed = standardPolicy.applyDecay(permanentUnit, 48);
             var standardDecayed = standardPolicy.applyDecay(standardUnit, 48);
@@ -82,7 +82,7 @@ class ExponentialDecayPolicyTest {
         @DisplayName("diceDecay=1.0 (standard) applies normal half-life at 24h")
         void standardDecayHalfLifeAt24h() {
             var standardUnit = new MemoryUnit("1", "test", 500, Authority.RELIABLE, false, 0.9, 0,
-                    null, 0.0, 1.0, MemoryTier.WARM);
+                    null, 0.0, 1.0, MemoryTier.WARM, null);
             var standardPolicy = DecayPolicy.exponential(24.0);
             var decayed = standardPolicy.applyDecay(standardUnit, 24);
             // 500 * 0.5^(24/24) = 500 * 0.5 = 250
@@ -93,9 +93,9 @@ class ExponentialDecayPolicyTest {
         @DisplayName("diceDecay=2.0 (ephemeral) decays faster than diceDecay=1.0 in same elapsed time")
         void ephemeralDecayFasterThanStandard() {
             var standardUnit = new MemoryUnit("1", "test", 500, Authority.RELIABLE, false, 0.9, 0,
-                    null, 0.0, 1.0, MemoryTier.WARM);
+                    null, 0.0, 1.0, MemoryTier.WARM, null);
             var ephemeralUnit = new MemoryUnit("2", "test", 500, Authority.RELIABLE, false, 0.9, 0,
-                    null, 0.0, 2.0, MemoryTier.WARM);
+                    null, 0.0, 2.0, MemoryTier.WARM, null);
             var standardPolicy = DecayPolicy.exponential(24.0);
 
             var standardDecayed = standardPolicy.applyDecay(standardUnit, 12);

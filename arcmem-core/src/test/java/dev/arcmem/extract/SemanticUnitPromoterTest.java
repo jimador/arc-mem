@@ -60,7 +60,7 @@ class SemanticUnitPromoterTest {
     void setUp() {
         var unitConfig = new ArcMemProperties.UnitConfig(20, INITIAL_RANK, 100, 900, true, THRESHOLD, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null, null);
         var properties = new ArcMemProperties(
-                unitConfig, null, null, null, new ArcMemProperties.AssemblyConfig(0, false, EnforcementStrategy.PROMPT_ONLY), null, null, null, null, null, null, new ArcMemProperties.LlmCallConfig(30, 10)
+                unitConfig, null, null, null, new ArcMemProperties.AssemblyConfig(0, false, EnforcementStrategy.PROMPT_ONLY), null, null, null, null, null, null, null, new ArcMemProperties.LlmCallConfig(30, 10)
         );
         promoter = new SemanticUnitPromoter(engine, properties, trustPipeline, repository, duplicateDetector,
                 Optional.empty(), Optional.empty());
@@ -363,7 +363,7 @@ class SemanticUnitPromoterTest {
                     null, null, null, null, null);
             var properties = new ArcMemProperties(
                     unitConfig, null, null, null,
-                    new ArcMemProperties.AssemblyConfig(0, false, EnforcementStrategy.PROMPT_ONLY), null, null, null, null, null, null, new ArcMemProperties.LlmCallConfig(30, 10));
+                    new ArcMemProperties.AssemblyConfig(0, false, EnforcementStrategy.PROMPT_ONLY), null, null, null, null, null, null, null, new ArcMemProperties.LlmCallConfig(30, 10));
             return new SemanticUnitPromoter(engine, properties, trustPipeline, repository, duplicateDetector,
                     Optional.of(index), Optional.empty());
         }

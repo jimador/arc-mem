@@ -67,7 +67,7 @@ class SimulationPipelineIntegrationTest {
                             null, null, null,
                             new ArcMemProperties.AssemblyConfig(0, false,
                                     EnforcementStrategy.PROMPT_ONLY),
-                            null, null, null, null, null, null,
+                            null, null, null, null, null, null, null,
                             new ArcMemProperties.LlmCallConfig(30, 10)));
             this.fixedSummary = fixedSummary;
         }
@@ -91,7 +91,7 @@ class SimulationPipelineIntegrationTest {
                 null, null, null,
                 new ArcMemProperties.AssemblyConfig(0, false,
                         EnforcementStrategy.PROMPT_ONLY),
-                null, null, null, null, null, null,
+                null, null, null, null, null, null, null,
                 new ArcMemProperties.LlmCallConfig(30, 10));
         var simulatorProperties = new ArcMemSimulatorProperties(null,
                 new ArcMemSimulatorProperties.SimConfig("gpt-4.1-mini", 30, true, 4), null);
@@ -101,7 +101,7 @@ class SimulationPipelineIntegrationTest {
         return new SimulationTurnExecutor(
                 chatModel, arcMemEngine, contextUnitRepository, properties, simulatorProperties,
                 CompliancePolicy.flat(), text -> Math.max(1, text.length() / 4),
-                null, turnServices);
+                null, null, turnServices);
     }
 
     private SimulationTurnExecutor buildExecutor() {

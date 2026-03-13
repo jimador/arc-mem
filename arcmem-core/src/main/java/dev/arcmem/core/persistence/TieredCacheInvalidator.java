@@ -121,7 +121,7 @@ public class TieredCacheInvalidator {
         var authorityStr = node.getAuthority();
         var authority = authorityStr != null ? Authority.valueOf(authorityStr) : Authority.PROVISIONAL;
         return new MemoryUnit(node.getId(), node.getText(), rank, authority, node.isPinned(),
-                node.getConfidence(), node.getReinforcementCount(), null, 0.0, 1.0, tier);
+                node.getConfidence(), node.getReinforcementCount(), null, 0.0, 1.0, tier, null);
     }
 
     private ArcMemProperties.TierConfig tierConfig() {

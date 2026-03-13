@@ -148,8 +148,7 @@ public class SimulationTurnExecutor {
                 null,
                 properties.retrieval(),
                 relevanceScorer,
-                false,
-                tieredRepository);
+                false);
         var propositionRef = new PropositionsLlmReference(
                 contextUnitRepository,
                 contextId,
@@ -342,8 +341,7 @@ public class SimulationTurnExecutor {
                 null,
                 properties.retrieval(),
                 relevanceScorer,
-                false,
-                tieredRepository);
+                false);
         var propositionRef = new PropositionsLlmReference(
                 contextUnitRepository,
                 contextId,

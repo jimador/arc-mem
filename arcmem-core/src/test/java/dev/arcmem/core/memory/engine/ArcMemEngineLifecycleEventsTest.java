@@ -204,7 +204,7 @@ class ArcMemEngineLifecycleEventsTest {
                 "incoming",
                 0.9,
                 "negation");
-        when(conflictResolver.resolve(conflict)).thenReturn(ConflictResolver.Resolution.COEXIST);
+        when(conflictResolver.resolve(eq(conflict), any())).thenReturn(ConflictResolver.Resolution.COEXIST);
         when(repository.findPropositionNodeById("a1")).thenReturn(Optional.of(unitNode("a1", 500, Authority.RELIABLE, 0)));
 
         enabledEngine.resolveConflict(conflict);

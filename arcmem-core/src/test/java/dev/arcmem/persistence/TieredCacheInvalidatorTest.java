@@ -72,7 +72,7 @@ class TieredCacheInvalidatorTest {
 
     private MemoryUnit cachedUnit(String id) {
         return new MemoryUnit(id, "text-" + id, 700, Authority.RELIABLE, false, 0.9, 1,
-                null, 0.0, 1.0, MemoryTier.HOT);
+                null, 0.0, 1.0, MemoryTier.HOT, null);
     }
 
     @Nested

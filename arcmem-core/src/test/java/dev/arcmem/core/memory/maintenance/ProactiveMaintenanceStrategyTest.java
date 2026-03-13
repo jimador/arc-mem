@@ -489,7 +489,7 @@ class ProactiveMaintenanceStrategyTest {
     private static MemoryUnit unit(String id, int rank, Authority authority, boolean pinned,
                                   int reinforcementCount, MemoryTier tier) {
         return new MemoryUnit(id, "text-" + id, rank, authority, pinned, 0.9,
-                reinforcementCount, null, 0.0, 1.0, tier);
+                reinforcementCount, null, 0.0, 1.0, tier, null);
     }
 
 }

@@ -123,7 +123,8 @@ class SimulationServiceCleanupTest {
                 null,                                                     // adversaryConfig
                 null,                                                     // invariants
                 null,                                                     // enforcementStrategy
-                null                                                      // budgetStrategy
+                null,                                                     // budgetStrategy
+                null                                                      // tieredStorageEnabled
         );
     }
 

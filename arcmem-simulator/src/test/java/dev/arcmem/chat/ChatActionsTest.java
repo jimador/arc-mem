@@ -97,7 +97,7 @@ class ChatActionsTest {
         var properties = properties();
         var assistantMessage = new AssistantMessage("ok");
         var actions = new ChatActions(arcMemEngine, contextUnitRepository, eventPublisher, properties,
-                simulatorProperties(), CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null, chatContextInitializer);
+                simulatorProperties(), CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null, chatContextInitializer, java.util.Optional.empty());
 
         when(arcMemEngine.inject("chat")).thenReturn(List.of());
         when(actionContext.ai()).thenReturn(ai);
@@ -126,7 +126,7 @@ class ChatActionsTest {
         var properties = properties();
         var assistantMessage = new AssistantMessage("ok");
         var actions = new ChatActions(arcMemEngine, contextUnitRepository, eventPublisher, properties,
-                simulatorProperties(), CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null, chatContextInitializer);
+                simulatorProperties(), CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null, chatContextInitializer, java.util.Optional.empty());
 
         when(arcMemEngine.inject("chat")).thenReturn(List.of());
         when(actionContext.ai()).thenReturn(ai);
@@ -156,7 +156,7 @@ class ChatActionsTest {
         var properties = properties();
         var assistantMessage = new AssistantMessage("ok");
         var actions = new ChatActions(arcMemEngine, contextUnitRepository, eventPublisher, properties,
-                simulatorProperties(), CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null, chatContextInitializer);
+                simulatorProperties(), CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null, chatContextInitializer, java.util.Optional.empty());
 
         when(arcMemEngine.inject("chat")).thenReturn(List.of());
         when(contextUnitRepository.findActiveUnpromotedPropositions("chat", properties.unit().budget()))
@@ -205,7 +205,7 @@ class ChatActionsTest {
                 new ArcMemProperties.PersistenceConfig(false),
                 new ArcMemProperties.ConflictDetectionConfig(ConflictStrategy.LLM, "gpt-4o-nano"),
                 new ArcMemProperties.AssemblyConfig(0, false, EnforcementStrategy.PROMPT_ONLY),
-                null, null, null, null, null, null,
+                null, null, null, null, null, null, null,
                 new ArcMemProperties.LlmCallConfig(30, 10)
         );
     }

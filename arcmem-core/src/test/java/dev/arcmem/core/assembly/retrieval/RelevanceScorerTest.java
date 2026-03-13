@@ -37,7 +37,7 @@ class RelevanceScorerTest {
         @DisplayName("CANON/HOT/0.9 scores highest at 0.97")
         void canonHotHighConfidenceScoresHighest() {
             var unit = new MemoryUnit("c1", "Canon fact", 800, Authority.CANON, true, 0.9, 10,
-                    null, 0.0, 1.0, MemoryTier.HOT);
+                    null, 0.0, 1.0, MemoryTier.HOT, null);
 
             var score = scorer.computeHeuristicScore(unit, defaultScoring);
 
@@ -49,7 +49,7 @@ class RelevanceScorerTest {
         @DisplayName("PROVISIONAL/COLD/0.3 scores lowest at 0.33")
         void provisionalColdLowConfidenceScoresLowest() {
             var unit = new MemoryUnit("p1", "Provisional fact", 200, Authority.PROVISIONAL, false, 0.3, 0,
-                    null, 0.0, 1.0, MemoryTier.COLD);
+                    null, 0.0, 1.0, MemoryTier.COLD, null);
 
             var score = scorer.computeHeuristicScore(unit, defaultScoring);
 
@@ -61,7 +61,7 @@ class RelevanceScorerTest {
         @DisplayName("RELIABLE/WARM/0.7 scores in the middle at 0.74")
         void reliableWarmMediumConfidence() {
             var unit = new MemoryUnit("r1", "Reliable fact", 600, Authority.RELIABLE, false, 0.7, 5,
-                    null, 0.0, 1.0, MemoryTier.WARM);
+                    null, 0.0, 1.0, MemoryTier.WARM, null);
 
             var score = scorer.computeHeuristicScore(unit, defaultScoring);
 
@@ -73,11 +73,11 @@ class RelevanceScorerTest {
         @DisplayName("scoreAndRank returns memory units sorted by descending relevance score")
         void scoreAndRankReturnsSortedDescending() {
             var canonHot = new MemoryUnit("c1", "Canon fact", 800, Authority.CANON, true, 0.9, 10,
-                    null, 0.0, 1.0, MemoryTier.HOT);
+                    null, 0.0, 1.0, MemoryTier.HOT, null);
             var reliableWarm = new MemoryUnit("r1", "Reliable fact", 600, Authority.RELIABLE, false, 0.7, 5,
-                    null, 0.0, 1.0, MemoryTier.WARM);
+                    null, 0.0, 1.0, MemoryTier.WARM, null);
             var provisionalCold = new MemoryUnit("p1", "Provisional fact", 200, Authority.PROVISIONAL, false, 0.3, 0,
-                    null, 0.0, 1.0, MemoryTier.COLD);
+                    null, 0.0, 1.0, MemoryTier.COLD, null);
 
             var scored = scorer.scoreAndRank(List.of(provisionalCold, canonHot, reliableWarm), defaultScoring);
 

@@ -89,8 +89,7 @@ public record ChatActions(
                 null,
                 properties.retrieval(),
                 relevanceScorer,
-                false,
-                tieredRepository.orElse(null));
+                false);
         var propositionRef = new PropositionsLlmReference(
                 contextUnitRepository,
                 contextId,
