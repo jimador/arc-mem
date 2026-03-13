@@ -657,7 +657,7 @@ Navigate to `http://localhost:8089/benchmark`.
 
 **Configure the benchmark matrix:**
 
-- **Conditions**: `FULL_ANCHORS`, `NO_ANCHORS`, `FLAT_AUTHORITY` (and `NO_TRUST` once implemented)
+- **Conditions**: `FULL_UNITS`, `NO_UNITS`, `FLAT_AUTHORITY` (and `NO_TRUST` once implemented)
 - **Scenario pack**: deterministic claim pack for primary evidence; stochastic stress pack for secondary
 - **Repetitions**: 10-20 per cell for stable results
 

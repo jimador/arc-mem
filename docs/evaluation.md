@@ -9,8 +9,8 @@ Protocol for evaluating whether ARC-Mem improves long-horizon consistency under 
 
 | Condition | Status | Purpose |
 |---|---|---|
-| `FULL_ANCHORS` | implemented | full trust + authority stack |
-| `NO_ANCHORS` | implemented | baseline without memory unit injection |
+| `FULL_UNITS` | implemented | full trust + authority stack |
+| `NO_UNITS` | implemented | baseline without memory unit injection |
 | `FLAT_AUTHORITY` | implemented | ablation without hierarchy |
 | `NO_TRUST` | missing | ablation isolating trust contribution |
 
