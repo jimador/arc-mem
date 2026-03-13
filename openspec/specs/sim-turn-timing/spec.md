@@ -28,7 +28,7 @@ COMPLETE, CANCELLED) the field SHALL be `0`.
 Each DM response bubble in the conversation panel SHALL display a small timing badge
 showing the turn duration in human-readable form. Durations under 10 seconds SHALL
 display as `Xs` (e.g., `3s`), durations 10–99 seconds as `XXs`, and durations of 60
-seconds or more as `Xm Ys`. The badge SHALL use `--anchor-accent-amber` for durations
+seconds or more as `Xm Ys`. The badge SHALL use `--arc-accent-amber` for durations
 over 30 seconds and `--lumo-secondary-text-color` otherwise, signaling slow turns.
 
 #### Scenario: Fast turn badge
@@ -47,7 +47,7 @@ over 30 seconds and `--lumo-secondary-text-color` otherwise, signaling slow turn
 
 ### Requirement: Turn duration tooltip on timeline drift markers
 
-Each drift-marker cell in `AnchorTimelinePanel` SHALL display a tooltip on hover that
+Each drift-marker cell in `UnitTimelinePanel` SHALL display a tooltip on hover that
 includes the turn duration. The tooltip text SHALL follow the pattern:
 `T{N} | {TurnType} | {duration}`.
 

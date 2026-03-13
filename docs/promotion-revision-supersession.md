@@ -1,10 +1,10 @@
 # Promotion, Revision, and Supersession
 
-Mutation semantics reference for anchors.
+Mutation semantics reference for memory units.
 
 ## 1) Promotion pipeline
 
-`AnchorPromoter` runs a strict 5-gate sequence:
+`SemanticUnitPromoter` runs a strict 5-gate sequence:
 
 ```text
 Proposition -> Confidence -> Dedup -> Conflict -> Trust -> Promote
@@ -21,7 +21,7 @@ flowchart LR
     G3 -->|KEEP_EXISTING reject| R3["Reject"]
     G4 -->|AUTO_PROMOTE| G5["Promote Gate"]
     G4 -->|REVIEW/ARCHIVE| R4["Hold or Skip"]
-    G5 --> A["Active Anchor"]
+    G5 --> A["Active Memory Unit"]
 ```
 
 ### Gate details
@@ -31,7 +31,7 @@ flowchart LR
 - only eligible statuses continue
 
 2. dedup gate
-- `DuplicateDetector.isDuplicate(text, anchors)`
+- `DuplicateDetector.isDuplicate(text, memoryUnits)`
 - batch mode does fast exact checks before model-assisted dedup
 
 3. conflict gate
@@ -48,13 +48,13 @@ flowchart LR
   - `ARCHIVE` -> skip
 
 5. promote gate
-- `AnchorEngine.promote(id, initialRank, authorityCeiling?)`
+- `ArcMemEngine.promote(id, initialRank, authorityCeiling?)`
 - budget enforcement runs inside engine promotion path
 
 ## Promotion invariants
 
 - gate order is fixed and must not be reordered
-- duplicates must not create separate anchors
+- duplicates must not create separate memory units
 - conflict outcomes must be executed, not logged and ignored
 - budget enforcement is per-promotion, not deferred to batch end
 
@@ -69,9 +69,9 @@ Possible outcomes:
 Typical side effects:
 
 ```text
-REPLACE         -> engine.supersede(existing.id, incoming.id, reason)
-DEMOTE_EXISTING -> engine.demote(existing.id, reason) + engine.reEvaluateTrust(existing.id)
-COEXIST         -> engine.reEvaluateTrust(existing.id)
+REPLACE         -> arcMemEngine.supersede(existing.id, incoming.id, reason)
+DEMOTE_EXISTING -> arcMemEngine.demote(existing.id, reason) + arcMemEngine.reEvaluateTrust(existing.id)
+COEXIST         -> arcMemEngine.reEvaluateTrust(existing.id)
 ```
 
 ## 3) Revision pipeline
@@ -79,7 +79,7 @@ COEXIST         -> engine.reEvaluateTrust(existing.id)
 Revision is not contradiction.
 
 Conflict typing:
-- `REVISION`: refine/update existing anchor
+- `REVISION`: refine/update existing memory unit
 - `CONTRADICTION`: assert opposite
 - `WORLD_PROGRESSION`: state changed over narrative time
 
@@ -109,12 +109,12 @@ flowchart TD
     RL -->|no| D
 ```
 
-## 4) AnchorMutationStrategy gate
+## 4) MemoryUnitMutationStrategy gate
 
-All mutation attempts pass through `AnchorMutationStrategy`.
+All mutation attempts pass through `MemoryUnitMutationStrategy`.
 
 ```java
-interface AnchorMutationStrategy {
+interface MemoryUnitMutationStrategy {
     MutationDecision evaluate(MutationRequest request);
 }
 ```
@@ -128,7 +128,7 @@ Implication: with defaults, conflict resolver does not auto-replace via non-UI s
 
 ## 5) Supersession lineage
 
-`AnchorEngine.supersede(predecessorId, successorId, reason)`:
+`ArcMemEngine.supersede(predecessorId, successorId, reason)`:
 1. archive predecessor
 2. create Neo4j `SUPERSEDES` edge
 3. emit supersession lifecycle event
@@ -136,8 +136,8 @@ Implication: with defaults, conflict resolver does not auto-replace via non-UI s
 
 ```mermaid
 flowchart LR
-    OLD["Predecessor Anchor"] --> ARCH["archive(predecessor)"]
-    NEW["Successor Anchor"] --> LINK["create SUPERSEDES edge"]
+    OLD["Predecessor Unit"] --> ARCH["archive(predecessor)"]
+    NEW["Successor Unit"] --> LINK["create SUPERSEDES edge"]
     ARCH --> LINK
     LINK --> EVT["emit lifecycle event"]
     EVT --> AUD["write trust/audit trace"]
@@ -173,4 +173,4 @@ Reinforcement behavior:
 
 ## 7) Trust re-evaluation hook
 
-`AnchorEngine.reEvaluateTrust(anchorId)` can demote when score falls below configured demotion threshold.
+`ArcMemEngine.reEvaluateTrust(unitId)` can demote when score falls below configured demotion threshold.

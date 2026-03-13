@@ -8,7 +8,7 @@ The system SHALL provide an `LlmCallService` that wraps LLM model calls for use 
 - **THEN** the call SHALL execute on a virtual thread and return the LLM response as a `String`
 
 #### Scenario: Call timeout
-- **WHEN** an LLM call exceeds the configured timeout (`dice-anchors.llm.call-timeout-seconds`, default 60)
+- **WHEN** an LLM call exceeds the configured timeout (`arc-mem.llm.call-timeout-seconds`, default 60)
 - **THEN** the call SHALL throw a `TimeoutException` and the virtual thread SHALL be interrupted
 
 #### Scenario: Call failure propagation

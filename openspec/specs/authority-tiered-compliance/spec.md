@@ -7,56 +7,56 @@
 The system SHALL map each Authority level to a ComplianceStrength value. CANON and RELIABLE authorities MUST map to STRICT strength. UNRELIABLE authority MUST map to MODERATE strength. PROVISIONAL authority MUST map to PERMISSIVE strength.
 
 #### Scenario: CANON authority maps to STRICT
-- **WHEN** a CANON anchor is retrieved for prompt assembly
+- **WHEN** a CANON memory unit is retrieved for prompt assembly
 - **THEN** the compliance policy maps it to STRICT strength
 
 #### Scenario: RELIABLE authority maps to STRICT
-- **WHEN** a RELIABLE anchor is retrieved
+- **WHEN** a RELIABLE memory unit is retrieved
 - **THEN** the compliance policy maps it to STRICT strength
 
 #### Scenario: UNRELIABLE authority maps to MODERATE
-- **WHEN** an UNRELIABLE anchor is retrieved
+- **WHEN** an UNRELIABLE memory unit is retrieved
 - **THEN** the compliance policy maps it to MODERATE strength
 
 #### Scenario: PROVISIONAL authority maps to PERMISSIVE
-- **WHEN** a PROVISIONAL anchor is retrieved
+- **WHEN** a PROVISIONAL memory unit is retrieved
 - **THEN** the compliance policy maps it to PERMISSIVE strength
 
 ### Requirement: Tiered prompt rendering
 
-The prompt assembly process SHALL render anchors in authority-specific blocks, each with language matching the compliance strength. STRICT blocks SHALL use "MUST" language. MODERATE blocks SHALL use "SHOULD" language. PERMISSIVE blocks SHALL use "MAY" language.
+The prompt assembly process SHALL render memory units in authority-specific blocks, each with language matching the compliance strength. STRICT blocks SHALL use "MUST" language. MODERATE blocks SHALL use "SHOULD" language. PERMISSIVE blocks SHALL use "MAY" language.
 
 #### Scenario: CANON facts render with MUST language
-- **WHEN** prompt assembly renders CANON anchors
+- **WHEN** prompt assembly renders CANON memory units
 - **THEN** the prompt includes text like "CANON Facts (MUST be preserved)"
 - **AND** CANON facts appear in their own section
 
 #### Scenario: PROVISIONAL facts render with MAY language
-- **WHEN** prompt assembly renders PROVISIONAL anchors
+- **WHEN** prompt assembly renders PROVISIONAL memory units
 - **THEN** the prompt includes text like "PROVISIONAL Facts (MAY be reconsidered)"
 
 #### Scenario: Authority tiers appear in correct order
-- **WHEN** prompt is assembled with mixed-authority anchors
+- **WHEN** prompt is assembled with mixed-authority memory units
 - **THEN** CANON block appears before RELIABLE, RELIABLE before UNRELIABLE, UNRELIABLE before PROVISIONAL
 
 ### Requirement: Configurable compliance policy
 
-The system SHALL support configurable compliance policy via property `anchor.compliance-policy`. The property MUST accept two values:
-- DEFAULT: All anchors treated with STRICT compliance (flat behavior, backward compatible)
+The system SHALL support configurable compliance policy via property `unit.compliance-policy`. The property MUST accept two values:
+- DEFAULT: All memory units treated with STRICT compliance (flat behavior, backward compatible)
 - TIERED: Authority-specific compliance strength as defined above
 
 #### Scenario: DEFAULT policy uses flat compliance
-- **WHEN** `anchor.compliance-policy` is set to DEFAULT
-- **THEN** all anchors render with STRICT compliance language
+- **WHEN** `unit.compliance-policy` is set to DEFAULT
+- **THEN** all memory units render with STRICT compliance language
 - **AND** no authority-specific blocks appear
 
 #### Scenario: TIERED policy uses authority-specific compliance
-- **WHEN** `anchor.compliance-policy` is set to TIERED
-- **THEN** anchors are grouped by authority
+- **WHEN** `unit.compliance-policy` is set to TIERED
+- **THEN** memory units are grouped by authority
 - **AND** each group renders with strength-appropriate language
 
 #### Scenario: TIERED is default behavior
-- **WHEN** application starts and `anchor.compliance-policy` is not specified
+- **WHEN** application starts and `unit.compliance-policy` is not specified
 - **THEN** the system defaults to TIERED mode
 
 ### Requirement: Policy implementation via interface
@@ -75,10 +75,10 @@ The system SHALL define a `CompliancePolicy` interface with single method `getSt
 
 ### Requirement: Backward compatibility
 
-The `AnchorsLlmReference` public API SHALL remain unchanged. Callers of context-injection methods MUST observe no change in behavior with DEFAULT policy.
+The `ArcMemLlmReference` public API SHALL remain unchanged. Callers of context-injection methods MUST observe no change in behavior with DEFAULT policy.
 
 #### Scenario: API signature unchanged
-- **WHEN** `AnchorsLlmReference.contextWithAnchorsJinja()` is called
+- **WHEN** `ArcMemLlmReference.contextWithUnitsJinja()` is called
 - **THEN** the method signature and return type are identical to previous version
 
 #### Scenario: DEFAULT policy matches previous behavior
@@ -96,14 +96,14 @@ The `AnchorsLlmReference` public API SHALL remain unchanged. Callers of context-
 
 ### Requirement: Authority-tiered compliance prompt with revision carveout
 
-**Reason**: Revision carveout removed — anchor mutation is now HITL-only via UI. The prompt template SHALL NOT contain `[revisable]` annotations, `reviseFact` tool instructions, or revision exception blocks.
-**Migration**: Remove all revision-related conditional blocks from `dice-anchors.jinja`. Stop passing `revision_enabled` and `reliable_revisable` template variables.
+**Reason**: Revision carveout removed — memory unit mutation is now HITL-only via UI. The prompt template SHALL NOT contain `[revisable]` annotations, `reviseFact` tool instructions, or revision exception blocks.
+**Migration**: Remove all revision-related conditional blocks from `arc-mem.jinja`. Stop passing `revision_enabled` and `reliable_revisable` template variables.
 
 #### Scenario: No revisable annotations in prompt
 
 - **GIVEN** any configuration
 - **WHEN** the prompt template is rendered
-- **THEN** the output SHALL NOT contain `[revisable]` annotations on any anchor entry
+- **THEN** the output SHALL NOT contain `[revisable]` annotations on any memory unit entry
 
 #### Scenario: No revision carveout in Critical Instructions
 

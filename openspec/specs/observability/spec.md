@@ -64,21 +64,21 @@ These attributes SHALL be set on the active span after `InvariantEvaluator.evalu
 
 #### Scenario: Lifecycle operation with invariants evaluated
 
-- **GIVEN** an active OTEL span during `AnchorEngine.demote()`
+- **GIVEN** an active OTEL span during `ArcMemEngine.demote()`
 - **AND** 3 invariants are evaluated, 1 MUST-strength is violated, and 1 SHOULD-strength is violated
 - **WHEN** the span attributes are recorded
 - **THEN** the span SHALL include `invariant.checked_count = 3`, `invariant.violated_count = 2`, `invariant.blocked_action = true`
 
 #### Scenario: Lifecycle operation with no violations
 
-- **GIVEN** an active OTEL span during `AnchorEngine.archive()`
+- **GIVEN** an active OTEL span during `ArcMemEngine.archive()`
 - **AND** 2 invariants are evaluated and none are violated
 - **WHEN** the span attributes are recorded
 - **THEN** the span SHALL include `invariant.checked_count = 2`, `invariant.violated_count = 0`, `invariant.blocked_action = false`
 
 #### Scenario: No invariants registered
 
-- **GIVEN** an active OTEL span during `AnchorEngine.promote()`
+- **GIVEN** an active OTEL span during `ArcMemEngine.promote()`
 - **AND** no invariants are registered
 - **WHEN** the span attributes are recorded
 - **THEN** the span SHALL include `invariant.checked_count = 0`, `invariant.violated_count = 0`, `invariant.blocked_action = false`
@@ -91,12 +91,12 @@ These attributes SHALL be set on the active span after `InvariantEvaluator.evalu
 
 ### Requirement: InvariantViolation event span attributes
 
-When the `AnchorLifecycleListener` handles an `InvariantViolation` event, it SHALL set the following OTEL span attributes on the active span (if present):
+When the `UnitLifecycleListener` handles an `InvariantViolation` event, it SHALL set the following OTEL span attributes on the active span (if present):
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
 | `invariant.violation.rule_id` | String | The rule ID of the violated invariant |
-| `invariant.violation.type` | String | The invariant type (e.g., `"ANCHOR_PROTECTED"`) |
+| `invariant.violation.type` | String | The invariant type (e.g., `"UNIT_PROTECTED"`) |
 | `invariant.violation.strength` | String | `"MUST"` or `"SHOULD"` |
 | `invariant.violation.action` | String | The attempted lifecycle action (e.g., `"EVICT"`) |
 | `invariant.violation.blocked` | boolean | Whether the action was blocked |
@@ -107,7 +107,7 @@ These attributes SHALL be set as low-cardinality key-value pairs. When multiple 
 
 - **GIVEN** an active OTEL span during eviction
 - **WHEN** an `InvariantViolation` event is handled with `ruleId = "protect-A1"`, `strength = "MUST"`, `blocked = true`
-- **THEN** the span SHALL include `invariant.violation.rule_id = "protect-A1"`, `invariant.violation.type = "ANCHOR_PROTECTED"`, `invariant.violation.strength = "MUST"`, `invariant.violation.action = "EVICT"`, `invariant.violation.blocked = true`
+- **THEN** the span SHALL include `invariant.violation.rule_id = "protect-A1"`, `invariant.violation.type = "UNIT_PROTECTED"`, `invariant.violation.strength = "MUST"`, `invariant.violation.action = "EVICT"`, `invariant.violation.blocked = true`
 
 #### Scenario: No span during background operation
 

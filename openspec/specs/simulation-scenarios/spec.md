@@ -4,7 +4,7 @@ Thirteen simulation scenarios SHALL be ported from tor and adapted to the dice-a
 
 #### Scenario: All 13 scenario files exist
 - **WHEN** the `src/main/resources/simulations/` directory is listed
-- **THEN** it contains YAML files for all 13 scenarios plus the existing `cursed-blade.yml` and `anchor-drift.yml`
+- **THEN** it contains YAML files for all 13 scenarios plus the existing `cursed-blade.yml` and `unit-drift.yml`
 
 #### Scenario: Scenarios load without error
 - **WHEN** `ScenarioLoader.listScenarios()` is called
@@ -12,17 +12,17 @@ Thirteen simulation scenarios SHALL be ported from tor and adapted to the dice-a
 
 ### Requirement: Setting as ground truth source for scene-setting extraction
 
-The scenario `setting` field SHALL contain sufficient factual detail for the DM to naturally state ground truth facts during the scene-setting turn 0. For scenarios without seed anchors or scripted establish turns, the setting is the primary mechanism by which ground truth facts enter the conversation and become available for DICE extraction. Scenario authors SHOULD ensure that all ground truth facts are represented in the setting text so the DM can reference them when narrating the scene.
+The scenario `setting` field SHALL contain sufficient factual detail for the DM to naturally state ground truth facts during the scene-setting turn 0. For scenarios without seed units or scripted establish turns, the setting is the primary mechanism by which ground truth facts enter the conversation and become available for DICE extraction. Scenario authors SHOULD ensure that all ground truth facts are represented in the setting text so the DM can reference them when narrating the scene.
 
 #### Scenario: Setting contains ground truth details for extraction
 
-- **GIVEN** a scenario with 5 ground truth facts and no seed anchors
+- **GIVEN** a scenario with 5 ground truth facts and no seed units
 - **WHEN** the setting text includes all 5 facts as narrative details
 - **THEN** the DM's scene-setting response is likely to mention those facts, enabling DICE extraction to capture initial propositions
 
 ### Requirement: Extended SimulationScenario format
 
-The `SimulationScenario` record SHALL be extended with fields for: `trustEvaluation` (trust profile config), `seedAnchors` (already exists), `dormancyConfig` (topic decay settings), and `sessions` (named session boundaries for multi-session scenarios). The `@JsonIgnoreProperties(ignoreUnknown = true)` annotation SHALL ensure backward compatibility with existing scenarios that lack the new fields. New fields SHALL default to null or empty when not specified in YAML.
+The `SimulationScenario` record SHALL be extended with fields for: `trustEvaluation` (trust profile config), `seedUnits` (already exists), `dormancyConfig` (topic decay settings), and `sessions` (named session boundaries for multi-session scenarios). The `@JsonIgnoreProperties(ignoreUnknown = true)` annotation SHALL ensure backward compatibility with existing scenarios that lack the new fields. New fields SHALL default to null or empty when not specified in YAML.
 
 #### Scenario: Backward compatibility with cursed-blade.yml
 - **WHEN** the existing `cursed-blade.yml` is loaded (which has no trust or dormancy config)
@@ -74,7 +74,7 @@ The `SimulationScenario` record SHALL be extended with fields for: `trustEvaluat
 
 ### Requirement: Backward compatibility with existing scenarios
 
-The existing `cursed-blade.yml` and `anchor-drift.yml` scenarios SHALL continue to load and execute correctly without modification. Any field additions to `SimulationScenario` SHALL have safe defaults (null or empty). `ScenarioLoader` SHALL not require the new fields to be present.
+The existing `cursed-blade.yml` and `unit-drift.yml` scenarios SHALL continue to load and execute correctly without modification. Any field additions to `SimulationScenario` SHALL have safe defaults (null or empty). `ScenarioLoader` SHALL not require the new fields to be present.
 
 #### Scenario: Existing scenario runs unmodified
 - **WHEN** `cursed-blade.yml` is loaded and executed

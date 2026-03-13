@@ -8,7 +8,7 @@ tags: [workflow, archive, roadmap, documentation, experimental]
 Archive a completed roadmap package and consolidate learnings into project documentation.
 
 **Input**: The argument after `/opsx:archive-roadmap` is the roadmap slug. Could be:
-- A slug: "anchor-memory-optimization"
+- A slug: "arc-mem-memory-optimization"
 - Nothing (will prompt for selection if multiple roadmaps exist)
 
 ---
@@ -39,7 +39,7 @@ Archive a completed roadmap package and consolidate learnings into project docum
 
 ```
 /opsx:archive-roadmap
-/opsx:archive-roadmap anchor-memory-optimization
+/opsx:archive-roadmap arc-mem-memory-optimization
 ```
 
 ---

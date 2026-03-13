@@ -2,7 +2,7 @@
 
 ### Requirement: Cohen's d effect size computation
 
-The system SHALL provide an `EffectSizeCalculator` in the `sim.benchmark` package that computes Cohen's d effect size between every pair of conditions for each of the 6 scoring metrics: `factSurvivalRate`, `driftAbsorptionRate`, `contradictionCount`, `majorContradictionCount`, `meanTurnsToFirstDrift`, and `anchorAttributionCount`. The formula SHALL be: `d = (mean1 - mean2) / pooled_sd`, where `pooled_sd` is the pooled standard deviation using sample standard deviation (N-1 denominator, Bessel's correction).
+The system SHALL provide an `EffectSizeCalculator` in the `sim.benchmark` package that computes Cohen's d effect size between every pair of conditions for each of the 6 scoring metrics: `factSurvivalRate`, `driftAbsorptionRate`, `contradictionCount`, `majorContradictionCount`, `meanTurnsToFirstDrift`, and `unitAttributionCount`. The formula SHALL be: `d = (mean1 - mean2) / pooled_sd`, where `pooled_sd` is the pooled standard deviation using sample standard deviation (N-1 denominator, Bessel's correction).
 
 #### Scenario: Cohen's d between two conditions
 
@@ -15,7 +15,7 @@ The system SHALL provide an `EffectSizeCalculator` in the `sim.benchmark` packag
 
 - **GIVEN** two conditions each with completed `BenchmarkReport` records
 - **WHEN** effect sizes are computed between the two conditions
-- **THEN** Cohen's d SHALL be computed for all 6 metrics: factSurvivalRate, driftAbsorptionRate, contradictionCount, majorContradictionCount, meanTurnsToFirstDrift, anchorAttributionCount
+- **THEN** Cohen's d SHALL be computed for all 6 metrics: factSurvivalRate, driftAbsorptionRate, contradictionCount, majorContradictionCount, meanTurnsToFirstDrift, unitAttributionCount
 
 #### Scenario: Pooled SD uses Bessel's correction
 

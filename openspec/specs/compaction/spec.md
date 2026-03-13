@@ -9,30 +9,30 @@ This requirement supersedes the prior version that hardcoded a 50% threshold —
 #### Scenario: All protected facts survive above threshold
 
 - **GIVEN** `CompactionConfig.minMatchRatio` is 0.5
-- **WHEN** compaction produces a summary and all protected anchor texts achieve a word match ratio >= 0.5
+- **WHEN** compaction produces a summary and all protected memory unit texts achieve a word match ratio >= 0.5
 - **THEN** zero CompactionLossEvents are reported
 
 #### Scenario: Protected fact missing from summary
 
-- **WHEN** compaction produces a summary and a protected anchor with text "Baron Krell rules the Northern Province" achieves a word match ratio of 0.0 (no words found)
-- **THEN** a CompactionLossEvent is reported identifying the missing anchor
+- **WHEN** compaction produces a summary and a protected memory unit with text "Baron Krell rules the Northern Province" achieves a word match ratio of 0.0 (no words found)
+- **THEN** a CompactionLossEvent is reported identifying the missing memory unit
 
 #### Scenario: Partial match at or above threshold counts as survival
 
 - **GIVEN** `CompactionConfig.minMatchRatio` is 0.5
-- **WHEN** a protected anchor states "Baron Krell rules the Northern Province" and the summary contains "baron krell" (2 of 5 normalized words — ratio 0.4)
-- **THEN** the anchor is reported as a CompactionLossEvent (below the 0.5 threshold)
+- **WHEN** a protected memory unit states "Baron Krell rules the Northern Province" and the summary contains "baron krell" (2 of 5 normalized words — ratio 0.4)
+- **THEN** the memory unit is reported as a CompactionLossEvent (below the 0.5 threshold)
 
 #### Scenario: Partial match at or above threshold with lowered threshold
 
 - **GIVEN** `CompactionConfig.minMatchRatio` is 0.3
-- **WHEN** a protected anchor states "Baron Krell rules the Northern Province" and the summary contains "baron krell" (ratio 0.4)
-- **THEN** the anchor is considered to have survived (above the 0.3 threshold)
+- **WHEN** a protected memory unit states "Baron Krell rules the Northern Province" and the summary contains "baron krell" (ratio 0.4)
+- **THEN** the memory unit is considered to have survived (above the 0.3 threshold)
 
 #### Scenario: Loss event displayed in UI
 
 - **WHEN** a CompactionLossEvent occurs on turn 8
-- **THEN** the Compaction tab for turn 8 shows the lost anchor's text, authority, and rank
+- **THEN** the Compaction tab for turn 8 shows the lost memory unit's text, authority, and rank
 
 ## ADDED Requirements
 

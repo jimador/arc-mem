@@ -1,12 +1,12 @@
 ### Requirement: SimulationView header row
-The header row SHALL display the title "Anchor Drift Simulator" left-aligned. Chat and Benchmark navigation links and the theme toggle button SHALL be right-aligned in the same row.
+The header row SHALL display the title "ARC-Mem Drift Simulator" left-aligned. Chat and Benchmark navigation links and the theme toggle button SHALL be right-aligned in the same row.
 
 #### Scenario: Header displays navigation links
 - **WHEN** the SimulationView loads
-- **THEN** the header contains "Anchor Drift Simulator" on the left and "Chat", "Benchmark" links and the theme toggle on the right
+- **THEN** the header contains "ARC-Mem Drift Simulator" on the left and "Chat", "Benchmark" links and the theme toggle on the right
 
 ### Requirement: Single-row controls layout
-The controls area SHALL be a single row containing the Category Select (160px), Scenario ComboBox (240px), Token Budget field, Max Turns field, and contextual action buttons. The Anchor Injection checkbox SHALL be positioned at the bottom of the left column, beneath the conversation panel.
+The controls area SHALL be a single row containing the Category Select (160px), Scenario ComboBox (240px), Token Budget field, Max Turns field, and contextual action buttons. The Memory Unit Injection checkbox SHALL be positioned at the bottom of the left column, beneath the conversation panel.
 
 #### Scenario: Controls render in a single row
 - **WHEN** the SimulationView loads
@@ -14,7 +14,7 @@ The controls area SHALL be a single row containing the Category Select (160px), 
 
 #### Scenario: Injection toggle positioned below conversation
 - **WHEN** the SimulationView loads
-- **THEN** the Anchor Injection checkbox appears at the bottom of the left column beneath the conversation panel, not in the controls row
+- **THEN** the Memory Unit Injection checkbox appears at the bottom of the left column beneath the conversation panel, not in the controls row
 
 ### Requirement: Contextual button visibility
 Action buttons SHALL be shown or hidden based on the current SimControlState. Buttons that do not apply to the current state SHALL NOT be rendered.
@@ -80,7 +80,7 @@ The right panel SHALL auto-select tabs based on simulation lifecycle events: Sce
 - **THEN** the Manipulation tab becomes visible and is automatically selected
 
 ### Requirement: Conversation full height
-The conversation panel SHALL occupy the full height of the left column. The only element below the conversation panel SHALL be the Anchor Injection toggle. No other panels SHALL be stacked below the conversation within the left column.
+The conversation panel SHALL occupy the full height of the left column. The only element below the conversation panel SHALL be the Memory Unit Injection toggle. No other panels SHALL be stacked below the conversation within the left column.
 
 #### Scenario: No panels below conversation
 - **WHEN** a simulation completes

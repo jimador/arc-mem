@@ -33,7 +33,7 @@ The run history panel SHALL support filtering by scenario ID and injection-enabl
 The run history grid SHALL display: scenario ID, completion date (formatted), turn count, resilience rate (percentage of turns without contradictions), model ID, and injection status. Each column SHALL be sortable.
 
 #### Scenario: Grid displays run metadata
-- **GIVEN** a persisted run with scenarioId "anchor-drift", 10 turns, 80% resilience, model "gpt-4.1-mini", injection ON
+- **GIVEN** a persisted run with scenarioId "unit-drift", 10 turns, 80% resilience, model "gpt-4.1-mini", injection ON
 - **WHEN** the run appears in the grid
 - **THEN** all metadata columns are populated with the correct values
 

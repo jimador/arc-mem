@@ -4,10 +4,10 @@
 
 ### Requirement: Compliance block precedes persona block
 
-The prompt assembly process SHALL render the compliance/anchor block before persona or task instruction blocks. The compliance block MUST appear at `indexOf(compliance) < indexOf(persona)` in the assembled prompt text.
+The prompt assembly process SHALL render the compliance/memory-unit block before persona or task instruction blocks. The compliance block MUST appear at `indexOf(compliance) < indexOf(persona)` in the assembled prompt text.
 
 #### Scenario: Compliance block appears first
-- **WHEN** prompt is assembled with anchors and persona instructions
+- **WHEN** prompt is assembled with memory units and persona instructions
 - **THEN** the string "CANON Facts" (or authority tier header) appears before "You are a helpful assistant"
 - **AND** compliance block is rendered in full before persona section begins
 
@@ -21,13 +21,13 @@ The prompt assembly process SHALL render the compliance/anchor block before pers
 When using TIERED compliance policy, authority blocks MUST appear in order of authority strength. CANON MUST precede RELIABLE, RELIABLE MUST precede UNRELIABLE, UNRELIABLE MUST precede PROVISIONAL.
 
 #### Scenario: Authority blocks are ordered by strength
-- **WHEN** prompt contains anchors of multiple authorities
+- **WHEN** prompt contains memory units of multiple authorities
 - **THEN** CANON block appears before RELIABLE block
 - **AND** RELIABLE appears before UNRELIABLE
 - **AND** UNRELIABLE appears before PROVISIONAL
 
 #### Scenario: Empty tiers are skipped without breaking order
-- **WHEN** prompt has CANON and PROVISIONAL anchors (no RELIABLE/UNRELIABLE)
+- **WHEN** prompt has CANON and PROVISIONAL memory units (no RELIABLE/UNRELIABLE)
 - **THEN** CANON block appears before PROVISIONAL block
 - **AND** skipped tiers do not create empty sections
 

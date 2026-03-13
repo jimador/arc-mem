@@ -13,7 +13,7 @@ A `RunHistoryStore` interface SHALL define the API contract for persisting simul
 - **THEN** `list()` returns all 3 records
 
 #### Scenario: List by scenario filters correctly
-- **WHEN** 2 runs used scenario "adversarial-contradictory" and 1 used "anchor-drift"
+- **WHEN** 2 runs used scenario "adversarial-contradictory" and 1 used "unit-drift"
 - **THEN** `listByScenario("adversarial-contradictory")` returns exactly 2 records
 
 #### Scenario: Delete removes record
@@ -37,19 +37,19 @@ A `Neo4jRunHistoryStore` SHALL implement `RunHistoryStore` using Neo4j via Drivi
 - **THEN** `load(runId)` returns the saved record with all fields intact
 
 #### Scenario: JSON payload preserves all data
-- **WHEN** a SimulationRunRecord with turn results, verdicts, and anchor events is saved
-- **THEN** the deserialized record contains all turn results, verdicts, and anchor events
+- **WHEN** a SimulationRunRecord with turn results, verdicts, and memory unit events is saved
+- **THEN** the deserialized record contains all turn results, verdicts, and memory unit events
 
 ### Requirement: Store selection via configuration
 
-The active `RunHistoryStore` implementation SHALL be selected via `dice-anchors.run-history.store` configuration property. Valid values SHALL be `MEMORY` (SimulationRunStore) and `NEO4J` (Neo4jRunHistoryStore). The default SHALL be `NEO4J`.
+The active `RunHistoryStore` implementation SHALL be selected via `arc-mem.run-history.store` configuration property. Valid values SHALL be `MEMORY` (SimulationRunStore) and `NEO4J` (Neo4jRunHistoryStore). The default SHALL be `NEO4J`.
 
 #### Scenario: Neo4j store is default
-- **WHEN** no `dice-anchors.run-history.store` property is set
+- **WHEN** no `arc-mem.run-history.store` property is set
 - **THEN** the `Neo4jRunHistoryStore` is used
 
 #### Scenario: Memory store selected explicitly
-- **WHEN** `dice-anchors.run-history.store=MEMORY` is configured
+- **WHEN** `arc-mem.run-history.store=MEMORY` is configured
 - **THEN** the `SimulationRunStore` is used
 
 ## Added Requirements (initial-community-review-readiness)

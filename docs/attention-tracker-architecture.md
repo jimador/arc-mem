@@ -1,10 +1,10 @@
 # Attention Tracker Architecture
 
-This subsystem tracks short-horizon attention pressure per anchor.
+This subsystem tracks short-horizon attention pressure per memory unit.
 
 ## Package
 
-`dev.dunnam.diceanchors.anchor.attention`
+`dev.arcmem.core.memory.attention`
 
 Core classes:
 - `AttentionTracker`: event listener + state owner + query API
@@ -16,10 +16,10 @@ Core classes:
 ## Event flow
 
 ```text
-AnchorLifecycleEvent
+MemoryUnitLifecycleEvent
   -> AttentionTracker.onLifecycleEvent()
   -> update window in ConcurrentHashMap.compute(key, ...)
-  -> evaluate per-anchor thresholds
+  -> evaluate per-unit thresholds
   -> evaluateClusterDrift(contextId)
   -> publish AttentionSignal with AttentionSnapshot
 ```
@@ -28,7 +28,7 @@ Per-key update path is atomic because of `compute(...)`.
 
 ```mermaid
 flowchart TD
-    E["AnchorLifecycleEvent"] --> L["onLifecycleEvent()"]
+    E["MemoryUnitLifecycleEvent"] --> L["onLifecycleEvent()"]
     L --> U["windows.compute(key, updater)"]
     U --> T["evaluateThresholds(key, window)"]
     T --> C["evaluateClusterDrift(contextId)"]
@@ -47,7 +47,7 @@ burstFactor   = recentQuarterDensity / uniformExpectedDensity
 ```
 
 Interpretation:
-- high `heatScore`: this anchor is active now
+- high `heatScore`: this memory unit is active now
 - high `pressureScore`: conflict-heavy activity
 - high `burstFactor`: sudden concentrated activity burst
 
@@ -55,8 +55,8 @@ Interpretation:
 
 - `PRESSURE_SPIKE`: conflict pressure exceeded threshold and minimum conflict floor
 - `HEAT_PEAK`: heat crossed peak threshold
-- `HEAT_DROP`: anchor cooled below drop threshold after a peak
-- `CLUSTER_DRIFT`: enough anchors in same context are in active `HEAT_DROP`
+- `HEAT_DROP`: memory unit cooled below drop threshold after a peak
+- `CLUSTER_DRIFT`: enough memory units in same context are in active `HEAT_DROP`
 
 Cluster drift is tracked via synthetic key `("__cluster__", contextId)` in hysteresis state.
 
@@ -93,15 +93,15 @@ If listeners move to async dispatch, either:
 ## Query API (pull mode)
 
 Useful methods for downstream consumers:
-- `getWindow(anchorId, contextId)`
-- `getHottestAnchors(contextId, limit)`
+- `getWindow(unitId, contextId)`
+- `getHottestUnits(contextId, limit)`
 - `getAllWindows(contextId)`
 - `snapshot(contextId)`
 - `cleanupContext(contextId)`
 
 ## Config reference
 
-All under `dice-anchors.attention.*`.
+All under `arc-mem.attention.*`.
 
 | Property | Default | Meaning |
 |---|---|---|
@@ -111,17 +111,17 @@ All under `dice-anchors.attention.*`.
 | `min-conflicts-for-pressure` | `3` | minimum conflict count guard |
 | `heat-peak-threshold` | `0.7` | heat peak threshold |
 | `heat-drop-threshold` | `0.2` | cool-down threshold |
-| `cluster-drift-min-anchors` | `3` | anchors required for drift signal |
+| `cluster-drift-min-units` | `3` | memory units required for drift signal |
 | `max-expected-events-per-window` | `20` | heat normalization ceiling |
 
 ## Design choices
 
-- Location is `anchor/attention`, not `assembly` or `sim`, because this is a core observer.
-- `AttentionSignal` is separate from `AnchorLifecycleEvent` (derived output vs source event).
+- Location is `memory/attention`, not `assembly` or `sim`, because this is a core observer.
+- `AttentionSignal` is separate from `MemoryUnitLifecycleEvent` (derived output vs source event).
 - Heat normalization is static right now for predictability; adaptive normalization is a future enhancement.
 
 ## Near-term improvements
 
-1. Fold attention into `RelevanceScorer` to boost contested anchors in prompt injection.
+1. Fold attention into `RelevanceScorer` to boost contested memory units in prompt injection.
 2. Surface `CLUSTER_DRIFT` warnings in `RunInspectorView`.
 3. Add tests for async-event safety if listener mode changes.

@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: CSS class naming convention
-All view-layer CSS classes MUST use the `ar-` prefix (anchor-retro) with BEM-lite naming: `ar-{block}` or `ar-{block}--{modifier}`. No `__element` nesting — Vaadin components serve as elements.
+All view-layer CSS classes MUST use the `ar-` prefix (arc-retro) with BEM-lite naming: `ar-{block}` or `ar-{block}--{modifier}`. No `__element` nesting — Vaadin components serve as elements.
 
 #### Scenario: New CSS class follows naming convention
 - **WHEN** a developer adds a new CSS class for a view component

@@ -2,7 +2,7 @@
 
 ### Requirement: Jakarta Bean Validation on configuration properties
 
-`DiceAnchorsProperties` SHALL use Jakarta Bean Validation annotations to enforce all configuration constraints. The `@Validated` annotation MUST be present on the properties record. Nested record components that contain constrained fields MUST be annotated with `@Valid` to cascade validation.
+`ArcMemProperties` SHALL use Jakarta Bean Validation annotations to enforce all configuration constraints. The `@Validated` annotation MUST be present on the properties record. Nested record components that contain constrained fields MUST be annotated with `@Valid` to cascade validation.
 
 Cross-field constraints (rank range ordering, threshold ordering, scoring weight sum) SHALL use `@AssertTrue` methods on the containing record.
 
@@ -17,5 +17,5 @@ Cross-field constraints (rank range ordering, threshold ordering, scoring weight
 ## REMOVED Requirements
 
 ### Requirement: Manual @PostConstruct configuration validation
-**Reason**: Replaced by Jakarta Bean Validation annotations on `DiceAnchorsProperties`. All constraints are preserved; only the enforcement mechanism changes.
-**Migration**: Remove `AnchorConfiguration.validateConfiguration()` method. Constraint violations now surface as `BindValidationException` instead of `IllegalStateException`.
+**Reason**: Replaced by Jakarta Bean Validation annotations on `ArcMemProperties`. All constraints are preserved; only the enforcement mechanism changes.
+**Migration**: Remove `ArcMemConfiguration.validateConfiguration()` method. Constraint violations now surface as `BindValidationException` instead of `IllegalStateException`.

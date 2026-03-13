@@ -1,0 +1,128 @@
+## ADDED Requirements
+
+### Requirement: Invariant enforcement hook before archive
+
+`ArcMemEngine.archive()` SHALL evaluate all applicable invariants via `InvariantEvaluator.evaluate(ARCHIVE, unitId, contextId)` before committing the archive operation. If the evaluation returns `blocked = true` (a MUST-strength invariant is violated), the archive SHALL NOT proceed and the method SHALL return without modifying context unit state.
+
+When the evaluation returns `blocked = false` but contains SHOULD-strength violations, the archive SHALL proceed and violation events SHALL be published.
+
+The invariant evaluation SHALL occur after the context unit lookup but before calling `repository.archiveUnit()`.
+
+#### Scenario: MUST-strength invariant blocks archive
+
+- **GIVEN** a MUST-strength `UNIT_PROTECTED` invariant for context unit "A1"
+- **WHEN** `ArcMemEngine.archive("A1", ArchiveReason.MANUAL)` is called
+- **THEN** the archive SHALL be blocked, context unit "A1" SHALL remain active, and an `InvariantViolation` event SHALL be published with `blocked = true`
+
+#### Scenario: SHOULD-strength invariant warns but allows archive
+
+- **GIVEN** a SHOULD-strength `UNIT_PROTECTED` invariant for context unit "A1"
+- **WHEN** `ArcMemEngine.archive("A1", ArchiveReason.MANUAL)` is called
+- **THEN** the archive SHALL proceed, an `InvariantViolation` event SHALL be published with `blocked = false`, and an `Archived` event SHALL be published
+
+#### Scenario: No invariants allows archive normally
+
+- **GIVEN** no invariants are registered
+- **WHEN** `ArcMemEngine.archive("A1", ArchiveReason.MANUAL)` is called
+- **THEN** the archive SHALL proceed normally with no invariant evaluation overhead
+
+### Requirement: Invariant enforcement hook before eviction
+
+`ArcMemEngine.promote()` SHALL evaluate invariants via `InvariantEvaluator.evaluate(EVICT, candidateUnitId, contextId)` for each eviction candidate during budget enforcement. If the evaluation returns `blocked = true`, that candidate SHALL be skipped and the next-lowest-ranked non-pinned unit SHALL be considered.
+
+The eviction loop SHALL iterate through candidates in rank order (ascending) until either:
+1. A non-blocked candidate is found and evicted, or
+2. All candidates are blocked by MUST-strength invariants, in which case the budget temporarily exceeds the limit and a WARN-level log is emitted
+
+#### Scenario: Protected context unit skipped during eviction
+
+- **GIVEN** a MUST-strength `UNIT_PROTECTED` invariant for context unit "A1"
+- **AND** the budget is 3 with 3 active context units, and "A1" has the lowest rank
+- **WHEN** a new context unit is promoted
+- **THEN** "A1" SHALL be skipped and the next-lowest-ranked non-pinned, non-protected context unit SHALL be evicted
+
+#### Scenario: Multiple protected context units in eviction candidates
+
+- **GIVEN** MUST-strength `UNIT_PROTECTED` invariants for context units "A1" and "A2"
+- **AND** the budget is 3 with 3 active context units, "A1" and "A2" being the two lowest-ranked
+- **WHEN** a new context unit is promoted
+- **THEN** "A1" and "A2" SHALL be skipped and the third-lowest-ranked non-pinned unit SHALL be evicted
+
+#### Scenario: All eviction candidates protected
+
+- **GIVEN** MUST-strength `UNIT_PROTECTED` invariants for all non-pinned context units
+- **AND** the budget is full
+- **WHEN** a new context unit is promoted
+- **THEN** no context unit SHALL be evicted, the budget SHALL temporarily exceed the limit, and a WARN-level log SHALL be emitted: "Invariant protection prevented eviction; budget exceeded"
+
+### Requirement: Invariant enforcement hook before demotion
+
+`ArcMemEngine.demote()` SHALL evaluate invariants via `InvariantEvaluator.evaluate(DEMOTE, unitId, contextId)` before committing the demotion. If the evaluation returns `blocked = true`, the demotion SHALL NOT proceed.
+
+The invariant evaluation SHALL occur after the canonization gate check (CANON context units route through the gate first) but before computing `previousLevel()` and writing the new authority.
+
+#### Scenario: AUTHORITY_FLOOR invariant blocks demotion
+
+- **GIVEN** a MUST-strength `AUTHORITY_FLOOR` invariant for context unit "A1" with minimum authority RELIABLE
+- **AND** context unit "A1" is at RELIABLE authority
+- **WHEN** `demote("A1", DemotionReason.RANK_DECAY)` is called
+- **THEN** the demotion SHALL be blocked and context unit "A1" SHALL remain at RELIABLE
+
+#### Scenario: AUTHORITY_FLOOR allows demotion above floor
+
+- **GIVEN** a MUST-strength `AUTHORITY_FLOOR` invariant for context unit "A1" with minimum authority UNRELIABLE
+- **AND** context unit "A1" is at RELIABLE authority
+- **WHEN** `demote("A1", DemotionReason.RANK_DECAY)` is called
+- **THEN** the demotion SHALL proceed (RELIABLE to UNRELIABLE is at the floor, not below it)
+
+#### Scenario: CONTEXT_FROZEN blocks all demotions in context
+
+- **GIVEN** a MUST-strength `CONTEXT_FROZEN` invariant for context "ctx-1"
+- **WHEN** `demote("A1", DemotionReason.CONFLICT_EVIDENCE)` is called for an context unit in "ctx-1"
+- **THEN** the demotion SHALL be blocked
+
+### Requirement: Invariant enforcement hook before authority change
+
+All authority transitions (both promotion and demotion) SHALL be evaluated against `AUTHORITY_CHANGE` invariants via `InvariantEvaluator.evaluate(AUTHORITY_CHANGE, unitId, contextId)`. This applies to:
+
+1. Authority promotions in `ArcMemEngine.reinforce()` (when `shouldUpgradeAuthority()` returns true)
+2. Authority demotions in `ArcMemEngine.demote()`
+3. Authority changes via `CanonizationGate.approve()`
+
+The `AUTHORITY_CHANGE` evaluation is in addition to the action-specific evaluation (e.g., `DEMOTE` check runs first, then `AUTHORITY_CHANGE` check). Both evaluations MUST pass for the action to proceed.
+
+#### Scenario: Authority promotion blocked by CONTEXT_FROZEN
+
+- **GIVEN** a MUST-strength `CONTEXT_FROZEN` invariant for context "ctx-1"
+- **AND** an context unit in "ctx-1" reaches the reinforcement threshold for authority upgrade
+- **WHEN** `reinforce()` attempts to promote authority
+- **THEN** the authority promotion SHALL be blocked, but the rank boost SHALL still be applied
+
+#### Scenario: Both DEMOTE and AUTHORITY_CHANGE evaluated
+
+- **GIVEN** a MUST-strength `AUTHORITY_FLOOR` invariant (constrains DEMOTE and AUTHORITY_CHANGE)
+- **WHEN** `demote("A1", DemotionReason.TRUST_DEGRADATION)` is called
+- **THEN** both `evaluate(DEMOTE, ...)` and `evaluate(AUTHORITY_CHANGE, ...)` SHALL be called, and the demotion SHALL be blocked if either returns `blocked = true`
+
+### Requirement: Hook evaluation order
+
+When a lifecycle operation triggers invariant evaluation, the hooks SHALL be evaluated in the following order:
+
+1. Canonization gate check (for CANON transitions only)
+2. Invariant evaluation for the primary action (`ARCHIVE`, `EVICT`, or `DEMOTE`)
+3. Invariant evaluation for `AUTHORITY_CHANGE` (if the action involves an authority transition)
+
+If any step blocks the action, subsequent steps SHALL NOT be evaluated. This short-circuit behavior avoids unnecessary work and prevents confusing violation events for actions that were already blocked.
+
+#### Scenario: Canonization gate blocks before invariant check
+
+- **GIVEN** the canonization gate is enabled and a MUST-strength invariant exists
+- **WHEN** `demote()` is called on a CANON context unit
+- **THEN** the canonization gate creates a pending request and returns; invariant evaluation SHALL NOT run
+
+#### Scenario: Primary action blocked before AUTHORITY_CHANGE check
+
+- **GIVEN** a MUST-strength `UNIT_PROTECTED` invariant blocks `DEMOTE` for context unit "A1"
+- **AND** a separate `AUTHORITY_CHANGE` invariant exists
+- **WHEN** `demote("A1", ...)` is called
+- **THEN** the `DEMOTE` invariant blocks the action and the `AUTHORITY_CHANGE` invariant SHALL NOT be evaluated

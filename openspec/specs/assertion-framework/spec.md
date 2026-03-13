@@ -16,27 +16,27 @@ A `SimulationAssertion` interface SHALL define the assertion SPI with a single m
 
 Nine concrete assertions SHALL be implemented:
 
-1. `AnchorCountAssertion` — verifies the final active anchor count is within a specified [min, max] range.
-2. `RankDistributionAssertion` — verifies anchor ranks meet a distribution constraint (e.g., at least N anchors above rank R).
-3. `TrustScoreRangeAssertion` — verifies all anchor trust scores fall within [min, max].
+1. `UnitCountAssertion` — verifies the final active memory unit count is within a specified [min, max] range.
+2. `RankDistributionAssertion` — verifies memory unit ranks meet a distribution constraint (e.g., at least N memory units above rank R).
+3. `TrustScoreRangeAssertion` — verifies all memory unit trust scores fall within [min, max].
 4. `PromotionZoneAssertion` — verifies expected promotion zone distribution (e.g., at least N in AUTO_PROMOTE).
-5. `AuthorityAtMostAssertion` — verifies no anchor exceeds a specified authority level.
-6. `KgContextContainsAssertion` — verifies the final anchor context contains text matching specified patterns.
-7. `KgContextEmptyAssertion` — verifies the anchor context is empty (for testing injection-disabled runs).
+5. `AuthorityAtMostAssertion` — verifies no memory unit exceeds a specified authority level.
+6. `KgContextContainsAssertion` — verifies the final memory unit context contains text matching specified patterns.
+7. `KgContextEmptyAssertion` — verifies the memory unit context is empty (for testing injection-disabled runs).
 8. `NoCanonAutoAssignedAssertion` — verifies CANON authority was never assigned automatically during the run.
 9. `CompactionIntegrityAssertion` — verifies compaction did not lose critical ground truth facts.
 
-#### Scenario: AnchorCountAssertion passes within range
-- **WHEN** the assertion specifies min=5, max=15 and the final anchor count is 10
+#### Scenario: UnitCountAssertion passes within range
+- **WHEN** the assertion specifies min=5, max=15 and the final memory unit count is 10
 - **THEN** the assertion passes
 
-#### Scenario: AnchorCountAssertion fails below minimum
-- **WHEN** the assertion specifies min=5, max=15 and the final anchor count is 3
-- **THEN** the assertion fails with details "Expected anchor count in [5, 15], got 3"
+#### Scenario: UnitCountAssertion fails below minimum
+- **WHEN** the assertion specifies min=5, max=15 and the final memory unit count is 3
+- **THEN** the assertion fails with details "Expected memory unit count in [5, 15], got 3"
 
 #### Scenario: RankDistributionAssertion checks threshold
-- **WHEN** the assertion specifies "at least 3 anchors above rank 600"
-- **AND** 4 anchors have rank > 600
+- **WHEN** the assertion specifies "at least 3 memory units above rank 600"
+- **AND** 4 memory units have rank > 600
 - **THEN** the assertion passes
 
 #### Scenario: NoCanonAutoAssignedAssertion checks all turns
@@ -45,11 +45,11 @@ Nine concrete assertions SHALL be implemented:
 
 ### Requirement: AssertionConfig YAML record
 
-An `AssertionConfig` record SHALL be YAML-deserializable with fields: `type` (String, maps to assertion class name or short alias like "anchor-count"), and `params` (Map<String, Object> containing assertion-specific parameters). The aliases SHALL map to concrete implementations: "anchor-count" -> `AnchorCountAssertion`, "rank-distribution" -> `RankDistributionAssertion`, "trust-score-range" -> `TrustScoreRangeAssertion`, "promotion-zone" -> `PromotionZoneAssertion`, "authority-at-most" -> `AuthorityAtMostAssertion`, "kg-context-contains" -> `KgContextContainsAssertion`, "kg-context-empty" -> `KgContextEmptyAssertion`, "no-canon-auto-assigned" -> `NoCanonAutoAssignedAssertion`, "compaction-integrity" -> `CompactionIntegrityAssertion`.
+An `AssertionConfig` record SHALL be YAML-deserializable with fields: `type` (String, maps to assertion class name or short alias like "unit-count"), and `params` (Map<String, Object> containing assertion-specific parameters). The aliases SHALL map to concrete implementations: "unit-count" -> `UnitCountAssertion`, "rank-distribution" -> `RankDistributionAssertion`, "trust-score-range" -> `TrustScoreRangeAssertion`, "promotion-zone" -> `PromotionZoneAssertion`, "authority-at-most" -> `AuthorityAtMostAssertion`, "kg-context-contains" -> `KgContextContainsAssertion`, "kg-context-empty" -> `KgContextEmptyAssertion`, "no-canon-auto-assigned" -> `NoCanonAutoAssignedAssertion`, "compaction-integrity" -> `CompactionIntegrityAssertion`.
 
 #### Scenario: YAML deserialization
-- **WHEN** a scenario YAML contains `assertions: [{ type: "anchor-count", params: { min: 5, max: 20 } }]`
-- **THEN** the `AssertionConfig` deserializes with type="anchor-count" and params={min=5, max=20}
+- **WHEN** a scenario YAML contains `assertions: [{ type: "unit-count", params: { min: 5, max: 20 } }]`
+- **THEN** the `AssertionConfig` deserializes with type="unit-count" and params={min=5, max=20}
 
 #### Scenario: Type alias resolution
 - **WHEN** type="trust-score-range" is specified

@@ -2,19 +2,19 @@
 
 ### Requirement: Canonization request model
 
-The system SHALL represent pending CANON authority transitions as `CanonizationRequest` records containing: a unique request ID, anchor ID, context ID, snapshot of anchor text, current authority, requested authority, reason string, requester identifier, creation timestamp, and status (PENDING, APPROVED, REJECTED).
+The system SHALL represent pending CANON authority transitions as `CanonizationRequest` records containing: a unique request ID, memory unit ID, context ID, snapshot of memory unit text, current authority, requested authority, reason string, requester identifier, creation timestamp, and status (PENDING, APPROVED, REJECTED).
 
 The requested authority SHALL be CANON for canonization requests and the level immediately below CANON (RELIABLE) for decanonization requests.
 
 #### Scenario: Canonization request created for promotion to CANON
 
-- **GIVEN** an anchor at RELIABLE authority
+- **GIVEN** a memory unit at RELIABLE authority
 - **WHEN** a promotion to CANON is requested (via tool call, conflict resolution, or API)
 - **THEN** a `CanonizationRequest` is created with status PENDING, current authority RELIABLE, requested authority CANON, and the reason and requester recorded
 
 #### Scenario: Decanonization request created for demotion from CANON
 
-- **GIVEN** an anchor at CANON authority
+- **GIVEN** a memory unit at CANON authority
 - **WHEN** a demotion from CANON is requested (via conflict resolution DEMOTE_EXISTING, manual tool call, or API)
 - **THEN** a `CanonizationRequest` is created with status PENDING, current authority CANON, requested authority RELIABLE, and the reason and requester recorded
 
@@ -22,9 +22,9 @@ The requested authority SHALL be CANON for canonization requests and the level i
 
 The system SHALL provide a `CanonizationGate` service with the following operations:
 
-- `requestCanonization(anchorId, contextId, currentAuthority, requestedAuthority, reason, requestedBy)` — creates a PENDING request and returns the request ID
-- `approve(requestId)` — executes the authority change via `AnchorEngine.setAuthority()` and marks the request APPROVED
-- `reject(requestId, rejectionReason)` — marks the request REJECTED without modifying the anchor
+- `requestCanonization(unitId, contextId, currentAuthority, requestedAuthority, reason, requestedBy)` — creates a PENDING request and returns the request ID
+- `approve(requestId)` — executes the authority change via `ArcMemEngine.setAuthority()` and marks the request APPROVED
+- `reject(requestId, rejectionReason)` — marks the request REJECTED without modifying the memory unit
 - `pendingRequests()` — returns all PENDING requests
 - `pendingRequests(contextId)` — returns PENDING requests for a specific context
 
@@ -32,21 +32,21 @@ Pending requests SHALL be stored in memory (`ConcurrentHashMap`). Requests are t
 
 #### Scenario: Approve canonization request
 
-- **GIVEN** a PENDING canonization request for anchor "A1" requesting CANON
+- **GIVEN** a PENDING canonization request for memory unit "A1" requesting CANON
 - **WHEN** a human approves the request
-- **THEN** the anchor's authority is set to CANON, the request status becomes APPROVED, and an `AuthorityChanged` lifecycle event is published with direction PROMOTED
+- **THEN** the memory unit's authority is set to CANON, the request status becomes APPROVED, and an `AuthorityChanged` lifecycle event is published with direction PROMOTED
 
 #### Scenario: Reject canonization request
 
-- **GIVEN** a PENDING canonization request for anchor "A1" requesting CANON
+- **GIVEN** a PENDING canonization request for memory unit "A1" requesting CANON
 - **WHEN** a human rejects the request with reason "Not established enough"
-- **THEN** the anchor's authority remains unchanged, the request status becomes REJECTED, and the rejection reason is recorded
+- **THEN** the memory unit's authority remains unchanged, the request status becomes REJECTED, and the rejection reason is recorded
 
 #### Scenario: Approve decanonization request
 
-- **GIVEN** a PENDING decanonization request for anchor "A1" requesting demotion from CANON to RELIABLE
+- **GIVEN** a PENDING decanonization request for memory unit "A1" requesting demotion from CANON to RELIABLE
 - **WHEN** a human approves the request
-- **THEN** the anchor's authority is set to RELIABLE, the request status becomes APPROVED, and an `AuthorityChanged` lifecycle event is published with direction DEMOTED
+- **THEN** the memory unit's authority is set to RELIABLE, the request status becomes APPROVED, and an `AuthorityChanged` lifecycle event is published with direction DEMOTED
 
 #### Scenario: List pending requests
 
@@ -56,80 +56,80 @@ Pending requests SHALL be stored in memory (`ConcurrentHashMap`). Requests are t
 
 ### Requirement: Stale request validation
 
-When `approve()` is called, the `CanonizationGate` SHALL verify that the anchor's current authority still matches the `currentAuthority` recorded in the `CanonizationRequest`. If the anchor's authority has changed since the request was created (e.g., demoted by conflict resolution while the request was pending), the request SHALL be rejected as stale.
+When `approve()` is called, the `CanonizationGate` SHALL verify that the memory unit's current authority still matches the `currentAuthority` recorded in the `CanonizationRequest`. If the memory unit's authority has changed since the request was created (e.g., demoted by conflict resolution while the request was pending), the request SHALL be rejected as stale.
 
-This prevents a pending canonization from promoting an anchor that has been demoted since the request was created (e.g., RELIABLE → UNRELIABLE via conflict, then approved canonization would jump UNRELIABLE → CANON, bypassing the gate's intent).
+This prevents a pending canonization from promoting a memory unit that has been demoted since the request was created (e.g., RELIABLE → UNRELIABLE via conflict, then approved canonization would jump UNRELIABLE → CANON, bypassing the gate's intent).
 
 #### Scenario: Approve stale request rejected
 
-- **GIVEN** a PENDING canonization request for anchor "A1" with currentAuthority RELIABLE
-- **AND** anchor "A1" has since been demoted to UNRELIABLE (via conflict resolution)
+- **GIVEN** a PENDING canonization request for memory unit "A1" with currentAuthority RELIABLE
+- **AND** memory unit "A1" has since been demoted to UNRELIABLE (via conflict resolution)
 - **WHEN** a human approves the request
-- **THEN** the approval is rejected with a descriptive error indicating the anchor's authority has changed
+- **THEN** the approval is rejected with a descriptive error indicating the memory unit's authority has changed
 - **AND** the request status becomes REJECTED with reason "stale: authority changed from RELIABLE to UNRELIABLE"
 
 #### Scenario: Approve request with unchanged authority succeeds
 
-- **GIVEN** a PENDING canonization request for anchor "A1" with currentAuthority RELIABLE
-- **AND** anchor "A1" is still at RELIABLE authority
+- **GIVEN** a PENDING canonization request for memory unit "A1" with currentAuthority RELIABLE
+- **AND** memory unit "A1" is still at RELIABLE authority
 - **WHEN** a human approves the request
 - **THEN** the authority change executes normally
 
 ### Requirement: Canonization request idempotency
 
-The `CanonizationGate` SHALL prevent duplicate pending requests for the same anchor. If a pending request already exists for an anchor, `requestCanonization()` SHALL return the existing request ID rather than creating a new request.
+The `CanonizationGate` SHALL prevent duplicate pending requests for the same memory unit. If a pending request already exists for a memory unit, `requestCanonization()` SHALL return the existing request ID rather than creating a new request.
 
-Approved and rejected requests do not block new requests for the same anchor.
+Approved and rejected requests do not block new requests for the same memory unit.
 
 #### Scenario: Duplicate pending request returns existing ID
 
-- **GIVEN** a PENDING canonization request exists for anchor "A1"
-- **WHEN** another canonization request is created for anchor "A1"
+- **GIVEN** a PENDING canonization request exists for memory unit "A1"
+- **WHEN** another canonization request is created for memory unit "A1"
 - **THEN** the existing request ID is returned and no new request is created
 
 #### Scenario: New request after rejection allowed
 
-- **GIVEN** a REJECTED canonization request exists for anchor "A1"
-- **WHEN** a new canonization request is created for anchor "A1"
+- **GIVEN** a REJECTED canonization request exists for memory unit "A1"
+- **WHEN** a new canonization request is created for memory unit "A1"
 - **THEN** a new PENDING request is created with a new request ID
 
-### Requirement: Gate intercept in AnchorEngine
+### Requirement: Gate intercept in ArcMemEngine
 
-`AnchorEngine` SHALL delegate to `CanonizationGate` for all authority transitions involving CANON when the gate is enabled.
+`ArcMemEngine` SHALL delegate to `CanonizationGate` for all authority transitions involving CANON when the gate is enabled.
 
-- When `promote()` is called with CANON authority: the anchor SHALL be promoted at RELIABLE (the highest auto-assignable level) and a pending canonization request SHALL be created.
-- When `demote()` targets a CANON anchor: the anchor SHALL remain at CANON and a pending decanonization request SHALL be created.
-- Seed anchors defined in scenario YAML files with `authority: CANON` SHALL bypass the gate (the human authored the scenario, so approval is implicit).
+- When `promote()` is called with CANON authority: the memory unit SHALL be promoted at RELIABLE (the highest auto-assignable level) and a pending canonization request SHALL be created.
+- When `demote()` targets a CANON memory unit: the memory unit SHALL remain at CANON and a pending decanonization request SHALL be created.
+- Seed units defined in scenario YAML files with `authority: CANON` SHALL bypass the gate (the human authored the scenario, so approval is implicit).
 
 #### Scenario: Promote to CANON intercepted by gate
 
 - **GIVEN** the canonization gate is enabled
-- **WHEN** a caller requests promotion of anchor "A1" to CANON authority
-- **THEN** the anchor is promoted at RELIABLE authority AND a PENDING canonization request is created for the CANON transition
+- **WHEN** a caller requests promotion of memory unit "A1" to CANON authority
+- **THEN** the memory unit is promoted at RELIABLE authority AND a PENDING canonization request is created for the CANON transition
 
 #### Scenario: Demote from CANON intercepted by gate
 
-- **GIVEN** the canonization gate is enabled and anchor "A1" is at CANON authority
-- **WHEN** conflict resolution returns DEMOTE_EXISTING for anchor "A1"
-- **THEN** the anchor remains at CANON AND a PENDING decanonization request is created
+- **GIVEN** the canonization gate is enabled and memory unit "A1" is at CANON authority
+- **WHEN** conflict resolution returns DEMOTE_EXISTING for memory unit "A1"
+- **THEN** the memory unit remains at CANON AND a PENDING decanonization request is created
 
-#### Scenario: Seed anchors bypass gate
+#### Scenario: Seed units bypass gate
 
-- **GIVEN** a simulation scenario YAML defines a seed anchor with `authority: CANON`
-- **WHEN** the simulation engine initializes seed anchors
-- **THEN** the anchor is created at CANON authority without a pending request
+- **GIVEN** a simulation scenario YAML defines a seed unit with `authority: CANON`
+- **WHEN** the simulation engine initializes seed units
+- **THEN** the memory unit is created at CANON authority without a pending request
 
 #### Scenario: Gate disabled — promotion to CANON executes immediately
 
-- **GIVEN** `dice-anchors.anchor.canonization-gate-enabled` is set to `false`
+- **GIVEN** `arc-mem.unit.canonization-gate-enabled` is set to `false`
 - **WHEN** a promotion to CANON is requested
 - **THEN** the authority is set to CANON immediately without creating a pending request
 
 #### Scenario: Gate disabled — demotion from CANON executes immediately
 
-- **GIVEN** `dice-anchors.anchor.canonization-gate-enabled` is set to `false` and anchor "A1" is at CANON authority
+- **GIVEN** `arc-mem.unit.canonization-gate-enabled` is set to `false` and memory unit "A1" is at CANON authority
 - **WHEN** a demotion from CANON is requested (via conflict resolution, manual tool call, or trust degradation)
-- **THEN** the anchor is demoted to RELIABLE immediately without creating a pending request
+- **THEN** the memory unit is demoted to RELIABLE immediately without creating a pending request
 - **AND** invariant A3b (CANON immune to automatic demotion) does NOT apply when the gate is disabled — the operator has explicitly opted out of CANON protection by disabling the gate
 
 ## Operator Invariants (F07)
@@ -140,10 +140,10 @@ Approved and rejected requests do not block new requests for the same anchor.
 
 The `CanonizationGate` service SHALL persist all `CanonizationRequest` records to Neo4j instead of holding them in a `ConcurrentHashMap`. The service SHALL maintain the same public API contract:
 
-- `requestCanonization(anchorId, contextId, anchorText, currentAuthority, reason, requestedBy)` -- creates a PENDING request and returns the request
-- `requestDecanonization(anchorId, contextId, anchorText, reason, requestedBy)` -- creates a PENDING decanonization request and returns the request
+- `requestCanonization(unitId, contextId, unitText, currentAuthority, reason, requestedBy)` -- creates a PENDING request and returns the request
+- `requestDecanonization(unitId, contextId, unitText, reason, requestedBy)` -- creates a PENDING decanonization request and returns the request
 - `approve(requestId)` -- executes the authority change and marks the request APPROVED
-- `reject(requestId)` -- marks the request REJECTED without modifying the anchor
+- `reject(requestId)` -- marks the request REJECTED without modifying the memory unit
 - `pendingRequests()` -- returns all PENDING requests
 - `pendingRequests(contextId)` -- returns PENDING requests for a specific context
 
@@ -151,26 +151,26 @@ The `ConcurrentHashMap<String, CanonizationRequest> requests` field SHALL be rem
 
 #### Scenario: Request survives application restart
 
-- **GIVEN** a PENDING canonization request for anchor "A1" is created
+- **GIVEN** a PENDING canonization request for memory unit "A1" is created
 - **WHEN** the application is restarted
 - **THEN** the PENDING request SHALL still be retrievable via `pendingRequests()`
 
 #### Scenario: Approve persisted request
 
-- **GIVEN** a PENDING canonization request persisted in Neo4j for anchor "A1" requesting CANON
+- **GIVEN** a PENDING canonization request persisted in Neo4j for memory unit "A1" requesting CANON
 - **WHEN** a human approves the request
-- **THEN** the anchor's authority is set to CANON, the request status in Neo4j becomes APPROVED, and an `AuthorityChanged` lifecycle event is published with direction PROMOTED
+- **THEN** the memory unit's authority is set to CANON, the request status in Neo4j becomes APPROVED, and an `AuthorityChanged` lifecycle event is published with direction PROMOTED
 
 #### Scenario: Reject persisted request
 
-- **GIVEN** a PENDING canonization request persisted in Neo4j for anchor "A1"
+- **GIVEN** a PENDING canonization request persisted in Neo4j for memory unit "A1"
 - **WHEN** a human rejects the request
-- **THEN** the request status in Neo4j becomes REJECTED and the anchor's authority remains unchanged
+- **THEN** the request status in Neo4j becomes REJECTED and the memory unit's authority remains unchanged
 
 #### Scenario: Stale request detection with persisted data
 
 - **GIVEN** a PENDING canonization request persisted in Neo4j with `currentAuthority = RELIABLE`
-- **AND** the anchor has since been demoted to UNRELIABLE
+- **AND** the memory unit has since been demoted to UNRELIABLE
 - **WHEN** approval is attempted
 - **THEN** the request SHALL be marked STALE in Neo4j and the authority change SHALL NOT be applied
 
@@ -182,7 +182,7 @@ The system SHALL provide a `CanonizationRequestRepository` interface with the fo
 - `findById(String requestId)` -- returns `Optional<CanonizationRequest>`
 - `findByStatus(CanonizationStatus status)` -- returns all requests with the given status
 - `findByStatusAndContextId(CanonizationStatus status, String contextId)` -- returns requests filtered by status and context
-- `findPendingByAnchorIdAndRequestedAuthority(String anchorId, Authority requestedAuthority)` -- for idempotency check
+- `findPendingByUnitIdAndRequestedAuthority(String unitId, Authority requestedAuthority)` -- for idempotency check
 - `updateStatus(String requestId, CanonizationStatus newStatus)` -- updates only the status field
 
 The Neo4j node label SHALL be `CanonizationRequest`. Properties SHALL map directly from the `CanonizationRequest` record fields with `Authority` and `CanonizationStatus` stored as string values.
@@ -193,10 +193,10 @@ The Neo4j node label SHALL be `CanonizationRequest`. Properties SHALL map direct
 - **WHEN** `save(request)` is called followed by `findById(request.id())`
 - **THEN** the returned request SHALL have identical field values to the saved request
 
-#### Scenario: Find pending by anchor ID for idempotency
+#### Scenario: Find pending by memory unit ID for idempotency
 
-- **GIVEN** a PENDING request exists for anchor "A1" requesting CANON
-- **WHEN** `findPendingByAnchorIdAndRequestedAuthority("A1", CANON)` is called
+- **GIVEN** a PENDING request exists for memory unit "A1" requesting CANON
+- **WHEN** `findPendingByUnitIdAndRequestedAuthority("A1", CANON)` is called
 - **THEN** the existing request SHALL be returned
 
 ### Requirement: Canonization audit trail
@@ -232,7 +232,7 @@ The `CanonizationGate` SHALL create audit entries for every status transition: P
 #### Scenario: Stale detection creates audit entry
 
 - **GIVEN** a PENDING canonization request "R1" with `currentAuthority = RELIABLE`
-- **AND** the anchor has been demoted to UNRELIABLE
+- **AND** the memory unit has been demoted to UNRELIABLE
 - **WHEN** approval is attempted
 - **THEN** a `CanonizationAuditEntry` SHALL be persisted with `previousStatus = PENDING`, `newStatus = STALE`, `reason = "stale: authority changed from RELIABLE to UNRELIABLE"`, and `actor = "system"`
 
@@ -266,7 +266,7 @@ When a simulation context is cleaned up (via `SimulationService` teardown), all 
 
 ### Requirement: Simulation auto-approve configuration
 
-In simulation mode, the canonization gate SHALL auto-approve pending requests by default. This is configurable via `dice-anchors.anchor.auto-approve-in-simulation` (default: `true`).
+In simulation mode, the canonization gate SHALL auto-approve pending requests by default. This is configurable via `arc-mem.unit.auto-approve-in-simulation` (default: `true`).
 
 When auto-approve is enabled and the context ID matches a simulation context (`sim-*`), the gate SHALL immediately approve requests without human intervention.
 
@@ -278,7 +278,7 @@ When auto-approve is enabled and the context ID matches a simulation context (`s
 
 #### Scenario: Auto-approve disabled in simulation
 
-- **GIVEN** `dice-anchors.anchor.auto-approve-in-simulation` is set to `false`
+- **GIVEN** `arc-mem.unit.auto-approve-in-simulation` is set to `false`
 - **WHEN** a canonization request is created for a simulation context
 - **THEN** the request remains PENDING until explicitly approved or rejected
 
@@ -286,8 +286,8 @@ When auto-approve is enabled and the context ID matches a simulation context (`s
 
 The system SHALL support the following configuration properties:
 
-- `dice-anchors.anchor.canonization-gate-enabled` (boolean, default: `true`) — enables or disables the HITL gate for CANON transitions
-- `dice-anchors.anchor.auto-approve-in-simulation` (boolean, default: `true`) — auto-approves CANON transitions in simulation contexts
+- `arc-mem.unit.canonization-gate-enabled` (boolean, default: `true`) — enables or disables the HITL gate for CANON transitions
+- `arc-mem.unit.auto-approve-in-simulation` (boolean, default: `true`) — auto-approves CANON transitions in simulation contexts
 
 #### Scenario: Default configuration
 

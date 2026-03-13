@@ -10,11 +10,11 @@
 
 #### Scenario: Scoring result is self-contained for aggregation
 - **WHEN** `ScoringService.score()` returns a `ScoringResult`
-- **THEN** the result contains all seven metrics (factSurvivalRate, contradictionCount, majorContradictionCount, driftAbsorptionRate, meanTurnsToFirstDrift, anchorAttributionCount, strategyEffectiveness) as numeric values directly usable for statistical computation without additional lookups
+- **THEN** the result contains all seven metrics (factSurvivalRate, contradictionCount, majorContradictionCount, driftAbsorptionRate, meanTurnsToFirstDrift, unitAttributionCount, strategyEffectiveness) as numeric values directly usable for statistical computation without additional lookups
 
 ### Requirement: Verdict-based attribution counting
 
-Attribution counting SHALL use verdict-based matching: a ground truth fact is attributed when it receives at least one CONFIRMED verdict (via `factId`) across all turn snapshots. Attribution SHALL NOT use text-based fuzzy matching or normalized substring comparison. This ensures deterministic, repeatable attribution counts across benchmark runs regardless of anchor text formatting variations.
+Attribution counting SHALL use verdict-based matching: a ground truth fact is attributed when it receives at least one CONFIRMED verdict (via `factId`) across all turn snapshots. Attribution SHALL NOT use text-based fuzzy matching or normalized substring comparison. This ensures deterministic, repeatable attribution counts across benchmark runs regardless of memory unit text formatting variations.
 
 #### Scenario: Attribution uses factId CONFIRMED verdicts
 - **WHEN** a ground truth fact with `factId` "fact-1" receives a CONFIRMED verdict in any turn snapshot
@@ -22,10 +22,10 @@ Attribution counting SHALL use verdict-based matching: a ground truth fact is at
 
 #### Scenario: Attribution is deterministic across repeated runs
 - **WHEN** the same scenario is run multiple times producing identical verdict sequences
-- **THEN** `anchorAttributionCount` is identical across all runs, enabling meaningful statistical aggregation
+- **THEN** `unitAttributionCount` is identical across all runs, enabling meaningful statistical aggregation
 
 #### Scenario: No attribution without CONFIRMED verdict
-- **WHEN** a ground truth fact receives only NOT_MENTIONED verdicts across all turns (even if an anchor with matching text was injected)
+- **WHEN** a ground truth fact receives only NOT_MENTIONED verdicts across all turns (even if a memory unit with matching text was injected)
 - **THEN** the fact is NOT counted as attributed
 
 ### Requirement: Epistemic hedging classification

@@ -16,7 +16,7 @@ The chat UI SHALL provide a "New Conversation" button that creates a fresh conve
 - **WHEN** the user clicks "New Conversation"
 - **THEN** the message area is cleared
 - **AND** a new `conversationId` is generated and displayed
-- **AND** seed anchors are initialized for the new conversation context
+- **AND** seed units are initialized for the new conversation context
 
 ### Requirement: Resume conversation by ID
 The chat UI SHALL provide an input field where the user can paste a `conversationId` and a "Resume" button to load that conversation. On resume, the full transcript SHALL be rendered in the message area and the chat session SHALL continue from where it left off.

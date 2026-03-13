@@ -35,7 +35,7 @@ Show completion table:
 |---------|-------------|--------|
 | F01 | unified-maintenance-strategy | Archived (2026-02-28) |
 | F10 | interference-density-budget | Archived (2026-03-03) |
-| F11 | tiered-anchor-storage | Active (incomplete) |
+| F11 | tiered-unit-storage | Active (incomplete) |
 ```
 
 **If any features NOT archived**: warn and confirm with **AskUserQuestion**:

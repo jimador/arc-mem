@@ -2,7 +2,7 @@
 
 ### Requirement: Two-band header layout
 
-The `AnchorTimelinePanel` header MUST consist of two visually distinct horizontal
+The `UnitTimelinePanel` header MUST consist of two visually distinct horizontal
 bands stacked vertically:
 
 1. **Injection strip** (4 px height): A thin color strip, cyan for injection ON and
@@ -50,9 +50,9 @@ Verdict severity color mapping:
 
 | Severity      | Color                         |
 |---------------|-------------------------------|
-| CONFIRMED     | `--anchor-accent-green`       |
+| CONFIRMED     | `--arc-accent-green`       |
 | NOT_MENTIONED | `--lumo-secondary-text-color` |
-| CONTRADICTED  | `--anchor-accent-magenta`     |
+| CONTRADICTED  | `--arc-accent-magenta`     |
 | None / no eval| neutral gray                  |
 
 The symbol is always a single character rendered at `1.1em` in the theme monospace font.
@@ -71,9 +71,9 @@ The symbol is always a single character rendered at `1.1em` in the theme monospa
 
 ---
 
-### Requirement: Per-anchor event rows use flex-wrap badge cells
+### Requirement: Per-memory unit event rows use flex-wrap badge cells
 
-Each per-anchor row MUST use a flex-wrap layout (`display: flex; flex-wrap: wrap;
+Each per-unit row MUST use a flex-wrap layout (`display: flex; flex-wrap: wrap;
 gap: 4px`) with one badge per event occurrence. Badges are **not** aligned to fixed
 turn-position columns. Each badge SHALL show the event-type initial letter (`C`, `R`,
 `D`, `A`, `E`) in a pill-shaped element colored by event type.
@@ -82,32 +82,32 @@ The previous fixed-width 28 × 16 px cell grid is **REMOVED**.
 
 Row header MUST include:
 - Authority badge (colored by authority level using existing authority-badge CSS class)
-- Truncated anchor text (max 20 chars, monospace, 0.75em)
+- Truncated memory unit text (max 20 chars, monospace, 0.75em)
 - Injection-state dot: `●` in cyan when currently injected, `○` in steel-gray otherwise
 
-Events include: creation (anchor promoted), reinforcement (rank increased), decay
-(rank decreased), archive (anchor removed). The anchor text or ID SHALL label each row.
+Events include: creation (memory unit promoted), reinforcement (rank increased), decay
+(rank decreased), archive (memory unit removed). The memory unit text or ID SHALL label each row.
 
-#### Scenario: Anchor row with three events
-- **WHEN** anchor "The king lives" has events: Created at T2, Reinforced at T5, Decayed at T8
+#### Scenario: Memory unit row with three events
+- **WHEN** memory unit "The king lives" has events: Created at T2, Reinforced at T5, Decayed at T8
 - **THEN** its row shows three badge pills: `C` (green), `R` (cyan), `D` (amber)
 - **AND** the badges wrap to a new line if the row overflows
 
-#### Scenario: Anchor created at turn 2
-- **WHEN** anchor "Saphira is a gold dragon" is promoted at turn 2
-- **THEN** the anchor's row shows a creation marker at position 2
+#### Scenario: Memory unit created at turn 2
+- **WHEN** memory unit "Saphira is a gold dragon" is promoted at turn 2
+- **THEN** the memory unit's row shows a creation marker at position 2
 
-#### Scenario: Anchor reinforced then archived
-- **WHEN** an anchor is reinforced at turn 4 and archived at turn 9
-- **THEN** the anchor's row shows a reinforcement marker at turn 4 and an archive marker at turn 9
+#### Scenario: Memory unit reinforced then archived
+- **WHEN** a memory unit is reinforced at turn 4 and archived at turn 9
+- **THEN** the memory unit's row shows a reinforcement marker at turn 4 and an archive marker at turn 9
 
 ---
 
 ### Requirement: Cell readability at default zoom
 
-**I1**: All drift marker symbols and anchor event badges MUST be legible at 100 %
+**I1**: All drift marker symbols and memory unit event badges MUST be legible at 100 %
 browser zoom on a 1280 × 800 viewport without requiring the user to scroll
-horizontally to read the per-anchor rows. Badge font-size MUST be ≥ 0.7em.
+horizontally to read the per-unit rows. Badge font-size MUST be ≥ 0.7em.
 
 ---
 
@@ -115,13 +115,13 @@ horizontally to read the per-anchor rows. Badge font-size MUST be ≥ 0.7em.
 
 Clicking a turn position on the timeline SHALL dispatch a turn-selection event that
 updates other panels. At minimum, clicking a turn SHALL update the
-`ContextInspectorPanel` to show the anchor state and verdicts for that specific turn.
+`ContextInspectorPanel` to show the memory unit state and verdicts for that specific turn.
 The currently selected turn SHALL be visually highlighted on the timeline with a
 distinct border or background.
 
 #### Scenario: Click turn updates inspector
 - **WHEN** the user clicks turn 5 on the timeline
-- **THEN** the ContextInspectorPanel updates to show the anchors and verdicts from turn 5
+- **THEN** the ContextInspectorPanel updates to show the memory units and verdicts from turn 5
 - **AND** the turn 5 position on the timeline is visually highlighted
 
 #### Scenario: Selected turn persists until changed

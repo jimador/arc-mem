@@ -15,7 +15,7 @@
 
 ### Requirement: Injection state tags per turn
 
-Each turn bubble SHALL display a tag indicating the injection state for that turn. The tag SHALL read "INJ ON" with cyan styling (`--anchor-accent-cyan`) when injection was enabled, or "INJ OFF" with amber styling (`--anchor-accent-amber`) when injection was disabled. The tag SHALL appear inline with the turn number header (e.g., `[T5] Player INJ ON`).
+Each turn bubble SHALL display a tag indicating the injection state for that turn. The tag SHALL read "INJ ON" with cyan styling (`--arc-accent-cyan`) when injection was enabled, or "INJ OFF" with amber styling (`--arc-accent-amber`) when injection was disabled. The tag SHALL appear inline with the turn number header (e.g., `[T5] Player INJ ON`).
 
 #### Scenario: Injection enabled turn
 - **WHEN** turn 3 completes with injection enabled
@@ -27,7 +27,7 @@ Each turn bubble SHALL display a tag indicating the injection state for that tur
 
 ### Requirement: Verdict-colored left borders
 
-DM response bubbles SHALL have a left border color determined by the drift verdict for that turn. Green (`--anchor-accent-green`) SHALL indicate all facts CONFIRMED, amber (`--anchor-accent-amber`) SHALL indicate all facts NOT_MENTIONED (no evaluation or no contradictions but also no confirmations), and magenta (`--anchor-accent-magenta`) SHALL indicate at least one CONTRADICTED verdict. Turns with no drift evaluation SHALL use a neutral border.
+DM response bubbles SHALL have a left border color determined by the drift verdict for that turn. Green (`--arc-accent-green`) SHALL indicate all facts CONFIRMED, amber (`--arc-accent-amber`) SHALL indicate all facts NOT_MENTIONED (no evaluation or no contradictions but also no confirmations), and magenta (`--arc-accent-magenta`) SHALL indicate at least one CONTRADICTED verdict. Turns with no drift evaluation SHALL use a neutral border.
 
 #### Scenario: DM response with contradicted verdict
 - **WHEN** a DM response renders on a turn where at least one fact was CONTRADICTED
@@ -55,11 +55,11 @@ Each turn bubble SHALL display a badge indicating the turn type. Badge text SHAL
 
 ### Requirement: Click-to-select turn listeners
 
-Each turn bubble SHALL be clickable. Clicking a turn bubble SHALL dispatch a turn-selection event that updates the ContextInspectorPanel and AnchorTimelinePanel to display data for the selected turn. The selected turn bubble SHALL be visually highlighted with a distinct border or background change.
+Each turn bubble SHALL be clickable. Clicking a turn bubble SHALL dispatch a turn-selection event that updates the ContextInspectorPanel and UnitTimelinePanel to display data for the selected turn. The selected turn bubble SHALL be visually highlighted with a distinct border or background change.
 
 #### Scenario: Click turn updates inspector
 - **WHEN** the user clicks the turn 5 bubble in the conversation panel
-- **THEN** the ContextInspectorPanel updates to show turn 5 anchor state and verdicts
+- **THEN** the ContextInspectorPanel updates to show turn 5 memory unit state and verdicts
 
 #### Scenario: Selected turn highlighted
 - **WHEN** the user clicks a turn bubble

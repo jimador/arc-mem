@@ -22,13 +22,13 @@ The system SHALL provide a `BenchmarkAggregator` service in the `sim.benchmark` 
 
 ### Requirement: Per-metric statistics for all ScoringResult fields
 
-`BenchmarkAggregator.aggregate()` SHALL compute a `BenchmarkStatistics` for each of the 7 `ScoringResult` fields: `factSurvivalRate`, `contradictionCount`, `majorContradictionCount`, `driftAbsorptionRate`, `meanTurnsToFirstDrift`, `anchorAttributionCount`, and `strategyEffectiveness`. The resulting `BenchmarkReport.metricStatistics()` map SHALL contain exactly these 7 keys (excluding `strategyEffectiveness`, which is handled separately).
+`BenchmarkAggregator.aggregate()` SHALL compute a `BenchmarkStatistics` for each of the 7 `ScoringResult` fields: `factSurvivalRate`, `contradictionCount`, `majorContradictionCount`, `driftAbsorptionRate`, `meanTurnsToFirstDrift`, `unitAttributionCount`, and `strategyEffectiveness`. The resulting `BenchmarkReport.metricStatistics()` map SHALL contain exactly these 7 keys (excluding `strategyEffectiveness`, which is handled separately).
 
 #### Scenario: Six metric keys in report
 
 - **GIVEN** a `List<ScoringResult>` with 5 entries
 - **WHEN** `aggregate()` is called
-- **THEN** `report.metricStatistics()` SHALL contain exactly the keys: `"factSurvivalRate"`, `"contradictionCount"`, `"majorContradictionCount"`, `"driftAbsorptionRate"`, `"meanTurnsToFirstDrift"`, `"anchorAttributionCount"`
+- **THEN** `report.metricStatistics()` SHALL contain exactly the keys: `"factSurvivalRate"`, `"contradictionCount"`, `"majorContradictionCount"`, `"driftAbsorptionRate"`, `"meanTurnsToFirstDrift"`, `"unitAttributionCount"`
 
 #### Scenario: Mean computed correctly
 

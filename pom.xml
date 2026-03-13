@@ -10,12 +10,17 @@
         <relativePath/>
     </parent>
 
-    <groupId>dev.dunnam</groupId>
-    <artifactId>dice-anchors</artifactId>
+    <groupId>dev.arcmem</groupId>
+    <artifactId>arcmem-parent</artifactId>
     <version>0.1.0-SNAPSHOT</version>
-    <packaging>jar</packaging>
-    <name>dice-anchors</name>
-    <description>Adversarial drift resistance demo — Anchors as enriched DICE Propositions</description>
+    <packaging>pom</packaging>
+    <name>arcmem-parent</name>
+    <description>ARC-Mem (Activation-Ranked Context Memory) — working memory model for long-horizon attention stability</description>
+
+    <modules>
+        <module>arcmem-core</module>
+        <module>arcmem-simulator</module>
+    </modules>
 
     <properties>
         <java.version>25</java.version>
@@ -37,210 +42,53 @@
         </dependencies>
     </dependencyManagement>
 
-    <dependencies>
-
-        <!-- Embabel Agent Framework -->
-        <dependency>
-            <groupId>com.embabel.agent</groupId>
-            <artifactId>embabel-agent-starter</artifactId>
-            <version>${embabel-agent.version}</version>
-        </dependency>
-
-        <!-- Drivine Neo4j ORM -->
-        <dependency>
-            <groupId>org.drivine</groupId>
-            <artifactId>drivine4j-spring-boot-starter</artifactId>
-            <version>0.0.14</version>
-        </dependency>
-
-        <!-- Embabel Neo4j RAG (Drivine-based) -->
-        <dependency>
-            <groupId>com.embabel.agent</groupId>
-            <artifactId>embabel-agent-rag-neo-drivine</artifactId>
-            <version>0.1.2-SNAPSHOT</version>
-        </dependency>
-
-        <!-- DICE Proposition Framework -->
-        <dependency>
-            <groupId>com.embabel.dice</groupId>
-            <artifactId>dice</artifactId>
-            <version>${dice.version}</version>
-        </dependency>
-
-        <!-- Spring Transaction (for @Transactional with Drivine) -->
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-tx</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.embabel.agent</groupId>
-            <artifactId>embabel-agent-rag-tika</artifactId>
-            <version>${embabel-agent.version}</version>
-        </dependency>
-
-        <!-- Spring Boot Web -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
-        </dependency>
-
-        <!-- Spring AI OpenAI chat/embeddings -->
-        <dependency>
-            <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-openai</artifactId>
-            <version>${spring-ai.version}</version>
-        </dependency>
-
-        <!-- Vaadin UI -->
-        <dependency>
-            <groupId>com.vaadin</groupId>
-            <artifactId>vaadin-spring-boot-starter</artifactId>
-        </dependency>
-
-        <!-- Markdown rendering -->
-        <dependency>
-            <groupId>org.commonmark</groupId>
-            <artifactId>commonmark</artifactId>
-            <version>0.24.0</version>
-        </dependency>
-
-        <!-- YAML scenario loading -->
-        <dependency>
-            <groupId>com.fasterxml.jackson.dataformat</groupId>
-            <artifactId>jackson-dataformat-yaml</artifactId>
-        </dependency>
-
-        <!-- Ollama support -->
-        <dependency>
-            <groupId>com.embabel.agent</groupId>
-            <artifactId>embabel-agent-starter-ollama</artifactId>
-            <version>${embabel-agent.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.embabel.agent</groupId>
-            <artifactId>embabel-agent-netty-client-autoconfigure</artifactId>
-            <version>${embabel-agent.version}</version>
-        </dependency>
-
-
-        <!-- Observability: Micrometer @Observed support -->
-        <dependency>
-            <groupId>com.embabel.agent</groupId>
-            <artifactId>embabel-agent-starter-observability</artifactId>
-            <version>${embabel-agent.version}</version>
-        </dependency>
-
-        <!-- Observability: Langfuse OTEL exporter -->
-        <dependency>
-            <groupId>com.quantpulsar</groupId>
-            <artifactId>opentelemetry-exporter-langfuse</artifactId>
-            <version>0.4.0</version>
-        </dependency>
-
-        <!-- Observability: OTEL API for span enrichment -->
-        <dependency>
-            <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-api</artifactId>
-        </dependency>
-
-        <!-- Caffeine in-memory cache for HOT-tier anchor storage -->
-        <dependency>
-            <groupId>com.github.ben-manes.caffeine</groupId>
-            <artifactId>caffeine</artifactId>
-        </dependency>
-
-        <!-- Testing -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.embabel.agent</groupId>
-            <artifactId>embabel-agent-test</artifactId>
-            <version>${embabel-agent.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-    </dependencies>
-
     <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <configuration>
+                        <enablePreview>true</enablePreview>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <executions>
+                        <execution>
+                            <goals><goal>properties</goal></goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <configuration>
+                        <excludedGroups>integration</excludedGroups>
+                        <excludes>
+                            <exclude>**/*IT.java</exclude>
+                        </excludes>
+                        <argLine>-XX:+EnableDynamicAgentLoading --enable-preview -javaagent:${net.bytebuddy:byte-buddy-agent:jar}</argLine>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <configuration>
+                        <skip>true</skip>
+                        <jvmArguments>--enable-preview</jvmArguments>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-                <configuration>
-                    <jvmArguments>--enable-preview</jvmArguments>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <enablePreview>true</enablePreview>
-                </configuration>
-            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals><goal>properties</goal></goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-                    <excludedGroups>integration</excludedGroups>
-                    <excludes>
-                        <exclude>**/*IT.java</exclude>
-                    </excludes>
-                    <argLine>-XX:+EnableDynamicAgentLoading --enable-preview -javaagent:${net.bytebuddy:byte-buddy-agent:jar}</argLine>
-                </configuration>
             </plugin>
         </plugins>
     </build>
-
-    <profiles>
-        <profile>
-            <id>openai-models</id>
-            <activation>
-                <property>
-                    <name>env.OPENAI_API_KEY</name>
-                </property>
-            </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>com.embabel.agent</groupId>
-                    <artifactId>embabel-agent-starter-openai</artifactId>
-                    <version>${embabel-agent.version}</version>
-                </dependency>
-            </dependencies>
-        </profile>
-        <profile>
-            <id>anthropic-models</id>
-            <activation>
-                <property>
-                    <name>env.ANTHROPIC_API_KEY</name>
-                </property>
-            </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>com.embabel.agent</groupId>
-                    <artifactId>embabel-agent-starter-anthropic</artifactId>
-                    <version>${embabel-agent.version}</version>
-                </dependency>
-            </dependencies>
-        </profile>
-    </profiles>
 
     <repositories>
         <repository>

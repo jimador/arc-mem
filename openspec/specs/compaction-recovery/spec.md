@@ -127,6 +127,6 @@ Message history SHALL NOT be cleared until the compaction summary passes validat
 
 #### Scenario: Invalid threshold rejected at startup
 
-- **GIVEN** `dice-anchors.compaction.min-match-ratio` is set to 1.5 in `application.yml`
+- **GIVEN** `arc-mem.compaction.min-match-ratio` is set to 1.5 in `application.yml`
 - **WHEN** the Spring context initializes
 - **THEN** context startup SHALL fail with a constraint validation error identifying `minMatchRatio`

@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Conversation record lifecycle
-The system SHALL persist a conversation record in Neo4j when a new chat conversation is created. The record SHALL include a unique `conversationId` (UUID), a `title` (defaulting to `"Untitled"` if not specified), and a `createdAt` timestamp. The `conversationId` SHALL be used as the `contextId` for all propositions and anchors created during that conversation.
+The system SHALL persist a conversation record in Neo4j when a new chat conversation is created. The record SHALL include a unique `conversationId` (UUID), a `title` (defaulting to `"Untitled"` if not specified), and a `createdAt` timestamp. The `conversationId` SHALL be used as the `contextId` for all propositions and memory units created during that conversation.
 
 #### Scenario: Create a new conversation
 - **WHEN** a user starts a new chat conversation
@@ -12,7 +12,7 @@ The system SHALL persist a conversation record in Neo4j when a new chat conversa
 - **GIVEN** a conversation with `conversationId = "abc-123"`
 - **WHEN** DICE extraction runs on a DM response in that conversation
 - **THEN** all extracted propositions have `contextId = "abc-123"`
-- **AND** any anchors promoted from those propositions inherit the same `contextId`
+- **AND** any memory units promoted from those propositions inherit the same `contextId`
 
 ### Requirement: Message persistence
 The system SHALL persist each chat message to Neo4j as it is sent or received. Each mwe essage record SHALL include the `conversationId`, a `role` (PLAYER or DM), the raw `text` content, an `ordinal` (0-based turn position), and a `createdAt` timestamp.

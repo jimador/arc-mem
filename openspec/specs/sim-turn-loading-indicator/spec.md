@@ -34,7 +34,7 @@ The status label SHALL cycle through at least three messages on a timed interval
 3. "Extracting propositions…"
 
 The indicator container SHALL use the retro theme surface color and a subtle left
-border in `--anchor-accent-cyan`.
+border in `--arc-accent-cyan`.
 
 #### Scenario: Status label rotates
 - **WHEN** the thinking indicator has been visible for 3 seconds without a DM response

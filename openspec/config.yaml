@@ -1,7 +1,7 @@
 schema: spec-driven
 
 context: |
-  Project: dice-anchors — Adversarial drift resistance demo using Anchors (enriched DICE Propositions)
+  Project: arc-mem — Adversarial drift resistance demo using ARC-Mem memory units (enriched DICE Propositions)
   Tech stack: Java 25, Spring Boot 3.5.10, Embabel Agent 0.3.5-SNAPSHOT, DICE 0.1.0-SNAPSHOT, Vaadin 24.6.4
   Storage: Neo4j 5.x (Drivine ORM), no PostgreSQL
   Build: Single-module Maven project

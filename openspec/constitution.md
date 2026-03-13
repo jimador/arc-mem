@@ -1,6 +1,6 @@
-# dice-anchors Project Constitution
+# arc-mem Project Constitution
 
-This constitution codifies the governing architectural constraints for the dice-anchors project. All specifications, proposals, and implementations MUST comply with these articles unless an explicit override is documented per the governance process below.
+This constitution codifies the governing architectural constraints for the arc-mem project. All specifications, proposals, and implementations MUST comply with these articles unless an explicit override is documented per the governance process below.
 
 Keywords follow [RFC 2119](https://www.ietf.org/rfc/rfc2119.txt).
 
@@ -26,14 +26,14 @@ Not applicable — this article governs spec format and cannot be overridden.
 ## Article II: Neo4j as Sole Persistence Authority
 
 ### Statement
-Neo4j SHALL be the sole authoritative store for all persistent state: propositions, anchors, entities, relationships, and simulation data. There is no PostgreSQL in this project. All persistence SHALL go through Drivine ORM and the `AnchorRepository`.
+Neo4j SHALL be the sole authoritative store for all persistent state: propositions, memory units, entities, relationships, and simulation data. There is no PostgreSQL in this project. All persistence SHALL go through Drivine ORM and the `MemoryUnitRepository`.
 
 ### Rationale
-dice-anchors is a single-purpose demo focused on long-horizon attention stability and contradiction/hallucination drift control. Adversarial turns are evaluation stress tests for that goal. A single graph store simplifies the architecture and avoids the dual-store complexity of the parent tor project.
+arc-mem is a single-purpose demo focused on long-horizon attention stability and contradiction/hallucination drift control. Adversarial turns are evaluation stress tests for that goal. A single graph store simplifies the architecture and avoids the dual-store complexity of the parent tor project.
 
 ### Enforcement
 - Code review verifies no relational database dependencies
-- All persistence operations go through `AnchorRepository` or `GraphObjectManager`
+- All persistence operations go through `MemoryUnitRepository` or `GraphObjectManager`
 
 ### Override Process
 Adding a second store requires documented justification and explicit constitution amendment.
@@ -72,22 +72,22 @@ Drivine/Neo4j node entities requiring mutable state are exempt. Document in `## 
 
 ---
 
-## Article V: Anchor Invariants
+## Article V: ARC-Mem Invariants
 
 ### Statement
-The anchor subsystem MUST enforce the following invariants:
-- **A1**: Active anchor count per context SHALL NOT exceed `anchorBudget` (default 20). When exceeded, the lowest-ranked non-pinned anchor MUST be evicted.
-- **A2**: Anchor rank values MUST be clamped to the range [100, 900] via `clampRank()`.
-- **A3**: Anchor promotion from proposition to anchor MUST be explicit — auto-promotion MUST NOT occur.
-- **A4**: Anchor authority levels (PROVISIONAL, UNRELIABLE, RELIABLE, CANON) MUST follow upgrade-only hierarchy. CANON MUST NOT be auto-assigned.
+The ARC-Mem subsystem MUST enforce the following invariants:
+- **A1**: Active memory unit count per context SHALL NOT exceed `unitBudget` (default 20). When exceeded, the lowest-ranked non-pinned memory unit MUST be evicted.
+- **A2**: Memory unit activation score values MUST be clamped to the range [100, 900] via `clampRank()`.
+- **A3**: Memory unit promotion from proposition to memory unit MUST be explicit — auto-promotion MUST NOT occur.
+- **A4**: Memory unit authority levels (PROVISIONAL, UNRELIABLE, RELIABLE, CANON) MUST follow upgrade-only hierarchy. CANON MUST NOT be auto-assigned.
 
 ### Rationale
-Anchors are the primary mechanism for persistent memory in long-horizon consistency control. Unbounded growth leads to context overflow; uncontrolled ranks cause priority inversion; auto-promotion creates unreliable facts.
+Memory units are the primary mechanism for persistent memory in long-horizon consistency control. Unbounded growth leads to context overflow; uncontrolled activation scores cause priority inversion; auto-promotion creates unreliable facts.
 
 ### Enforcement
-- Unit tests validate budget enforcement, rank clamping, and explicit promotion
-- `AnchorEngine` enforces A1 on every activation
-- `Anchor.clampRank()` enforces A2 at the model layer
+- Unit tests validate budget enforcement, activation score clamping, and explicit promotion
+- `ArcMemEngine` enforces A1 on every activation
+- `ContextUnit.clampRank()` enforces A2 at the model layer
 
 ### Override Process
 Budget and rank bounds are safety-critical and SHOULD NOT be overridden without extensive testing.
@@ -104,7 +104,7 @@ Isolation prevents cross-run data leakage and ensures reproducible simulation re
 
 ### Enforcement
 - `SimulationService` assigns unique contextId per run
-- Finally block cleans up via `anchorRepository.clearByContext(contextId)`
+- Finally block cleans up via `memoryUnitRepository.clearByContext(contextId)`
 
 ### Override Process
 Not applicable — isolation is fundamental to simulation correctness.
@@ -117,7 +117,7 @@ Not applicable — isolation is fundamental to simulation correctness.
 New domain logic (services, state machines, policies, extractors) SHOULD have unit tests written before or alongside the implementation. Test method naming MUST follow the `actionConditionExpectedOutcome` pattern. Tests MUST use JUnit 5 with `@Nested`/`@DisplayName` for structure, Mockito for mocking, and AssertJ for assertions.
 
 ### Rationale
-Domain logic drives anchor correctness. Untested state transitions, extraction pipelines, or ranking algorithms silently corrupt anchor state.
+Domain logic drives ARC-Mem correctness. Untested state transitions, extraction pipelines, or ranking algorithms silently corrupt memory unit state.
 
 ### Enforcement
 - Code review checks for test coverage on new domain logic

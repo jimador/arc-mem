@@ -130,7 +130,7 @@ The system SHALL provide a `ResilienceReportBuilder` Spring service in `sim.repo
 
 ### Requirement: Positioning statement
 
-The `ResilienceReport` SHALL include a `positioning` field containing a statement that positions the anchor system relative to: MemGPT/Letta (OS-style paging), Zep/Graphiti (temporal knowledge graphs), ShardMemo (sharded retrieval), and Core Anchor Memory (static context anchoring). The statement SHALL emphasize that this system focuses on trust/authority-governed working memory and adversarial drift resistance.
+The `ResilienceReport` SHALL include a `positioning` field containing a statement that positions the memory unit system relative to: MemGPT/Letta (OS-style paging), Zep/Graphiti (temporal knowledge graphs), ShardMemo (sharded retrieval), and Core Anchor Memory (static context anchoring). The statement SHALL emphasize that this system focuses on trust/authority-governed working memory and adversarial drift resistance.
 
 #### Scenario: Positioning references related systems
 

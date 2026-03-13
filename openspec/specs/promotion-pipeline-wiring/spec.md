@@ -7,7 +7,7 @@
 The promotion pipeline SHALL invoke `DuplicateDetector.isDuplicate(contextId, candidateText)` for each proposition that passes the confidence gate. Propositions identified as duplicates MUST NOT be promoted.
 
 #### Scenario: Duplicate proposition rejected
-- **WHEN** a proposition with text matching an existing anchor passes confidence gate
+- **WHEN** a proposition with text matching an existing memory unit passes confidence gate
 - **THEN** DuplicateDetector identifies it as duplicate
 - **AND** the proposition is not promoted
 - **AND** funnel log shows it was filtered at dedup stage
@@ -23,20 +23,20 @@ The promotion pipeline SHALL invoke `ConflictResolver.resolve(conflict)` for eac
 #### Scenario: KEEP resolution skips incoming
 - **WHEN** a conflict is detected and resolver returns KEEP
 - **THEN** the incoming proposition is not promoted
-- **AND** the existing anchor remains unchanged
+- **AND** the existing memory unit remains unchanged
 
 #### Scenario: REPLACE resolution archives existing and promotes incoming
 - **WHEN** a conflict is detected and resolver returns REPLACE
-- **THEN** the existing conflicting anchor is archived (rank set to 0, status ARCHIVED)
-- **AND** the incoming proposition is promoted as a new anchor
+- **THEN** the existing conflicting memory unit is archived (rank set to 0, status ARCHIVED)
+- **AND** the incoming proposition is promoted as a new memory unit
 
 #### Scenario: COEXIST resolution allows both
 - **WHEN** a conflict is detected and resolver returns COEXIST
 - **THEN** the incoming proposition proceeds to trust evaluation
-- **AND** the existing anchor remains unchanged
+- **AND** the existing memory unit remains unchanged
 
 #### Scenario: Multiple conflicts with mixed resolutions
-- **WHEN** an incoming proposition conflicts with multiple anchors
+- **WHEN** an incoming proposition conflicts with multiple memory units
 - **AND** any resolution returns KEEP
 - **THEN** the incoming proposition is not promoted (KEEP takes precedence)
 
@@ -67,6 +67,6 @@ The promotion pipeline SHALL log aggregate counts at each gate after processing 
 
 - **I1**: DuplicateDetector MUST be invoked before conflict detection (avoids wasting LLM calls on duplicates)
 - **I2**: ConflictResolver decisions MUST be acted upon — KEEP/REPLACE/COEXIST MUST produce the specified side effects
-- **I3**: REPLACE MUST archive existing anchor before promoting incoming (no brief period of contradictory anchors)
-- **I4**: Authority-upgrade-only invariant MUST be preserved — REPLACE does not downgrade authority of other anchors
+- **I3**: REPLACE MUST archive existing memory unit before promoting incoming (no brief period of contradictory memory units)
+- **I4**: Authority-upgrade-only invariant MUST be preserved — REPLACE does not downgrade authority of other memory units
 - **I5**: Funnel logging MUST NOT affect promotion outcomes (observability only)

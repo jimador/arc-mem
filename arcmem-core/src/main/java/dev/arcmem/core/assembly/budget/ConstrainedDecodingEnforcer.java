@@ -1,0 +1,49 @@
+package dev.arcmem.core.assembly.budget;
+import dev.arcmem.core.memory.budget.*;
+import dev.arcmem.core.memory.canon.*;
+import dev.arcmem.core.memory.conflict.*;
+import dev.arcmem.core.memory.engine.*;
+import dev.arcmem.core.memory.maintenance.*;
+import dev.arcmem.core.memory.model.*;
+import dev.arcmem.core.memory.mutation.*;
+import dev.arcmem.core.memory.trust.*;
+import dev.arcmem.core.assembly.budget.*;
+import dev.arcmem.core.assembly.compaction.*;
+import dev.arcmem.core.assembly.compliance.*;
+import dev.arcmem.core.assembly.protection.*;
+import dev.arcmem.core.assembly.retrieval.*;
+
+/**
+ * Interface for constrained decoding enforcement — the third tier of the compliance spectrum.
+ * <p>
+ * <h2>Contract</h2>
+ * At each decoding step, tokens where {@link ConstraintMask#allowedTokens()}{@code [i] == false}
+ * have their logits set to negative infinity, making constraint violations structurally impossible
+ * to generate. This is the STATIC architecture (Google AI STATIC, 2024) adapted to the
+ * arc-mem domain.
+ *
+ * <h2>Implementation status</h2>
+ * Full constrained decoding requires access to the raw logit distribution at each decoding step,
+ * which is unavailable through API-based models (OpenAI, Anthropic). Implementation requires
+ * local model infrastructure (vLLM custom samplers, Hugging Face {@code LogitsProcessor}).
+ * This interface defines the contract for when that infrastructure is available.
+ *
+ * <h2>Current stub</h2>
+ * {@link NoOpConstrainedDecodingEnforcer} returns an unconstrained mask (all tokens allowed)
+ * and a compliant result. It satisfies the interface contract for testing without requiring
+ * local model infrastructure.
+ */
+public interface ConstrainedDecodingEnforcer extends ComplianceEnforcer {
+
+    /**
+     * Computes a vocabulary mask for the given unit constraints and vocabulary size.
+     * <p>
+     * The returned mask is applied at each decoding step: tokens at positions where
+     * {@code allowedTokens[i] == false} are suppressed (logit set to negative infinity).
+     *
+     * @param index     constraint index built from active CANON/RELIABLE units
+     * @param vocabSize total vocabulary size; defines the length of the returned mask
+     * @return a constraint mask covering the full vocabulary
+     */
+    ConstraintMask computeConstraintMask(SemanticUnitConstraintIndex index, int vocabSize);
+}

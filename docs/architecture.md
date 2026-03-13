@@ -1,4 +1,4 @@
-<!-- sync: openspec/specs/anchor-conflict, openspec/specs/anchor-trust, openspec/specs/anchor-lifecycle, openspec/specs/benchmark-report, openspec/specs/resilience-report, openspec/specs/run-history-persistence, openspec/specs/observability -->
+<!-- sync: openspec/specs/memory-unit-conflict, openspec/specs/memory-unit-trust, openspec/specs/memory-unit-lifecycle, openspec/specs/benchmark-report, openspec/specs/resilience-report, openspec/specs/run-history-persistence, openspec/specs/observability -->
 <!-- last-synced: 2026-02-25 -->
 
 # Architecture
@@ -10,21 +10,21 @@ This project is a single Spring Boot app (Java 25) + Neo4j 5.x. It is intentiona
 | Route | Purpose |
 |---|---|
 | `/` | simulation harness |
-| `/chat` | interactive anchor-aware DM chat |
+| `/chat` | interactive ARC-Mem-aware DM chat |
 | `/benchmark` | condition/scenario batch experiments |
 | `/run` | run inspection and cross-run comparison |
 
-Everything shares the same anchor lifecycle engine and persistence layer.
+Everything shares the same memory unit lifecycle engine and persistence layer.
 
 ## Runtime execution paths
 
 Simulation path:
 
-`ScenarioLoader -> SimulationService -> SimulationTurnExecutor -> (LLM call + ComplianceEnforcer.enforce()) -> (extraction + ConflictPreCheck + AnchorPromoter) -> (MaintenanceStrategy.onTurnComplete()) -> ScoringService -> RunHistoryStore`
+`ScenarioLoader -> SimulationService -> SimulationTurnExecutor -> (LLM call + ComplianceEnforcer.enforce()) -> (extraction + ConflictPreCheck + SemanticUnitPromoter) -> (MaintenanceStrategy.onTurnComplete()) -> ScoringService -> RunHistoryStore`
 
 Chat path:
 
-`ChatView -> ChatActions -> prompt assembly -> model response -> async extraction event -> AnchorPromoter`
+`ChatView -> ChatActions -> prompt assembly -> model response -> async extraction event -> SemanticUnitPromoter`
 
 Benchmark/report path:
 
@@ -46,7 +46,7 @@ flowchart LR
         CA --> PA["Prompt Assembly"]
         PA --> CR["Model Response"]
         CR --> EVT["ConversationAnalysisRequestEvent"]
-        EVT --> AP["AnchorPromoter"]
+        EVT --> AP["SemanticUnitPromoter"]
     end
 
     subgraph Bench["Benchmark Path"]
@@ -58,24 +58,24 @@ flowchart LR
 
 ## Package map
 
-- `anchor/`: rank/authority lifecycle, conflict resolution, decay, trust re-eval, maintenance strategies (reactive/proactive/hybrid), memory pressure gauge, conflict index, budget strategies, Prolog integration
+- `memory/`: activation score/authority lifecycle, conflict resolution, decay, trust re-eval, maintenance strategies (reactive/proactive/hybrid), memory pressure gauge, conflict index, budget strategies, Prolog integration
 - `assembly/`: context assembly, lock, relevance scoring, compaction/token budget, compliance enforcement
-- `extract/`: proposition-to-anchor gate pipeline
+- `extraction/`: proposition-to-memory-unit gate pipeline
 - `chat/`: Embabel action/tool integration + chat UI
-- `persistence/`: Neo4j entities/repository, tiered anchor storage (HOT/WARM/COLD)
+- `persistence/`: Neo4j entities/repository, tiered memory unit storage (HOT/WARM/COLD)
 - `sim/`: scenario execution, judge scoring, benchmarking, report output, UI panels
 
 ## Core data model
 
-### Anchor (active working-memory item)
+### MemoryUnit (active working-memory item)
 
-Anchors are not a separate node type. A proposition with `rank > 0` is active.
+Memory units are not a separate node type. A proposition with `rank > 0` (activation score) is active.
 
 ```java
-record Anchor(
+record MemoryUnit(
     String id,
     String text,
-    int rank,                  // [100, 900]
+    int rank,                  // [100, 900] activation score
     Authority authority,       // PROVISIONAL/UNRELIABLE/RELIABLE/CANON
     boolean pinned,
     double confidence,
@@ -114,16 +114,16 @@ stateDiagram-v2
 Strict invariants:
 - CANON is never auto-assigned.
 - CANON is immune to automatic demotion.
-- Pinned anchors are immune to decay and budget eviction.
-- Rank is always clamped through `Anchor.clampRank()`.
+- Pinned memory units are immune to decay and budget eviction.
+- Activation score is always clamped through `MemoryUnit.clampRank()`.
 
-## Anchor engine responsibilities
+## ARC-Mem engine responsibilities
 
-`AnchorEngine` is the orchestrator. The behavior that matters most:
+`ArcMemEngine` is the orchestrator. The behavior that matters most:
 
-- `inject(contextId)`: returns active anchors sorted by rank desc
+- `inject(contextId)`: returns active memory units sorted by activation score desc
 - `promote(propositionId, initialRank, authorityCeiling?)`: promote then enforce budget
-- `reinforce(anchorId)`: increment reinforcement, apply rank bump, maybe authority upgrade
+- `reinforce(unitId)`: increment reinforcement, apply activation score bump, maybe authority upgrade
 - `detectConflicts(contextId, text)`: delegate to configured detector
 - `resolveConflict(conflict)`: delegate to configured resolver
 - `supersede(predecessorId, successorId, reason)`: archive + lineage link
@@ -134,11 +134,11 @@ Budget is enforced per promotion call, not as a batch post-pass.
 
 ```text
 promote()
-  -> write promoted anchor
+  -> write promoted memory unit
   -> evictLowestRanked(contextId, budget)
 ```
 
-Default budget is `20` active anchors per context.
+Default budget is `20` active memory units per context.
 
 ## Maintenance strategies
 
@@ -150,7 +150,7 @@ Default budget is `20` active anchors per context.
 
 `MemoryPressureGauge` computes composite `[0.0, 1.0]` pressure from budget usage, conflict rate, decay demotions, and compaction frequency. Light-sweep at 0.4, full-sweep at 0.8.
 
-Strategy is selectable globally via `DiceAnchorsProperties` and per-scenario via YAML for A/B comparison.
+Strategy is selectable globally via `ArcMemProperties` and per-scenario via YAML for A/B comparison.
 
 ## Compliance enforcement
 
@@ -158,7 +158,7 @@ Strategy is selectable globally via `DiceAnchorsProperties` and per-scenario via
 
 Implementations:
 - `PromptInjectionEnforcer` — current behavior, always ACCEPT (default)
-- `PostGenerationValidator` — LLM validates response against CANON/RELIABLE anchors after generation
+- `PostGenerationValidator` — LLM validates response against CANON/RELIABLE memory units after generation
 - `PrologInvariantEnforcer` — deterministic rule-based checking via DICE tuProlog
 
 Authority-based strictness: CANON enforced by default; lower authorities configurable.
@@ -208,7 +208,7 @@ Profile thresholds:
 
 ## Prompt assembly and compaction
 
-`AnchorsLlmReference` injects an explicit established-facts block into the system prompt.
+`ArcMemLlmReference` injects an explicit established-facts block into the system prompt.
 
 Example shape:
 
@@ -240,7 +240,7 @@ High-level policy:
 `REPLACE` typically leads to:
 
 ```text
-AnchorEngine.supersede()
+ArcMemEngine.supersede()
   -> archive predecessor
   -> create SUPERSEDES edge in Neo4j
   -> emit lifecycle event + audit metadata
@@ -263,18 +263,18 @@ Run storage is behind `RunHistoryStore`:
 
 | Setting | Default |
 |---|---|
-| `anchor.budget` | `20` |
-| `anchor.initial-rank` | `500` |
+| `arc-mem.budget` | `20` |
+| `arc-mem.initial-rank` | `500` |
 | `conflict-detection.strategy` | `llm` |
 | `chat.chat-llm.model` | `gpt-4.1-mini` |
 | `sim.evaluator-model` | `gpt-4.1-mini` |
 | `run-history.store` | `memory` |
-| `anchor.revision.enabled` | `true` |
-| `anchor.revision.reliable-revisable` | `false` |
-| `anchor.maintenance.mode` | `REACTIVE` |
-| `anchor.pressure.light-sweep-threshold` | `0.4` |
-| `anchor.pressure.full-sweep-threshold` | `0.8` |
-| `anchor.budget.strategy` | `COUNT` |
+| `arc-mem.revision.enabled` | `true` |
+| `arc-mem.revision.reliable-revisable` | `false` |
+| `arc-mem.maintenance.mode` | `REACTIVE` |
+| `arc-mem.pressure.light-sweep-threshold` | `0.4` |
+| `arc-mem.pressure.full-sweep-threshold` | `0.8` |
+| `arc-mem.budget.strategy` | `COUNT` |
 | `compliance.enforcement-strategy` | `PROMPT_ONLY` |
 | `tiered-storage.enabled` | `false` |
 | `quality-scoring.enabled` | `false` |
@@ -287,6 +287,6 @@ Run storage is behind `RunHistoryStore`:
 
 ## Architectural boundaries
 
-- Core anchor logic does not reference simulation concepts.
+- Core ARC-Mem logic does not reference simulation concepts.
 - Conflict/trust/promotion should fail safe, not fail open.
 - This demo prefers explicit policies over generic abstractions.

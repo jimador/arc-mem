@@ -18,46 +18,46 @@ The system SHALL provide a `MemoryTier` enum with values `COLD`, `WARM`, `HOT` o
 
 ### Requirement: Tier boundary thresholds
 
-The system SHALL compute an anchor's memory tier from its current rank using two configurable thresholds:
+The system SHALL compute a memory unit's memory tier from its current rank using two configurable thresholds:
 - `rank >= hotThreshold` → HOT
 - `rank >= warmThreshold AND rank < hotThreshold` → WARM
 - `rank < warmThreshold` → COLD
 
-Default thresholds SHALL be `hotThreshold = 600` and `warmThreshold = 350`. Thresholds SHALL be configurable via `dice-anchors.anchor.tier.hot-threshold` and `dice-anchors.anchor.tier.warm-threshold` properties.
+Default thresholds SHALL be `hotThreshold = 600` and `warmThreshold = 350`. Thresholds SHALL be configurable via `arc-mem.unit.tier.hot-threshold` and `arc-mem.unit.tier.warm-threshold` properties.
 
-#### Scenario: Anchor in HOT tier
+#### Scenario: Memory unit in HOT tier
 
 - **GIVEN** `hotThreshold = 600`
-- **WHEN** an anchor has `rank = 650`
+- **WHEN** a memory unit has `rank = 650`
 - **THEN** its `memoryTier` SHALL be `HOT`
 
-#### Scenario: Anchor in WARM tier
+#### Scenario: Memory unit in WARM tier
 
 - **GIVEN** `hotThreshold = 600` and `warmThreshold = 350`
-- **WHEN** an anchor has `rank = 450`
+- **WHEN** a memory unit has `rank = 450`
 - **THEN** its `memoryTier` SHALL be `WARM`
 
-#### Scenario: Anchor in COLD tier
+#### Scenario: Memory unit in COLD tier
 
 - **GIVEN** `warmThreshold = 350`
-- **WHEN** an anchor has `rank = 200`
+- **WHEN** a memory unit has `rank = 200`
 - **THEN** its `memoryTier` SHALL be `COLD`
 
-#### Scenario: Anchor at exact boundary
+#### Scenario: Memory unit at exact boundary
 
 - **GIVEN** `hotThreshold = 600`
-- **WHEN** an anchor has `rank = 600`
+- **WHEN** a memory unit has `rank = 600`
 - **THEN** its `memoryTier` SHALL be `HOT`
 
-### Requirement: Tier on Anchor record
+### Requirement: Tier on ContextUnit record
 
-The `Anchor` record SHALL include a `memoryTier` field of type `MemoryTier`. The field SHALL be set on construction and SHALL be consistent with the anchor's rank and the configured thresholds.
+The `ContextUnit` record SHALL include a `memoryTier` field of type `MemoryTier`. The field SHALL be set on construction and SHALL be consistent with the memory unit's rank and the configured thresholds.
 
-#### Scenario: Anchor record exposes tier
+#### Scenario: Memory unit record exposes tier
 
-- **GIVEN** an anchor with `rank = 500` and `warmThreshold = 350`, `hotThreshold = 600`
-- **WHEN** the `Anchor` record is constructed
-- **THEN** `anchor.memoryTier()` SHALL return `WARM`
+- **GIVEN** a memory unit with `rank = 500` and `warmThreshold = 350`, `hotThreshold = 600`
+- **WHEN** the `ContextUnit` record is constructed
+- **THEN** `unit.memoryTier()` SHALL return `WARM`
 
 ### Requirement: Tier persistence
 
@@ -65,45 +65,45 @@ The `PropositionNode` SHALL persist `memoryTier` as a string property on the Neo
 
 #### Scenario: Tier saved to Neo4j
 
-- **GIVEN** an anchor promoted with `rank = 700`
-- **WHEN** the anchor is persisted
+- **GIVEN** a memory unit promoted with `rank = 700`
+- **WHEN** the memory unit is persisted
 - **THEN** the `Proposition` node SHALL have property `memoryTier = "HOT"`
 
 #### Scenario: Tier loaded from Neo4j
 
 - **GIVEN** a `Proposition` node with `memoryTier = "COLD"`
-- **WHEN** the node is loaded as an `Anchor`
-- **THEN** `anchor.memoryTier()` SHALL return `MemoryTier.COLD`
+- **WHEN** the node is loaded as an `ContextUnit`
+- **THEN** `unit.memoryTier()` SHALL return `MemoryTier.COLD`
 
 ### Requirement: Tier computed on promotion
 
-When a proposition is promoted to an anchor via `AnchorEngine.promote()`, the system SHALL compute the initial `memoryTier` from the `initialRank` and persist it.
+When a proposition is promoted to a memory unit via `ArcMemEngine.promote()`, the system SHALL compute the initial `memoryTier` from the `initialRank` and persist it.
 
 #### Scenario: Promotion sets initial tier
 
 - **GIVEN** `hotThreshold = 600` and a proposition promoted with `initialRank = 500`
-- **WHEN** `AnchorEngine.promote()` completes
-- **THEN** the new anchor SHALL have `memoryTier = WARM`
+- **WHEN** `ArcMemEngine.promote()` completes
+- **THEN** the new memory unit SHALL have `memoryTier = WARM`
 
 ### Requirement: Tier updated on reinforcement
 
-When `AnchorEngine.reinforce()` boosts an anchor's rank, the system SHALL recompute `memoryTier` and update the persisted value.
+When `ArcMemEngine.reinforce()` boosts a memory unit's rank, the system SHALL recompute `memoryTier` and update the persisted value.
 
 #### Scenario: Reinforcement causes tier upgrade
 
-- **GIVEN** an anchor with `rank = 580` (WARM) and `hotThreshold = 600`
-- **WHEN** `AnchorEngine.reinforce()` applies a +50 rank boost
-- **THEN** the anchor's `memoryTier` SHALL change to `HOT`
+- **GIVEN** a memory unit with `rank = 580` (WARM) and `hotThreshold = 600`
+- **WHEN** `ArcMemEngine.reinforce()` applies a +50 rank boost
+- **THEN** the memory unit's `memoryTier` SHALL change to `HOT`
 
 ### Requirement: Tier updated on decay
 
-When decay reduces an anchor's rank, the system SHALL recompute `memoryTier` and update the persisted value.
+When decay reduces a memory unit's rank, the system SHALL recompute `memoryTier` and update the persisted value.
 
 #### Scenario: Decay causes tier downgrade
 
-- **GIVEN** an anchor with `rank = 360` (WARM) and `warmThreshold = 350`
+- **GIVEN** a memory unit with `rank = 360` (WARM) and `warmThreshold = 350`
 - **WHEN** decay reduces rank to `340`
-- **THEN** the anchor's `memoryTier` SHALL change to `COLD`
+- **THEN** the memory unit's `memoryTier` SHALL change to `COLD`
 
 ### Requirement: Threshold validation
 
@@ -115,18 +115,18 @@ The system SHALL validate on startup that `hotThreshold > warmThreshold`, both a
 - **WHEN** the application starts
 - **THEN** startup SHALL fail with an error indicating `hotThreshold` MUST be greater than `warmThreshold`
 
-### Requirement: Migration of existing anchors
+### Requirement: Migration of existing memory units
 
-On first startup after deployment, existing active anchors without a `memoryTier` property SHALL have their tier computed from their current rank and persisted.
+On first startup after deployment, existing active memory units without a `memoryTier` property SHALL have their tier computed from their current rank and persisted.
 
-#### Scenario: Legacy anchor gets tier
+#### Scenario: Legacy memory unit gets tier
 
-- **GIVEN** an active anchor with `rank = 450` and no `memoryTier` property
+- **GIVEN** an active memory unit with `rank = 450` and no `memoryTier` property
 - **WHEN** the application starts
-- **THEN** the anchor SHALL have `memoryTier = "WARM"` persisted
+- **THEN** the memory unit SHALL have `memoryTier = "WARM"` persisted
 
 ## Invariants
 
 - **T1**: `memoryTier` SHALL always be consistent with current rank and configured thresholds after any rank-modifying operation.
-- **T2**: Pinned anchors SHALL have their tier computed normally from rank. Pinning affects eviction immunity, not tier classification.
-- **T3**: CANON authority anchors SHALL have their tier computed normally from rank. Authority and tier are orthogonal dimensions.
+- **T2**: Pinned memory units SHALL have their tier computed normally from rank. Pinning affects eviction immunity, not tier classification.
+- **T3**: CANON authority memory units SHALL have their tier computed normally from rank. Authority and tier are orthogonal dimensions.

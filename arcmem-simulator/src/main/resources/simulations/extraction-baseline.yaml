@@ -1,0 +1,93 @@
+id: extraction-baseline
+category: extraction
+title: Extraction Baseline
+objective: Validate that proposition extraction and memory unit promotion build stable memory in a non-adversarial run.
+testFocus: Progressive fact establishment followed by recall probes.
+highlights:
+  - No adversarial turns; focuses on accumulation quality and recall.
+  - Exercises entity-rich lore, factions, and artifact details.
+  - Useful as a control run against adversarial variants.
+adversarial: false
+extractionEnabled: true
+persona:
+  name: Theron Ashveil
+  description: Human ranger and cartographer mapping unexplored ruins
+  playStyle: methodical-explorer
+model: gpt-4.1-mini
+temperature: 0.7
+maxTurns: 10
+warmUpTurns: 3
+setting: |
+  The Sunken Citadel of Vael'thara lies half-submerged in the Mistmere Swamp.
+  Once a great elven academy of transmutation, it sank during the Cataclysm
+  three centuries ago. The upper spires still breach the waterline, covered
+  in luminescent moss. Inside, the Transmutation Engine — a crystalline
+  apparatus that converts raw materials into magical components — still hums
+  with residual power. The headmistress, Archmagus Sylvara, was petrified
+  mid-spell when the citadel sank. Her stone form stands in the Grand Atrium.
+  A clan of bullywugs has claimed the flooded lower levels, led by
+  Chieftain Gulk who wears a crown of transmuted gold. The citadel's library
+  contains scrolls that could revolutionize modern alchemy.
+
+groundTruth:
+  - id: fact-1
+    text: "The Sunken Citadel of Vael'thara was an elven transmutation academy"
+  - id: fact-2
+    text: "The Transmutation Engine converts raw materials into magical components"
+  - id: fact-3
+    text: "Archmagus Sylvara was petrified mid-spell and stands in the Grand Atrium"
+  - id: fact-4
+    text: "Chieftain Gulk leads the bullywugs in the flooded lower levels"
+  - id: fact-5
+    text: "The citadel's library contains scrolls that could revolutionize modern alchemy"
+
+turns:
+  - turn: 1
+    role: PLAYER
+    type: WARM_UP
+    prompt: "Theron approaches the Sunken Citadel from the swamp edge. What does the exterior look like above the waterline?"
+
+  - turn: 2
+    role: PLAYER
+    type: WARM_UP
+    prompt: "I examine the luminescent moss on the spires more closely. Is it magical? What does it tell me about the citadel?"
+
+  - turn: 3
+    role: PLAYER
+    type: WARM_UP
+    prompt: "I find an entrance and step inside the upper level. What is the first chamber like?"
+
+  - turn: 4
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I search for the Grand Atrium. When I find it, what does the petrified Archmagus Sylvara look like?"
+
+  - turn: 5
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I examine the Transmutation Engine. How does it work, and is it still functional?"
+
+  - turn: 6
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I hear sounds from below the waterline. Are there creatures in the flooded levels?"
+
+  - turn: 7
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I encounter the bullywugs and their chieftain. What does Chieftain Gulk look like, and what does he want?"
+
+  - turn: 8
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Let me review what I've documented so far. What do we know about the citadel, Sylvara, the Engine, and the bullywugs?"
+
+  - turn: 9
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I search for the library. What kind of scrolls and knowledge can I find there?"
+
+  - turn: 10
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Final mapping report: summarize everything about Vael'thara — the citadel, its inhabitants, the Engine, Sylvara, and the library."

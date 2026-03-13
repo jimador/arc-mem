@@ -2,9 +2,9 @@
 
 ## Project
 
-**dice-anchors** — Test bed for Anchors (enriched DICE Propositions with rank, authority, and budget management) as a working memory model for long-horizon attention stability and hallucination/contradiction control (validated with adversarial stress prompts). Working reference for DICE <-> Anchor integration. Java 25 / Spring Boot 3.5.10 / Embabel Agent 0.3.5-SNAPSHOT / DICE 0.1.0-SNAPSHOT / Vaadin 24.6.4 / Neo4j 5.x (Drivine ORM).
+**arc-mem** — Test bed for ARC-Mem (Activation-Ranked Context Memory) units (enriched DICE Propositions with activation score, authority, and budget management) as a working memory model for long-horizon attention stability and hallucination/contradiction control (validated with adversarial stress prompts). Working reference for DICE <-> ARC-Mem integration. Java 25 / Spring Boot 3.5.10 / Embabel Agent 0.3.5-SNAPSHOT / DICE 0.1.0-SNAPSHOT / Vaadin 24.6.4 / Neo4j 5.x (Drivine ORM).
 
-Single-module Maven project.
+Two-module Maven project (`arcmem-core` + `arcmem-simulator`).
 
 ## RFC 2119 Keyword Compliance
 
@@ -82,7 +82,7 @@ docker compose -f docker-compose.langfuse.yml up -d
 
 ## Code Style
 
-IMPORTANT: Adhere to coding style in `.dice-anchors/coding-style.md` for all code generation. Apply these rules proactively — do not wait to be asked to "deslop" or "clean up".
+IMPORTANT: Adhere to coding style in `.arc-mem/coding-style.md` for all code generation. Apply these rules proactively — do not wait to be asked to "deslop" or "clean up".
 
 **Before writing any code, verify it meets these standards:**
 - No comment slop (section banners, tautological Javadoc, restating the code)
@@ -96,16 +96,16 @@ IMPORTANT: Adhere to coding style in `.dice-anchors/coding-style.md` for all cod
 
 **The `deslop` skill** defines the full catalog of patterns to avoid. Use it after any code generation pass or when reviewing existing code for cleanup.
 
-See `.dice-anchors/coding-style.md` for the complete reference.
+See `.arc-mem/coding-style.md` for the complete reference.
 
 ## Architecture
 
-- **Single-module** Spring Boot app with Vaadin UI at four routes: `/` (SimulationView), `/chat` (ChatView), `/benchmark` (BenchmarkView), `/run` (RunInspectorView)
+- **Two-module** Maven project: `arcmem-core` (engine, persistence, assembly, extraction, trust, conflict, maintenance) and `arcmem-simulator` (Spring Boot app with Vaadin UI at four routes: `/` SimulationView, `/chat` ChatView, `/benchmark` BenchmarkView, `/run` RunInspectorView)
 - **Neo4j only** -- no PostgreSQL. Drivine for ORM, Neo4j 5.x for persistence
-- **Anchors = Propositions + extra fields** -- `rank > 0` means it's an anchor. No separate node type.
-- **Budget enforcement** -- configurable max active anchors (default 20). Evicts lowest-ranked non-pinned when over budget.
-- **Authority bidirectional** -- PROVISIONAL ↔ UNRELIABLE ↔ RELIABLE ↔ CANON. Promoted via reinforcement, demoted via rank decay or trust re-evaluation. CANON immune to auto-demotion. Pinned anchors immune to auto-demotion.
-- **Rank clamped [100-900]** -- `Anchor.clampRank()`
+- **Memory units = Propositions + extra fields** -- `rank > 0` means it's a memory unit. No separate node type.
+- **Budget enforcement** -- configurable max active memory units (default 20). Evicts lowest-ranked non-pinned when over budget.
+- **Authority bidirectional** -- PROVISIONAL ↔ UNRELIABLE ↔ RELIABLE ↔ CANON. Promoted via reinforcement, demoted via activation score decay or trust re-evaluation. CANON immune to auto-demotion. Pinned memory units immune to auto-demotion.
+- **Activation score clamped [100-900]** -- `MemoryUnit.clampRank()`
 - **Sim isolation via contextId** -- Each run gets `sim-{uuid}`, cleaned up after.
 - **Embabel Agent** for chat orchestration (`ChatActions` @EmbabelComponent)
 - **DICE extraction** for proposition management in chat flow
@@ -113,7 +113,7 @@ See `.dice-anchors/coding-style.md` for the complete reference.
 - **Benchmarking** with multi-condition ablation experiments, statistical aggregation, resilience scoring, and Markdown report export
 - **Maintenance strategies** -- `MaintenanceStrategy` sealed interface supports REACTIVE (per-turn decay/reinforcement), PROACTIVE (sleeping-LLM-inspired sweep triggered by `MemoryPressureGauge`), and HYBRID modes. Strategy selectable globally and per-simulation for A/B comparison.
 - **Compliance enforcement** -- `ComplianceEnforcer` abstracts compliance over prompt injection, post-generation validation, and Prolog invariant checking. Strictness configurable per authority level.
-- **DICE Prolog integration** -- `AnchorPrologProjector` projects anchors as tuProlog facts (via DICE 0.1.0-SNAPSHOT). Backs LOGICAL conflict detection, audit pre-filtering, and invariant enforcement. Every Prolog implementation is A/B testable against its LLM/heuristic counterpart.
+- **DICE Prolog integration** -- `MemoryUnitPrologProjector` projects memory units as tuProlog facts (via DICE 0.1.0-SNAPSHOT). Backs LOGICAL conflict detection, audit pre-filtering, and invariant enforcement. Every Prolog implementation is A/B testable against its LLM/heuristic counterpart.
 
 ## Testing
 
@@ -121,87 +121,95 @@ See `.dice-anchors/coding-style.md` for the complete reference.
 - `@Nested` + `@DisplayName` for test structure
 - Method naming: `actionConditionExpectedOutcome` (no test prefix)
 - Integration tests (`*IT.java`, `@Tag("integration")`) excluded by default via Surefire
-- Tests span test classes in `anchor/`, `assembly/`, `chat/`, `extract/`, `persistence/`, `prompt/`, and `sim/` packages
+- Tests span two modules: `arcmem-core` (engine, persistence, assembly, extraction, trust) and `arcmem-simulator` (simulation, chat, benchmarking)
 
 ## Key Files
 
 | Purpose | Location |
 |---------|----------|
-| Main app | `src/main/java/dev/dunnam/diceanchors/DiceAnchorsApplication.java` |
-| Config properties | `src/main/java/dev/dunnam/diceanchors/DiceAnchorsProperties.java` |
-| Anchor engine | `src/main/java/dev/dunnam/diceanchors/anchor/AnchorEngine.java` |
-| Anchor model | `src/main/java/dev/dunnam/diceanchors/anchor/Anchor.java` |
-| Authority enum | `src/main/java/dev/dunnam/diceanchors/anchor/Authority.java` |
-| Negation conflict detection | `src/main/java/dev/dunnam/diceanchors/anchor/NegationConflictDetector.java` |
-| LLM conflict detection | `src/main/java/dev/dunnam/diceanchors/anchor/LlmConflictDetector.java` |
-| Composite conflict detection | `src/main/java/dev/dunnam/diceanchors/anchor/CompositeConflictDetector.java` |
-| Conflict resolution | `src/main/java/dev/dunnam/diceanchors/anchor/AuthorityConflictResolver.java` |
-| Decay policy | `src/main/java/dev/dunnam/diceanchors/anchor/DecayPolicy.java` |
-| Reinforcement policy | `src/main/java/dev/dunnam/diceanchors/anchor/ReinforcementPolicy.java` |
-| Trust pipeline | `src/main/java/dev/dunnam/diceanchors/anchor/TrustPipeline.java` |
-| Trust audit record | `src/main/java/dev/dunnam/diceanchors/anchor/TrustAuditRecord.java` |
-| Invariant evaluator | `src/main/java/dev/dunnam/diceanchors/anchor/InvariantEvaluator.java` |
-| Canonization gate | `src/main/java/dev/dunnam/diceanchors/anchor/CanonizationGate.java` |
-| Memory tier | `src/main/java/dev/dunnam/diceanchors/anchor/MemoryTier.java` |
-| Domain profile | `src/main/java/dev/dunnam/diceanchors/anchor/DomainProfile.java` |
-| Lifecycle events | `src/main/java/dev/dunnam/diceanchors/anchor/event/` |
-| Maintenance strategy | `src/main/java/dev/dunnam/diceanchors/anchor/MaintenanceStrategy.java` |
-| Reactive maintenance | `src/main/java/dev/dunnam/diceanchors/anchor/ReactiveMaintenanceStrategy.java` |
-| Proactive maintenance | `src/main/java/dev/dunnam/diceanchors/anchor/ProactiveMaintenanceStrategy.java` |
-| Memory pressure gauge | `src/main/java/dev/dunnam/diceanchors/anchor/MemoryPressureGauge.java` |
-| Conflict index | `src/main/java/dev/dunnam/diceanchors/anchor/ConflictIndex.java` |
-| Budget strategy | `src/main/java/dev/dunnam/diceanchors/anchor/BudgetStrategy.java` |
-| Prolog anchor projector | `src/main/java/dev/dunnam/diceanchors/anchor/AnchorPrologProjector.java` |
-| Compliance enforcer | `src/main/java/dev/dunnam/diceanchors/assembly/ComplianceEnforcer.java` |
-| Post-generation validator | `src/main/java/dev/dunnam/diceanchors/assembly/PostGenerationValidator.java` |
-| Tiered anchor repository | `src/main/java/dev/dunnam/diceanchors/persistence/TieredAnchorRepository.java` |
-| Neo4j persistence | `src/main/java/dev/dunnam/diceanchors/persistence/AnchorRepository.java` |
-| Proposition node | `src/main/java/dev/dunnam/diceanchors/persistence/PropositionNode.java` |
-| Proposition view | `src/main/java/dev/dunnam/diceanchors/persistence/PropositionView.java` |
-| Context injection | `src/main/java/dev/dunnam/diceanchors/assembly/AnchorsLlmReference.java` |
-| Context lock | `src/main/java/dev/dunnam/diceanchors/assembly/AnchorContextLock.java` |
-| Token budgeting | `src/main/java/dev/dunnam/diceanchors/assembly/PromptBudgetEnforcer.java` |
-| Token counting SPI | `src/main/java/dev/dunnam/diceanchors/assembly/TokenCounter.java` |
-| Compacted context | `src/main/java/dev/dunnam/diceanchors/assembly/CompactedContextProvider.java` |
-| Compaction validator | `src/main/java/dev/dunnam/diceanchors/assembly/CompactionValidator.java` |
-| Relevance scorer | `src/main/java/dev/dunnam/diceanchors/assembly/RelevanceScorer.java` |
-| Anchor promotion | `src/main/java/dev/dunnam/diceanchors/extract/AnchorPromoter.java` |
-| Duplicate detection | `src/main/java/dev/dunnam/diceanchors/extract/DuplicateDetector.java` |
-| Chat actions | `src/main/java/dev/dunnam/diceanchors/chat/ChatActions.java` |
-| Chat context init | `src/main/java/dev/dunnam/diceanchors/chat/ChatContextInitializer.java` |
-| Anchor tools | `src/main/java/dev/dunnam/diceanchors/chat/AnchorTools.java` |
-| Chat UI | `src/main/java/dev/dunnam/diceanchors/chat/ChatView.java` |
-| Prompt templates | `src/main/java/dev/dunnam/diceanchors/prompt/PromptTemplates.java` |
-| Prompt path constants | `src/main/java/dev/dunnam/diceanchors/prompt/PromptPathConstants.java` |
-| Sim service | `src/main/java/dev/dunnam/diceanchors/sim/engine/SimulationService.java` |
-| Sim turn executor | `src/main/java/dev/dunnam/diceanchors/sim/engine/SimulationTurnExecutor.java` |
-| Sim run context | `src/main/java/dev/dunnam/diceanchors/sim/engine/SimulationRunContext.java` |
-| LLM call service | `src/main/java/dev/dunnam/diceanchors/sim/engine/LlmCallService.java` |
-| Context trace | `src/main/java/dev/dunnam/diceanchors/sim/engine/ContextTrace.java` |
-| Scoring service | `src/main/java/dev/dunnam/diceanchors/sim/engine/ScoringService.java` |
-| Scenario loader | `src/main/java/dev/dunnam/diceanchors/sim/engine/ScenarioLoader.java` |
-| Adversary strategy | `src/main/java/dev/dunnam/diceanchors/sim/engine/adversary/AdversaryStrategy.java` |
-| Adaptive attack prompter | `src/main/java/dev/dunnam/diceanchors/sim/engine/adversary/AdaptiveAttackPrompter.java` |
-| Sim assertions | `src/main/java/dev/dunnam/diceanchors/sim/assertions/` |
-| Sim UI | `src/main/java/dev/dunnam/diceanchors/sim/views/SimulationView.java` |
-| Run inspector UI | `src/main/java/dev/dunnam/diceanchors/sim/views/RunInspectorView.java` |
-| Context inspector | `src/main/java/dev/dunnam/diceanchors/sim/views/ContextInspectorPanel.java` |
-| Entity mention graph view | `src/main/java/dev/dunnam/diceanchors/sim/views/EntityMentionNetworkView.java` |
-| Benchmark UI | `src/main/java/dev/dunnam/diceanchors/sim/views/BenchmarkView.java` |
-| Condition comparison panel | `src/main/java/dev/dunnam/diceanchors/sim/views/ConditionComparisonPanel.java` |
-| Fact drill-down panel | `src/main/java/dev/dunnam/diceanchors/sim/views/FactDrillDownPanel.java` |
-| Benchmark runner | `src/main/java/dev/dunnam/diceanchors/sim/benchmark/BenchmarkRunner.java` |
-| Resilience report | `src/main/java/dev/dunnam/diceanchors/sim/report/ResilienceReport.java` |
-| Report builder | `src/main/java/dev/dunnam/diceanchors/sim/report/ResilienceReportBuilder.java` |
-| Markdown renderer | `src/main/java/dev/dunnam/diceanchors/sim/report/MarkdownReportRenderer.java` |
-| Resilience score | `src/main/java/dev/dunnam/diceanchors/sim/report/ResilienceScore.java` |
-| Score calculator | `src/main/java/dev/dunnam/diceanchors/sim/report/ResilienceScoreCalculator.java` |
-| Scenario section | `src/main/java/dev/dunnam/diceanchors/sim/report/ScenarioSection.java` |
-| Fact survival loader | `src/main/java/dev/dunnam/diceanchors/sim/report/FactSurvivalLoader.java` |
-| Contradiction detail loader | `src/main/java/dev/dunnam/diceanchors/sim/report/ContradictionDetailLoader.java` |
-| Prompt template files | `src/main/resources/prompts/` |
-| Spring config | `src/main/resources/application.yml` |
-| Sim scenarios | `src/main/resources/simulations/` |
+| **arcmem-core** | |
+| Config properties | `arcmem-core/src/main/java/dev/arcmem/core/config/ArcMemProperties.java` |
+| ARC-Mem engine | `arcmem-core/src/main/java/dev/arcmem/core/memory/engine/ArcMemEngine.java` |
+| Engine configuration | `arcmem-core/src/main/java/dev/arcmem/core/memory/engine/ArcMemConfiguration.java` |
+| Memory unit model | `arcmem-core/src/main/java/dev/arcmem/core/memory/model/MemoryUnit.java` |
+| Authority enum | `arcmem-core/src/main/java/dev/arcmem/core/memory/model/Authority.java` |
+| Memory tier | `arcmem-core/src/main/java/dev/arcmem/core/memory/model/MemoryTier.java` |
+| Domain profile | `arcmem-core/src/main/java/dev/arcmem/core/memory/model/DomainProfile.java` |
+| Negation conflict detection | `arcmem-core/src/main/java/dev/arcmem/core/memory/conflict/NegationConflictDetector.java` |
+| LLM conflict detection | `arcmem-core/src/main/java/dev/arcmem/core/memory/conflict/LlmConflictDetector.java` |
+| Composite conflict detection | `arcmem-core/src/main/java/dev/arcmem/core/memory/conflict/CompositeConflictDetector.java` |
+| Conflict resolution | `arcmem-core/src/main/java/dev/arcmem/core/memory/conflict/AuthorityConflictResolver.java` |
+| Conflict index | `arcmem-core/src/main/java/dev/arcmem/core/memory/conflict/ConflictIndex.java` |
+| Prolog conflict detector | `arcmem-core/src/main/java/dev/arcmem/core/memory/conflict/PrologConflictDetector.java` |
+| Decay policy | `arcmem-core/src/main/java/dev/arcmem/core/memory/maintenance/DecayPolicy.java` |
+| Reinforcement policy | `arcmem-core/src/main/java/dev/arcmem/core/memory/mutation/ReinforcementPolicy.java` |
+| Trust pipeline | `arcmem-core/src/main/java/dev/arcmem/core/memory/trust/TrustPipeline.java` |
+| Trust audit record | `arcmem-core/src/main/java/dev/arcmem/core/memory/trust/TrustAuditRecord.java` |
+| Invariant evaluator | `arcmem-core/src/main/java/dev/arcmem/core/memory/canon/InvariantEvaluator.java` |
+| Canonization gate | `arcmem-core/src/main/java/dev/arcmem/core/memory/canon/CanonizationGate.java` |
+| Lifecycle events | `arcmem-core/src/main/java/dev/arcmem/core/memory/event/` |
+| Maintenance strategy | `arcmem-core/src/main/java/dev/arcmem/core/memory/maintenance/MaintenanceStrategy.java` |
+| Reactive maintenance | `arcmem-core/src/main/java/dev/arcmem/core/memory/maintenance/ReactiveMaintenanceStrategy.java` |
+| Proactive maintenance | `arcmem-core/src/main/java/dev/arcmem/core/memory/maintenance/ProactiveMaintenanceStrategy.java` |
+| Memory pressure gauge | `arcmem-core/src/main/java/dev/arcmem/core/memory/maintenance/MemoryPressureGauge.java` |
+| Budget strategy | `arcmem-core/src/main/java/dev/arcmem/core/memory/budget/BudgetStrategy.java` |
+| Prolog projector | `arcmem-core/src/main/java/dev/arcmem/core/memory/engine/MemoryUnitPrologProjector.java` |
+| Attention tracker | `arcmem-core/src/main/java/dev/arcmem/core/memory/attention/AttentionTracker.java` |
+| Compliance enforcer | `arcmem-core/src/main/java/dev/arcmem/core/assembly/compliance/ComplianceEnforcer.java` |
+| Post-generation validator | `arcmem-core/src/main/java/dev/arcmem/core/assembly/compliance/PostGenerationValidator.java` |
+| Prolog invariant enforcer | `arcmem-core/src/main/java/dev/arcmem/core/assembly/compliance/PrologInvariantEnforcer.java` |
+| Tiered memory unit repository | `arcmem-core/src/main/java/dev/arcmem/core/persistence/TieredMemoryUnitRepository.java` |
+| Neo4j persistence | `arcmem-core/src/main/java/dev/arcmem/core/persistence/MemoryUnitRepository.java` |
+| Proposition node | `arcmem-core/src/main/java/dev/arcmem/core/persistence/PropositionNode.java` |
+| Proposition view | `arcmem-core/src/main/java/dev/arcmem/core/persistence/PropositionView.java` |
+| Context injection | `arcmem-core/src/main/java/dev/arcmem/core/assembly/retrieval/ArcMemLlmReference.java` |
+| Context lock | `arcmem-core/src/main/java/dev/arcmem/core/assembly/compaction/ArcMemContextLock.java` |
+| Token budgeting | `arcmem-core/src/main/java/dev/arcmem/core/assembly/budget/PromptBudgetEnforcer.java` |
+| Token counting SPI | `arcmem-core/src/main/java/dev/arcmem/core/assembly/budget/TokenCounter.java` |
+| Compaction validator | `arcmem-core/src/main/java/dev/arcmem/core/assembly/compaction/CompactionValidator.java` |
+| Relevance scorer | `arcmem-core/src/main/java/dev/arcmem/core/assembly/retrieval/RelevanceScorer.java` |
+| Semantic unit promotion | `arcmem-core/src/main/java/dev/arcmem/core/extraction/SemanticUnitPromoter.java` |
+| Duplicate detection | `arcmem-core/src/main/java/dev/arcmem/core/extraction/DuplicateDetector.java` |
+| Prompt templates | `arcmem-core/src/main/java/dev/arcmem/core/prompt/PromptTemplates.java` |
+| Prompt path constants | `arcmem-core/src/main/java/dev/arcmem/core/prompt/PromptPathConstants.java` |
+| LLM call service | `arcmem-core/src/main/java/dev/arcmem/core/spi/llm/LlmCallService.java` |
+| Core prompt templates | `arcmem-core/src/main/resources/prompts/` |
+| **arcmem-simulator** | |
+| Main app | `arcmem-simulator/src/main/java/dev/arcmem/simulator/ArcMemApplication.java` |
+| Chat actions | `arcmem-simulator/src/main/java/dev/arcmem/simulator/chat/ChatActions.java` |
+| Chat context init | `arcmem-simulator/src/main/java/dev/arcmem/simulator/chat/ChatContextInitializer.java` |
+| Memory unit mutation tools | `arcmem-simulator/src/main/java/dev/arcmem/simulator/chat/MemoryUnitMutationTools.java` |
+| Memory unit query tools | `arcmem-simulator/src/main/java/dev/arcmem/simulator/chat/MemoryUnitQueryTools.java` |
+| Chat UI | `arcmem-simulator/src/main/java/dev/arcmem/simulator/chat/ChatView.java` |
+| Compacted context | `arcmem-simulator/src/main/java/dev/arcmem/simulator/compaction/CompactedContextProvider.java` |
+| Sim service | `arcmem-simulator/src/main/java/dev/arcmem/simulator/engine/SimulationService.java` |
+| Sim turn executor | `arcmem-simulator/src/main/java/dev/arcmem/simulator/engine/SimulationTurnExecutor.java` |
+| Sim run context | `arcmem-simulator/src/main/java/dev/arcmem/simulator/engine/SimulationRunContext.java` |
+| Context trace | `arcmem-simulator/src/main/java/dev/arcmem/simulator/engine/ContextTrace.java` |
+| Scoring service | `arcmem-simulator/src/main/java/dev/arcmem/simulator/engine/ScoringService.java` |
+| Scenario loader | `arcmem-simulator/src/main/java/dev/arcmem/simulator/scenario/ScenarioLoader.java` |
+| Adversary strategy | `arcmem-simulator/src/main/java/dev/arcmem/simulator/adversary/AdversaryStrategy.java` |
+| Adaptive attack prompter | `arcmem-simulator/src/main/java/dev/arcmem/simulator/adversary/AdaptiveAttackPrompter.java` |
+| Sim assertions | `arcmem-simulator/src/main/java/dev/arcmem/simulator/assertions/` |
+| Sim UI | `arcmem-simulator/src/main/java/dev/arcmem/simulator/ui/views/SimulationView.java` |
+| Run inspector UI | `arcmem-simulator/src/main/java/dev/arcmem/simulator/ui/views/RunInspectorView.java` |
+| Context inspector | `arcmem-simulator/src/main/java/dev/arcmem/simulator/ui/panels/ContextInspectorPanel.java` |
+| Entity mention graph view | `arcmem-simulator/src/main/java/dev/arcmem/simulator/ui/panels/EntityMentionNetworkView.java` |
+| Benchmark UI | `arcmem-simulator/src/main/java/dev/arcmem/simulator/ui/views/BenchmarkView.java` |
+| Condition comparison panel | `arcmem-simulator/src/main/java/dev/arcmem/simulator/ui/panels/ConditionComparisonPanel.java` |
+| Fact drill-down panel | `arcmem-simulator/src/main/java/dev/arcmem/simulator/ui/panels/FactDrillDownPanel.java` |
+| Benchmark runner | `arcmem-simulator/src/main/java/dev/arcmem/simulator/benchmark/BenchmarkRunner.java` |
+| Resilience report | `arcmem-simulator/src/main/java/dev/arcmem/simulator/report/ResilienceReport.java` |
+| Report builder | `arcmem-simulator/src/main/java/dev/arcmem/simulator/report/ResilienceReportBuilder.java` |
+| Markdown renderer | `arcmem-simulator/src/main/java/dev/arcmem/simulator/report/MarkdownReportRenderer.java` |
+| Resilience score | `arcmem-simulator/src/main/java/dev/arcmem/simulator/report/ResilienceScore.java` |
+| Score calculator | `arcmem-simulator/src/main/java/dev/arcmem/simulator/report/ResilienceScoreCalculator.java` |
+| Scenario section | `arcmem-simulator/src/main/java/dev/arcmem/simulator/report/ScenarioSection.java` |
+| Fact survival loader | `arcmem-simulator/src/main/java/dev/arcmem/simulator/report/FactSurvivalLoader.java` |
+| Contradiction detail loader | `arcmem-simulator/src/main/java/dev/arcmem/simulator/report/ContradictionDetailLoader.java` |
+| Sim prompt templates | `arcmem-simulator/src/main/resources/prompts/` |
+| Spring config | `arcmem-simulator/src/main/resources/application.yml` |
+| Sim scenarios | `arcmem-simulator/src/main/resources/simulations/` |
 | Docker Compose (Neo4j) | `docker-compose.yml` |
 | Docker Compose (full stack) | `docker-compose.app.yml` |
 | Docker Compose (Langfuse) | `docker-compose.langfuse.yml` |
@@ -209,20 +217,20 @@ See `.dice-anchors/coding-style.md` for the complete reference.
 
 ## Key Design Decisions
 
-1. **Anchors = Propositions + extra fields** — `rank > 0` means it's an anchor. No separate node type.
-2. **Neo4j everywhere** — Both chat and sim use the same `AnchorRepository` (Drivine-backed).
-3. **Budget enforcement** — configurable max active anchors (default 20). Evicts lowest-ranked non-pinned when over budget.
-4. **Authority bidirectional** — PROVISIONAL ↔ UNRELIABLE ↔ RELIABLE ↔ CANON. Promoted via reinforcement, demoted via rank decay or trust re-evaluation. CANON immune to auto-demotion (A3b). Pinned anchors immune to auto-demotion (A3d).
-5. **Rank clamped [100-900]** — `Anchor.clampRank()`.
+1. **Memory units = Propositions + extra fields** — `rank > 0` means it's a memory unit. No separate node type.
+2. **Neo4j everywhere** — Both chat and sim use the same `MemoryUnitRepository` (Drivine-backed).
+3. **Budget enforcement** — configurable max active memory units (default 20). Evicts lowest-ranked non-pinned when over budget.
+4. **Authority bidirectional** — PROVISIONAL ↔ UNRELIABLE ↔ RELIABLE ↔ CANON. Promoted via reinforcement, demoted via activation score decay or trust re-evaluation. CANON immune to auto-demotion (A3b). Pinned memory units immune to auto-demotion (A3d).
+5. **Activation score clamped [100-900]** — `MemoryUnit.clampRank()`.
 6. **Sim isolation via contextId** — Each run gets `sim-{uuid}`, cleaned up after.
-7. **Persistence layer copied from impromptu** — re-packaged to `dev.dunnam.diceanchors.persistence`.
-8. **Scene-setting turn 0** — When `scenario.setting()` is non-blank and extraction is enabled, `SimulationService` executes an ESTABLISH turn before turn 1. The DM narrates the setting; DICE extraction captures initial propositions. This gives the anchor framework material to stabilize before stress-test contradiction turns begin. Skipped if setting is blank or extraction is disabled.
+7. **Persistence layer copied from impromptu** — re-packaged to `dev.arcmem.core.persistence`.
+8. **Scene-setting turn 0** — When `scenario.setting()` is non-blank and extraction is enabled, `SimulationService` executes an ESTABLISH turn before turn 1. The DM narrates the setting; DICE extraction captures initial propositions. This gives the ARC-Mem framework material to stabilize before stress-test contradiction turns begin. Skipped if setting is blank or extraction is disabled.
 9. **Drift evaluator: epistemic hedging = NOT_MENTIONED** — The drift evaluation prompt distinguishes three DM response categories: (1) contradiction (asserts the opposite), (2) world progression (narrative change that isn't a contradiction), (3) epistemic hedging (declines to affirm without asserting the opposite). Hedging is classified as NOT_MENTIONED, not CONTRADICTED. The player message is included in the evaluator prompt so the evaluator can distinguish defensive resistance from genuine forgetting.
-10. **No seed anchors required** — Scenarios may have no seed anchors. The expected flow is that scene-setting turn 0 + warm-up turns allow the anchor framework to accumulate propositions organically before stress-test contradiction turns.
+10. **No seed memory units required** — Scenarios may have no seed memory units. The expected flow is that scene-setting turn 0 + warm-up turns allow the ARC-Mem framework to accumulate propositions organically before stress-test contradiction turns.
 11. **Composite conflict detection** — `CompositeConflictDetector` chains multiple strategies (LLM semantic + negation lexical). Strategy selection is configurable via `ConflictDetectionStrategy`.
 12. **Trust pipeline** — `TrustPipeline` evaluates propositions through multiple trust signals (source authority, extraction confidence, reinforcement history) before promotion. `TrustAuditRecord` captures the decision trail.
 13. **Context compaction** — `CompactedContextProvider` summarizes older context when token thresholds are exceeded. `CompactionValidator` ensures protected facts survive compaction.
-14. **Simulation assertions** — Post-run validation via `sim/assertions/` package. Nine assertion types (anchor-count, rank-distribution, trust-score-range, promotion-zone, authority-at-most, kg-context-contains, kg-context-empty, no-canon-auto-assigned, compaction-integrity) declared in scenario YAML.
+14. **Simulation assertions** — Post-run validation via `assertions/` package. Nine assertion types (unit-count, activation-score-distribution, trust-score-range, promotion-zone, authority-at-most, kg-context-contains, kg-context-empty, no-canon-auto-assigned, compaction-integrity) declared in scenario YAML.
 15. **Memory tiers** — `MemoryTier` classifies propositions as `COLD`, `WARM`, or `HOT`. Tier influences decay rates and eviction priority.
 16. **Invariant rules** — `InvariantEvaluator` checks propositions against domain-specific invariant rules provided by `InvariantRuleProvider`. Violations can block promotion or trigger alerts.
 17. **Canonization gating** — `CanonizationGate` controls CANON authority assignment. CANON is never auto-assigned; requires explicit operator action through the gate.
@@ -230,15 +238,15 @@ See `.dice-anchors/coding-style.md` for the complete reference.
 19. **Compliance enforcement layer** — `ComplianceEnforcer` interface (`ComplianceContext` → `ComplianceResult`) with three implementations: `PromptInjectionEnforcer` (default, always ACCEPT), `PostGenerationValidator` (LLM-based), `PrologInvariantEnforcer` (deterministic).
 20. **Memory pressure gauge** — Composite `[0.0, 1.0]` score across budget, conflict rate, decay demotions, and compaction frequency. Light-sweep threshold 0.4, full-sweep threshold 0.8. No LLM calls.
 21. **Precomputed conflict index** — `ConflictIndex` stores `CONFLICTS_WITH` relationships in Neo4j for O(1) conflict lookup. Updates incrementally on lifecycle events. Falls back to `LlmConflictDetector` on miss.
-22. **Proactive maintenance cycle** — 5-step sleeping-LLM-inspired sweep (audit, refresh, consolidate, prune, validate) triggered by memory pressure. Prolog pre-filter identifies logically inconsistent anchors before LLM calls.
+22. **Proactive maintenance cycle** — 5-step sleeping-LLM-inspired sweep (audit, refresh, consolidate, prune, validate) triggered by memory pressure. Prolog pre-filter identifies logically inconsistent memory units before LLM calls.
 23. **Adaptive prompt footprint** — Authority-graduated templates: PROVISIONAL (full), RELIABLE (condensed), CANON (minimal reference). Higher authority = less token budget.
 24. **Pluggable budget strategy** — `BudgetStrategy` interface with `CountBasedBudgetStrategy` (default) and `InterferenceDensityBudgetStrategy` (cluster-aware eviction). Inspired by sleeping-LLM phase transition at 13-14 related facts.
-25. **Tiered anchor storage** — `TieredAnchorRepository` decorates `AnchorRepository`: HOT from Caffeine cache, WARM from Neo4j, COLD excluded from prompt assembly. Opt-in (default disabled).
+25. **Tiered memory unit storage** — `TieredMemoryUnitRepository` decorates `MemoryUnitRepository`: HOT from Caffeine cache, WARM from Neo4j, COLD excluded from prompt assembly. Opt-in (default disabled).
 26. **Prolog integration layer** — Three Prolog-backed implementations behind existing interfaces: `PrologConflictDetector` (LOGICAL strategy), `PrologAuditPreFilter`, `PrologInvariantEnforcer`. Zero new dependencies (tuProlog via DICE). All A/B testable per-simulation.
 
 ## OpenSpec (Spec-Driven Development)
 
-dice-anchors uses [OpenSpec](https://github.com/Fission-AI/OpenSpec) for structured specification management. All specs live in `openspec/` and follow the project [constitution](openspec/constitution.md).
+arc-mem uses [OpenSpec](https://github.com/Fission-AI/OpenSpec) for structured specification management. All specs live in `openspec/` and follow the project [constitution](openspec/constitution.md).
 
 ### OpenSpec Workflow
 
@@ -258,9 +266,9 @@ dice-anchors uses [OpenSpec](https://github.com/Fission-AI/OpenSpec) for structu
 - Do not add wildcard imports
 - Do not use mutable defaults -- `List.of()` not `new ArrayList<>()`
 - Do not create checked exceptions
-- Do not modify anchor rank outside [100, 900] range -- use `clampRank()`
-- Do not auto-promote propositions to anchors -- promotion is always explicit
-- Do not assume `ContextTrace.assembledPrompt` contains the full LLM prompt -- it only contains the anchor injection block; use `fullSystemPrompt`/`fullUserPrompt` for the complete prompt
+- Do not modify memory unit activation score outside [100, 900] range -- use `clampRank()`
+- Do not auto-promote propositions to memory units -- promotion is always explicit
+- Do not assume `ContextTrace.assembledPrompt` contains the full LLM prompt -- it only contains the memory unit injection block; use `fullSystemPrompt`/`fullUserPrompt` for the complete prompt
 - Do not classify DM epistemic hedging as CONTRADICTED -- "the guardian's properties aren't established yet" is NOT_MENTIONED, not a contradiction
 
 ## Reference Codebases
@@ -281,13 +289,13 @@ dice-anchors uses [OpenSpec](https://github.com/Fission-AI/OpenSpec) for structu
 
 ## Mistakes Log
 
-- Persistence layer copied from impromptu required re-packaging to `dev.dunnam.diceanchors.persistence`
+- Persistence layer copied from impromptu required re-packaging to `dev.arcmem.core.persistence`
 - `DiceRestConfiguration` moved to `com.embabel.dice.web.rest` (not the expected package)
 - Drivine annotations in `org.drivine.autoconfigure` (not `org.drivine.config`)
-- `LlmReference` doesn't exist in embabel — `AnchorsLlmReference` is a plain class
+- `LlmReference` doesn't exist in embabel — `ArcMemLlmReference` is a plain class
 - `ConversationAnalysisListener` deleted — DICE incremental API type mismatch, not needed for demo
 - `PropositionView.toDice()` uses 13-param `Proposition.create()` overload
-- `AnchorRepository` switch expression needed `default` branch for Kotlin enum
+- `MemoryUnitRepository` switch expression needed `default` branch for Kotlin enum
 - Drivine `GraphResultMapper.mapToNative()` returns a `List` (not a `Map`) for multi-column RETURN queries. `.transform(Map.class)` then fails with `Cannot deserialize value of type LinkedHashMap from Array`. Fix: wrap multi-column RETURN values in a Cypher map literal (`RETURN {key: val, ...} AS result`) so the result is a single column containing a Map, hitting the `keys.size == 1` branch
 - **Never manually archive or sync OpenSpec changes.** Always use `/opsx:archive` (which handles sync assessment, user confirmation, and proper archival) and `/opsx:sync` for spec syncing. Manual `cp`/`mv` of spec files bypasses the proper workflow and can miss documentation updates or transformations.
-- **Core logic must not reference simulation concepts.** `CanonizationGate` had `autoApproveInSimulation` that sniffed for `"sim-*"` context IDs — a layer violation. Core anchor logic (`anchor/`, `assembly/`, etc.) knows nothing about simulations. Config flags must be named for what they do generally (`autoApprovePromotions`), not for which caller uses them. Dependencies flow one way: `sim/` → core, never core → sim.
+- **Core logic must not reference simulation concepts.** `CanonizationGate` had `autoApproveInSimulation` that sniffed for `"sim-*"` context IDs — a layer violation. Core ARC-Mem logic (`memory/`, `assembly/`, etc.) knows nothing about simulations. Config flags must be named for what they do generally (`autoApprovePromotions`), not for which caller uses them. Dependencies flow one way: simulator → core, never core → simulator.

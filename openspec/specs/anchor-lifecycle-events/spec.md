@@ -2,7 +2,7 @@
 
 ### Requirement: CompactionCompleted event
 
-The system SHALL publish a `CompactionCompleted` event record after each completed compaction operation (whether successful or fallen-back). `CompactionCompleted` SHALL be a standalone record and SHALL NOT be added to the sealed `AnchorLifecycleEvent` hierarchy, as compaction is a context-assembly concern rather than an anchor state-machine concern.
+The system SHALL publish a `CompactionCompleted` event record after each completed compaction operation (whether successful or fallen-back). `CompactionCompleted` SHALL be a standalone record and SHALL NOT be added to the sealed `UnitLifecycleEvent` hierarchy, as compaction is a context-assembly concern rather than an memory unit state-machine concern.
 
 `CompactionCompleted` SHALL contain the following fields:
 
@@ -19,7 +19,7 @@ The system SHALL publish a `CompactionCompleted` event record after each complet
 
 `CompactionCompleted` SHALL be published via Spring's `ApplicationEventPublisher` after the compaction outcome is fully determined (summary stored or rollback completed). The event SHALL be published regardless of whether the compaction succeeded or fell back, but SHALL NOT be published when compaction is rolled back without producing any summary (i.e., full failure with rollback and no stored result).
 
-Event publishing SHALL be gated by `dice-anchors.compaction.events-enabled` (default `true`). When disabled, no `CompactionCompleted` events SHALL be published.
+Event publishing SHALL be gated by `arc-mem.compaction.events-enabled` (default `true`). When disabled, no `CompactionCompleted` events SHALL be published.
 
 #### Scenario: Successful compaction publishes event
 
@@ -48,7 +48,7 @@ Event publishing SHALL be gated by `dice-anchors.compaction.events-enabled` (def
 
 #### Scenario: Events disabled suppresses publishing
 
-- **GIVEN** `dice-anchors.compaction.events-enabled` is `false`
+- **GIVEN** `arc-mem.compaction.events-enabled` is `false`
 - **WHEN** a compaction completes successfully
 - **THEN** no `CompactionCompleted` event SHALL be published via `ApplicationEventPublisher`
 
@@ -56,43 +56,43 @@ Event publishing SHALL be gated by `dice-anchors.compaction.events-enabled` (def
 
 ### Requirement: InvariantViolation lifecycle event
 
-The system SHALL add an `InvariantViolation` event type to the `AnchorLifecycleEvent` sealed hierarchy. The event SHALL be published when an invariant is evaluated and found to be violated, regardless of whether the violation blocked the action or only produced a warning.
+The system SHALL add an `InvariantViolation` event type to the `UnitLifecycleEvent` sealed hierarchy. The event SHALL be published when an invariant is evaluated and found to be violated, regardless of whether the violation blocked the action or only produced a warning.
 
 The `InvariantViolation` event SHALL include:
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `ruleId` | String | The ID of the invariant rule that was violated |
-| `invariantType` | String | The type of invariant (e.g., `"ANCHOR_PROTECTED"`, `"AUTHORITY_FLOOR"`) |
+| `invariantType` | String | The type of invariant (e.g., `"UNIT_PROTECTED"`, `"AUTHORITY_FLOOR"`) |
 | `constraintDescription` | String | Human-readable description of the violated constraint |
 | `attemptedAction` | String | The lifecycle action that triggered the violation (e.g., `"EVICT"`, `"DEMOTE"`) |
-| `targetAnchorId` | String | The anchor ID that was the target of the attempted action |
+| `targetUnitId` | String | The memory unit ID that was the target of the attempted action |
 | `blocked` | boolean | Whether the action was blocked (`true` for MUST-strength) or only warned (`false` for SHOULD-strength) |
 | `strength` | String | The invariant strength (`"MUST"` or `"SHOULD"`) |
-| `contextId` | String | Inherited from `AnchorLifecycleEvent` |
-| `occurredAt` | Instant | Inherited from `AnchorLifecycleEvent` |
+| `contextId` | String | Inherited from `UnitLifecycleEvent` |
+| `occurredAt` | Instant | Inherited from `UnitLifecycleEvent` |
 
-The `AnchorLifecycleEvent` sealed interface `permits` clause SHALL be updated to include `InvariantViolation`.
+The `UnitLifecycleEvent` sealed interface `permits` clause SHALL be updated to include `InvariantViolation`.
 
-A static factory method `AnchorLifecycleEvent.invariantViolation(...)` SHALL be provided, consistent with the existing factory methods (`promoted(...)`, `reinforced(...)`, etc.).
+A static factory method `UnitLifecycleEvent.invariantViolation(...)` SHALL be provided, consistent with the existing factory methods (`promoted(...)`, `reinforced(...)`, etc.).
 
 #### Scenario: MUST-strength violation publishes blocked event
 
-- **GIVEN** a MUST-strength `ANCHOR_PROTECTED` invariant with `ruleId = "protect-A1"` for anchor "A1"
-- **WHEN** budget enforcement attempts to evict anchor "A1"
+- **GIVEN** a MUST-strength `UNIT_PROTECTED` invariant with `ruleId = "protect-A1"` for memory unit "A1"
+- **WHEN** budget enforcement attempts to evict memory unit "A1"
 - **THEN** an `InvariantViolation` event SHALL be published with:
   - `ruleId = "protect-A1"`
-  - `invariantType = "ANCHOR_PROTECTED"`
-  - `constraintDescription = "Anchor A1 is protected from eviction"`
+  - `invariantType = "UNIT_PROTECTED"`
+  - `constraintDescription = "Memory unit A1 is protected from eviction"`
   - `attemptedAction = "EVICT"`
-  - `targetAnchorId = "A1"`
+  - `targetUnitId = "A1"`
   - `blocked = true`
   - `strength = "MUST"`
 
 #### Scenario: SHOULD-strength violation publishes warned event
 
-- **GIVEN** a SHOULD-strength `MINIMUM_COUNT` invariant with `ruleId = "min-reliable"` requiring 3 RELIABLE anchors
-- **WHEN** an eviction would drop the RELIABLE anchor count to 2
+- **GIVEN** a SHOULD-strength `MINIMUM_COUNT` invariant with `ruleId = "min-reliable"` requiring 3 RELIABLE memory units
+- **WHEN** an eviction would drop the RELIABLE memory unit count to 2
 - **THEN** an `InvariantViolation` event SHALL be published with:
   - `ruleId = "min-reliable"`
   - `invariantType = "MINIMUM_COUNT"`
@@ -103,31 +103,31 @@ A static factory method `AnchorLifecycleEvent.invariantViolation(...)` SHALL be 
 #### Scenario: Multiple violations publish multiple events
 
 - **GIVEN** two invariants are violated by a single demotion attempt (one MUST, one SHOULD)
-- **WHEN** `AnchorEngine.demote()` evaluates invariants
+- **WHEN** `ArcMemEngine.demote()` evaluates invariants
 - **THEN** two `InvariantViolation` events SHALL be published -- one for each violated invariant
 
 #### Scenario: InvariantViolation event gated by lifecycle events config
 
-- **GIVEN** `dice-anchors.anchor.lifecycle-events-enabled` is `false`
+- **GIVEN** `arc-mem.unit.lifecycle-events-enabled` is `false`
 - **WHEN** an invariant violation occurs
 - **THEN** no `InvariantViolation` event SHALL be published
 
 ### Requirement: InvariantViolation event listener logging
 
-The existing `AnchorLifecycleListener` SHALL handle `InvariantViolation` events with an `@EventListener` method. The listener SHALL:
+The existing `UnitLifecycleListener` SHALL handle `InvariantViolation` events with an `@EventListener` method. The listener SHALL:
 
-1. Log at WARN level for MUST-strength violations: `"Invariant {} violated: {} — action {} BLOCKED for anchor {}"`
-2. Log at WARN level for SHOULD-strength violations: `"Invariant {} violated: {} — action {} WARNED for anchor {}"`
+1. Log at WARN level for MUST-strength violations: `"Invariant {} violated: {} — action {} BLOCKED for memory unit {}"`
+2. Log at WARN level for SHOULD-strength violations: `"Invariant {} violated: {} — action {} WARNED for memory unit {}"`
 3. Set OTEL span attributes when tracing is active (see observability spec)
 
 #### Scenario: Blocked violation logged at WARN
 
 - **GIVEN** a MUST-strength `InvariantViolation` event
-- **WHEN** the `AnchorLifecycleListener` handles the event
+- **WHEN** the `UnitLifecycleListener` handles the event
 - **THEN** a WARN-level log SHALL be emitted containing the rule ID, constraint description, attempted action, and "BLOCKED"
 
 #### Scenario: Warned violation logged at WARN
 
 - **GIVEN** a SHOULD-strength `InvariantViolation` event
-- **WHEN** the `AnchorLifecycleListener` handles the event
+- **WHEN** the `UnitLifecycleListener` handles the event
 - **THEN** a WARN-level log SHALL be emitted containing the rule ID, constraint description, attempted action, and "WARNED"

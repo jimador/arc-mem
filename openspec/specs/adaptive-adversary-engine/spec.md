@@ -2,16 +2,16 @@
 
 ### Requirement: AdversaryStrategy interface
 The system SHALL define `AdversaryStrategy` as a single-method interface:
-`selectAttack(List<Anchor> active, List<Anchor> conflicted, AttackHistory history) → AttackPlan`.
+`selectAttack(List<ContextUnit> active, List<ContextUnit> conflicted, AttackHistory history) → AttackPlan`.
 All adaptive adversary implementations MUST satisfy this contract.
 
-#### Scenario: Strategy receives full anchor state
+#### Scenario: Strategy receives full memory unit state
 - **GIVEN** a simulation run in adaptive mode
 - **WHEN** the adversary selects an attack for turn N
-- **THEN** it receives the current active anchor list (from `AnchorEngine.inject()`), the current conflicted anchor list (from `AnchorEngine.detectConflicts()`), and the full `AttackHistory` for this run
+- **THEN** it receives the current active memory unit list (from `ArcMemEngine.inject()`), the current conflicted memory unit list (from `ArcMemEngine.detectConflicts()`), and the full `AttackHistory` for this run
 
 #### Scenario: Strategy produces a non-null plan
-- **WHEN** `selectAttack()` is called with a non-empty active anchor list
+- **WHEN** `selectAttack()` is called with a non-empty active memory unit list
 - **THEN** it returns a non-null `AttackPlan` with at least one target and at least one strategy
 
 ---
@@ -69,22 +69,22 @@ The full `AttackPlan` is carried rather than unpacking `strategiesUsed`/`targets
 
 ---
 
-### Requirement: TieredEscalationStrategy targets weakest active anchors
-`TieredEscalationStrategy` SHALL target anchors with the lowest rank among the active anchor list, skipping anchors already in the conflicted list.
-The number of anchors targeted per turn SHALL scale with `AdversaryConfig.aggressiveness` (0.0–1.0).
+### Requirement: TieredEscalationStrategy targets weakest active memory units
+`TieredEscalationStrategy` SHALL target memory units with the lowest rank among the active memory unit list, skipping memory units already in the conflicted list.
+The number of memory units targeted per turn SHALL scale with `AdversaryConfig.aggressiveness` (0.0–1.0).
 
-#### Scenario: Weakest anchors targeted first
-- **GIVEN** active anchors with ranks [800, 300, 150, 500]
+#### Scenario: Weakest memory units targeted first
+- **GIVEN** active memory units with ranks [800, 300, 150, 500]
 - **WHEN** `selectAttack()` is called with aggressiveness 0.5
-- **THEN** the plan targets the anchor(s) with lowest rank (150, 300)
+- **THEN** the plan targets the memory unit(s) with lowest rank (150, 300)
 
-#### Scenario: Conflicted anchors skipped
-- **GIVEN** active anchors [rank 150, rank 300] where rank-150 is also in the conflicted list
+#### Scenario: Conflicted memory units skipped
+- **GIVEN** active memory units [rank 150, rank 300] where rank-150 is also in the conflicted list
 - **WHEN** `selectAttack()` is called
 - **THEN** the plan targets rank-300, not rank-150
 
 #### Scenario: Tier escalates after a failed attack on a target
-- **GIVEN** the most recent outcome targeting anchor X has `verdictSeverity == "NONE"` (attack had no effect)
+- **GIVEN** the most recent outcome targeting memory unit X has `verdictSeverity == "NONE"` (attack had no effect)
 - **WHEN** `selectAttack()` is called and X is again selected as a target
 - **THEN** the tier for X is incremented by one relative to the tier used in that last outcome
 

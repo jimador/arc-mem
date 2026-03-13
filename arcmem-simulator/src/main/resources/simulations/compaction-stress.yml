@@ -1,0 +1,150 @@
+id: compaction-stress
+category: compaction
+adversarial: false
+persona:
+  name: Archivist Pen
+  description: Human wizard obsessed with cataloging every detail of every dungeon
+  playStyle: meticulous-recorder
+model: gpt-4.1-mini
+temperature: 0.7
+maxTurns: 20
+warmUpTurns: 3
+compactionConfig:
+  enabled: true
+  forceAtTurns:
+    - 8
+    - 15
+  tokenThreshold: 4000
+  messageThreshold: 16
+setting: |
+  An ancient magical library stretches endlessly beneath the earth, its halls
+  filled with towering shelves, enchanted tomes, and whispering echoes of
+  forgotten scholars. The air smells of old parchment and arcane dust. Strange
+  guardians wander the corridors, and the architecture shifts in ways that defy
+  ordinary geometry. Rumors say a powerful artifact is hidden somewhere within,
+  and the party is not the only group searching for it. Competition and mystery
+  pervade every shadowed alcove.
+
+groundTruth:
+  - id: fact-1
+    text: "The Vault of Infinite Pages is a pocket dimension disguised as an underground library"
+  - id: fact-2
+    text: "Khotep is an ancient senile sphinx who serves as the Librarian"
+  - id: fact-3
+    text: "The party seeks the Codex of Unbinding which can break any magical seal"
+  - id: fact-4
+    text: "Three keys are needed: Iron Quill, Glass Lens, and Silver Bookmark"
+  - id: fact-5
+    text: "The warlock Mordecai is a rival seeker also hunting the Codex"
+
+seedUnits:
+  - text: "The Vault of Infinite Pages is a pocket dimension library"
+    authority: CANON
+    rank: 850
+  - text: "Three keys unlock the Codex: Iron Quill, Glass Lens, Silver Bookmark"
+    authority: RELIABLE
+    rank: 750
+  - text: "Khotep the sphinx Librarian has grown senile with age"
+    authority: RELIABLE
+    rank: 700
+
+turns:
+  - turn: 1
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Pen opens his journal and examines the entrance hall. What books line the first shelves?"
+
+  - turn: 2
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I ask Khotep about the Codex of Unbinding. What riddle does the sphinx offer?"
+
+  - turn: 3
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I search for the Biography Wing. What notable biographies can I find there?"
+
+  - turn: 4
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I find the Iron Quill's resting place. What protects it?"
+
+  - turn: 5
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I carefully document the trap mechanisms around the Iron Quill. What do I record?"
+
+  - turn: 6
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I navigate to the Astronomy Alcove. What celestial instruments and star charts do I see?"
+
+  - turn: 7
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Where is the Glass Lens stored in the Astronomy Alcove, and what guards it?"
+
+  - turn: 8
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Review my notes: What keys have we found so far, what do we still need, and what has Khotep told us?"
+
+  - turn: 9
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I encounter signs of Mordecai's passage. What evidence of the warlock do I find?"
+
+  - turn: 10
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I search for the Poetry Garden. How does a garden exist inside a library dimension?"
+
+  - turn: 11
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I look for the Silver Bookmark among the poetry collections. Where is it hidden?"
+
+  - turn: 12
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Khotep appears again, confused. Does the sphinx remember our previous conversation?"
+
+  - turn: 13
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I find a book that describes the room I'm standing in. What does it say about the future?"
+
+  - turn: 14
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I encounter Mordecai. What does the warlock look like, and what does he want to negotiate?"
+
+  - turn: 15
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Complete inventory: Which keys do we have, where did we find them, what did Khotep say, and what is Mordecai doing?"
+
+  - turn: 16
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I attempt to use all three keys on the Codex's seal. What happens?"
+
+  - turn: 17
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "What does the Codex of Unbinding look like, and what magic does it contain?"
+
+  - turn: 18
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Does Mordecai try to take the Codex from us? What is his reaction?"
+
+  - turn: 19
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Summarize the entire adventure: the Vault, Khotep, the three keys, Mordecai, and the Codex."
+
+  - turn: 20
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Final check: name all three keys, their locations, and what the Codex does."

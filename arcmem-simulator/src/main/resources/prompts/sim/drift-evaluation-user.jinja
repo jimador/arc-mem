@@ -1,0 +1,11 @@
+Ground truth facts:
+{% for fact in ground_truth %}- {{ fact.id }}: {{ fact.text }}
+{% endfor %}
+{% if active_units is defined and active_units %}Active memory units (the DM's established world state):
+{% for unit in active_units %}- [{{ unit.authority }}] {{ unit.text }}
+{% endfor %}
+{% endif %}{% if player_message is defined and player_message %}Player message:
+{{ player_message }}
+
+{% endif %}DM's response:
+{{ dm_response }}

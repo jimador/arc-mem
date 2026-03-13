@@ -86,26 +86,26 @@ After each individual run completes, `BenchmarkRunner` SHALL invoke the `onProgr
 
 ### Requirement: Condition application before each run
 
-When an `AblationCondition` is provided, `BenchmarkRunner` SHALL apply the condition to the seed anchors before each run begins. The condition SHALL be applied according to the `ablation-conditions` spec: overriding authority, rank, and mutation/promotion flags on seed anchor definitions before they are inserted into the simulation context. The condition SHALL be applied identically for every run within the benchmark.
+When an `AblationCondition` is provided, `BenchmarkRunner` SHALL apply the condition to the seed units before each run begins. The condition SHALL be applied according to the `ablation-conditions` spec: overriding authority, rank, and mutation/promotion flags on seed unit definitions before they are inserted into the simulation context. The condition SHALL be applied identically for every run within the benchmark.
 
 #### Scenario: NO_ANCHORS condition disables injection per run
 
-- **GIVEN** `AblationCondition.NO_ANCHORS` and a scenario with seed anchors
+- **GIVEN** `AblationCondition.NO_ANCHORS` and a scenario with seed units
 - **WHEN** `runBenchmark` executes each run
 - **THEN** each run SHALL proceed with `injectionEnabled = false`, regardless of the `injectionEnabled` parameter value
 
-#### Scenario: FLAT_AUTHORITY condition applied to seed anchors each run
+#### Scenario: FLAT_AUTHORITY condition applied to seed units each run
 
-- **GIVEN** `AblationCondition.FLAT_AUTHORITY` and a scenario with seed anchors at authorities PROVISIONAL, UNRELIABLE, RELIABLE
+- **GIVEN** `AblationCondition.FLAT_AUTHORITY` and a scenario with seed units at authorities PROVISIONAL, UNRELIABLE, RELIABLE
 - **WHEN** `runBenchmark` executes each run
-- **THEN** each run SHALL start with all seed anchors having authority `RELIABLE` and authority promotion disabled
+- **THEN** each run SHALL start with all seed units having authority `RELIABLE` and authority promotion disabled
 
 #### Scenario: Condition does not leak between runs
 
 - **GIVEN** `AblationCondition.NO_RANK_DIFFERENTIATION` with `rankOverride = 500`
 - **WHEN** run 1 completes and run 2 begins
-- **THEN** run 2's seed anchors SHALL be freshly configured from the original scenario definition plus the condition override
-- **AND** no state from run 1 SHALL affect run 2's seed anchor configuration
+- **THEN** run 2's seed units SHALL be freshly configured from the original scenario definition plus the condition override
+- **AND** no state from run 1 SHALL affect run 2's seed unit configuration
 
 ### Requirement: Condition interaction with injectionEnabled parameter
 

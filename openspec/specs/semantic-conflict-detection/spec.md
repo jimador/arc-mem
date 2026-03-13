@@ -4,10 +4,10 @@
 
 ### Requirement: Semantic conflict detection via LLM
 
-The system SHALL detect semantic opposition between an incoming statement and existing anchors via LLM-based analysis. Semantic opposition includes word-level negation ("alive" vs "dead"), domain opposition ("supports" vs "opposes"), and conceptual contradiction on the same subject.
+The system SHALL detect semantic opposition between an incoming statement and existing memory units via LLM-based analysis. Semantic opposition includes word-level negation ("alive" vs "dead"), domain opposition ("supports" vs "opposes"), and conceptual contradiction on the same subject.
 
 #### Scenario: Semantic opposition detection
-- **WHEN** incoming "Mars supports life" is checked against existing anchor "Mars cannot support life"
+- **WHEN** incoming "Mars supports life" is checked against existing memory unit "Mars cannot support life"
 - **THEN** semantic detector identifies opposition beyond simple negation markers
 - **AND** returns a Conflict with reason "semantic opposition: supports vs cannot support"
 
@@ -26,23 +26,23 @@ The system SHALL detect semantic opposition between an incoming statement and ex
 The conflict detection system SHALL apply subject filtering before invoking semantic detection. Only candidates with shared subjects (named entities, domain nouns, explicit topic markers) SHALL be checked via LLM.
 
 #### Scenario: Subject overlap triggers semantic check
-- **WHEN** incoming "Mars is habitable" shares subject "Mars" with existing anchor
+- **WHEN** incoming "Mars is habitable" shares subject "Mars" with existing memory unit
 - **THEN** subject filter identifies overlap
 - **AND** semantic detector is invoked for LLM check
 
 #### Scenario: No subject overlap skips semantic check
-- **WHEN** incoming "The sun is bright" has no shared subjects with existing anchors
+- **WHEN** incoming "The sun is bright" has no shared subjects with existing memory units
 - **THEN** subject filter excludes it from semantic check
 - **AND** LLM is not invoked
 
 #### Scenario: Multiple shared subjects
-- **WHEN** incoming "Einstein's theory of relativity" shares "Einstein" and "theory" with existing anchors
+- **WHEN** incoming "Einstein's theory of relativity" shares "Einstein" and "theory" with existing memory units
 - **THEN** subject filter identifies multiple overlaps
 - **AND** semantic check is performed
 
 ### Requirement: Configurable conflict detection strategy
 
-The system SHALL support configurable conflict detection strategy via property `anchor.conflict-detection-strategy`. The property MUST accept three values:
+The system SHALL support configurable conflict detection strategy via property `unit.conflict-detection-strategy`. The property MUST accept three values:
 - LEXICAL_ONLY: NegationConflictDetector only (current behavior)
 - LEXICAL_THEN_SEMANTIC: Lexical first, semantic as fallback (recommended)
 - SEMANTIC_ONLY: SemanticConflictDetector only
@@ -81,7 +81,7 @@ The system SHALL provide a composite conflict detector that chains lexical and s
 The `ConflictDetector.detect()` method SHALL maintain its existing signature and contract. Callers observe no change in return type or behavior with LEXICAL_ONLY strategy.
 
 #### Scenario: API signature unchanged
-- **WHEN** calling `detect(incomingText, existingAnchors)`
+- **WHEN** calling `detect(incomingText, existingUnits)`
 - **THEN** return type is `List<Conflict>`
 - **AND** method accepts same parameters as before
 
@@ -91,7 +91,7 @@ The `ConflictDetector.detect()` method SHALL maintain its existing signature and
 
 ## Invariants
 
-- **I1**: Subject filter MUST NOT mutate incoming text or anchor texts
+- **I1**: Subject filter MUST NOT mutate incoming text or memory unit texts
 - **I2**: Semantic detector MUST NOT be invoked if subject filter returns empty (no shared subjects)
 - **I3**: If lexical detector returns conflicts (LEXICAL_THEN_SEMANTIC), semantic detector MUST NOT be invoked
 - **I4**: All conflicts returned MUST include reason text explaining the opposition

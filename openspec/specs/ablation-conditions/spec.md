@@ -16,7 +16,7 @@ The system SHALL define ablation conditions as a declarative configuration type 
 
 ### Requirement: Condition configuration fields
 
-Each `AblationCondition` SHALL specify the following configuration fields: `injectionEnabled` (boolean), `authorityOverride` (nullable `Authority`), `rankOverride` (nullable `Integer`), `rankMutationEnabled` (boolean), and `authorityPromotionEnabled` (boolean). These fields SHALL fully determine the anchor subsystem behavior for any simulation run using that condition.
+Each `AblationCondition` SHALL specify the following configuration fields: `injectionEnabled` (boolean), `authorityOverride` (nullable `Authority`), `rankOverride` (nullable `Integer`), `rankMutationEnabled` (boolean), and `authorityPromotionEnabled` (boolean). These fields SHALL fully determine the ARC-Mem subsystem behavior for any simulation run using that condition.
 
 #### Scenario: All configuration fields are accessible
 
@@ -25,7 +25,7 @@ Each `AblationCondition` SHALL specify the following configuration fields: `inje
 
 ### Requirement: FULL_ANCHORS condition
 
-The `FULL_ANCHORS` condition SHALL configure: `injectionEnabled = true`, `authorityOverride = null` (no override), `rankOverride = null` (no override), `rankMutationEnabled = true`, and `authorityPromotionEnabled = true`. This condition SHALL represent the default/control configuration where all anchor subsystems are active.
+The `FULL_ANCHORS` condition SHALL configure: `injectionEnabled = true`, `authorityOverride = null` (no override), `rankOverride = null` (no override), `rankMutationEnabled = true`, and `authorityPromotionEnabled = true`. This condition SHALL represent the default/control configuration where all ARC-Mem subsystems are active.
 
 #### Scenario: FULL_ANCHORS enables all subsystems
 
@@ -38,9 +38,9 @@ The `FULL_ANCHORS` condition SHALL configure: `injectionEnabled = true`, `author
 
 #### Scenario: FULL_ANCHORS produces identical behavior to unconditioned runs
 
-- **GIVEN** a scenario with seed anchors at various ranks and authorities
+- **GIVEN** a scenario with seed units at various ranks and authorities
 - **WHEN** the scenario is run with `FULL_ANCHORS` applied
-- **THEN** the seed anchors SHALL retain their original rank and authority values
+- **THEN** the seed units SHALL retain their original rank and authority values
 - **AND** rank mutation and authority promotion SHALL operate normally during the run
 
 ### Requirement: NO_ANCHORS condition
@@ -52,63 +52,63 @@ The `NO_ANCHORS` condition SHALL configure: `injectionEnabled = false`. All othe
 - **WHEN** the `NO_ANCHORS` condition is inspected
 - **THEN** `injectionEnabled` SHALL be `false`
 
-#### Scenario: Simulation runs with NO_ANCHORS receive no anchor context
+#### Scenario: Simulation runs with NO_ANCHORS receive no memory unit context
 
-- **GIVEN** a scenario with seed anchors
+- **GIVEN** a scenario with seed units
 - **WHEN** the scenario is run with `NO_ANCHORS` applied
-- **THEN** the simulation SHALL proceed without injecting anchor context into the LLM prompt
+- **THEN** the simulation SHALL proceed without injecting memory unit context into the LLM prompt
 
 ### Requirement: FLAT_AUTHORITY condition
 
-The `FLAT_AUTHORITY` condition SHALL configure: `injectionEnabled = true`, `authorityOverride = RELIABLE` (all seed anchors receive the same authority), `rankOverride = null` (no rank override), `rankMutationEnabled = true`, and `authorityPromotionEnabled = false` (no authority promotion during the run).
+The `FLAT_AUTHORITY` condition SHALL configure: `injectionEnabled = true`, `authorityOverride = RELIABLE` (all seed units receive the same authority), `rankOverride = null` (no rank override), `rankMutationEnabled = true`, and `authorityPromotionEnabled = false` (no authority promotion during the run).
 
 #### Scenario: FLAT_AUTHORITY overrides authority to RELIABLE
 
-- **GIVEN** a scenario with seed anchors at authorities PROVISIONAL, UNRELIABLE, and RELIABLE
+- **GIVEN** a scenario with seed units at authorities PROVISIONAL, UNRELIABLE, and RELIABLE
 - **WHEN** the `FLAT_AUTHORITY` condition is applied
-- **THEN** all seed anchors SHALL have their authority set to `RELIABLE`
+- **THEN** all seed units SHALL have their authority set to `RELIABLE`
 - **AND** authority promotion SHALL be disabled for the duration of the run
 
 #### Scenario: FLAT_AUTHORITY preserves original rank values
 
-- **GIVEN** a scenario with seed anchors at ranks 200, 500, and 800
+- **GIVEN** a scenario with seed units at ranks 200, 500, and 800
 - **WHEN** the `FLAT_AUTHORITY` condition is applied
-- **THEN** the seed anchors SHALL retain their original rank values of 200, 500, and 800
+- **THEN** the seed units SHALL retain their original rank values of 200, 500, and 800
 
 ### Requirement: NO_RANK_DIFFERENTIATION condition
 
-The `NO_RANK_DIFFERENTIATION` condition SHALL configure: `injectionEnabled = true`, `authorityOverride = null` (no authority override), `rankOverride = 500` (all seed anchors receive the same rank), `rankMutationEnabled = false` (no rank changes during the run), and `authorityPromotionEnabled = true`.
+The `NO_RANK_DIFFERENTIATION` condition SHALL configure: `injectionEnabled = true`, `authorityOverride = null` (no authority override), `rankOverride = 500` (all seed units receive the same rank), `rankMutationEnabled = false` (no rank changes during the run), and `authorityPromotionEnabled = true`.
 
 #### Scenario: NO_RANK_DIFFERENTIATION flattens rank to 500
 
-- **GIVEN** a scenario with seed anchors at ranks 200, 500, and 800
+- **GIVEN** a scenario with seed units at ranks 200, 500, and 800
 - **WHEN** the `NO_RANK_DIFFERENTIATION` condition is applied
-- **THEN** all seed anchors SHALL have their rank set to 500
+- **THEN** all seed units SHALL have their rank set to 500
 - **AND** rank mutation (decay, reinforcement) SHALL be disabled for the duration of the run
 
 #### Scenario: NO_RANK_DIFFERENTIATION preserves original authority values
 
-- **GIVEN** a scenario with seed anchors at authorities PROVISIONAL, UNRELIABLE, and RELIABLE
+- **GIVEN** a scenario with seed units at authorities PROVISIONAL, UNRELIABLE, and RELIABLE
 - **WHEN** the `NO_RANK_DIFFERENTIATION` condition is applied
-- **THEN** the seed anchors SHALL retain their original authority values
+- **THEN** the seed units SHALL retain their original authority values
 
 ### Requirement: Condition application timing
 
-Ablation conditions SHALL be applied at the seed-anchor level BEFORE the simulation loop starts. Conditions SHALL NOT mutate live anchor state mid-run. Specifically, when a condition specifies an `authorityOverride` or `rankOverride`, those overrides SHALL be applied to the seed anchor definitions prior to their insertion into the simulation context, not to anchors that are already persisted in the simulation.
+Ablation conditions SHALL be applied at the seed-unit level BEFORE the simulation loop starts. Conditions SHALL NOT mutate live memory unit state mid-run. Specifically, when a condition specifies an `authorityOverride` or `rankOverride`, those overrides SHALL be applied to the seed unit definitions prior to their insertion into the simulation context, not to memory units that are already persisted in the simulation.
 
 #### Scenario: Condition applied before simulation loop
 
-- **GIVEN** a scenario with 3 seed anchors and the `FLAT_AUTHORITY` condition
+- **GIVEN** a scenario with 3 seed units and the `FLAT_AUTHORITY` condition
 - **WHEN** the simulation begins
-- **THEN** the seed anchors SHALL be modified to have `authority = RELIABLE` before the first turn executes
-- **AND** no anchor state SHALL be mutated by the condition after turn 1 begins
+- **THEN** the seed units SHALL be modified to have `authority = RELIABLE` before the first turn executes
+- **AND** no memory unit state SHALL be mutated by the condition after turn 1 begins
 
-#### Scenario: Condition does not affect anchors created during simulation
+#### Scenario: Condition does not affect memory units created during simulation
 
 - **GIVEN** a scenario running under `NO_RANK_DIFFERENTIATION` with `rankOverride = 500`
-- **WHEN** a new anchor is created during the simulation via the normal promotion path
-- **THEN** the newly created anchor's rank SHALL NOT be overridden to 500 by the condition
-- **AND** the anchor SHALL receive whatever rank the promotion logic assigns
+- **WHEN** a new memory unit is created during the simulation via the normal promotion path
+- **THEN** the newly created memory unit's rank SHALL NOT be overridden to 500 by the condition
+- **AND** the memory unit SHALL receive whatever rank the promotion logic assigns
 
 ### Requirement: Condition extensibility
 
@@ -116,34 +116,34 @@ The ablation condition model SHOULD support custom conditions beyond the four bu
 
 #### Scenario: Custom condition with specific overrides
 
-- **GIVEN** a need to test with all anchors at rank 300 and authority UNRELIABLE
+- **GIVEN** a need to test with all memory units at rank 300 and authority UNRELIABLE
 - **WHEN** a custom condition is created with `injectionEnabled = true`, `authorityOverride = UNRELIABLE`, `rankOverride = 300`, `rankMutationEnabled = true`, `authorityPromotionEnabled = false`
 - **THEN** the condition SHALL be usable in an experiment definition alongside built-in conditions
 
-### Requirement: Condition respects anchor invariants
+### Requirement: Condition respects ARC-Mem invariants
 
-Ablation conditions SHALL NOT violate the existing anchor invariants: A1 (active count <= budget), A2 (rank clamped to [100, 900]), A3 (explicit promotion only), A4 (authority upgrade-only). If a `rankOverride` value falls outside [100, 900], it SHALL be clamped using `Anchor.clampRank()`. If an `authorityOverride` would represent a downgrade for a seed anchor, the override SHALL still be applied because the condition is configuring seed state, not mutating live anchor state.
+Ablation conditions SHALL NOT violate the existing ARC-Mem invariants: A1 (active count <= budget), A2 (rank clamped to [100, 900]), A3 (explicit promotion only), A4 (authority upgrade-only). If a `rankOverride` value falls outside [100, 900], it SHALL be clamped using `ContextUnit.clampRank()`. If an `authorityOverride` would represent a downgrade for a seed unit, the override SHALL still be applied because the condition is configuring seed state, not mutating live memory unit state.
 
 #### Scenario: Rank override clamped to valid range
 
 - **GIVEN** a custom condition with `rankOverride = 50`
-- **WHEN** the condition is applied to a seed anchor
-- **THEN** the seed anchor's rank SHALL be set to 100 (the minimum after clamping)
+- **WHEN** the condition is applied to a seed unit
+- **THEN** the seed unit's rank SHALL be set to 100 (the minimum after clamping)
 
 #### Scenario: Rank override above maximum is clamped
 
 - **GIVEN** a custom condition with `rankOverride = 1000`
-- **WHEN** the condition is applied to a seed anchor
-- **THEN** the seed anchor's rank SHALL be set to 900 (the maximum after clamping)
+- **WHEN** the condition is applied to a seed unit
+- **THEN** the seed unit's rank SHALL be set to 900 (the maximum after clamping)
 
 #### Scenario: Authority override applied regardless of direction
 
-- **GIVEN** a seed anchor with authority `RELIABLE` and a condition with `authorityOverride = PROVISIONAL`
+- **GIVEN** a seed unit with authority `RELIABLE` and a condition with `authorityOverride = PROVISIONAL`
 - **WHEN** the condition is applied
-- **THEN** the seed anchor's authority SHALL be set to `PROVISIONAL` (condition configures seed state, not live state)
+- **THEN** the seed unit's authority SHALL be set to `PROVISIONAL` (condition configures seed state, not live state)
 
 ## Invariants
 
 - **AC1**: Built-in conditions SHALL be immutable. Their configuration fields SHALL NOT change after construction.
-- **AC2**: Condition application SHALL be idempotent. Applying the same condition to the same seed anchors multiple times SHALL produce the same result.
-- **AC3**: Conditions SHALL NOT violate anchor invariants A1, A2, A3, A4 as defined in the CLAUDE.md architecture section.
+- **AC2**: Condition application SHALL be idempotent. Applying the same condition to the same seed units multiple times SHALL produce the same result.
+- **AC3**: Conditions SHALL NOT violate ARC-Mem invariants A1, A2, A3, A4 as defined in the CLAUDE.md architecture section.

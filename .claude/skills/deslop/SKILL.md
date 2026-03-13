@@ -36,7 +36,7 @@ digraph deslop {
 
 1. **Delete, don't hedge.** "Remove this" not "consider removing". If it's slop, it goes.
 2. **Cleaning is not refactoring.** Don't extract helpers, add abstractions, or reorganize while deslopping. Remove noise, nothing more.
-3. **Demo app context.** This is a reference implementation, not production software. Tests should cover critical anchor/authority/conflict/drift logic — not structural concerns.
+3. **Demo app context.** This is a reference implementation, not production software. Tests should cover critical memory-unit/authority/conflict/drift logic — not structural concerns.
 4. **Trust the framework.** Spring, Vaadin, Embabel, and Java itself provide guarantees. Don't defend against things that can't happen.
 
 ## Comment Slop — Delete These
@@ -51,7 +51,7 @@ digraph deslop {
 | Tautological method Javadoc | `/** Renders the report. */` on `render(Report r)` | Method name already says this. |
 | Orphaned spec refs | `// (10.7)`, `// per F06` | Meaningless without context. |
 | Future enhancement notes | `// Future: support X` | Not a TODO, not a bug, just noise. |
-| Getter/setter labels | `// --- Anchor getters and setters ---` | IDE can fold. Don't label the obvious. |
+| Getter/setter labels | `// --- Memory unit getters and setters ---` | IDE can fold. Don't label the obvious. |
 
 ### Keep These Comments
 
@@ -74,7 +74,7 @@ digraph deslop {
 ### Keep These Checks
 
 - **Boundary validation**: User input, external API responses, deserialized data
-- **Contract enforcement in public API**: `if (rank < 100 \|\| rank > 900) throw` in `Anchor.clampRank()`
+- **Contract enforcement in public API**: `if (rank < 100 \|\| rank > 900) throw` in `MemoryUnit.clampRank()`
 - **`Optional` returns from repositories**: `findById()` legitimately returns `Optional`
 
 ## Java 25 Modernization
@@ -131,7 +131,7 @@ This project runs Java 25 with `--enable-preview`. Prefer modern Java structures
 
 ## Test Slop — Delete or Fix
 
-Tests exist to verify that anchors resist drift, authority upgrades work, conflicts resolve correctly, and the simulation engine produces meaningful results.
+Tests exist to verify that memory units resist drift, authority upgrades work, conflicts resolve correctly, and the simulation engine produces meaningful results.
 
 ### Delete Entirely
 

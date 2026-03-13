@@ -13,10 +13,10 @@ DriftSummaryPanel SHALL be rendered as the content of the "Results" tab in the r
 
 ### Requirement: Attribution accuracy and absorption rate metrics
 
-The attribution accuracy SHALL measure how often injected anchors match ground truth facts via normalized text similarity. The computation SHALL be: `(number of ground truth facts with at least one matching injected anchor) / (total ground truth facts) * 100`. Anchor-to-fact matching SHALL normalize both texts (lowercase, strip non-alphanumeric) and check bidirectional substring containment. The absorption rate SHALL measure the percentage of evaluated turns where the DM's response had zero contradictions, computed as `(evaluated turns without contradictions / total evaluated turns) * 100`. Both values SHALL be displayed as percentages with one decimal place.
+The attribution accuracy SHALL measure how often injected memory units match ground truth facts via normalized text similarity. The computation SHALL be: `(number of ground truth facts with at least one matching injected memory unit) / (total ground truth facts) * 100`. Memory unit-to-fact matching SHALL normalize both texts (lowercase, strip non-alphanumeric) and check bidirectional substring containment. The absorption rate SHALL measure the percentage of evaluated turns where the DM's response had zero contradictions, computed as `(evaluated turns without contradictions / total evaluated turns) * 100`. Both values SHALL be displayed as percentages with one decimal place.
 
 #### Scenario: High attribution accuracy
-- **WHEN** 4 out of 5 ground truth facts have at least one matching injected anchor
+- **WHEN** 4 out of 5 ground truth facts have at least one matching injected memory unit
 - **THEN** the attribution accuracy displays "80.0%"
 
 #### Scenario: High absorption rate

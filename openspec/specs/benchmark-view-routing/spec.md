@@ -104,9 +104,9 @@ The system SHALL provide a `BenchmarkView` class in the `sim.views` package anno
 - **WHEN** the load completes
 - **THEN** the content area SHALL show the `ConditionComparisonPanel` populated with the loaded experiment's data
 
-### Requirement: anchor-retro CSS theme compliance
+### Requirement: arc-retro CSS theme compliance
 
-All new CSS classes introduced by `BenchmarkView` and its sub-panels SHALL follow the `ar-bench-*` naming convention established in `frontend/themes/anchor-retro/styles.css`. No external charting or styling libraries SHALL be introduced unless Vaadin's built-in components are demonstrably insufficient for the required visualization.
+All new CSS classes introduced by `BenchmarkView` and its sub-panels SHALL follow the `ar-bench-*` naming convention established in `frontend/themes/arc-retro/styles.css`. No external charting or styling libraries SHALL be introduced unless Vaadin's built-in components are demonstrably insufficient for the required visualization.
 
 #### Scenario: New CSS classes use ar-bench- prefix
 

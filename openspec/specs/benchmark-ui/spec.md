@@ -2,7 +2,7 @@
 
 ### Requirement: BenchmarkPanel Vaadin component
 
-The system SHALL provide a `BenchmarkPanel` class in the `sim.views` package extending a Vaadin layout component. The panel SHALL be displayed as a tab labeled "Benchmark" in the `SimulationView` `TabSheet`, alongside the existing Conversation, Anchors, Drift, and Context tabs.
+The system SHALL provide a `BenchmarkPanel` class in the `sim.views` package extending a Vaadin layout component. The panel SHALL be displayed as a tab labeled "Benchmark" in the `SimulationView` `TabSheet`, alongside the existing Conversation, Memory Units, Drift, and Context tabs.
 
 #### Scenario: Tab appears in SimulationView
 

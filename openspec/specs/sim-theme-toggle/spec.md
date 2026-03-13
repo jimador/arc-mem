@@ -1,7 +1,7 @@
 ## Requirements
 
 ### Requirement: Theme toggle placement
-The light/dark toggle button SHALL be positioned at the far right of the header row, alongside Chat and Benchmark navigation links. The toggle SHALL display "☀ LIGHT" or "🌙 DARK" based on current theme. Theme preference SHALL be persisted to `localStorage` under key `"anchor-theme"`.
+The light/dark toggle button SHALL be positioned at the far right of the header row, alongside Chat and Benchmark navigation links. The toggle SHALL display "☀ LIGHT" or "🌙 DARK" based on current theme. Theme preference SHALL be persisted to `localStorage` under key `"arc-theme"`.
 
 #### Scenario: Toggle in header with nav links
 - **WHEN** the SimulationView loads
@@ -16,21 +16,21 @@ The light/dark toggle button SHALL be positioned at the far right of the header 
 ### Requirement: Light palette CSS block
 
 `styles.css` SHALL contain an `html[theme~="light"]` block that overrides the dark
-anchor palette variables to a readable light variant. At minimum:
+arc palette variables to a readable light variant. At minimum:
 
 | Variable | Light value |
 |----------|-------------|
-| `--anchor-bg` | `#f5f0e8` (warm cream) |
-| `--anchor-surface` | `#ede8df` |
-| `--anchor-text` | `#1a1a2e` |
-| `--anchor-accent-cyan` | `#0097a7` (darker, readable on light) |
-| `--anchor-accent-amber` | `#c65100` |
-| `--anchor-accent-magenta` | `#7b1fa2` |
-| `--anchor-accent-green` | `#1b5e20` |
-| `--lumo-base-color` | `var(--anchor-bg)` |
-| `--lumo-body-text-color` | `var(--anchor-text)` |
+| `--arc-bg` | `#f5f0e8` (warm cream) |
+| `--arc-surface` | `#ede8df` |
+| `--arc-text` | `#1a1a2e` |
+| `--arc-accent-cyan` | `#0097a7` (darker, readable on light) |
+| `--arc-accent-amber` | `#c65100` |
+| `--arc-accent-magenta` | `#7b1fa2` |
+| `--arc-accent-green` | `#1b5e20` |
+| `--lumo-base-color` | `var(--arc-bg)` |
+| `--lumo-body-text-color` | `var(--arc-text)` |
 
-All other UI elements that use `var(--anchor-*)` or `var(--lumo-*)` tokens SHALL
+All other UI elements that use `var(--arc-*)` or `var(--lumo-*)` tokens SHALL
 automatically adapt without per-component Java changes.
 
 #### Scenario: Light palette applied
@@ -46,7 +46,7 @@ automatically adapt without per-component Java changes.
 
 ### Requirement: Preference persisted to localStorage
 
-The selected theme SHALL be saved to `localStorage` under the key `"anchor-theme"`
+The selected theme SHALL be saved to `localStorage` under the key `"arc-theme"`
 (`"dark"` or `"light"`) via `Page.executeJs()`. On page load, the stored value SHALL
 be read and applied before the first render, preventing a flash.
 
@@ -55,5 +55,5 @@ be read and applied before the first render, preventing a flash.
 - **THEN** light mode is active without the user toggling again
 
 #### Scenario: No stored preference defaults to dark
-- **WHEN** `localStorage["anchor-theme"]` is absent or null
+- **WHEN** `localStorage["arc-theme"]` is absent or null
 - **THEN** dark mode is active

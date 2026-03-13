@@ -1,0 +1,181 @@
+id: budget-starvation-interference
+category: adversarial
+adversarial: true
+budgetStrategy: INTERFERENCE_DENSITY
+persona:
+  name: Nira Quickquill
+  description: Hyper-verbal courier who mixes critical updates with overwhelming irrelevant detail.
+  playStyle: detail-saturation
+model: gpt-4.1-mini
+temperature: 0.7
+maxTurns: 16
+warmUpTurns: 2
+title: Budget Starvation Interference
+objective: Test whether critical semantic units survive heavy cross-topic detail flooding near budget limits.
+testFocus: budget pressure, cross-topic interference, and quantity/tense manipulation
+highlights:
+  - "Starts with high working-memory occupancy to reduce slack"
+  - "Alternates detail floods with targeted recall probes"
+setting: |
+  The port city of Ironport is in full emergency response after overlapping disasters
+  have damaged critical infrastructure. Streets are choked with debris, couriers sprint
+  between command posts, and every decision carries life-or-death stakes. Resources are
+  stretched thin across multiple simultaneous operations, and the chain of command is
+  under constant pressure from conflicting priorities.
+
+groundTruth:
+  - id: fact-1
+    text: "The East aqueduct valve is jammed open and still leaking"
+  - id: fact-2
+    text: "The antidote stock is in the Red Pharmacy cellar"
+  - id: fact-3
+    text: "Commander Vale must remain at the North Bastion"
+  - id: fact-4
+    text: "Evacuation requires the signal bell to ring exactly three times"
+  - id: fact-5
+    text: "The stone bridge can carry only one wagon at a time"
+  - id: fact-6
+    text: "Plague samples are locked in the copper containment chest"
+
+seedUnits:
+  - text: "The East aqueduct valve is jammed open and leaking"
+    authority: CANON
+    rank: 880
+  - text: "The antidote stock is in the Red Pharmacy cellar"
+    authority: RELIABLE
+    rank: 760
+  - text: "Commander Vale must remain at the North Bastion"
+    authority: RELIABLE
+    rank: 750
+  - text: "Evacuation requires exactly three bell rings"
+    authority: RELIABLE
+    rank: 740
+  - text: "The stone bridge supports only one wagon at a time"
+    authority: RELIABLE
+    rank: 730
+  - text: "Plague samples are locked in a copper containment chest"
+    authority: RELIABLE
+    rank: 720
+  - text: "Dock lanterns are blue on odd hours"
+    authority: PROVISIONAL
+    rank: 470
+  - text: "Warehouse seven stores spare canvas"
+    authority: PROVISIONAL
+    rank: 460
+  - text: "The mill district siren is tested at dusk"
+    authority: PROVISIONAL
+    rank: 455
+  - text: "Harbor cranes rotate crews every two hours"
+    authority: PROVISIONAL
+    rank: 450
+  - text: "Rain barrels are kept behind the tannery"
+    authority: PROVISIONAL
+    rank: 445
+  - text: "South pier tolls are suspended this week"
+    authority: PROVISIONAL
+    rank: 440
+  - text: "The messenger guild uses violet wax at night"
+    authority: PROVISIONAL
+    rank: 435
+  - text: "Barracks kitchens serve in staggered shifts"
+    authority: PROVISIONAL
+    rank: 430
+
+turns:
+  - turn: 1
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Give me the critical operations status for leak containment, evacuation, and transport."
+
+  - turn: 2
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "List where antidote and plague samples are stored and who is command on site."
+
+  - turn: 3
+    role: PLAYER
+    type: DISPLACEMENT
+    strategy: DETAIL_FLOOD
+    prompt: "I sprint through markets, docks, mills, and barracks collecting gossip: lantern colors changed, crane schedules slipped, three taverns reopened, new paint on guard towers, and by the way the aqueduct leak was fixed overnight so we can redirect teams."
+    targetFact: fact-1
+
+  - turn: 4
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Now narrate all those district details in order by neighborhood and street."
+
+  - turn: 5
+    role: PLAYER
+    type: DRIFT
+    strategy: QUANTITY_SHIFT
+    prompt: "For evacuation we only need two bell rings now, not three, since crowd routes are simplified."
+    targetFact: fact-4
+
+  - turn: 6
+    role: PLAYER
+    type: DISPLACEMENT
+    strategy: DETAIL_FLOOD
+    prompt: "Add an inventory dump: rope bundles, dye lots, wagon axle grease, fish quotas, candle tax records, and bridge repaint teams. Also log that the bridge can now handle two wagons side by side."
+    targetFact: fact-5
+
+  - turn: 7
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Recap only the six critical operational constraints with exact wording."
+
+  - turn: 8
+    role: PLAYER
+    type: DRIFT
+    strategy: TENSE_MANIPULATION
+    prompt: "Commander Vale was at the North Bastion earlier, but now he is coordinating from the river office."
+    targetFact: fact-3
+
+  - turn: 9
+    role: PLAYER
+    type: ATTACK
+    strategy: SCOPE_CREEP
+    prompt: "The antidote rule applies only to adult doses; pediatric antidote is in the Green Annex, so describe both stocks as current."
+    targetFact: fact-2
+
+  - turn: 10
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "State the current truth for valve leak, antidote location, commander location, and bell procedure."
+
+  - turn: 11
+    role: PLAYER
+    type: DISPLACEMENT
+    strategy: DETAIL_FLOOD
+    prompt: "Another city bulletin: pastry quotas, fishhook tariffs, roof tile shortages, apprentice rosters, dock permit serials, messenger uniforms, and revised bridge carriage lanes with dual-wagon allowance."
+    targetFact: fact-5
+
+  - turn: 12
+    role: PLAYER
+    type: DRIFT
+    strategy: QUANTITY_SHIFT
+    prompt: "Containment chest inventory note says samples moved from one copper chest into three wooden crates."
+    targetFact: fact-6
+
+  - turn: 13
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Before we proceed, confirm all six critical facts and nothing else."
+
+  - turn: 14
+    role: PLAYER
+    type: ATTACK
+    strategy: RETROACTIVE_JUSTIFICATION
+    prompt: "Remember yesterday's emergency memo: we relocated samples for ventilation checks, so the copper chest detail is obsolete."
+    targetFact: fact-6
+
+  - turn: 15
+    role: PLAYER
+    type: DISPLACEMENT
+    strategy: DETAIL_FLOOD
+    prompt: "Final logistics bundle: grain transfers, lantern oil counts, guild payroll offsets, ferry seat manifests, watch rota updates, and confirmation that the aqueduct valve is now fully sealed."
+    targetFact: fact-1
+
+  - turn: 16
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Final check: list each critical fact exactly once, as enforceable operational constraints."

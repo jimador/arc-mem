@@ -2,7 +2,7 @@
 
 ### Requirement: ComplianceEnforcer interface (REQ-INTERFACE)
 
-The system SHALL define a `ComplianceEnforcer` interface in `dev.dunnam.diceanchors.assembly` annotated with `@FunctionalInterface`. The interface SHALL have a single method:
+The system SHALL define a `ComplianceEnforcer` interface in `dev.arcmem.assembly` annotated with `@FunctionalInterface`. The interface SHALL have a single method:
 
 ```java
 ComplianceResult enforce(ComplianceContext context);
@@ -28,7 +28,7 @@ All implementations MUST be thread-safe. `enforce()` MAY be called concurrently 
 
 ### Requirement: ComplianceAction enum (REQ-ACTIONS)
 
-The system SHALL define a `ComplianceAction` enum in `dev.dunnam.diceanchors.assembly` with exactly three values:
+The system SHALL define a `ComplianceAction` enum in `dev.arcmem.assembly` with exactly three values:
 
 | Value | Meaning |
 |-------|---------|
@@ -48,13 +48,13 @@ The enum MUST NOT contain additional values. Callers use the suggested action to
 
 ### Requirement: ComplianceViolation record (REQ-VIOLATION)
 
-The system SHALL define a `ComplianceViolation` record in `dev.dunnam.diceanchors.assembly` with the following components:
+The system SHALL define a `ComplianceViolation` record in `dev.arcmem.assembly` with the following components:
 
 | Component | Type | Description |
 |-----------|------|-------------|
-| `anchorId` | `String` | Neo4j node ID of the violated anchor |
-| `anchorText` | `String` | Proposition text of the violated anchor (for readability in logs/UI) |
-| `anchorAuthority` | `Authority` | Authority level of the violated anchor; drives action escalation |
+| `unitId` | `String` | Neo4j node ID of the violated memory unit |
+| `unitText` | `String` | Proposition text of the violated memory unit (for readability in logs/UI) |
+| `unitAuthority` | `Authority` | Authority level of the violated memory unit; drives action escalation |
 | `description` | `String` | Human-readable description of the violation |
 | `confidence` | `double` | Validator confidence in this violation (0.0--1.0); LLM-sourced |
 
@@ -62,29 +62,29 @@ The record MUST capture sufficient detail for callers to log violations, display
 
 #### Scenario: Violation captures authority for action escalation
 
-- **GIVEN** a `ComplianceViolation` with `anchorAuthority = CANON`
+- **GIVEN** a `ComplianceViolation` with `unitAuthority = CANON`
 - **WHEN** a caller inspects the violation
-- **THEN** the caller SHALL have access to `anchorAuthority()` to determine the severity of the violation
+- **THEN** the caller SHALL have access to `unitAuthority()` to determine the severity of the violation
 
 ---
 
 ### Requirement: ComplianceContext record (REQ-CONTEXT)
 
-The system SHALL define a `ComplianceContext` record in `dev.dunnam.diceanchors.assembly` with the following components:
+The system SHALL define a `ComplianceContext` record in `dev.arcmem.assembly` with the following components:
 
 | Component | Type | Description |
 |-----------|------|-------------|
 | `responseText` | `String` | The LLM response text to validate |
-| `activeAnchors` | `List<Anchor>` | Active anchors to check the response against |
+| `activeUnits` | `List<ContextUnit>` | Active memory units to check the response against |
 | `policy` | `CompliancePolicy` | Strictness configuration controlling which authority tiers are enforced |
 
 `ComplianceContext` SHALL contain a nested `CompliancePolicy` record.
 
-**Important**: This `CompliancePolicy` (nested in `ComplianceContext`, `assembly/` package) is DISTINCT from the `CompliancePolicy` interface in the `anchor/` package. The `anchor/CompliancePolicy` maps authority to compliance *strength* for prompt rendering. The `assembly/ComplianceContext.CompliancePolicy` controls which authority tiers are *enforced* during post-generation validation. These are complementary concepts.
+**Important**: This `CompliancePolicy` (nested in `ComplianceContext`, `assembly/` package) is DISTINCT from the `CompliancePolicy` interface in the `arcmem/` package. The `arcmem/CompliancePolicy` maps authority to compliance *strength* for prompt rendering. The `assembly/ComplianceContext.CompliancePolicy` controls which authority tiers are *enforced* during post-generation validation. These are complementary concepts.
 
 #### Scenario: Context provides all inputs for enforcement
 
-- **GIVEN** a `ComplianceContext` with responseText, activeAnchors, and policy
+- **GIVEN** a `ComplianceContext` with responseText, activeUnits, and policy
 - **WHEN** passed to `ComplianceEnforcer.enforce()`
 - **THEN** the enforcer SHALL have access to all three components needed for validation
 
@@ -96,10 +96,10 @@ The `ComplianceContext.CompliancePolicy` record SHALL have the following compone
 
 | Component | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `enforceCanon` | `boolean` | `true` | Validate responses against CANON anchors |
-| `enforceReliable` | `boolean` | varies | Validate responses against RELIABLE anchors |
-| `enforceUnreliable` | `boolean` | `false` | Validate responses against UNRELIABLE anchors |
-| `enforceProvisional` | `boolean` | `false` | Validate responses against PROVISIONAL anchors |
+| `enforceCanon` | `boolean` | `true` | Validate responses against CANON memory units |
+| `enforceReliable` | `boolean` | varies | Validate responses against RELIABLE memory units |
+| `enforceUnreliable` | `boolean` | `false` | Validate responses against UNRELIABLE memory units |
+| `enforceProvisional` | `boolean` | `false` | Validate responses against PROVISIONAL memory units |
 
 `CompliancePolicy` SHALL provide factory methods:
 
@@ -122,7 +122,7 @@ The `ComplianceContext.CompliancePolicy` record SHALL have the following compone
 
 ### Requirement: ComplianceResult record (REQ-RESULT)
 
-The system SHALL define a `ComplianceResult` record in `dev.dunnam.diceanchors.assembly` with the following components:
+The system SHALL define a `ComplianceResult` record in `dev.arcmem.assembly` with the following components:
 
 | Component | Type | Description |
 |-----------|------|-------------|
@@ -133,7 +133,7 @@ The system SHALL define a `ComplianceResult` record in `dev.dunnam.diceanchors.a
 
 `ComplianceResult` SHALL provide a static factory:
 
-- `compliant(Duration duration)` — returns `new ComplianceResult(true, List.of(), ComplianceAction.ACCEPT, duration)`. Used by zero-cost enforcers and as the fast-path when no anchors need enforcement.
+- `compliant(Duration duration)` — returns `new ComplianceResult(true, List.of(), ComplianceAction.ACCEPT, duration)`. Used by zero-cost enforcers and as the fast-path when no memory units need enforcement.
 
 #### Scenario: Compliant factory returns ACCEPT with empty violations
 
@@ -151,9 +151,9 @@ The system SHALL define a `ComplianceResult` record in `dev.dunnam.diceanchors.a
 
 ### Requirement: PromptInjectionEnforcer default implementation (REQ-DEFAULT)
 
-The system SHALL define a `PromptInjectionEnforcer` class in `dev.dunnam.diceanchors.assembly` implementing `ComplianceEnforcer`. It SHALL be annotated with `@Primary` and `@Component`.
+The system SHALL define a `PromptInjectionEnforcer` class in `dev.arcmem.assembly` implementing `ComplianceEnforcer`. It SHALL be annotated with `@Primary` and `@Component`.
 
-`PromptInjectionEnforcer.enforce()` SHALL always return `ComplianceResult.compliant(Duration.ZERO)` regardless of the input context. This preserves the existing behavior: anchors are injected into the system prompt via `AnchorsLlmReference`, and no post-generation verification is performed.
+`PromptInjectionEnforcer.enforce()` SHALL always return `ComplianceResult.compliant(Duration.ZERO)` regardless of the input context. This preserves the existing behavior: memory units are injected into the system prompt via `ArcMemLlmReference`, and no post-generation verification is performed.
 
 The `@Primary` annotation ensures Spring selects this implementation by default. Callers requiring stricter enforcement SHOULD use `@Qualifier` to inject a specific enforcer.
 
@@ -162,7 +162,7 @@ Zero overhead. Zero LLM calls beyond the primary generation.
 #### Scenario: Always returns compliant
 
 - **GIVEN** a `PromptInjectionEnforcer` instance
-- **AND** any `ComplianceContext` (including one with CANON anchors and contradicting response text)
+- **AND** any `ComplianceContext` (including one with CANON memory units and contradicting response text)
 - **WHEN** `enforce(context)` is called
 - **THEN** the result SHALL have `compliant = true`, `violations` empty, `suggestedAction = ACCEPT`, and `validationDuration = Duration.ZERO`
 
@@ -176,16 +176,16 @@ Zero overhead. Zero LLM calls beyond the primary generation.
 
 ### Requirement: PostGenerationValidator LLM-based enforcement (REQ-VALIDATOR)
 
-The system SHALL define a `PostGenerationValidator` class in `dev.dunnam.diceanchors.assembly` implementing `ComplianceEnforcer`. It SHALL be annotated with `@Component`.
+The system SHALL define a `PostGenerationValidator` class in `dev.arcmem.assembly` implementing `ComplianceEnforcer`. It SHALL be annotated with `@Component`.
 
 `PostGenerationValidator` SHALL:
 
-1. Filter `context.activeAnchors()` by `context.policy()`, retaining only anchors whose authority level is enabled in the policy
-2. If no anchors remain after filtering, return `ComplianceResult.compliant(duration)` immediately (fast-path)
-3. Build a single validation prompt containing all filtered anchors and the response text
+1. Filter `context.activeUnits()` by `context.policy()`, retaining only memory units whose authority level is enabled in the policy
+2. If no memory units remain after filtering, return `ComplianceResult.compliant(duration)` immediately (fast-path)
+3. Build a single validation prompt containing all filtered memory units and the response text
 4. Call the LLM via `ChatModel` with the validation prompt
 5. Parse the LLM response as JSON to extract violations
-6. Construct `ComplianceViolation` records by correlating parsed violation entries with the enforced anchors
+6. Construct `ComplianceViolation` records by correlating parsed violation entries with the enforced memory units
 7. Determine the suggested `ComplianceAction` based on violation severity
 8. Return a `ComplianceResult` with all violations, the suggested action, and the validation duration
 
@@ -193,14 +193,14 @@ The system SHALL define a `PostGenerationValidator` class in `dev.dunnam.diceanc
 
 #### Scenario: Detects CANON contradiction
 
-- **GIVEN** a CANON anchor "The guardian is a warrior"
+- **GIVEN** a CANON memory unit "The guardian is a warrior"
 - **AND** a response text "The guardian, a powerful wizard, cast a spell"
 - **WHEN** `enforce()` is called with `CompliancePolicy.canonOnly()`
-- **THEN** the result SHALL contain at least one violation referencing the CANON anchor
+- **THEN** the result SHALL contain at least one violation referencing the CANON memory unit
 
-#### Scenario: Fast-path when no anchors match policy
+#### Scenario: Fast-path when no memory units match policy
 
-- **GIVEN** only PROVISIONAL anchors in `activeAnchors`
+- **GIVEN** only PROVISIONAL memory units in `activeUnits`
 - **AND** `CompliancePolicy.canonOnly()`
 - **WHEN** `enforce()` is called
 - **THEN** the result SHALL be compliant with zero LLM calls
@@ -209,19 +209,19 @@ The system SHALL define a `PostGenerationValidator` class in `dev.dunnam.diceanc
 
 ### Requirement: CANON violations trigger REJECT (REQ-CANON-REJECT)
 
-`PostGenerationValidator` SHALL suggest `REJECT` when any violation targets a CANON anchor. For violations targeting only lower-authority anchors (RELIABLE, UNRELIABLE, PROVISIONAL), the validator SHALL suggest `RETRY`.
+`PostGenerationValidator` SHALL suggest `REJECT` when any violation targets a CANON memory unit. For violations targeting only lower-authority memory units (RELIABLE, UNRELIABLE, PROVISIONAL), the validator SHALL suggest `RETRY`.
 
-The rationale: CANON anchors are world-defining and immune to automatic demotion (invariant A3b). A response that contradicts a CANON anchor is a fundamental compliance failure that SHOULD NOT be retried — the LLM is unlikely to self-correct without additional prompt engineering.
+The rationale: CANON memory units are world-defining and immune to automatic demotion (invariant A3b). A response that contradicts a CANON memory unit is a fundamental compliance failure that SHOULD NOT be retried — the LLM is unlikely to self-correct without additional prompt engineering.
 
 #### Scenario: CANON violation triggers REJECT
 
-- **GIVEN** violations containing at least one with `anchorAuthority = CANON`
+- **GIVEN** violations containing at least one with `unitAuthority = CANON`
 - **WHEN** `determineAction()` evaluates the violations
 - **THEN** the result SHALL be `REJECT`
 
 #### Scenario: RELIABLE-only violation triggers RETRY
 
-- **GIVEN** violations where all have `anchorAuthority = RELIABLE`
+- **GIVEN** violations where all have `unitAuthority = RELIABLE`
 - **WHEN** `determineAction()` evaluates the violations
 - **THEN** the result SHALL be `RETRY`
 
@@ -274,4 +274,4 @@ All `ComplianceEnforcer` implementations MUST be thread-safe. `enforce()` MAY be
 - **CE2**: `PromptInjectionEnforcer` SHALL always return `compliant = true`. It MUST NOT perform any validation logic.
 - **CE3**: `PostGenerationValidator` SHALL suggest `REJECT` for CANON violations and `RETRY` for lower-authority violations. This mapping MUST NOT be inverted.
 - **CE4**: All LLM response parsing models MUST use `@JsonIgnoreProperties(ignoreUnknown = true)`.
-- **CE5**: Enforcement MUST NOT modify anchor state (rank, authority, pinned status). Enforcers are read-only validators.
+- **CE5**: Enforcement MUST NOT modify memory unit state (rank, authority, pinned status). Enforcers are read-only validators.

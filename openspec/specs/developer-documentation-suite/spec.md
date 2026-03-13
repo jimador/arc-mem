@@ -59,7 +59,7 @@ The system SHALL maintain a concise developer documentation suite for share-read
 
 ### Requirement: Documentation scope control
 
-Developer docs SHALL prioritize reviewer-relevant Anchors and DICE integration content. Redundant, exploratory, or off-scope technical narratives SHALL be consolidated or archived during migration.
+Developer docs SHALL prioritize reviewer-relevant ARC-Mem and DICE integration content. Redundant, exploratory, or off-scope technical narratives SHALL be consolidated or archived during migration.
 
 #### Scenario: Redundant narrative content is not duplicated
 - **GIVEN** two documents covering the same technical behavior
@@ -67,7 +67,7 @@ Developer docs SHALL prioritize reviewer-relevant Anchors and DICE integration c
 - **THEN** only one canonical document SHALL remain in `docs/dev`
 
 #### Scenario: Off-scope detail is excluded from canonical docs
-- **GIVEN** content not required to understand Anchors implementation or DICE integration fit
+- **GIVEN** content not required to understand ARC-Mem implementation or DICE integration fit
 - **WHEN** canonical docs are reviewed
 - **THEN** that content SHALL be archived/deprecated or moved out of canonical docs
 

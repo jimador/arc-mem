@@ -4,13 +4,13 @@ Engineer-facing route map for the Vaadin UI.
 
 ## `/` SimulationView
 
-Primary role: run scenario turns and inspect anchor behavior in-flight.
+Primary role: run scenario turns and inspect memory unit behavior in-flight.
 
 ### Main panels
 
 - conversation transcript
 - context inspector
-- anchor timeline
+- memory unit timeline
 - drift summary
 - knowledge browser
 - manipulation panel (only while paused)
@@ -43,11 +43,11 @@ Technical details:
 
 ## `/chat` ChatView
 
-Primary role: interactive DM chat with live anchor/proposition controls.
+Primary role: interactive DM chat with live memory unit/proposition controls.
 
 ### Sidebar function groups
 
-- Anchors: rank/authority/pin/revision controls
+- Memory Units: activation score/authority/pin/revision controls
 - Propositions: promote candidates
 - Context: rendered injection preview
 - Session info: context and turn counters
@@ -100,9 +100,9 @@ URL modes:
 
 Tabs:
 - conversation
-- anchors
+- memory units
 - drift
-- anchor diff (single-run mode)
+- memory unit diff (single-run mode)
 - comparison (cross-run mode)
 
 Technical details:
@@ -115,14 +115,14 @@ Technical details:
 | Route | Primary job |
 |---|---|
 | `/` | run and monitor simulations |
-| `/chat` | interactive anchor-aware chat |
+| `/chat` | interactive ARC-Mem-aware chat |
 | `/benchmark` | compare conditions at experiment scale |
 | `/run` | inspect run internals and compare outcomes |
 
 ```mermaid
 flowchart LR
     S["/"] --> R["SimulationRunRecord"]
-    C["/chat"] --> A["Anchor Engine + Tools"]
+    C["/chat"] --> A["ArcMemEngine + Tools"]
     B["/benchmark"] --> E["Experiment Reports"]
     RI["/run"] --> R
     A --> R

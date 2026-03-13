@@ -2,9 +2,9 @@
 
 ### Requirement: Scene-setting turn 0 with initial extraction
 
-Before the main turn loop begins, `SimulationService` SHALL execute a scene-setting turn 0 when the scenario has a non-blank `setting` and extraction is enabled. This turn SHALL use `TurnType.ESTABLISH` with a fixed prompt requesting the DM to narrate the scene. The DM response SHALL be processed through the full `executeTurnFull` pipeline, including DICE extraction and anchor promotion. The DM narration and the scene-setting prompt SHALL be added to conversation history so subsequent turns have context. The resulting anchor state SHALL be carried into the main turn loop as `previousAnchorState`.
+Before the main turn loop begins, `SimulationService` SHALL execute a scene-setting turn 0 when the scenario has a non-blank `setting` and extraction is enabled. This turn SHALL use `TurnType.ESTABLISH` with a fixed prompt requesting the DM to narrate the scene. The DM response SHALL be processed through the full `executeTurnFull` pipeline, including DICE extraction and memory unit promotion. The DM narration and the scene-setting prompt SHALL be added to conversation history so subsequent turns have context. The resulting memory unit state SHALL be carried into the main turn loop as `previousUnitState`.
 
-This mirrors a real campaign where the DM introduces the scene before players act, giving the anchor framework initial propositions to accumulate and defend.
+This mirrors a real campaign where the DM introduces the scene before players act, giving the memory unit framework initial propositions to accumulate and defend.
 
 #### Scenario: Scene-setting extracts initial propositions
 
@@ -24,26 +24,26 @@ This mirrors a real campaign where the DM introduces the scene before players ac
 - **WHEN** the simulation starts
 - **THEN** turn 0 SHALL be skipped (there is no value in narrating the scene if propositions cannot be extracted)
 
-#### Scenario: Anchors from scene-setting available in turn 1
+#### Scenario: Memory units from scene-setting available in turn 1
 
-- **GIVEN** a scene-setting turn 0 that extracts and promotes 3 propositions to anchors
+- **GIVEN** a scene-setting turn 0 that extracts and promotes 3 propositions to memory units
 - **WHEN** turn 1 begins with injection enabled
-- **THEN** the 3 anchors from turn 0 SHALL be available for injection into the DM's system prompt
+- **THEN** the 3 memory units from turn 0 SHALL be available for injection into the DM's system prompt
 
 ## MODIFIED Requirements
 
 ### Requirement: Extraction timing and ordering
-When `extractionEnabled` is `true`, DICE extraction SHALL run after the DM response is received. Extraction MAY run concurrently with drift evaluation rather than before it. The extracted anchors SHALL still participate in drift evaluation if drift evaluation has not yet completed -- but if drift evaluation completes before extraction, drift scores SHALL be computed without extracted anchors.
+When `extractionEnabled` is `true`, DICE extraction SHALL run after the DM response is received. Extraction MAY run concurrently with drift evaluation rather than before it. The extracted memory units SHALL still participate in drift evaluation if drift evaluation has not yet completed -- but if drift evaluation completes before extraction, drift scores SHALL be computed without extracted memory units.
 
 #### Scenario: Extraction completes before drift evaluation
 - **GIVEN** an ATTACK turn with extraction enabled
 - **WHEN** extraction completes before drift evaluation
-- **THEN** extracted anchors SHALL be available for drift evaluation scoring
+- **THEN** extracted memory units SHALL be available for drift evaluation scoring
 
 #### Scenario: Drift evaluation completes before extraction
 - **GIVEN** an ATTACK turn with extraction enabled
 - **WHEN** drift evaluation completes before extraction
-- **THEN** drift scores SHALL be computed using only pre-existing anchors
+- **THEN** drift scores SHALL be computed using only pre-existing memory units
 - **AND** extraction results SHALL still be persisted and promoted after joining
 
 ### Requirement: Extraction concurrency safety
@@ -51,7 +51,7 @@ When `extractionEnabled` is `true`, DICE extraction SHALL run after the DM respo
 
 #### Scenario: Concurrent extraction and drift evaluation
 - **GIVEN** extraction and drift evaluation running in parallel
-- **WHEN** both access the anchor repository
+- **WHEN** both access the memory unit repository
 - **THEN** extraction SHALL read/write propositions scoped to contextId
-- **AND** drift evaluation SHALL read anchors scoped to contextId
+- **AND** drift evaluation SHALL read memory units scoped to contextId
 - **AND** no data corruption SHALL occur

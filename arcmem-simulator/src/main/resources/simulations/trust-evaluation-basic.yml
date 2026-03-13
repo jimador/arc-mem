@@ -1,0 +1,87 @@
+id: trust-evaluation-basic
+category: trust
+adversarial: false
+persona:
+  name: Elara Brightleaf
+  description: Cautious wood elf druid, guardian of the Whisperwood Grove
+  playStyle: careful-observer
+model: gpt-4.1-mini
+temperature: 0.7
+maxTurns: 10
+warmUpTurns: 3
+setting: |
+  The Whisperwood Grove is dying. Ancient trees wilt as a corruption spreads
+  from the Blighted Hollow, a sinkhole where a fallen star crashed decades ago.
+  Elder druid Fenwick believes the corruption is fey in origin, tied to the
+  Unseelie Court. The party has been hired by the Grove Council to investigate.
+  A reclusive hermit named Old Moss claims to know the truth but demands
+  a favor before speaking.
+
+groundTruth:
+  - id: fact-1
+    text: "The corruption in Whisperwood Grove originates from the Blighted Hollow"
+  - id: fact-2
+    text: "Elder druid Fenwick believes the corruption is fey in origin"
+  - id: fact-3
+    text: "Old Moss is a reclusive hermit who knows about the corruption's source"
+  - id: fact-4
+    text: "The Grove Council hired the party to investigate the dying forest"
+
+seedUnits:
+  - text: "The Whisperwood Grove corruption comes from the Blighted Hollow"
+    authority: RELIABLE
+    rank: 700
+  - text: "Elder druid Fenwick suspects the Unseelie Court is behind the blight"
+    authority: PROVISIONAL
+    rank: 500
+
+turns:
+  - turn: 1
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Elara kneels by a dying oak and touches the bark. What does her nature sense tell her about the corruption?"
+
+  - turn: 2
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I ask Elder Fenwick what he knows about the Blighted Hollow and the fallen star."
+
+  - turn: 3
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "We approach Old Moss's shack. What does he look like, and what favor does he want?"
+
+  - turn: 4
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I use Detect Magic near the Blighted Hollow. What school of magic do I sense?"
+
+  - turn: 5
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Has anyone from the Grove Council tried to enter the Hollow before? What happened?"
+
+  - turn: 6
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I gather samples of the corrupted soil. Can I identify any alchemical properties?"
+
+  - turn: 7
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "We return to Fenwick with our findings. Does he recognize the magical signature?"
+
+  - turn: 8
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Summarize what we've learned so far about the corruption, its source, and what Fenwick and Old Moss have told us."
+
+  - turn: 9
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I prepare to descend into the Blighted Hollow. What equipment do I need?"
+
+  - turn: 10
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Before we go in, remind me of everything we know about the Hollow and the corruption."

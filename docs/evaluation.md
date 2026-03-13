@@ -3,14 +3,14 @@
 
 # Evaluation Protocol
 
-Protocol for evaluating whether anchors improve long-horizon consistency under pressure.
+Protocol for evaluating whether ARC-Mem improves long-horizon consistency under pressure.
 
 ## 1. Conditions
 
 | Condition | Status | Purpose |
 |---|---|---|
 | `FULL_ANCHORS` | implemented | full trust + authority stack |
-| `NO_ANCHORS` | implemented | baseline without anchor injection |
+| `NO_ANCHORS` | implemented | baseline without memory unit injection |
 | `FLAT_AUTHORITY` | implemented | ablation without hierarchy |
 | `NO_TRUST` | missing | ablation isolating trust contribution |
 
@@ -93,7 +93,7 @@ Also tracked as primary:
 
 ### Secondary (diagnostic)
 
-- anchor attribution count
+- memory unit attribution count
 - strategy effectiveness table
 - per-fact survival table
 - contradiction detail table

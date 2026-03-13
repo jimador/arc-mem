@@ -1,0 +1,107 @@
+package dev.arcmem.core.memory.conflict;
+import dev.arcmem.core.memory.budget.*;
+import dev.arcmem.core.memory.canon.*;
+import dev.arcmem.core.memory.conflict.*;
+import dev.arcmem.core.memory.engine.*;
+import dev.arcmem.core.memory.maintenance.*;
+import dev.arcmem.core.memory.model.*;
+import dev.arcmem.core.memory.mutation.*;
+import dev.arcmem.core.memory.trust.*;
+import dev.arcmem.core.assembly.budget.*;
+import dev.arcmem.core.assembly.compaction.*;
+import dev.arcmem.core.assembly.compliance.*;
+import dev.arcmem.core.assembly.protection.*;
+import dev.arcmem.core.assembly.retrieval.*;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * Detects conflicts between an incoming statement and existing units by identifying
+ * negation patterns. If one statement contains negation markers and the other does not,
+ * and they share significant lexical overlap, they are considered conflicting.
+ */
+public class NegationConflictDetector implements ConflictDetector {
+
+    private static final Set<String> NEGATION_MARKERS = Set.of(
+            "not", "never", "no longer", "isn't", "doesn't", "wasn't",
+            "weren't", "hasn't", "haven't", "cannot", "can't", "won't",
+            "didn't", "don't", "neither", "nor", "false"
+    );
+
+    private final double overlapThreshold;
+
+    public NegationConflictDetector(double overlapThreshold) {
+        this.overlapThreshold = overlapThreshold;
+    }
+
+    public NegationConflictDetector() {
+        this(0.5);
+    }
+
+    @Override
+    public List<Conflict> detect(String incomingText, List<MemoryUnit> existingUnits) {
+        var conflicts = new ArrayList<Conflict>();
+        var incomingLower = incomingText.toLowerCase();
+        var incomingHasNegation = containsNegation(incomingLower);
+
+        for (var unit : existingUnits) {
+            var unitLower = unit.text().toLowerCase();
+            var unitHasNegation = containsNegation(unitLower);
+
+            if (incomingHasNegation != unitHasNegation) {
+                var overlap = calculateOverlap(incomingLower, unitLower);
+                if (overlap > this.overlapThreshold) {
+                    conflicts.add(new Conflict(
+                            unit,
+                            incomingText,
+                            overlap,
+                            "Negation conflict: one statement negates the other"
+                    ));
+                }
+            }
+        }
+        return conflicts;
+    }
+
+    @Override
+    public Map<String, List<Conflict>> batchDetect(List<String> candidateTexts, List<MemoryUnit> existingUnits) {
+        return candidateTexts.parallelStream()
+                .collect(Collectors.toMap(
+                        c -> c,
+                        c -> detect(c, existingUnits)));
+    }
+
+    private boolean containsNegation(String text) {
+        for (var marker : NEGATION_MARKERS) {
+            if (text.contains(marker)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private double calculateOverlap(String a, String b) {
+        var wordsA = Set.of(a.replaceAll("[^a-z0-9 ]", "").split("\\s+"));
+        var wordsB = Set.of(b.replaceAll("[^a-z0-9 ]", "").split("\\s+"));
+
+        var cleanA = new HashSet<>(wordsA);
+        cleanA.removeAll(NEGATION_MARKERS);
+        var cleanB = new HashSet<>(wordsB);
+        cleanB.removeAll(NEGATION_MARKERS);
+
+        if (cleanA.isEmpty() || cleanB.isEmpty()) {
+            return 0.0;
+        }
+
+        var intersection = new HashSet<>(cleanA);
+        intersection.retainAll(cleanB);
+        var union = new HashSet<>(cleanA);
+        union.addAll(cleanB);
+        return (double) intersection.size() / union.size();
+    }
+}

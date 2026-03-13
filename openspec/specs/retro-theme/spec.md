@@ -3,7 +3,7 @@
 ### Requirement: Dark palette CSS custom properties
 
 The theme SHALL define CSS custom properties on `:host` in
-`frontend/themes/anchor-retro/styles.css` establishing a dark palette. The base
+`frontend/themes/arc-retro/styles.css` establishing a dark palette. The base
 background SHALL be a near-black tone (e.g., `#0a0a0f`), the surface color SHALL be a
 dark gray (e.g., `#12121a`), and the text color SHALL be a light off-white (e.g.,
 `#e0e0e0`). All Vaadin Lumo overrides SHALL use these custom properties rather than
@@ -11,12 +11,12 @@ hardcoded color values.
 
 #### Scenario: Dark background applied globally
 - **WHEN** the application loads in a browser
-- **THEN** the page background color matches the `--anchor-bg` custom property (near-black)
-- **AND** body text renders in the `--anchor-text` custom property (light off-white)
+- **THEN** the page background color matches the `--arc-bg` custom property (near-black)
+- **AND** body text renders in the `--arc-text` custom property (light off-white)
 
 #### Scenario: Surface color on panels
 - **WHEN** any panel or card component renders (e.g., ContextInspectorPanel, ConversationPanel)
-- **THEN** the component background uses the `--anchor-surface` custom property (dark gray)
+- **THEN** the component background uses the `--arc-surface` custom property (dark gray)
 
 ---
 
@@ -40,20 +40,20 @@ existing Lumo size scale (`--lumo-font-size-xs` through `--lumo-font-size-xl`).
 ### Requirement: Accent color system
 
 The theme SHALL define four accent colors as CSS custom properties: cyan
-(`--anchor-accent-cyan`, e.g., `#00e5ff`) for injection-ON state and primary actions,
-amber (`--anchor-accent-amber`, e.g., `#ffab00`) for injection-OFF state and warnings,
-magenta (`--anchor-accent-magenta`, e.g., `#e040fb`) for contradictions and errors,
-and green (`--anchor-accent-green`, e.g., `#00e676`) for confirmations and CANON
+(`--arc-accent-cyan`, e.g., `#00e5ff`) for injection-ON state and primary actions,
+amber (`--arc-accent-amber`, e.g., `#ffab00`) for injection-OFF state and warnings,
+magenta (`--arc-accent-magenta`, e.g., `#e040fb`) for contradictions and errors,
+and green (`--arc-accent-green`, e.g., `#00e676`) for confirmations and CANON
 authority. These accent colors SHALL be used consistently across all panels for
 semantic meaning.
 
 #### Scenario: Cyan accent on injection-enabled elements
 - **WHEN** a UI element indicates injection is ON (e.g., injection toggle, timeline band)
-- **THEN** the element uses `--anchor-accent-cyan` for its color or border
+- **THEN** the element uses `--arc-accent-cyan` for its color or border
 
 #### Scenario: Magenta accent on contradiction verdicts
 - **WHEN** a verdict card displays a CONTRADICTED result
-- **THEN** the card border and verdict badge use `--anchor-accent-magenta`
+- **THEN** the card border and verdict badge use `--arc-accent-magenta`
 
 ---
 
@@ -128,16 +128,16 @@ fields) MUST follow a single disabled-state contract:
 
 ### Requirement: Theme annotation registration
 
-The `DiceAnchorsApplication` class SHALL be annotated with `@Theme("anchor-retro")` to
+The `ArcMemApplication` class SHALL be annotated with `@Theme("arc-retro")` to
 activate the custom theme directory. The theme directory SHALL be located at
-`frontend/themes/anchor-retro/` and SHALL contain at minimum a `styles.css` file with
+`frontend/themes/arc-retro/` and SHALL contain at minimum a `styles.css` file with
 all custom property definitions and Lumo overrides.
 
 #### Scenario: Theme directory structure
 - **WHEN** the application builds successfully
-- **THEN** the directory `frontend/themes/anchor-retro/styles.css` exists and is
+- **THEN** the directory `frontend/themes/arc-retro/styles.css` exists and is
   included in the Vaadin frontend bundle
 
 #### Scenario: Theme annotation present
-- **WHEN** `DiceAnchorsApplication.java` is inspected
-- **THEN** it contains a `@Theme("anchor-retro")` annotation
+- **WHEN** `ArcMemApplication.java` is inspected
+- **THEN** it contains a `@Theme("arc-retro")` annotation

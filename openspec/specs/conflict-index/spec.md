@@ -2,14 +2,14 @@
 
 ### REQ-INTERFACE: ConflictIndex interface
 
-The system SHALL define a `ConflictIndex` interface in `dev.dunnam.diceanchors.anchor` with the following methods:
+The system SHALL define a `ConflictIndex` interface in `dev.arcmem.arcmem` with the following methods:
 
-1. `Set<ConflictEntry> getConflicts(String anchorId)` -- returns all known conflicts for the given anchor. MUST return an empty set (never null) if no conflicts are indexed.
-2. `void recordConflict(String anchorId, ConflictEntry entry)` -- stores a conflict entry for the given anchor. MUST be idempotent -- recording the same entry twice SHALL NOT produce duplicates.
-3. `void removeConflicts(String anchorId)` -- removes all conflict entries involving the given anchor (both as source and as target). MUST be a no-op if the anchor has no indexed conflicts.
+1. `Set<ConflictEntry> getConflicts(String unitId)` -- returns all known conflicts for the given memory unit. MUST return an empty set (never null) if no conflicts are indexed.
+2. `void recordConflict(String unitId, ConflictEntry entry)` -- stores a conflict entry for the given memory unit. MUST be idempotent -- recording the same entry twice SHALL NOT produce duplicates.
+3. `void removeConflicts(String unitId)` -- removes all conflict entries involving the given memory unit (both as source and as target). MUST be a no-op if the memory unit has no indexed conflicts.
 4. `void clear(String contextId)` -- removes all conflict entries associated with the given context. MUST support simulation isolation per Article VI of the constitution.
-5. `boolean hasConflicts(String anchorId)` -- returns `true` if the index contains any conflict entries for the given anchor. MUST be consistent with `getConflicts()` -- `hasConflicts()` returns `true` if and only if `getConflicts()` returns a non-empty set.
-6. `int size()` -- returns the total number of conflict entries in the index. MUST be consistent with the sum of all per-anchor entry sets.
+5. `boolean hasConflicts(String unitId)` -- returns `true` if the index contains any conflict entries for the given memory unit. MUST be consistent with `getConflicts()` -- `hasConflicts()` returns `true` if and only if `getConflicts()` returns a non-empty set.
+6. `int size()` -- returns the total number of conflict entries in the index. MUST be consistent with the sum of all per-unit entry sets.
 
 `ConflictIndex` MUST NOT be sealed. The interface is intentionally open to allow future implementations (Neo4j-backed, Caffeine-cached) without API changes.
 
@@ -21,7 +21,7 @@ All implementations MUST be thread-safe. `getConflicts()` and `recordConflict()`
 - **WHEN** a new class implements `ConflictIndex`
 - **THEN** no sealed modifier or permits clause SHALL prevent the implementation
 
-#### Scenario: getConflicts returns empty set for unknown anchor
+#### Scenario: getConflicts returns empty set for unknown memory unit
 
 - **GIVEN** an empty `ConflictIndex`
 - **WHEN** `getConflicts("unknown-id")` is called
@@ -31,13 +31,13 @@ All implementations MUST be thread-safe. `getConflicts()` and `recordConflict()`
 
 ### REQ-ENTRY: ConflictEntry record
 
-The system SHALL define a `ConflictEntry` record in `dev.dunnam.diceanchors.anchor` with the following components:
+The system SHALL define a `ConflictEntry` record in `dev.arcmem.arcmem` with the following components:
 
 | Component | Type | Description |
 |-----------|------|-------------|
-| `anchorId` | `String` | Neo4j node ID of the conflicting anchor |
-| `anchorText` | `String` | Proposition text of the conflicting anchor |
-| `authority` | `Authority` | Authority level of the conflicting anchor at detection time |
+| `unitId` | `String` | Neo4j node ID of the conflicting memory unit |
+| `unitText` | `String` | Proposition text of the conflicting memory unit |
+| `authority` | `Authority` | Authority level of the conflicting memory unit at detection time |
 | `conflictType` | `ConflictType` | Type of conflict (CONTRADICTION, REVISION, WORLD_PROGRESSION) |
 | `confidence` | `double` | Detection confidence (0.0--1.0) |
 | `detectedAt` | `Instant` | When the conflict was detected |
@@ -46,7 +46,7 @@ The system SHALL define a `ConflictEntry` record in `dev.dunnam.diceanchors.anch
 
 #### Scenario: Entry captures all resolution fields
 
-- **GIVEN** a `ConflictEntry` created with anchor ID, text, authority, conflict type, confidence, and timestamp
+- **GIVEN** a `ConflictEntry` created with memory unit ID, text, authority, conflict type, confidence, and timestamp
 - **WHEN** the entry is inspected
 - **THEN** all six components SHALL be accessible without additional repository lookups
 
@@ -60,20 +60,20 @@ The system SHALL define a `ConflictEntry` record in `dev.dunnam.diceanchors.anch
 
 ### REQ-LOOKUP: O(1) conflict lookup
 
-`ConflictIndex.getConflicts(String anchorId)` SHALL provide O(1) amortized lookup time for indexed anchor pairs. The lookup MUST NOT invoke any LLM calls.
+`ConflictIndex.getConflicts(String unitId)` SHALL provide O(1) amortized lookup time for indexed memory unit pairs. The lookup MUST NOT invoke any LLM calls.
 
-When conflicts exist for the given anchor, the returned set SHALL contain `ConflictEntry` records with all fields populated. The caller MUST be able to make conflict resolution decisions using only the returned entries, without additional repository queries.
+When conflicts exist for the given memory unit, the returned set SHALL contain `ConflictEntry` records with all fields populated. The caller MUST be able to make conflict resolution decisions using only the returned entries, without additional repository queries.
 
 #### Scenario: Indexed conflicts returned without LLM call
 
-- **GIVEN** an anchor "A" with a recorded conflict against anchor "B"
+- **GIVEN** a memory unit "A" with a recorded conflict against memory unit "B"
 - **WHEN** `getConflicts("A")` is called
-- **THEN** the result SHALL contain a `ConflictEntry` referencing anchor "B"
+- **THEN** the result SHALL contain a `ConflictEntry` referencing memory unit "B"
 - **AND** no LLM call SHALL be made
 
-#### Scenario: Lookup for anchor with no conflicts
+#### Scenario: Lookup for memory unit with no conflicts
 
-- **GIVEN** an anchor "C" with no recorded conflicts
+- **GIVEN** a memory unit "C" with no recorded conflicts
 - **WHEN** `getConflicts("C")` is called
 - **THEN** the result SHALL be an empty set
 
@@ -81,39 +81,39 @@ When conflicts exist for the given anchor, the returned set SHALL contain `Confl
 
 ### REQ-INCREMENTAL: Lifecycle-event-driven incremental updates
 
-`InMemoryConflictIndex` SHALL subscribe to `AnchorLifecycleEvent` emissions and update the index incrementally:
+`InMemoryConflictIndex` SHALL subscribe to `UnitLifecycleEvent` emissions and update the index incrementally:
 
-1. **On `Promoted`**: The index SHOULD detect conflicts between the newly promoted anchor and all existing anchors in the same context. Detected conflicts SHALL be recorded via `recordConflict()`. This population MAY be deferred to the first `getConflicts()` call for the new anchor (lazy population).
-2. **On `Archived`**: All conflict entries involving the archived anchor (as both source and target) SHALL be removed via `removeConflicts()`.
-3. **On `Evicted`**: All conflict entries involving the evicted anchor SHALL be removed via `removeConflicts()`.
-4. **On `AuthorityChanged`**: Conflict entries involving the affected anchor SHOULD be updated if the authority change is relevant to conflict resolution. At minimum, stale entries MUST NOT cause incorrect resolution decisions.
+1. **On `Promoted`**: The index SHOULD detect conflicts between the newly promoted memory unit and all existing memory units in the same context. Detected conflicts SHALL be recorded via `recordConflict()`. This population MAY be deferred to the first `getConflicts()` call for the new memory unit (lazy population).
+2. **On `Archived`**: All conflict entries involving the archived memory unit (as both source and target) SHALL be removed via `removeConflicts()`.
+3. **On `Evicted`**: All conflict entries involving the evicted memory unit SHALL be removed via `removeConflicts()`.
+4. **On `AuthorityChanged`**: Conflict entries involving the affected memory unit SHOULD be updated if the authority change is relevant to conflict resolution. At minimum, stale entries MUST NOT cause incorrect resolution decisions.
 
 Updates MUST be synchronous within the event processing pipeline to ensure the index is current by the next promotion cycle.
 
-#### Scenario: Promoted anchor triggers conflict detection
+#### Scenario: Promoted memory unit triggers conflict detection
 
-- **GIVEN** an existing anchor "A" in the index
-- **WHEN** anchor "B" is promoted in the same context
+- **GIVEN** an existing memory unit "A" in the index
+- **WHEN** memory unit "B" is promoted in the same context
 - **THEN** conflicts between "A" and "B" SHALL be detected and recorded in the index
 
-#### Scenario: Archived anchor entries removed
+#### Scenario: Archived memory unit entries removed
 
-- **GIVEN** anchor "A" has conflict entries in the index
-- **WHEN** anchor "A" is archived
+- **GIVEN** memory unit "A" has conflict entries in the index
+- **WHEN** memory unit "A" is archived
 - **THEN** all entries referencing "A" (as source or target) SHALL be removed
 - **AND** `getConflicts("A")` SHALL return an empty set
 
-#### Scenario: Evicted anchor entries removed
+#### Scenario: Evicted memory unit entries removed
 
-- **GIVEN** anchor "A" has conflict entries in the index
-- **WHEN** anchor "A" is evicted
+- **GIVEN** memory unit "A" has conflict entries in the index
+- **WHEN** memory unit "A" is evicted
 - **THEN** all entries referencing "A" SHALL be removed
 
 ---
 
 ### REQ-FALLBACK: Index miss falls back to LLM detection
 
-When `CompositeConflictDetector` uses the `INDEXED` strategy, an index miss (anchor pair not present in the index) MUST fall back to existing LLM-based conflict detection via `LlmConflictDetector` or the configured semantic detector.
+When `CompositeConflictDetector` uses the `INDEXED` strategy, an index miss (memory unit pair not present in the index) MUST fall back to existing LLM-based conflict detection via `LlmConflictDetector` or the configured semantic detector.
 
 The index MUST NOT claim "no conflict" for a pair it has not evaluated. An empty result from `getConflicts()` means "not indexed" and MUST trigger fallback detection, not "no conflict exists."
 
@@ -121,8 +121,8 @@ The fallback detection result SHOULD be recorded in the index for future lookups
 
 #### Scenario: Index miss triggers LLM fallback
 
-- **GIVEN** an `INDEXED` strategy with no entry for the anchor pair (A, B)
-- **WHEN** conflict detection is requested for incoming text against anchor A
+- **GIVEN** an `INDEXED` strategy with no entry for the memory unit pair (A, B)
+- **WHEN** conflict detection is requested for incoming text against memory unit A
 - **THEN** the detector SHALL fall back to LLM-based detection
 - **AND** the result SHALL be equivalent to `SEMANTIC_ONLY` detection for that pair
 
@@ -135,17 +135,17 @@ The fallback detection result SHOULD be recorded in the index for future lookups
 
 ---
 
-### REQ-INVALIDATE: Automatic entry removal for inactive anchors
+### REQ-INVALIDATE: Automatic entry removal for inactive memory units
 
-Conflict entries involving archived, evicted, or otherwise inactive anchors MUST be removed from the index automatically. Stale entries referencing inactive anchors MUST NOT cause false-positive conflict blocking during promotion.
+Conflict entries involving archived, evicted, or otherwise inactive memory units MUST be removed from the index automatically. Stale entries referencing inactive memory units MUST NOT cause false-positive conflict blocking during promotion.
 
-Removal SHALL be triggered by `AnchorLifecycleEvent.Archived` and `AnchorLifecycleEvent.Evicted` events. The index MUST process these events before the next promotion cycle's conflict check.
+Removal SHALL be triggered by `UnitLifecycleEvent.Archived` and `UnitLifecycleEvent.Evicted` events. The index MUST process these events before the next promotion cycle's conflict check.
 
 #### Scenario: Stale entry does not block promotion
 
-- **GIVEN** anchor "A" was archived and its entries were removed from the index
+- **GIVEN** memory unit "A" was archived and its entries were removed from the index
 - **WHEN** a new proposition is checked for conflicts
-- **THEN** no conflict with anchor "A" SHALL be reported from the index
+- **THEN** no conflict with memory unit "A" SHALL be reported from the index
 
 ---
 
@@ -163,8 +163,8 @@ Removal SHALL be triggered by `AnchorLifecycleEvent.Archived` and `AnchorLifecyc
 #### Scenario: INDEXED strategy uses index first
 
 - **GIVEN** `ConflictDetectionStrategy.INDEXED` is active
-- **AND** the index contains a conflict entry for anchor "A"
-- **WHEN** conflict detection is requested for text matching anchor "A"
+- **AND** the index contains a conflict entry for memory unit "A"
+- **WHEN** conflict detection is requested for text matching memory unit "A"
 - **THEN** the conflict SHALL be returned from the index without an LLM call
 
 #### Scenario: LOGICAL strategy throws for now
@@ -177,9 +177,9 @@ Removal SHALL be triggered by `AnchorLifecycleEvent.Archived` and `AnchorLifecyc
 
 ### REQ-CLEANUP: Context-scoped cleanup
 
-`ConflictIndex.clear(String contextId)` SHALL remove all conflict entries associated with the given context. This MUST support simulation isolation: when a simulation run completes and its context is torn down via `AnchorRepository.clearByContext()`, the conflict index for that context MUST also be cleared.
+`ConflictIndex.clear(String contextId)` SHALL remove all conflict entries associated with the given context. This MUST support simulation isolation: when a simulation run completes and its context is torn down via `MemoryUnitRepository.clearByContext()`, the conflict index for that context MUST also be cleared.
 
-The `InMemoryConflictIndex` MUST track which anchor IDs belong to which context to support context-scoped cleanup.
+The `InMemoryConflictIndex` MUST track which memory unit IDs belong to which context to support context-scoped cleanup.
 
 #### Scenario: Clear removes all context entries
 
@@ -205,17 +205,17 @@ All `ConflictIndex` implementations MUST be thread-safe. Concurrent calls to `ge
 #### Scenario: Concurrent record and lookup
 
 - **GIVEN** two threads operating on the same `InMemoryConflictIndex`
-- **WHEN** thread 1 calls `recordConflict()` while thread 2 calls `getConflicts()` for the same anchor
+- **WHEN** thread 1 calls `recordConflict()` while thread 2 calls `getConflicts()` for the same memory unit
 - **THEN** thread 2 SHALL see either the pre-update or post-update state, never a corrupted state
 
 ---
 
 ## Invariants
 
-- **CI1**: `ConflictIndex.getConflicts()` SHALL never return null. An empty set means no conflicts are indexed for that anchor.
+- **CI1**: `ConflictIndex.getConflicts()` SHALL never return null. An empty set means no conflicts are indexed for that memory unit.
 - **CI2**: `ConflictEntry` SHALL be immutable. All components are set at construction time and cannot be modified.
 - **CI3**: The index SHALL NOT produce false negatives. An index miss (pair not evaluated) MUST trigger fallback detection, not report "no conflict."
-- **CI4**: Stale entries referencing archived or evicted anchors MUST be removed before the next promotion cycle's conflict check.
-- **CI5**: The index MUST NOT modify anchor state (rank, authority, pinned status). It is a read-only cache of detection results.
+- **CI4**: Stale entries referencing archived or evicted memory units MUST be removed before the next promotion cycle's conflict check.
+- **CI5**: The index MUST NOT modify memory unit state (rank, authority, pinned status). It is a read-only cache of detection results.
 - **CI6**: `ConflictDetectionStrategy.INDEXED` MUST compose with existing strategies. The index is additive (reduces LLM calls), not substitutive (replaces LLM detection).
 - **CI7**: Per-context isolation MUST be maintained. Entries for one context MUST NOT leak into another context's lookups.

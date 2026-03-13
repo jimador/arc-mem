@@ -2,17 +2,17 @@
 
 ### Requirement: Knowledge tab in ChatView sidebar
 
-`ChatView` SHALL include a "Knowledge" tab in the sidebar `TabSheet`. The tab SHALL display all propositions for the current context that are not active anchors. Each proposition card SHALL show text, confidence score, and a "Promote" button.
+`ChatView` SHALL include a "Knowledge" tab in the sidebar `TabSheet`. The tab SHALL display all propositions for the current context that are not active memory units. Each proposition card SHALL show text, confidence score, and a "Promote" button.
 
 #### Scenario: Knowledge tab shows propositions
 - **WHEN** the Knowledge tab is selected
-- **THEN** all non-anchor propositions for the chat context are displayed
+- **THEN** all non-memory-unit propositions for the chat context are displayed
 - **AND** each card shows text and confidence
 
 #### Scenario: Promote from Knowledge tab
 - **WHEN** the user clicks "Promote" on a proposition card
-- **THEN** `AnchorEngine.promote()` is called with the proposition ID and default rank 500
-- **AND** the sidebar refreshes to reflect the new anchor
+- **THEN** `ArcMemEngine.promote()` is called with the proposition ID and default rank 500
+- **AND** the sidebar refreshes to reflect the new memory unit
 
 ### Requirement: Add Knowledge form
 

@@ -57,8 +57,8 @@ Each panel that currently receives updates from `applyProgress()` MUST implement
 
 #### Scenario: ContextInspectorPanel handles context trace
 - **WHEN** `onTurnCompleted` is called with a non-null context trace
-- **THEN** ContextInspectorPanel MUST update its anchor/verdict/prompt displays
+- **THEN** ContextInspectorPanel MUST update its memory-unit/verdict/prompt displays
 
-#### Scenario: AnchorTimelinePanel handles turn and events
+#### Scenario: UnitTimelinePanel handles turn and events
 - **WHEN** `onTurnCompleted` is called
-- **THEN** AnchorTimelinePanel MUST call `appendTurn` and `appendAnchorEvents` internally
+- **THEN** UnitTimelinePanel MUST call `appendTurn` and `appendUnitEvents` internally

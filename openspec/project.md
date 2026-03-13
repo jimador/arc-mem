@@ -1,7 +1,7 @@
-# dice-anchors Project Overview
+# arc-mem Project Overview
 
 ## Purpose
-dice-anchors is a standalone application and test bed for **Anchors** — enriched DICE Propositions with rank, authority, and budget management — that implements a working memory model for long-horizon attention stability and hallucination/contradiction control. Adversarial prompts are used as stress tests, not as the product objective. Working reference for DICE <-> Anchor integration.
+arc-mem is a standalone application and test bed for **ARC-Mem (Activation-Ranked Context Memory)** — enriched DICE Propositions with activation score, authority, and budget management — that implements a working memory model for long-horizon attention stability and hallucination/contradiction control. Adversarial prompts are used as stress tests, not as the product objective. Working reference for DICE <-> ARC-Mem integration.
 
 ## Tech Stack
 - Java 25 (preview) / Spring Boot 3.5.10 / Embabel Agent 0.3.5-SNAPSHOT / DICE 0.1.0-SNAPSHOT
@@ -11,18 +11,18 @@ dice-anchors is a standalone application and test bed for **Anchors** — enrich
 ## Architecture
 - Four Vaadin routes: `/` (SimulationView), `/chat` (ChatView), `/benchmark` (BenchmarkView), `/run` (RunInspectorView)
 - Neo4j is the sole persistence store (no PostgreSQL)
-- Anchors are propositions with rank > 0 (no separate node type)
+- Memory units are propositions with activation score > 0 (no separate node type)
 - Configuration validation via Jakarta Bean Validation annotations (fail-fast at startup)
 - Simulation harness runs YAML-defined adversarial/baseline scenarios with turn-by-turn execution (adversarial scenarios are stress tests for hallucination/contradiction control)
-- Chat interface uses Embabel Agent for LLM orchestration with anchor context injection
-- Budget enforcement: configurable max active anchors (default 20) with eviction of lowest-ranked non-pinned anchors
+- Chat interface uses Embabel Agent for LLM orchestration with memory unit context injection
+- Budget enforcement: configurable max active memory units (default 20) with eviction of lowest-ranked non-pinned memory units
 
 ## Key Subsystems
-- **anchor/** — Engine, lifecycle, policies (decay, reinforcement), conflict detection/resolution, trust pipeline, invariant evaluation, canonization gating, unified maintenance strategies (reactive/proactive/hybrid), memory pressure gauge, precomputed conflict index, budget strategies, Prolog integration
-- **persistence/** — Neo4j persistence via Drivine (AnchorRepository, PropositionNode, PropositionView), tiered anchor storage (HOT/WARM/COLD)
-- **assembly/** — Context injection (AnchorsLlmReference, AnchorContextLock, PromptBudgetEnforcer, CompactedContextProvider), compliance enforcement (ComplianceEnforcer)
-- **extract/** — DICE → Anchor promotion (AnchorPromoter, DuplicateDetector interface with fast/LLM/composite implementations, pipeline: confidence → dedup → conflict → trust → promote)
-- **chat/** — Embabel chat integration (ChatActions, ChatView, AnchorTools for manual anchor management)
+- **arcmem/** — Engine, lifecycle, policies (decay, reinforcement), conflict detection/resolution, trust pipeline, invariant evaluation, canonization gating, unified maintenance strategies (reactive/proactive/hybrid), memory pressure gauge, precomputed conflict index, budget strategies, Prolog integration
+- **persistence/** — Neo4j persistence via Drivine (MemoryUnitRepository, PropositionNode, PropositionView), tiered memory unit storage (HOT/WARM/COLD)
+- **assembly/** — Context injection (ArcMemLlmReference, ArcMemContextLock, PromptBudgetEnforcer, CompactedContextProvider), compliance enforcement (ComplianceEnforcer)
+- **extract/** — DICE → memory unit promotion (UnitPromoter, DuplicateDetector interface with fast/LLM/composite implementations, pipeline: confidence → dedup → conflict → trust → promote)
+- **chat/** — Embabel chat integration (ChatActions, ChatView, ArcMemTools for manual memory unit management)
 - **domain/** — D&D entity models (Character, Creature, DndItem, DndLocation, Faction, StoryEvent)
 - **prompt/** — Prompt template management (PromptTemplates, PromptPathConstants)
 - **sim/engine/** — Simulation harness (SimulationService, SimulationTurnExecutor, SimulationExtractionService, SimulationRuntimeConfig, LlmCallService, ScoringService, ContextTrace, ScenarioLoader, SimulationTurnServices)
@@ -37,7 +37,7 @@ dice-anchors is a standalone application and test bed for **Anchors** — enrich
 - Test structure: `@Nested` classes with `@DisplayName` for clarity
 - Naming: `actionConditionExpectedOutcome` (no "test" prefix)
 - Integration tests (`*IT.java`, `@Tag("integration")`) excluded by default via Surefire config
-- Coverage areas: anchor lifecycle, conflict detection, trust pipeline, promotion gates, dedup logic, simulation execution
+- Coverage areas: memory unit lifecycle, conflict detection, trust pipeline, promotion gates, dedup logic, simulation execution
 
 ## Development Workflow
 - **OpenSpec** for spec-driven development: proposals → design → specs → tasks
@@ -47,27 +47,27 @@ dice-anchors is a standalone application and test bed for **Anchors** — enrich
 
 ## Completed Initiatives
 
-### anchor-memory-optimization (2026-03-03)
+### arc-mem-optimization (2026-03-03)
 - **Features**: 12 implemented (F02–F13), F01 deferred
 - **Research basis**: Sleeping LLM (wake/sleep consolidation) + Google AI STATIC (constrained decoding)
 - **Summary**: Unified maintenance strategy (reactive/proactive/hybrid), compliance enforcement layer, memory pressure gauge, precomputed conflict index, promotion pipeline optimization, proactive maintenance cycle, quality scoring, adaptive prompt footprint, interference-density budget, tiered storage, constraint-aware decoding interface, Prolog integration layer
 
-### anchors-working-memory-evolution (2026-03-03)
+### arc-mem-working-memory-evolution (2026-03-03)
 - **Features**: 7 implemented (F01–F07), F08 (dice-framework-fit-upstream-proposal) deferred
 - **Summary**: Working memory tiering, conflict detection calibration, retrieval quality gate, bi-temporal validity and supersession, compaction recovery guardrails, benchmarking and statistical rigor, operator invariants API and governance
 
-### anchor-working-memory-research (2026-03-03)
+### arc-mem-working-memory-research (2026-03-03)
 - **Features**: 3 implemented (F01–F03), F04–F05 (serendipitous retrieval, multi-agent governance) deferred as future work
 - **Summary**: Experiment framework, first-class benchmarking UI, resilience evaluation report
 
-### collaborative-anchor-mutation (2026-03-03)
+### collaborative-memory-unit-mutation (2026-03-03)
 - **Features**: 2 implemented (F01–F02), F03–F05 (cascade, provenance, UI mutation) deferred
 - **Summary**: Revision intent classification, prompt compliance revision carveout
 
 ## Key Design Principles
 - **Authority upgrade-only**: PROVISIONAL → UNRELIABLE → RELIABLE → CANON (never downgrade, CANON never auto-assigned)
-- **Rank bounds**: All ranks clamped to [100, 900] via `Anchor.clampRank()`
+- **Activation score bounds**: All activation scores clamped to [100, 900] via `ContextUnit.clampRank()`
 - **Sim isolation**: Each run gets unique `sim-{uuid}` contextId, cleaned up after completion
-- **Fail-open dedup**: LLM dedup errors assume unique (don't starve anchor pool)
+- **Fail-open dedup**: LLM dedup errors assume unique (don't starve memory unit pool)
 - **Multi-gate promotion**: Confidence → Dedup → Conflict → Trust → Promote (gates short-circuit early)
 - **Memory tiers**: COLD, WARM, HOT influence decay and eviction priority

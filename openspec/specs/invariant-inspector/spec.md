@@ -4,7 +4,7 @@
 
 The system SHALL add an "Invariants" tab to the `ContextInspectorPanel` Vaadin component. The tab SHALL display all active operator invariants applicable to the current simulation context, including globally-scoped invariants.
 
-The tab SHALL be implemented as a `VerticalLayout` within the existing `TabSheet` in `ContextInspectorPanel`, consistent with the existing tabs (Anchors, Context Trace, Entity Mentions, etc.).
+The tab SHALL be implemented as a `VerticalLayout` within the existing `TabSheet` in `ContextInspectorPanel`, consistent with the existing tabs (Memory Units, Context Trace, Entity Mentions, etc.).
 
 #### Scenario: Invariants tab visible in Context Inspector
 
@@ -25,7 +25,7 @@ Each invariant in the inspector SHALL display:
 | Field | Display |
 |-------|---------|
 | Rule ID | Text label (e.g., `"protect-cursed-blade"`) |
-| Type | Badge with invariant type name (e.g., `ANCHOR_PROTECTED`) |
+| Type | Badge with invariant type name (e.g., `UNIT_PROTECTED`) |
 | Strength | Color-coded badge: red for `MUST`, amber for `SHOULD` |
 | Scope | Text: `GLOBAL` or `CONTEXT (ctx-id)` |
 | Status | Icon: green checkmark for satisfied, red X for violated |
@@ -35,13 +35,13 @@ The status SHALL be computed by calling `InvariantEvaluator` to check the curren
 
 #### Scenario: Satisfied invariant shows green status
 
-- **GIVEN** an `ANCHOR_PROTECTED` invariant for anchor "A1" and anchor "A1" is active
+- **GIVEN** an `UNIT_PROTECTED` invariant for memory unit "A1" and memory unit "A1" is active
 - **WHEN** the Invariants tab is rendered
 - **THEN** the invariant row SHALL show a green checkmark status icon
 
 #### Scenario: Violated invariant shows red status
 
-- **GIVEN** a `MINIMUM_COUNT` invariant requiring 3 RELIABLE anchors and only 1 RELIABLE anchor exists
+- **GIVEN** a `MINIMUM_COUNT` invariant requiring 3 RELIABLE memory units and only 1 RELIABLE memory unit exists
 - **WHEN** the Invariants tab is rendered
 - **THEN** the invariant row SHALL show a red X status icon
 
@@ -56,7 +56,7 @@ Each violation entry SHALL display:
 | Timestamp | Formatted time (e.g., `"Turn 5, 14:32:01"`) |
 | Rule ID | The violated invariant's rule ID |
 | Action | The lifecycle action that was attempted (e.g., `EVICT`) |
-| Anchor ID | The anchor targeted by the attempted action |
+| Memory unit ID | The memory unit targeted by the attempted action |
 | Blocked | Badge: "BLOCKED" (red) or "WARNED" (amber) |
 
 #### Scenario: Violation history populated after blocked eviction
@@ -79,9 +79,9 @@ The status check SHALL NOT block the simulation turn execution -- it SHALL be pe
 
 #### Scenario: Status updates after turn execution
 
-- **GIVEN** a `MINIMUM_COUNT` invariant requiring 3 RELIABLE anchors
-- **AND** 3 RELIABLE anchors exist before turn 7
-- **WHEN** turn 7 evicts one RELIABLE anchor (dropping to 2)
+- **GIVEN** a `MINIMUM_COUNT` invariant requiring 3 RELIABLE memory units
+- **AND** 3 RELIABLE memory units exist before turn 7
+- **WHEN** turn 7 evicts one RELIABLE memory unit (dropping to 2)
 - **THEN** the invariant status SHALL update from satisfied (green) to violated (red) after turn 7 completes
 
 #### Scenario: Violation history grows across turns
