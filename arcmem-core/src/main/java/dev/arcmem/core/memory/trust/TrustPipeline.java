@@ -1,21 +1,10 @@
 package dev.arcmem.core.memory.trust;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
+import dev.arcmem.core.memory.model.DomainProfile;
 import dev.arcmem.core.persistence.PropositionNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -60,13 +49,14 @@ public class TrustPipeline {
      * All current trust signals are non-LLM and computed per-proposition.
      *
      * @param contexts list of propositions with their context IDs
+     *
      * @return map from proposition text to trust score
      */
     public Map<String, TrustScore> batchEvaluate(List<TrustContext> contexts) {
         return contexts.stream()
-                .collect(Collectors.toMap(
-                        ctx -> ctx.proposition().getText(),
-                        ctx -> evaluate(ctx.proposition(), ctx.contextId())));
+                       .collect(Collectors.toMap(
+                               ctx -> ctx.proposition().getText(),
+                               ctx -> evaluate(ctx.proposition(), ctx.contextId())));
     }
 
     /**

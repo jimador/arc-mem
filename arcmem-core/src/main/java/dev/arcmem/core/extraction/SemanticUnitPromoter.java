@@ -1,20 +1,22 @@
 package dev.arcmem.core.extraction;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
 import dev.arcmem.core.config.ArcMemProperties;
+import dev.arcmem.core.memory.canon.DemotionReason;
+import dev.arcmem.core.memory.conflict.ConflictDetector;
+import dev.arcmem.core.memory.conflict.ConflictIndex;
+import dev.arcmem.core.memory.conflict.ConflictResolver;
+import dev.arcmem.core.memory.conflict.ConflictType;
+import dev.arcmem.core.memory.conflict.ResolutionContext;
+import dev.arcmem.core.memory.conflict.SourceAuthorityResolver;
+import dev.arcmem.core.memory.engine.ArcMemEngine;
 import dev.arcmem.core.memory.event.ArchiveReason;
+import dev.arcmem.core.memory.model.Authority;
+import dev.arcmem.core.memory.model.MemoryUnit;
+import dev.arcmem.core.memory.model.PromotionZone;
+import dev.arcmem.core.memory.model.SemanticUnit;
+import dev.arcmem.core.memory.trust.TrustContext;
+import dev.arcmem.core.memory.trust.TrustPipeline;
+import dev.arcmem.core.memory.trust.TrustScore;
 import dev.arcmem.core.persistence.MemoryUnitRepository;
 import io.opentelemetry.api.trace.Span;
 import org.jspecify.annotations.Nullable;
@@ -114,17 +116,21 @@ public class SemanticUnitPromoter {
     private final DuplicateDetector duplicateDetector;
     @Nullable
     private final ConflictIndex conflictIndex;
+    @Nullable
+    private final SourceAuthorityResolver sourceAuthorityResolver;
 
     public SemanticUnitPromoter(ArcMemEngine engine, ArcMemProperties properties,
-                          TrustPipeline trustPipeline, MemoryUnitRepository repository,
-                          DuplicateDetector duplicateDetector,
-                          Optional<ConflictIndex> conflictIndex) {
+                                TrustPipeline trustPipeline, MemoryUnitRepository repository,
+                                DuplicateDetector duplicateDetector,
+                                Optional<ConflictIndex> conflictIndex,
+                                Optional<SourceAuthorityResolver> sourceAuthorityResolver) {
         this.engine = engine;
         this.properties = properties;
         this.trustPipeline = trustPipeline;
         this.repository = repository;
         this.duplicateDetector = duplicateDetector;
         this.conflictIndex = conflictIndex.orElse(null);
+        this.sourceAuthorityResolver = sourceAuthorityResolver.orElse(null);
     }
 
     public int evaluateAndPromote(String contextId, List<? extends SemanticUnit> units) {
@@ -153,7 +159,7 @@ public class SemanticUnitPromoter {
 
             if (unit.confidence() < threshold) {
                 logger.debug("Skipping unit {} - confidence {} below threshold {}",
-                        unit.id(), unit.confidence(), threshold);
+                             unit.id(), unit.confidence(), threshold);
                 continue;
             }
             postConfidence++;
@@ -184,24 +190,24 @@ public class SemanticUnitPromoter {
             if (nodeOpt.isPresent()) {
                 var node = nodeOpt.get();
                 logger.debug("Trust gate: unit {} sourceIds={} confidence={}",
-                        unit.id(), node.getSourceIds(), node.getConfidence());
+                             unit.id(), node.getSourceIds(), node.getConfidence());
                 trustScore = trustPipeline.evaluate(node, contextId);
                 logger.info("Trust gate: unit {} score={} zone={} audit={}",
-                        unit.id(), trustScore.score(), trustScore.promotionZone(),
-                        trustScore.signalAudit());
+                            unit.id(), trustScore.score(), trustScore.promotionZone(),
+                            trustScore.signalAudit());
                 if (trustScore.promotionZone() == PromotionZone.REVIEW) {
                     logger.info("Unit {} in REVIEW zone (score={}), skipping auto-promotion",
-                            unit.id(), trustScore.score());
+                                unit.id(), trustScore.score());
                     continue;
                 }
                 if (trustScore.promotionZone() == PromotionZone.ARCHIVE) {
                     logger.info("Unit {} in ARCHIVE zone (score={}), skipping",
-                            unit.id(), trustScore.score());
+                                unit.id(), trustScore.score());
                     continue;
                 }
             } else {
                 logger.warn("Trust gate: unit {} not found in repository, skipping trust evaluation",
-                        unit.id());
+                            unit.id());
             }
             postTrust++;
 
@@ -214,9 +220,9 @@ public class SemanticUnitPromoter {
         }
 
         logger.info("Promotion funnel for context {}: {} active, {} post-confidence, {} post-precheck, " +
-                        "{} post-dedup, {} post-conflict, {} post-trust, {} promoted, {} degraded-conflict(s)",
-                contextId, total, postConfidence, postPrecheck, postDedup, postConflict, postTrust, promoted,
-                degradedConflictCount);
+                    "{} post-dedup, {} post-conflict, {} post-trust, {} promoted, {} degraded-conflict(s)",
+                    contextId, total, postConfidence, postPrecheck, postDedup, postConflict, postTrust, promoted,
+                    degradedConflictCount);
         return new PromotionOutcome(promoted, degradedConflictCount);
     }
 
@@ -242,10 +248,10 @@ public class SemanticUnitPromoter {
         // occurrence so downstream Collectors.toMap() keyed by text never encounters a duplicate key.
         var seen = new java.util.LinkedHashSet<String>();
         var confident = units.stream()
-                .filter(u -> u.isPromotionCandidate() && u.confidence() >= threshold)
-                .filter(u -> seen.add(u.text()))
-                .limit(maxBatch)
-                .toList();
+                             .filter(u -> u.isPromotionCandidate() && u.confidence() >= threshold)
+                             .filter(u -> seen.add(u.text()))
+                             .limit(maxBatch)
+                             .toList();
 
         if (confident.isEmpty()) {
             logger.info("Batch promotion: all {} candidates filtered at confidence gate", units.size());
@@ -256,8 +262,8 @@ public class SemanticUnitPromoter {
 
         var postPrecheck = shouldRunPrecheck()
                 ? confident.stream()
-                        .filter(u -> !isFilteredByPrecheck(u.text(), existingMemoryUnits))
-                        .toList()
+                           .filter(u -> !isFilteredByPrecheck(u.text(), existingMemoryUnits))
+                           .toList()
                 : confident;
 
         if (postPrecheck.isEmpty()) {
@@ -266,11 +272,11 @@ public class SemanticUnitPromoter {
         }
 
         var existingTexts = existingMemoryUnits.stream()
-                .map(MemoryUnit::text)
-                .collect(Collectors.toSet());
+                                               .map(MemoryUnit::text)
+                                               .collect(Collectors.toSet());
         var postExistingDedup = postPrecheck.stream()
-                .filter(u -> !existingTexts.contains(u.text()))
-                .toList();
+                                            .filter(u -> !existingTexts.contains(u.text()))
+                                            .toList();
 
         if (postExistingDedup.isEmpty()) {
             logger.info("Batch promotion: all candidates filtered at existing-unit dedup gate");
@@ -280,8 +286,8 @@ public class SemanticUnitPromoter {
         var candidateTexts = postExistingDedup.stream().map(SemanticUnit::text).toList();
         var dedupResults = batchDedupWithFallback(candidateTexts, existingMemoryUnits);
         var postDedup = postExistingDedup.stream()
-                .filter(u -> !dedupResults.getOrDefault(u.text(), false))
-                .toList();
+                                         .filter(u -> !dedupResults.getOrDefault(u.text(), false))
+                                         .toList();
 
         if (postDedup.isEmpty()) {
             logger.info("Batch promotion: all candidates filtered at dedup gate");
@@ -311,20 +317,22 @@ public class SemanticUnitPromoter {
         }
 
         var trustContexts = postConflict.stream()
-                .map(u -> repository.findPropositionNodeById(u.id())
-                        .map(node -> new TrustContext(node, contextId))
-                        .orElse(null))
-                .filter(java.util.Objects::nonNull)
-                .toList();
+                                        .map(u -> repository.findPropositionNodeById(u.id())
+                                                            .map(node -> new TrustContext(node, contextId))
+                                                            .orElse(null))
+                                        .filter(java.util.Objects::nonNull)
+                                        .toList();
 
         var trustResults = trustPipeline.batchEvaluate(trustContexts);
         var postTrust = postConflict.stream()
-                .filter(u -> {
-                    var score = trustResults.get(u.text());
-                    if (score == null) return true; // no node found, allow (matches sequential behavior)
-                    return score.promotionZone() == PromotionZone.AUTO_PROMOTE;
-                })
-                .toList();
+                                    .filter(u -> {
+                                        var score = trustResults.get(u.text());
+                                        if (score == null) {
+                                            return true; // no node found, allow (matches sequential behavior)
+                                        }
+                                        return score.promotionZone() == PromotionZone.AUTO_PROMOTE;
+                                    })
+                                    .toList();
 
         if (postTrust.isEmpty()) {
             logger.info("Batch promotion: all candidates filtered at trust gate");
@@ -343,9 +351,9 @@ public class SemanticUnitPromoter {
         }
 
         logger.info("Batch promotion funnel for context {}: {} input, {} post-confidence, {} post-precheck, " +
-                        "{} post-dedup, {} post-conflict, {} post-trust, {} promoted, {} degraded-conflict(s)",
-                contextId, units.size(), confident.size(), postPrecheck.size(), postDedup.size(),
-                postConflict.size(), postTrust.size(), promoted, degradedConflictCount);
+                    "{} post-dedup, {} post-conflict, {} post-trust, {} promoted, {} degraded-conflict(s)",
+                    contextId, units.size(), confident.size(), postPrecheck.size(), postDedup.size(),
+                    postConflict.size(), postTrust.size(), promoted, degradedConflictCount);
         return new PromotionOutcome(promoted, degradedConflictCount);
     }
 
@@ -359,10 +367,10 @@ public class SemanticUnitPromoter {
             for (var entry : conflicts) {
                 if (entry.unitText().equals(propositionText) && entry.authority().isAtLeast(Authority.RELIABLE)) {
                     logger.info("promotion.precheck.rejected unitId={} conflicting={} authority={} confidence={}",
-                            unit.id(), propositionText.length() > 80
-                                    ? propositionText.substring(0, 80) + "..."
-                                    : propositionText,
-                            entry.authority(), entry.confidence());
+                                unit.id(), propositionText.length() > 80
+                                        ? propositionText.substring(0, 80) + "..."
+                                        : propositionText,
+                                entry.authority(), entry.confidence());
                     return true;
                 }
             }
@@ -371,15 +379,15 @@ public class SemanticUnitPromoter {
     }
 
     private Map<String, Boolean> batchDedupWithFallback(List<String> candidates,
-                                                         List<MemoryUnit> units) {
+                                                        List<MemoryUnit> units) {
         try {
             return duplicateDetector.batchIsDuplicate(candidates, units);
         } catch (Exception e) {
             logger.warn("Batch dedup failed, falling back to per-candidate: {}", e.getMessage());
             return candidates.stream()
-                    .collect(Collectors.toMap(
-                            c -> c,
-                            c -> duplicateDetector.isDuplicate(c, units)));
+                             .collect(Collectors.toMap(
+                                     c -> c,
+                                     c -> duplicateDetector.isDuplicate(c, units)));
         }
     }
 
@@ -390,20 +398,23 @@ public class SemanticUnitPromoter {
         var resolved = new ArrayList<Resolved>();
         boolean rejected = false;
 
+        var incomingSourceId = resolveIncomingSourceId(unit);
+
         for (var conflict : conflicts) {
             if (conflict.detectionQuality() == ConflictDetector.DetectionQuality.DEGRADED
-                    || conflict.existing() == null) {
+                || conflict.existing() == null) {
                 logger.warn("Degraded conflict detection for unit {} — routing to review; reason={}",
-                        unit.id(), conflict.reason());
+                            unit.id(), conflict.reason());
                 degradedCount++;
                 rejected = true;
                 break;
             }
 
-            var resolution = engine.resolveConflict(conflict);
+            var context = buildResolutionContext(incomingSourceId, conflict.existing());
+            var resolution = engine.resolveConflict(conflict, context);
             resolved.add(new Resolved(conflict, resolution));
             logger.info("Conflict resolution for unit {} vs memory unit {}: {}",
-                    unit.id(), conflict.existing().id(), resolution);
+                        unit.id(), conflict.existing().id(), resolution);
 
             if (resolution == ConflictResolver.Resolution.KEEP_EXISTING) {
                 rejected = true;
@@ -420,7 +431,7 @@ public class SemanticUnitPromoter {
                 switch (r.resolution()) {
                     case REPLACE -> {
                         logger.info("Replacing memory unit {} with unit {}",
-                                r.conflict().existing().id(), unit.id());
+                                    r.conflict().existing().id(), unit.id());
                         var archiveReason = r.conflict().conflictType() == ConflictType.REVISION
                                 ? ArchiveReason.REVISION
                                 : ArchiveReason.CONFLICT_REPLACEMENT;
@@ -428,13 +439,13 @@ public class SemanticUnitPromoter {
                     }
                     case DEMOTE_EXISTING -> {
                         logger.info("Demoting existing memory unit {} due to conflict with unit {}",
-                                r.conflict().existing().id(), unit.id());
+                                    r.conflict().existing().id(), unit.id());
                         engine.demote(r.conflict().existing().id(), DemotionReason.CONFLICT_EVIDENCE);
                         engine.reEvaluateTrust(r.conflict().existing().id());
                     }
                     case COEXIST -> {
                         logger.debug("Coexisting: unit {} and memory unit {}",
-                                unit.id(), r.conflict().existing().id());
+                                     unit.id(), r.conflict().existing().id());
                         engine.reEvaluateTrust(r.conflict().existing().id());
                     }
                     case KEEP_EXISTING -> throw new IllegalStateException("KEEP_EXISTING in pass 2");
@@ -458,5 +469,20 @@ public class SemanticUnitPromoter {
             return ConflictResolutionResult.rejected(degradedCount);
         }
         return new ConflictResolutionResult(true, degradedCount);
+    }
+
+    private @Nullable String resolveIncomingSourceId(SemanticUnit unit) {
+        return repository.findPropositionNodeById(unit.id())
+                         .map(node -> node.getSourceIds().isEmpty() ? null : node.getSourceIds().getFirst())
+                         .orElse(null);
+    }
+
+    private ResolutionContext buildResolutionContext(@Nullable String incomingSourceId,
+                                                     MemoryUnit existing) {
+        if (sourceAuthorityResolver == null || incomingSourceId == null || existing.sourceId() == null) {
+            return ResolutionContext.NONE;
+        }
+        var relation = sourceAuthorityResolver.compare(incomingSourceId, existing.sourceId());
+        return new ResolutionContext(incomingSourceId, relation);
     }
 }

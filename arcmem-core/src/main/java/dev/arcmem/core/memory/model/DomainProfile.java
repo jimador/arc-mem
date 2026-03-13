@@ -46,7 +46,8 @@ public record DomainProfile(
      * their weight redistributes to present signals when disabled.
      */
     public static final DomainProfile SECURE = new DomainProfile("SECURE",
-                                                                 Map.of("sourceAuthority", 0.18, "extractionConfidence", 0.18, "graphConsistency", 0.36, "corroboration", 0.18, "novelty", 0.05, "importance", 0.05),
+                                                                 Map.of("sourceAuthority", 0.18, "extractionConfidence", 0.18, "graphConsistency", 0.36, "corroboration", 0.18,
+                                                                        "novelty", 0.05, "importance", 0.05),
                                                                  0.85, 0.50, 0.30);
 
     /**
@@ -56,8 +57,21 @@ public record DomainProfile(
      * their weight redistributes to present signals when disabled.
      */
     public static final DomainProfile BALANCED = new DomainProfile("BALANCED",
-                                                                   Map.of("sourceAuthority", 0.22, "extractionConfidence", 0.22, "graphConsistency", 0.22, "corroboration", 0.22, "novelty", 0.06, "importance", 0.06),
+                                                                   Map.of("sourceAuthority", 0.22, "extractionConfidence", 0.22, "graphConsistency", 0.22, "corroboration", 0.22,
+                                                                          "novelty", 0.06, "importance", 0.06),
                                                                    0.65, 0.40, 0.25);
+
+    /**
+     * Source-heavy weights, permissive thresholds.
+     * Trusts DM-sourced propositions more readily — suitable for narrative/RPG
+     * domains where a single authoritative source (the DM) produces most facts.
+     * Quality signals (novelty, importance) at 0.05 each;
+     * their weight redistributes to present signals when disabled.
+     */
+    public static final DomainProfile NARRATIVE = new DomainProfile("NARRATIVE",
+                                                                    Map.of("sourceAuthority", 0.35, "extractionConfidence", 0.25, "graphConsistency", 0.15, "corroboration", 0.15,
+                                                                           "novelty", 0.05, "importance", 0.05),
+                                                                    0.60, 0.35, 0.20);
 
     /**
      * Look up a profile by name (case-insensitive). Returns BALANCED if the
@@ -70,6 +84,7 @@ public record DomainProfile(
         return switch (name.toUpperCase()) {
             case "SECURE" -> SECURE;
             case "BALANCED" -> BALANCED;
+            case "NARRATIVE" -> NARRATIVE;
             default -> BALANCED;
         };
     }

@@ -169,7 +169,7 @@ class AuthorityConflictResolverTest {
         @DisplayName("HOT memory unit raises effective threshold making 0.85 insufficient for REPLACE")
         void hotUnitHarderToReplace() {
             var unit = new MemoryUnit("1", "Hot reliable fact", 700, Authority.RELIABLE, false, 0.9, 3,
-                    null, 0.0, 1.0, MemoryTier.HOT);
+                    null, 0.0, 1.0, MemoryTier.HOT, null);
             var conflict = new ConflictDetector.Conflict(unit, "High-confidence counter", 0.85, "negation");
 
             // effective replace = 0.8 + 0.1 = 0.9; 0.85 < 0.9 -> DEMOTE_EXISTING
@@ -180,7 +180,7 @@ class AuthorityConflictResolverTest {
         @DisplayName("COLD memory unit lowers effective threshold making 0.75 sufficient for REPLACE")
         void coldUnitEasierToReplace() {
             var unit = new MemoryUnit("1", "Cold reliable fact", 700, Authority.RELIABLE, false, 0.9, 3,
-                    null, 0.0, 1.0, MemoryTier.COLD);
+                    null, 0.0, 1.0, MemoryTier.COLD, null);
             var conflict = new ConflictDetector.Conflict(unit, "Moderate counter", 0.75, "negation");
 
             // effective replace = 0.8 + (-0.1) = 0.7; 0.75 >= 0.7 -> REPLACE
@@ -191,7 +191,7 @@ class AuthorityConflictResolverTest {
         @DisplayName("WARM memory unit at baseline threshold behaves like default resolver")
         void warmUnitAtBaseline() {
             var unit = new MemoryUnit("1", "Warm reliable fact", 700, Authority.RELIABLE, false, 0.9, 3,
-                    null, 0.0, 1.0, MemoryTier.WARM);
+                    null, 0.0, 1.0, MemoryTier.WARM, null);
             var conflict = new ConflictDetector.Conflict(unit, "High-confidence counter", 0.85, "negation");
 
             // effective replace = 0.8 + 0.0 = 0.8; 0.85 >= 0.8 -> REPLACE
@@ -202,7 +202,7 @@ class AuthorityConflictResolverTest {
         @DisplayName("CANON memory unit is immune regardless of tier")
         void canonImmuneRegardlessOfTier() {
             var unit = new MemoryUnit("1", "Canon cold fact", 850, Authority.CANON, true, 0.99, 5,
-                    null, 0.0, 1.0, MemoryTier.COLD);
+                    null, 0.0, 1.0, MemoryTier.COLD, null);
             var conflict = new ConflictDetector.Conflict(unit, "Very high counter", 0.95, "negation");
 
             assertThat(tierResolver.resolve(conflict)).isEqualTo(ConflictResolver.Resolution.KEEP_EXISTING);

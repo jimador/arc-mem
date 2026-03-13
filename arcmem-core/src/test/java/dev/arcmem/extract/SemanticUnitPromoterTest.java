@@ -60,10 +60,10 @@ class SemanticUnitPromoterTest {
     void setUp() {
         var unitConfig = new ArcMemProperties.UnitConfig(20, INITIAL_RANK, 100, 900, true, THRESHOLD, DedupStrategy.FAST_THEN_LLM, CompliancePolicyMode.TIERED, true, true, true, 0.6, 400, 200, null, null, null, null, null);
         var properties = new ArcMemProperties(
-                unitConfig, null, null, null, new ArcMemProperties.AssemblyConfig(0, false, dev.arcmem.core.assembly.compliance.EnforcementStrategy.PROMPT_ONLY), null, null, null, null, null, null, null, new ArcMemProperties.LlmCallConfig(30, 10)
+                unitConfig, null, null, null, new ArcMemProperties.AssemblyConfig(0, false, EnforcementStrategy.PROMPT_ONLY), null, null, null, null, null, null, new ArcMemProperties.LlmCallConfig(30, 10)
         );
         promoter = new SemanticUnitPromoter(engine, properties, trustPipeline, repository, duplicateDetector,
-                Optional.empty());
+                Optional.empty(), Optional.empty());
     }
 
     private SemanticUnit activeUnit(String id, String text, double confidence) {
@@ -175,7 +175,7 @@ class SemanticUnitPromoterTest {
             when(duplicateDetector.isDuplicate(eq("incoming text"), anyList())).thenReturn(false);
             var conflict = makeConflict("a1", "existing text");
             when(engine.detectConflicts(CONTEXT_ID, "incoming text")).thenReturn(List.of(conflict));
-            when(engine.resolveConflict(conflict)).thenReturn(ConflictResolver.Resolution.KEEP_EXISTING);
+            when(engine.resolveConflict(eq(conflict), any(ResolutionContext.class))).thenReturn(ConflictResolver.Resolution.KEEP_EXISTING);
 
             var result = promoter.evaluateAndPromote(CONTEXT_ID, List.of(unit));
 
@@ -190,7 +190,7 @@ class SemanticUnitPromoterTest {
             when(duplicateDetector.isDuplicate(eq("incoming text"), anyList())).thenReturn(false);
             var conflict = makeConflict("a1", "existing text");
             when(engine.detectConflicts(CONTEXT_ID, "incoming text")).thenReturn(List.of(conflict));
-            when(engine.resolveConflict(conflict)).thenReturn(ConflictResolver.Resolution.REPLACE);
+            when(engine.resolveConflict(eq(conflict), any(ResolutionContext.class))).thenReturn(ConflictResolver.Resolution.REPLACE);
             var node = mockNode();
             when(repository.findPropositionNodeById("p1")).thenReturn(Optional.of(node));
             when(trustPipeline.evaluate(eq(node), eq(CONTEXT_ID))).thenReturn(autoPromoteScore());
@@ -209,7 +209,7 @@ class SemanticUnitPromoterTest {
             when(duplicateDetector.isDuplicate(eq("incoming text"), anyList())).thenReturn(false);
             var conflict = makeConflict("a1", "existing text");
             when(engine.detectConflicts(CONTEXT_ID, "incoming text")).thenReturn(List.of(conflict));
-            when(engine.resolveConflict(conflict)).thenReturn(ConflictResolver.Resolution.COEXIST);
+            when(engine.resolveConflict(eq(conflict), any(ResolutionContext.class))).thenReturn(ConflictResolver.Resolution.COEXIST);
             var node = mockNode();
             when(repository.findPropositionNodeById("p1")).thenReturn(Optional.of(node));
             when(trustPipeline.evaluate(eq(node), eq(CONTEXT_ID))).thenReturn(autoPromoteScore());
@@ -229,8 +229,8 @@ class SemanticUnitPromoterTest {
             var conflict2 = makeConflict("a2", "unit 2");
             when(engine.detectConflicts(CONTEXT_ID, "incoming text"))
                     .thenReturn(List.of(conflict1, conflict2));
-            when(engine.resolveConflict(conflict1)).thenReturn(ConflictResolver.Resolution.COEXIST);
-            when(engine.resolveConflict(conflict2)).thenReturn(ConflictResolver.Resolution.KEEP_EXISTING);
+            when(engine.resolveConflict(eq(conflict1), any(ResolutionContext.class))).thenReturn(ConflictResolver.Resolution.COEXIST);
+            when(engine.resolveConflict(eq(conflict2), any(ResolutionContext.class))).thenReturn(ConflictResolver.Resolution.KEEP_EXISTING);
 
             var result = promoter.evaluateAndPromote(CONTEXT_ID, List.of(unit));
 
@@ -263,11 +263,10 @@ class SemanticUnitPromoterTest {
                     "text", 0.9, "negation"
             );
             when(engine.detectConflicts(CONTEXT_ID, "text")).thenReturn(List.of(conflict));
-            when(engine.resolveConflict(conflict)).thenReturn(ConflictResolver.Resolution.KEEP_EXISTING);
+            when(engine.resolveConflict(eq(conflict), any(ResolutionContext.class))).thenReturn(ConflictResolver.Resolution.KEEP_EXISTING);
 
             promoter.evaluateAndPromote(CONTEXT_ID, List.of(unit));
 
-            verify(repository, never()).findPropositionNodeById(anyString());
             verify(trustPipeline, never()).evaluate(any(), anyString());
         }
     }
@@ -337,7 +336,7 @@ class SemanticUnitPromoterTest {
             var existingUnit = MemoryUnit.withoutTrust("a1", "existing text", 700, Authority.PROVISIONAL, false, 0.8, 0);
             var conflict = new ConflictDetector.Conflict(existingUnit, "incoming text", 0.9, "negation");
             when(engine.detectConflicts(CONTEXT_ID, "incoming text")).thenReturn(List.of(conflict));
-            when(engine.resolveConflict(conflict)).thenReturn(ConflictResolver.Resolution.KEEP_EXISTING);
+            when(engine.resolveConflict(eq(conflict), any(ResolutionContext.class))).thenReturn(ConflictResolver.Resolution.KEEP_EXISTING);
 
             promoter.evaluateAndPromote(CONTEXT_ID, List.of(unit));
 
@@ -364,9 +363,9 @@ class SemanticUnitPromoterTest {
                     null, null, null, null, null);
             var properties = new ArcMemProperties(
                     unitConfig, null, null, null,
-                    new ArcMemProperties.AssemblyConfig(0, false, dev.arcmem.core.assembly.compliance.EnforcementStrategy.PROMPT_ONLY), null, null, null, null, null, null, null, new ArcMemProperties.LlmCallConfig(30, 10));
+                    new ArcMemProperties.AssemblyConfig(0, false, EnforcementStrategy.PROMPT_ONLY), null, null, null, null, null, null, new ArcMemProperties.LlmCallConfig(30, 10));
             return new SemanticUnitPromoter(engine, properties, trustPipeline, repository, duplicateDetector,
-                    Optional.of(index));
+                    Optional.of(index), Optional.empty());
         }
 
         @Test

@@ -197,6 +197,100 @@ class RevisionAwareConflictResolverTest {
         }
     }
 
+    @Nested
+    @DisplayName("source-aware revision")
+    class SourceAwareRevision {
+
+        private ConflictDetector.Conflict revisionConflict(Authority authority, double confidence) {
+            var unit = MemoryUnit.withoutTrust("a1", "unit", 500, authority, false, 0.9, 0);
+            return new ConflictDetector.Conflict(unit, "incoming", confidence, "reasoning",
+                    ConflictDetector.DetectionQuality.FULL, ConflictType.REVISION);
+        }
+
+        @Test
+        @DisplayName("same source revision replaces permissively regardless of authority")
+        void sameSourceRevisionReplacesPermissively() {
+            var delegate = mock(AuthorityConflictResolver.class);
+            var resolver = new RevisionAwareConflictResolver(delegate, permissive(), true, false, 0.75, 0.8);
+            var context = new ResolutionContext("player", ResolutionContext.SourceAuthorityRelation.SAME_SOURCE);
+
+            var resolution = resolver.resolve(revisionConflict(Authority.RELIABLE, 0.5), context);
+
+            assertThat(resolution).isEqualTo(ConflictResolver.Resolution.REPLACE);
+        }
+
+        @Test
+        @DisplayName("incoming outranks replaces")
+        void incomingOutranksRevisionReplaces() {
+            var delegate = mock(AuthorityConflictResolver.class);
+            var resolver = new RevisionAwareConflictResolver(delegate, permissive(), true, false, 0.75, 0.8);
+            var context = new ResolutionContext("dm", ResolutionContext.SourceAuthorityRelation.INCOMING_OUTRANKS);
+
+            var resolution = resolver.resolve(revisionConflict(Authority.RELIABLE, 0.5), context);
+
+            assertThat(resolution).isEqualTo(ConflictResolver.Resolution.REPLACE);
+        }
+
+        @Test
+        @DisplayName("existing outranks delegates to authority resolver")
+        void existingOutranksRevisionKeepsExisting() {
+            var delegate = mock(AuthorityConflictResolver.class);
+            when(delegate.resolve(Mockito.any())).thenReturn(ConflictResolver.Resolution.KEEP_EXISTING);
+            var resolver = new RevisionAwareConflictResolver(delegate, permissive(), true, false, 0.75, 0.8);
+            var context = new ResolutionContext("player", ResolutionContext.SourceAuthorityRelation.EXISTING_OUTRANKS);
+
+            var resolution = resolver.resolve(revisionConflict(Authority.RELIABLE, 0.5), context);
+
+            assertThat(resolution).isEqualTo(ConflictResolver.Resolution.KEEP_EXISTING);
+            verify(delegate).resolve(Mockito.any());
+        }
+
+        @Test
+        @DisplayName("unknown source falls back to existing authority-based behavior")
+        void unknownSourceFallsBackToExistingBehavior() {
+            var delegate = mock(AuthorityConflictResolver.class);
+            var resolver = new RevisionAwareConflictResolver(delegate, permissive(), true, false, 0.75, 0.8);
+
+            var resolution = resolver.resolve(revisionConflict(Authority.PROVISIONAL, 0.5), ResolutionContext.NONE);
+
+            assertThat(resolution).isEqualTo(ConflictResolver.Resolution.REPLACE);
+        }
+
+        @Test
+        @DisplayName("SAME_SOURCE with permissive strategy still replaces CANON — HITL strategy blocks it")
+        void sameSourceWithPermissiveReplacesCanonButHitlBlocks() {
+            var delegate = mock(AuthorityConflictResolver.class);
+            when(delegate.resolve(Mockito.any())).thenReturn(ConflictResolver.Resolution.KEEP_EXISTING);
+            var context = new ResolutionContext("dm", ResolutionContext.SourceAuthorityRelation.SAME_SOURCE);
+
+            // HITL-only mutation strategy denies before source-aware logic runs
+            var hitlResolver = new RevisionAwareConflictResolver(delegate, HITL_ONLY, true, false, 0.75, 0.8);
+            var resolution = hitlResolver.resolve(revisionConflict(Authority.CANON, 0.99), context);
+            assertThat(resolution).isEqualTo(ConflictResolver.Resolution.KEEP_EXISTING);
+
+            // Permissive strategy allows mutation, SAME_SOURCE short-circuits to REPLACE
+            var permissiveResolver = new RevisionAwareConflictResolver(delegate, permissive(), true, false, 0.75, 0.8);
+            var permissiveResolution = permissiveResolver.resolve(revisionConflict(Authority.CANON, 0.99), context);
+            assertThat(permissiveResolution).isEqualTo(ConflictResolver.Resolution.REPLACE);
+        }
+
+        @Test
+        @DisplayName("OTEL records source relation attribute")
+        void otelRecordsSourceRelationAttribute() {
+            var delegate = mock(AuthorityConflictResolver.class);
+            var resolver = new RevisionAwareConflictResolver(delegate, permissive(), true, false, 0.75, 0.8);
+            var span = new RecordingSpan();
+            var context = new ResolutionContext("player", ResolutionContext.SourceAuthorityRelation.SAME_SOURCE);
+
+            try (Scope ignored = Context.root().with(span).makeCurrent()) {
+                resolver.resolve(revisionConflict(Authority.UNRELIABLE, 0.9), context);
+            }
+
+            assertThat(span.stringAttributes.get("conflict.source_relation")).isEqualTo("SAME_SOURCE");
+            assertThat(span.stringAttributes.get("conflict.revision.reason")).isEqualTo("same_source_revision");
+        }
+    }
+
     @Test
     @DisplayName("sets OTEL attributes for type reasoning and decision")
     void setsOtelAttributesForTypeReasoningAndDecision() {

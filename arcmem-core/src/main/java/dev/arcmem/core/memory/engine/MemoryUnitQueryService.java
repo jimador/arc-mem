@@ -37,8 +37,8 @@ public class MemoryUnitQueryService {
 
     List<MemoryUnit> findByContext(String contextId) {
         return repository.findActiveUnits(contextId).stream()
-                .map(this::toUnit)
-                .toList();
+                         .map(this::toUnit)
+                         .toList();
     }
 
     int activeCount(String contextId) {
@@ -65,6 +65,7 @@ public class MemoryUnitQueryService {
         var authority = Authority.valueOf(
                 node.getAuthority() != null ? node.getAuthority() : Authority.PROVISIONAL.name());
         var tier = computeTier(node.getRank());
+        var sourceIds = node.getSourceIds();
         return new MemoryUnit(
                 node.getId(),
                 node.getText(),
@@ -76,7 +77,8 @@ public class MemoryUnitQueryService {
                 null,
                 node.getImportance(),
                 node.getDecay(),
-                tier
+                tier,
+                sourceIds.isEmpty() ? null : sourceIds.getFirst()
         );
     }
 

@@ -15,7 +15,7 @@ TBD - created by archiving change arcmem-architecture-docs. Update Purpose after
 - **THEN** the diagram shows CANON → RELIABLE requires explicit HITL decanonization via `CanonizationGate`
 
 ### Requirement: Conflict detection pipeline diagram
-`docs/architecture.md` SHALL include a Mermaid flowchart showing the conflict detection pipeline: `CompositeConflictDetector` dispatching to `LlmConflictDetector`, `NegationConflictDetector`, and `PrologConflictDetector` based on `ConflictDetectionStrategy`; `ConflictIndex` precomputed lookup with fallback; and `AuthorityConflictResolver` mapping conflicts to resolutions (KEEP_EXISTING, REPLACE, COEXIST, DEMOTE_EXISTING).
+`docs/architecture.md` SHALL include a Mermaid flowchart showing the conflict detection pipeline: `CompositeConflictDetector` dispatching to `LlmConflictDetector` and `NegationConflictDetector` based on `ConflictDetectionStrategy`; `ConflictIndex` precomputed lookup with fallback; `RevisionAwareConflictResolver` with source-aware resolution via `ResolutionContext`/`SourceAuthorityResolver` before delegating to `AuthorityConflictResolver`; and final resolutions (KEEP_EXISTING, REPLACE, COEXIST, DEMOTE_EXISTING).
 
 #### Scenario: Developer identifies conflict detection path
 - **WHEN** a developer reads the conflict detection diagram

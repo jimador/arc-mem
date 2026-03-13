@@ -189,7 +189,9 @@ The system SHALL provide a `RevisionAwareConflictResolver` implementing `Conflic
 
 ### Requirement: Authority-gated revision eligibility
 
-Revision acceptance SHALL be gated by the existing memory unit's authority level:
+Revision acceptance SHALL be gated by the existing memory unit's authority level. When source ownership is known, source-aware resolution takes precedence over authority-based gating (see source-aware revision requirement below).
+
+Authority-based fallback (when source relation is UNKNOWN):
 
 | Authority | Revisable | Condition |
 |-----------|-----------|-----------|
@@ -256,9 +258,63 @@ When a revision triggers supersession, `TrustAuditRecord` SHALL be created with 
 - **WHEN** the supersession completes
 - **THEN** a `TrustAuditRecord` SHALL be created with `triggerReason = "revision"`
 
+### Requirement: Source-aware revision resolution
+
+`MemoryUnit` SHALL carry an optional `sourceId` field (nullable String) identifying the entity that established the fact. `sourceId` is read from `PropositionNode.sourceIds[0]` during unit materialization.
+
+A `SourceAuthorityResolver` functional interface SHALL compare incoming and existing source identifiers, returning one of four `SourceAuthorityRelation` values:
+
+| Relation | Meaning | Revision behavior |
+|---|---|---|
+| `SAME_SOURCE` | Same entity that established the fact | REPLACE (self-revision) |
+| `INCOMING_OUTRANKS` | Incoming source has higher domain authority | REPLACE |
+| `EXISTING_OUTRANKS` | Existing source has higher domain authority | Delegate to `AuthorityConflictResolver` |
+| `UNKNOWN` | Source info unavailable or resolver not configured | Fall through to authority-based logic |
+
+`ResolutionContext` record SHALL carry the `incomingSourceId` and `SourceAuthorityRelation` into `ConflictResolver.resolve(conflict, context)`.
+
+`SemanticUnitPromoter` SHALL build a `ResolutionContext` per conflict when a `SourceAuthorityResolver` is available, by comparing the incoming proposition's `sourceIds[0]` against the existing unit's `sourceId`.
+
+Core SHALL NOT reference domain-specific roles (player, DM). The `SourceAuthorityResolver` implementation is caller-provided. The simulator provides a concrete implementation where DM outranks player.
+
+#### Scenario: Same source revises own fact
+
+- **GIVEN** an existing RELIABLE memory unit with `sourceId = "player"`
+- **AND** an incoming REVISION conflict with `sourceId = "player"`
+- **WHEN** the `SourceAuthorityResolver` returns `SAME_SOURCE`
+- **THEN** the resolution SHALL be `REPLACE`
+
+#### Scenario: Higher authority source overrides lower
+
+- **GIVEN** an existing RELIABLE memory unit with `sourceId = "player"`
+- **AND** an incoming REVISION conflict with `sourceId = "dm"`
+- **WHEN** the `SourceAuthorityResolver` returns `INCOMING_OUTRANKS`
+- **THEN** the resolution SHALL be `REPLACE`
+
+#### Scenario: Lower authority source cannot revise higher
+
+- **GIVEN** an existing memory unit with `sourceId = "dm"`
+- **AND** an incoming REVISION conflict with `sourceId = "player"`
+- **WHEN** the `SourceAuthorityResolver` returns `EXISTING_OUTRANKS`
+- **THEN** the resolution SHALL delegate to `AuthorityConflictResolver`
+
+#### Scenario: Unknown source falls back to authority-based logic
+
+- **GIVEN** a `ResolutionContext` with `sourceRelation = UNKNOWN`
+- **WHEN** `RevisionAwareConflictResolver.resolve()` is called
+- **THEN** the resolver SHALL use the existing authority-based revision policy
+
+#### Scenario: Source annotation rendered in prompt
+
+- **GIVEN** a memory unit with `sourceId = "dm"`
+- **WHEN** the unit is rendered in the context block
+- **THEN** the output SHALL include `[source: dm]` annotation
+
 ## Invariants
 
 - **RIC1**: `ConflictType` SHALL only be non-null when `contradicts = true`. A `WORLD_PROGRESSION` classification implies `contradicts = false` and `conflictType = null`.
 - **RIC2**: CANON memory units SHALL never be superseded via the revision path. Only `CanonizationGate` controls CANON mutations.
 - **RIC3**: Absent or unparseable `conflictType` SHALL always default to `CONTRADICTION` (fail-closed).
 - **RIC4**: The revision classification SHALL NOT introduce an additional LLM call — it MUST be integrated into the existing `conflict-detection.jinja` prompt.
+- **RIC5**: Source-aware resolution SHALL take precedence over authority-based revision logic. When `SourceAuthorityRelation` is not `UNKNOWN`, the source relation determines the outcome without consulting authority thresholds.
+- **RIC6**: Core conflict resolution interfaces SHALL NOT reference domain-specific concepts (player, DM). Domain semantics are provided exclusively by the caller's `SourceAuthorityResolver` implementation.

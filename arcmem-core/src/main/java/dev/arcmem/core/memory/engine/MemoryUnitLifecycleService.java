@@ -1,5 +1,6 @@
 package dev.arcmem.core.memory.engine;
 
+import com.embabel.dice.proposition.PropositionStatus;
 import dev.arcmem.core.config.ArcMemProperties;
 import dev.arcmem.core.memory.budget.BudgetStrategy;
 import dev.arcmem.core.memory.canon.CanonizationGate;
@@ -9,21 +10,18 @@ import dev.arcmem.core.memory.canon.InvariantEvaluator;
 import dev.arcmem.core.memory.canon.InvariantStrength;
 import dev.arcmem.core.memory.canon.ProposedAction;
 import dev.arcmem.core.memory.conflict.AuthorityChangeDirection;
-import dev.arcmem.core.memory.conflict.ConflictDetector;
-import dev.arcmem.core.memory.conflict.ConflictResolver;
-import dev.arcmem.core.memory.maintenance.DecayPolicy;
-import dev.arcmem.core.memory.mutation.ReinforcementPolicy;
-import dev.arcmem.core.memory.model.Authority;
-import dev.arcmem.core.memory.model.MemoryTier;
-import dev.arcmem.core.memory.model.MemoryUnit;
 import dev.arcmem.core.memory.event.ArchiveReason;
 import dev.arcmem.core.memory.event.MemoryUnitLifecycleEvent;
 import dev.arcmem.core.memory.event.SupersessionReason;
+import dev.arcmem.core.memory.maintenance.DecayPolicy;
+import dev.arcmem.core.memory.model.Authority;
+import dev.arcmem.core.memory.model.MemoryTier;
+import dev.arcmem.core.memory.model.MemoryUnit;
+import dev.arcmem.core.memory.mutation.ReinforcementPolicy;
 import dev.arcmem.core.memory.trust.TrustAuditRecord;
 import dev.arcmem.core.memory.trust.TrustPipeline;
 import dev.arcmem.core.persistence.MemoryUnitRepository;
 import dev.arcmem.core.persistence.PropositionNode;
-import com.embabel.dice.proposition.PropositionStatus;
 import io.opentelemetry.api.trace.Span;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -110,7 +108,9 @@ public class MemoryUnitLifecycleService {
             var allUnits = findByContext(contextId);
             var protectedIds = new HashSet<String>();
             for (var unit : allUnits) {
-                if (unit.pinned()) continue;
+                if (unit.pinned()) {
+                    continue;
+                }
                 var eval = evaluateInvariants(contextId, ProposedAction.EVICT, allUnits, unit);
                 if (eval.hasBlockingViolation()) {
                     protectedIds.add(unit.id());
@@ -127,9 +127,9 @@ public class MemoryUnitLifecycleService {
                 int excess = allUnits.size() - effectiveBudget;
                 var candidates = activeStrategy.selectForEviction(allUnits, excess + protectedIds.size());
                 var evictable = candidates.stream()
-                        .filter(a -> !protectedIds.contains(a.id()))
-                        .limit(excess)
-                        .toList();
+                                          .filter(a -> !protectedIds.contains(a.id()))
+                                          .limit(excess)
+                                          .toList();
                 for (var victim : evictable) {
                     repository.archiveUnit(victim.id());
                     publish(MemoryUnitLifecycleEvent.evicted(this, contextId, victim.id(), victim.rank()));
@@ -165,7 +165,7 @@ public class MemoryUnitLifecycleService {
         var newTier = computeTier(newRank);
 
         var shouldUpgradeAuthority = authorityPromotionEnabled
-                && reinforcementPolicy.shouldUpgradeAuthority(current);
+                                     && reinforcementPolicy.shouldUpgradeAuthority(current);
 
         if (shouldUpgradeAuthority) {
             var allUnits = findByContext(node.getContextId());
@@ -212,10 +212,10 @@ public class MemoryUnitLifecycleService {
                     postTrustNode.getReinforcementCount()));
             if (upgraded != postTrustCurrent.authority()) {
                 logger.info("Reinforced unit {} - rank {} -> {}, authority {} -> {}",
-                        unitId, current.rank(), newRank, postTrustCurrent.authority(), upgraded);
+                            unitId, current.rank(), newRank, postTrustCurrent.authority(), upgraded);
             } else {
                 logger.debug("Reinforced unit {} - rank {} -> {}, authority remains {} (ceiling={})",
-                        unitId, current.rank(), newRank, postTrustCurrent.authority(), ceiling);
+                             unitId, current.rank(), newRank, postTrustCurrent.authority(), ceiling);
             }
         } else {
             if (rankMutationEnabled) {
@@ -227,7 +227,7 @@ public class MemoryUnitLifecycleService {
                     unitId, current.rank(), newRank,
                     node.getReinforcementCount()));
             logger.debug("Reinforced unit {} - rank {} -> {} (authorityPromotionEnabled={})",
-                    unitId, current.rank(), newRank, authorityPromotionEnabled);
+                         unitId, current.rank(), newRank, authorityPromotionEnabled);
         }
     }
 
@@ -247,7 +247,7 @@ public class MemoryUnitLifecycleService {
                     unitId, node.getContextId(), node.getText(),
                     reason.name(), "system");
             logger.info("Demotion of CANON unit {} routed through canonization gate (reason={})",
-                    unitId, reason);
+                        unitId, reason);
             return;
         }
 
@@ -279,7 +279,7 @@ public class MemoryUnitLifecycleService {
                 unitId, current, newAuthority,
                 AuthorityChangeDirection.DEMOTED, reason.name()));
         logger.info("Demoted unit {} from {} to {} (reason={})",
-                unitId, current, newAuthority, reason);
+                    unitId, current, newAuthority, reason);
     }
 
     void applyDecay(String unitId, int newRank) {
@@ -303,7 +303,7 @@ public class MemoryUnitLifecycleService {
         var unit = toUnit(node);
         if (decayPolicy.shouldDemoteAuthority(unit, clampedRank)) {
             logger.info("Rank decay triggered authority demotion for unit {} (rank={}, authority={})",
-                    unitId, clampedRank, unit.authority());
+                        unitId, clampedRank, unit.authority());
             demote(unitId, DemotionReason.RANK_DECAY);
         }
     }
@@ -338,7 +338,7 @@ public class MemoryUnitLifecycleService {
         repository.archiveUnit(unitId, successorId);
         publish(MemoryUnitLifecycleEvent.archived(this, node.getContextId(), unitId, reason));
         logger.info("Archived unit {} with reason {}{}", unitId, reason,
-                successorId != null ? " (successor=" + successorId + ")" : "");
+                    successorId != null ? " (successor=" + successorId + ")" : "");
     }
 
     void supersede(String predecessorId, String successorId, ArchiveReason reason) {
@@ -355,8 +355,8 @@ public class MemoryUnitLifecycleService {
         archive(predecessorId, reason, successorId);
         if (reason == ArchiveReason.REVISION) {
             var predecessorStillActive = repository.findPropositionNodeById(predecessorId)
-                    .map(this::isActiveUnitState)
-                    .orElse(false);
+                                                   .map(this::isActiveUnitState)
+                                                   .orElse(false);
             if (predecessorStillActive) {
                 logger.warn("Revision supersession fallback: forcing archive of predecessor {}", predecessorId);
                 repository.archiveUnit(predecessorId, successorId);
@@ -403,8 +403,8 @@ public class MemoryUnitLifecycleService {
             return List.copyOf(trustAuditLog);
         }
         return trustAuditLog.stream()
-                .filter(r -> contextId.equals(r.contextId()))
-                .toList();
+                            .filter(r -> contextId.equals(r.contextId()))
+                            .toList();
     }
 
     void clearTrustAuditLog(@Nullable String contextId) {
@@ -418,7 +418,7 @@ public class MemoryUnitLifecycleService {
     void registerBudgetStrategy(String contextId, BudgetStrategy strategy) {
         contextBudgetStrategies.put(contextId, strategy);
         logger.info("budget.strategy.override contextId={} strategy={}", contextId,
-                strategy.getClass().getSimpleName());
+                    strategy.getClass().getSimpleName());
     }
 
     void clearBudgetStrategy(String contextId) {
@@ -450,14 +450,14 @@ public class MemoryUnitLifecycleService {
         Authority newAuthority;
         if (ceiling.level() < current.level()) {
             logger.info("Trust re-evaluation: unit {} ceiling {} < current authority {} → demoting",
-                    unitId, ceiling, current);
+                        unitId, ceiling, current);
             demote(unitId, DemotionReason.TRUST_DEGRADATION);
             newAuthority = repository.findPropositionNodeById(unitId)
-                    .map(this::authorityOf)
-                    .orElse(current.previousLevel());
+                                     .map(this::authorityOf)
+                                     .orElse(current.previousLevel());
         } else {
             logger.debug("Trust re-evaluation: unit {} ceiling {} >= current authority {} — no change",
-                    unitId, ceiling, current);
+                         unitId, ceiling, current);
             newAuthority = current;
         }
 
@@ -473,8 +473,8 @@ public class MemoryUnitLifecycleService {
 
     private List<MemoryUnit> findByContext(String contextId) {
         return repository.findActiveUnits(contextId).stream()
-                .map(this::toUnit)
-                .toList();
+                         .map(this::toUnit)
+                         .toList();
     }
 
     private Authority nextAuthority(Authority current, Authority ceiling) {
@@ -494,7 +494,7 @@ public class MemoryUnitLifecycleService {
             return Authority.valueOf(persistedCeiling);
         } catch (IllegalArgumentException e) {
             logger.warn("Unknown authority ceiling '{}' on persisted node; treating as unrestricted",
-                    persistedCeiling);
+                        persistedCeiling);
             return Authority.CANON;
         }
     }
@@ -516,12 +516,12 @@ public class MemoryUnitLifecycleService {
             eventPublisher.publishEvent(event);
         } catch (Exception e) {
             logger.warn("Failed to publish lifecycle event {}: {}",
-                    event.getClass().getSimpleName(), e.getMessage());
+                        event.getClass().getSimpleName(), e.getMessage());
         }
     }
 
     private void updateTierIfChanged(String unitId, MemoryTier previousTier,
-                                      MemoryTier newTier, String contextId) {
+                                     MemoryTier newTier, String contextId) {
         if (previousTier == newTier) {
             return;
         }
@@ -537,7 +537,7 @@ public class MemoryUnitLifecycleService {
     }
 
     private InvariantEvaluation evaluateInvariants(String contextId, ProposedAction action,
-            List<MemoryUnit> units, @Nullable MemoryUnit target) {
+                                                   List<MemoryUnit> units, @Nullable MemoryUnit target) {
         var eval = invariantEvaluator.evaluate(contextId, action, units, target);
         return eval != null ? eval : new InvariantEvaluation(List.of(), 0);
     }
@@ -547,11 +547,11 @@ public class MemoryUnitLifecycleService {
         span.setAttribute("invariant.checked_count", (long) eval.checkedCount());
         span.setAttribute("invariant.violated_count", (long) eval.violations().size());
         span.setAttribute("invariant.must_violations",
-                eval.violations().stream()
-                        .filter(v -> v.strength() == InvariantStrength.MUST).count());
+                          eval.violations().stream()
+                              .filter(v -> v.strength() == InvariantStrength.MUST).count());
         span.setAttribute("invariant.should_violations",
-                eval.violations().stream()
-                        .filter(v -> v.strength() == InvariantStrength.SHOULD).count());
+                          eval.violations().stream()
+                              .filter(v -> v.strength() == InvariantStrength.SHOULD).count());
         if (eval.hasBlockingViolation()) {
             span.setAttribute("invariant.blocked_action", action.name());
         }
@@ -561,6 +561,7 @@ public class MemoryUnitLifecycleService {
         var authority = Authority.valueOf(
                 node.getAuthority() != null ? node.getAuthority() : Authority.PROVISIONAL.name());
         var tier = computeTier(node.getRank());
+        var sourceIds = node.getSourceIds();
         return new MemoryUnit(
                 node.getId(),
                 node.getText(),
@@ -572,7 +573,8 @@ public class MemoryUnitLifecycleService {
                 null,
                 node.getImportance(),
                 node.getDecay(),
-                tier
+                tier,
+                sourceIds.isEmpty() ? null : sourceIds.getFirst()
         );
     }
 

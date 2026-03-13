@@ -80,6 +80,8 @@ class SimulationServiceCleanupTest {
     private InvariantRuleProvider invariantRuleProvider;
     @Mock
     private BudgetStrategyFactory budgetStrategyFactory;
+    @Mock
+    private TrustPipeline trustPipeline;
 
     private SimulationService service;
 
@@ -88,7 +90,7 @@ class SimulationServiceCleanupTest {
         service = new SimulationService(
                 turnExecutor, arcMemEngine, contextUnitRepository, graphObjectManager,
                 chatModel, properties, assertionRegistry, runStore,
-                compactedContextProvider, scoringService, canonizationGate, invariantRuleProvider, budgetStrategyFactory);
+                compactedContextProvider, scoringService, canonizationGate, invariantRuleProvider, budgetStrategyFactory, trustPipeline);
     }
 
     private SimulationScenario minimalScenario() {
@@ -121,8 +123,7 @@ class SimulationServiceCleanupTest {
                 null,                                                     // adversaryConfig
                 null,                                                     // invariants
                 null,                                                     // enforcementStrategy
-                null,                                                     // budgetStrategy
-                null                                                      // tieredStorageEnabled
+                null                                                      // budgetStrategy
         );
     }
 

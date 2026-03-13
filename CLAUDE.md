@@ -112,8 +112,8 @@ See `.arc-mem/coding-style.md` for the complete reference.
 - **Simulation harness** with YAML-defined adversarial/baseline scenarios, turn-by-turn execution, drift evaluation, scene-setting turn 0
 - **Benchmarking** with multi-condition ablation experiments, statistical aggregation, resilience scoring, and Markdown report export
 - **Maintenance strategies** -- `MaintenanceStrategy` sealed interface supports REACTIVE (per-turn decay/reinforcement), PROACTIVE (sleeping-LLM-inspired sweep triggered by `MemoryPressureGauge`), and HYBRID modes. Strategy selectable globally and per-simulation for A/B comparison.
-- **Compliance enforcement** -- `ComplianceEnforcer` abstracts compliance over prompt injection, post-generation validation, and Prolog invariant checking. Strictness configurable per authority level.
-- **DICE Prolog integration** -- `MemoryUnitPrologProjector` projects memory units as tuProlog facts (via DICE 0.1.0-SNAPSHOT). Backs LOGICAL conflict detection, audit pre-filtering, and invariant enforcement. Every Prolog implementation is A/B testable against its LLM/heuristic counterpart.
+- **Compliance enforcement** -- `ComplianceEnforcer` abstracts compliance over prompt injection and post-generation validation. Strictness configurable per authority level.
+- **Source-aware revision** -- `MemoryUnit.sourceId` tracks fact ownership. `SourceAuthorityResolver` (caller-provided) compares source authorities for revision eligibility. `ResolutionContext` carries source relation into conflict resolution. Core is domain-agnostic; simulator defines the hierarchy (DM outranks player).
 
 ## Testing
 
@@ -139,8 +139,9 @@ See `.arc-mem/coding-style.md` for the complete reference.
 | LLM conflict detection | `arcmem-core/src/main/java/dev/arcmem/core/memory/conflict/LlmConflictDetector.java` |
 | Composite conflict detection | `arcmem-core/src/main/java/dev/arcmem/core/memory/conflict/CompositeConflictDetector.java` |
 | Conflict resolution | `arcmem-core/src/main/java/dev/arcmem/core/memory/conflict/AuthorityConflictResolver.java` |
+| Resolution context | `arcmem-core/src/main/java/dev/arcmem/core/memory/conflict/ResolutionContext.java` |
+| Source authority resolver | `arcmem-core/src/main/java/dev/arcmem/core/memory/conflict/SourceAuthorityResolver.java` |
 | Conflict index | `arcmem-core/src/main/java/dev/arcmem/core/memory/conflict/ConflictIndex.java` |
-| Prolog conflict detector | `arcmem-core/src/main/java/dev/arcmem/core/memory/conflict/PrologConflictDetector.java` |
 | Decay policy | `arcmem-core/src/main/java/dev/arcmem/core/memory/maintenance/DecayPolicy.java` |
 | Reinforcement policy | `arcmem-core/src/main/java/dev/arcmem/core/memory/mutation/ReinforcementPolicy.java` |
 | Trust pipeline | `arcmem-core/src/main/java/dev/arcmem/core/memory/trust/TrustPipeline.java` |
@@ -153,12 +154,9 @@ See `.arc-mem/coding-style.md` for the complete reference.
 | Proactive maintenance | `arcmem-core/src/main/java/dev/arcmem/core/memory/maintenance/ProactiveMaintenanceStrategy.java` |
 | Memory pressure gauge | `arcmem-core/src/main/java/dev/arcmem/core/memory/maintenance/MemoryPressureGauge.java` |
 | Budget strategy | `arcmem-core/src/main/java/dev/arcmem/core/memory/budget/BudgetStrategy.java` |
-| Prolog projector | `arcmem-core/src/main/java/dev/arcmem/core/memory/engine/MemoryUnitPrologProjector.java` |
 | Attention tracker | `arcmem-core/src/main/java/dev/arcmem/core/memory/attention/AttentionTracker.java` |
 | Compliance enforcer | `arcmem-core/src/main/java/dev/arcmem/core/assembly/compliance/ComplianceEnforcer.java` |
 | Post-generation validator | `arcmem-core/src/main/java/dev/arcmem/core/assembly/compliance/PostGenerationValidator.java` |
-| Prolog invariant enforcer | `arcmem-core/src/main/java/dev/arcmem/core/assembly/compliance/PrologInvariantEnforcer.java` |
-| Tiered memory unit repository | `arcmem-core/src/main/java/dev/arcmem/core/persistence/TieredMemoryUnitRepository.java` |
 | Neo4j persistence | `arcmem-core/src/main/java/dev/arcmem/core/persistence/MemoryUnitRepository.java` |
 | Proposition node | `arcmem-core/src/main/java/dev/arcmem/core/persistence/PropositionNode.java` |
 | Proposition view | `arcmem-core/src/main/java/dev/arcmem/core/persistence/PropositionView.java` |
@@ -235,14 +233,13 @@ See `.arc-mem/coding-style.md` for the complete reference.
 16. **Invariant rules** — `InvariantEvaluator` checks propositions against domain-specific invariant rules provided by `InvariantRuleProvider`. Violations can block promotion or trigger alerts.
 17. **Canonization gating** — `CanonizationGate` controls CANON authority assignment. CANON is never auto-assigned; requires explicit operator action through the gate.
 18. **Unified maintenance strategy** — `MaintenanceStrategy` sealed interface with REACTIVE, PROACTIVE, and HYBRID modes. `ReactiveMaintenanceStrategy` wraps existing `DecayPolicy`/`ReinforcementPolicy` as backward-compatible default. Mode selectable globally and per-scenario YAML.
-19. **Compliance enforcement layer** — `ComplianceEnforcer` interface (`ComplianceContext` → `ComplianceResult`) with three implementations: `PromptInjectionEnforcer` (default, always ACCEPT), `PostGenerationValidator` (LLM-based), `PrologInvariantEnforcer` (deterministic).
+19. **Compliance enforcement layer** — `ComplianceEnforcer` interface (`ComplianceContext` → `ComplianceResult`) with two implementations: `PromptInjectionEnforcer` (default, always ACCEPT) and `PostGenerationValidator` (LLM-based).
 20. **Memory pressure gauge** — Composite `[0.0, 1.0]` score across budget, conflict rate, decay demotions, and compaction frequency. Light-sweep threshold 0.4, full-sweep threshold 0.8. No LLM calls.
 21. **Precomputed conflict index** — `ConflictIndex` stores `CONFLICTS_WITH` relationships in Neo4j for O(1) conflict lookup. Updates incrementally on lifecycle events. Falls back to `LlmConflictDetector` on miss.
-22. **Proactive maintenance cycle** — 5-step sleeping-LLM-inspired sweep (audit, refresh, consolidate, prune, validate) triggered by memory pressure. Prolog pre-filter identifies logically inconsistent memory units before LLM calls.
+22. **Proactive maintenance cycle** — 5-step sleeping-LLM-inspired sweep (audit, refresh, consolidate, prune, validate) triggered by memory pressure.
 23. **Adaptive prompt footprint** — Authority-graduated templates: PROVISIONAL (full), RELIABLE (condensed), CANON (minimal reference). Higher authority = less token budget.
-24. **Pluggable budget strategy** — `BudgetStrategy` interface with `CountBasedBudgetStrategy` (default) and `InterferenceDensityBudgetStrategy` (cluster-aware eviction). Inspired by sleeping-LLM phase transition at 13-14 related facts.
-25. **Tiered memory unit storage** — `TieredMemoryUnitRepository` decorates `MemoryUnitRepository`: HOT from Caffeine cache, WARM from Neo4j, COLD excluded from prompt assembly. Opt-in (default disabled).
-26. **Prolog integration layer** — Three Prolog-backed implementations behind existing interfaces: `PrologConflictDetector` (LOGICAL strategy), `PrologAuditPreFilter`, `PrologInvariantEnforcer`. Zero new dependencies (tuProlog via DICE). All A/B testable per-simulation.
+24. **Count-based budget strategy** — `BudgetStrategy` sealed interface with `CountBasedBudgetStrategy` enforcing a simple maximum on active units.
+25. **Source-aware conflict resolution** — `MemoryUnit.sourceId` tracks who established a fact (read from `PropositionNode.sourceIds[0]`). `SourceAuthorityResolver` (caller-provided `@FunctionalInterface`) compares source authorities. `ResolutionContext` carries source relation (SAME_SOURCE, INCOMING_OUTRANKS, EXISTING_OUTRANKS, UNKNOWN) into `RevisionAwareConflictResolver`. Core never references domain-specific roles; the simulator provides the authority hierarchy.
 
 ## OpenSpec (Spec-Driven Development)
 

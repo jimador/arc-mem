@@ -227,7 +227,7 @@ RFC 2119 compliance mapping: CANON = MUST (absolute requirement), RELIABLE = SHO
 
 | Profile | Auto-Promote | Review | Archive | Tuning |
 |---------|-------------|--------|---------|--------|
-| BALANCED | >= 0.70 | >= 0.40 | < 0.25 | Equal signal weights |
+| BALANCED | >= 0.65 | >= 0.40 | < 0.25 | Equal signal weights |
 | SECURE | >= 0.85 | >= 0.50 | < 0.30 | Heavy on graph consistency |
 | NARRATIVE | >= 0.60 | >= 0.35 | < 0.20 | Heavy on source authority |
 

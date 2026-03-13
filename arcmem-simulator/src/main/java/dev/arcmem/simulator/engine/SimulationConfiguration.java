@@ -18,9 +18,6 @@ import dev.arcmem.simulator.history.*;
 import dev.arcmem.simulator.scenario.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.arcmem.core.config.ArcMemProperties;
-import dev.arcmem.core.persistence.PassThroughTieredRepository;
-import dev.arcmem.core.persistence.TieredMemoryUnitRepository;
 import dev.arcmem.simulator.config.ArcMemSimulatorProperties;
 import org.drivine.manager.PersistenceManager;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -46,12 +43,6 @@ public class SimulationConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean
-    TieredMemoryUnitRepository passThroughTieredRepository(ArcMemEngine engine, ArcMemProperties properties) {
-        return new PassThroughTieredRepository(engine, properties);
-    }
-
-    @Bean
     SimulationTurnServices simulationTurnServices(
             SimulationExtractionService extractionService,
             MaintenanceStrategy maintenanceStrategy,
@@ -61,5 +52,21 @@ public class SimulationConfiguration {
         return new SimulationTurnServices(
                 extractionService, maintenanceStrategy, complianceEnforcer,
                 pressureGauge, injectionEnforcer);
+    }
+
+    @Bean
+    SourceAuthorityResolver sourceAuthorityResolver() {
+        return (incoming, existing) -> {
+            if (incoming.equals(existing)) {
+                return ResolutionContext.SourceAuthorityRelation.SAME_SOURCE;
+            }
+            if ("dm".equals(incoming)) {
+                return ResolutionContext.SourceAuthorityRelation.INCOMING_OUTRANKS;
+            }
+            if ("dm".equals(existing)) {
+                return ResolutionContext.SourceAuthorityRelation.EXISTING_OUTRANKS;
+            }
+            return ResolutionContext.SourceAuthorityRelation.UNKNOWN;
+        };
     }
 }

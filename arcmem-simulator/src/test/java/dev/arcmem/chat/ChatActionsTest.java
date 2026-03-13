@@ -41,7 +41,6 @@ import org.springframework.context.ApplicationEventPublisher;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyMap;
@@ -98,7 +97,7 @@ class ChatActionsTest {
         var properties = properties();
         var assistantMessage = new AssistantMessage("ok");
         var actions = new ChatActions(arcMemEngine, contextUnitRepository, eventPublisher, properties,
-                simulatorProperties(), dev.arcmem.core.memory.canon.CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null, chatContextInitializer, Optional.empty());
+                simulatorProperties(), CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null, chatContextInitializer);
 
         when(arcMemEngine.inject("chat")).thenReturn(List.of());
         when(actionContext.ai()).thenReturn(ai);
@@ -127,7 +126,7 @@ class ChatActionsTest {
         var properties = properties();
         var assistantMessage = new AssistantMessage("ok");
         var actions = new ChatActions(arcMemEngine, contextUnitRepository, eventPublisher, properties,
-                simulatorProperties(), dev.arcmem.core.memory.canon.CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null, chatContextInitializer, Optional.empty());
+                simulatorProperties(), CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null, chatContextInitializer);
 
         when(arcMemEngine.inject("chat")).thenReturn(List.of());
         when(actionContext.ai()).thenReturn(ai);
@@ -157,7 +156,7 @@ class ChatActionsTest {
         var properties = properties();
         var assistantMessage = new AssistantMessage("ok");
         var actions = new ChatActions(arcMemEngine, contextUnitRepository, eventPublisher, properties,
-                simulatorProperties(), dev.arcmem.core.memory.canon.CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null, chatContextInitializer, Optional.empty());
+                simulatorProperties(), CompliancePolicy.tiered(), new CharHeuristicTokenCounter(), null, chatContextInitializer);
 
         when(arcMemEngine.inject("chat")).thenReturn(List.of());
         when(contextUnitRepository.findActiveUnpromotedPropositions("chat", properties.unit().budget()))
@@ -205,8 +204,8 @@ class ChatActionsTest {
                 new ArcMemProperties.MemoryConfig(true, null, null, "text-embedding-3-small", 20, 5, 2),
                 new ArcMemProperties.PersistenceConfig(false),
                 new ArcMemProperties.ConflictDetectionConfig(ConflictStrategy.LLM, "gpt-4o-nano"),
-                new ArcMemProperties.AssemblyConfig(0, false, dev.arcmem.core.assembly.compliance.EnforcementStrategy.PROMPT_ONLY),
-                null, null, null, null, null, null, null,
+                new ArcMemProperties.AssemblyConfig(0, false, EnforcementStrategy.PROMPT_ONLY),
+                null, null, null, null, null, null,
                 new ArcMemProperties.LlmCallConfig(30, 10)
         );
     }

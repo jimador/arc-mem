@@ -5,10 +5,10 @@ import dev.arcmem.core.memory.budget.BudgetStrategy;
 import dev.arcmem.core.memory.canon.DemotionReason;
 import dev.arcmem.core.memory.canon.InvariantEvaluation;
 import dev.arcmem.core.memory.canon.InvariantEvaluator;
-import dev.arcmem.core.memory.canon.InvariantStrength;
 import dev.arcmem.core.memory.canon.ProposedAction;
 import dev.arcmem.core.memory.conflict.ConflictDetector;
 import dev.arcmem.core.memory.conflict.ConflictResolver;
+import dev.arcmem.core.memory.conflict.ResolutionContext;
 import dev.arcmem.core.memory.event.ArchiveReason;
 import dev.arcmem.core.memory.event.MemoryUnitLifecycleEvent;
 import dev.arcmem.core.memory.model.Authority;
@@ -16,7 +16,6 @@ import dev.arcmem.core.memory.model.MemoryUnit;
 import dev.arcmem.core.memory.trust.TrustAuditRecord;
 import dev.arcmem.core.persistence.MemoryUnitRepository;
 import dev.arcmem.core.persistence.PropositionNode;
-import io.opentelemetry.api.trace.Span;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -145,10 +144,10 @@ public class ArcMemEngine {
         var conflicts = conflictDetector.detect(incomingText, units);
         if (!conflicts.isEmpty()) {
             var existingIds = conflicts.stream()
-                    .map(ConflictDetector.Conflict::existing)
-                    .filter(existing -> existing != null)
-                    .map(MemoryUnit::id)
-                    .toList();
+                                       .map(ConflictDetector.Conflict::existing)
+                                       .filter(existing -> existing != null)
+                                       .map(MemoryUnit::id)
+                                       .toList();
             publish(MemoryUnitLifecycleEvent.conflictDetected(
                     this, contextId, incomingText,
                     conflicts.size(),
@@ -162,25 +161,30 @@ public class ArcMemEngine {
         var units = inject(contextId);
         if (units.isEmpty() || incomingTexts.isEmpty()) {
             return incomingTexts.stream()
-                    .collect(Collectors.toMap(t -> t, t -> List.of()));
+                                .collect(Collectors.toMap(t -> t, t -> List.of()));
         }
         return conflictDetector.batchDetect(incomingTexts, units);
     }
 
     public ConflictResolver.Resolution resolveConflict(ConflictDetector.Conflict conflict) {
+        return resolveConflict(conflict, ResolutionContext.NONE);
+    }
+
+    public ConflictResolver.Resolution resolveConflict(ConflictDetector.Conflict conflict,
+                                                        ResolutionContext context) {
         if (conflict.existing() == null) {
             logger.warn("Received degraded conflict placeholder without existing unit (incoming='{}')",
-                    conflict.incomingText());
-            var resolution = conflictResolver.resolve(conflict);
+                        conflict.incomingText());
+            var resolution = conflictResolver.resolve(conflict, context);
             publish(MemoryUnitLifecycleEvent.conflictResolved(
                     this, "unknown", "unknown", resolution));
             return resolution;
         }
 
-        var resolution = conflictResolver.resolve(conflict);
+        var resolution = conflictResolver.resolve(conflict, context);
         var contextId = repository.findPropositionNodeById(conflict.existing().id())
-                .map(PropositionNode::getContextId)
-                .orElse("unknown");
+                                  .map(PropositionNode::getContextId)
+                                  .orElse("unknown");
         publish(MemoryUnitLifecycleEvent.conflictResolved(
                 this, contextId, conflict.existing().id(), resolution));
         return resolution;
@@ -235,7 +239,7 @@ public class ArcMemEngine {
             eventPublisher.publishEvent(event);
         } catch (Exception e) {
             logger.warn("Failed to publish lifecycle event {}: {}",
-                    event.getClass().getSimpleName(), e.getMessage());
+                        event.getClass().getSimpleName(), e.getMessage());
         }
     }
 }
