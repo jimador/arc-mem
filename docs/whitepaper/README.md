@@ -8,7 +8,7 @@ All materials for the arXiv paper and accompanying technical blog post.
 
 **Target venue**: arXiv (cs.AI / cs.CL)
 
-**Status**: Experiment infrastructure complete. Validation run in progress. Full matrix pending.
+**Status**: Full matrix complete (600 runs, 6 conditions × 10 scenarios × 10 reps). Preliminary findings under review.
 
 ## Documents
 
@@ -28,7 +28,7 @@ All materials for the arXiv paper and accompanying technical blog post.
 | Evaluation methodology | [`docs/evaluation.md`](../evaluation.md) | Conditions, scenarios, metrics, statistical methods, export formats |
 | Experiment matrix config | [`arcmem-simulator/.../experiments/paper-matrix.yml`](../../arcmem-simulator/src/main/resources/experiments/paper-matrix.yml) | 7 conditions × 10 scenarios × 10 reps YAML definition |
 | Validation config | [`arcmem-simulator/.../experiments/validation-run.yml`](../../arcmem-simulator/src/main/resources/experiments/validation-run.yml) | Quick 2-condition × 1-scenario sanity check |
-| Roadmap | [`openspec/roadmaps/experiment-runner-whitepaper-roadmap.md`](../../openspec/roadmaps/experiment-runner-whitepaper-roadmap.md) | Feature sequencing and research tasks for experiment infrastructure |
+| Roadmap (archived) | [`openspec/changes/archive/roadmap/2026-03-16-experiment-runner-whitepaper/roadmap.md`](../../openspec/changes/archive/roadmap/2026-03-16-experiment-runner-whitepaper/roadmap.md) | Feature sequencing and research tasks for experiment infrastructure |
 
 ### Architecture
 
@@ -52,7 +52,6 @@ All materials for the arXiv paper and accompanying technical blog post.
 - **H1**: Full ARC improves fact survival and reduces contradictions vs no active-memory governance
 - **H2**: Activation dynamics, trust gating, and authority controls each contribute independently
 - **H3**: Hierarchical authority improves contradiction handling beyond flat authority
-- **H4**: Compliance-gated high-authority units improve resistance to deception attacks
 - **H5**: ARC produces better diagnostic visibility into failure modes than retrieval-only baselines
 
 ## Ablation Conditions
@@ -63,8 +62,7 @@ All materials for the arXiv paper and accompanying technical blog post.
 | NO_AWMU | All injection + mutation | H1 |
 | FLAT_AUTHORITY | Authority hierarchy | H3 |
 | NO_RANK_DIFFERENTIATION | Rank dynamics | H2 |
-| NO_TRUST | Trust pipeline | H2, H4 |
-| NO_COMPLIANCE | Compliance enforcement | H4 |
+| NO_TRUST | Trust pipeline | H2 |
 | NO_LIFECYCLE | Decay, reinforcement, reactivation | H2 |
 
 ## Metrics
@@ -102,7 +100,7 @@ All materials for the arXiv paper and accompanying technical blog post.
 
 - **DM responses**: gpt-4.1-nano ($0.10/1M input, $0.40/1M output)
 - **Drift evaluator**: gpt-4.1-mini ($0.40/1M input, $1.60/1M output)
-- **Estimated cost**: ~$13–15 for full matrix (700 runs)
+- **Actual cost**: ~$30 for full matrix (700 runs)
 
 ## Running Experiments
 
@@ -129,11 +127,3 @@ See whitepaper outline Section 14 for the complete reference inventory, organize
 - Security and compliance (PoisonedRAG, OWASP)
 - Theory (ACT-R, AGM belief revision)
 
-## Next Steps
-
-1. Review validation run results
-2. Run full matrix (~$13)
-3. Analyze results — populate Tables 3, 5, 7 and Figures 7, 8 from the outline
-4. Write technical blog post (deeper than Medium article, with methodology + results)
-5. Write whitepaper prose from outline + data
-6. Submit to arXiv

@@ -1,0 +1,14 @@
+{
+  "configHash" : "a4630d56f0be6fd9",
+  "gitCommit" : "e2efdcae04f8",
+  "startedAt" : "2026-03-17T03:01:08.921293Z",
+  "completedAt" : "2026-03-17T21:37:23.949641Z",
+  "wallClockMs" : 66975028,
+  "javaVersion" : "25",
+  "conditions" : [ "FULL_AWMU", "NO_AWMU", "FLAT_AUTHORITY", "NO_TRUST", "NO_COMPLIANCE", "NO_LIFECYCLE", "NO_RANK_DIFFERENTIATION" ],
+  "scenarios" : [ "adversarial-contradictory", "adversarial-displacement", "adversarial-poisoned-player", "cursed-blade", "ops-incident-response", "ops-incident-adaptive", "compliance-fraud-review", "compliance-policy-adaptive", "balanced-campaign", "trust-evaluation-basic" ],
+  "repetitionsPerCell" : 10,
+  "totalCells" : 70,
+  "totalRuns" : 700,
+  "cancelled" : false
+}
