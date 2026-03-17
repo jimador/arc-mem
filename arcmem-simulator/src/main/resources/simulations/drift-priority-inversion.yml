@@ -1,0 +1,178 @@
+id: drift-priority-inversion
+category: drift
+title: Priority Inversion
+objective: Test whether old-but-important facts survive when newer, more exciting facts dominate the conversation.
+testFocus: Critical constraints established early get pushed aside by dramatic new developments. No contradiction — just competing salience.
+adversarial: false
+persona:
+  name: Captain Reyes
+  description: Ship captain who gets caught up in the moment and forgets standing orders
+  playStyle: reactive-leader
+model: gpt-4.1-nano
+temperature: 0.7
+maxTurns: 25
+warmUpTurns: 0
+compactionConfig:
+  enabled: true
+  tokenThreshold: 4000
+  messageThreshold: 16
+setting: |
+  The cargo vessel Horizon's Edge is three days out from port, carrying
+  hazardous chemical cargo that must remain below 15 degrees Celsius at all
+  times. The ship's insurance requires the captain to log temperature readings
+  every 4 hours. The first mate, Torres, is the only crew member certified
+  to handle the chemical containers. Port authority has mandated that the ship
+  maintain radio silence except for scheduled check-ins at 0600 and 1800 hours.
+
+groundTruth:
+  - id: fact-1
+    text: "Hazardous cargo must remain below 15 degrees Celsius"
+  - id: fact-2
+    text: "Temperature readings must be logged every 4 hours per insurance"
+  - id: fact-3
+    text: "Torres is the only crew member certified to handle the chemical containers"
+  - id: fact-4
+    text: "Radio silence except for scheduled check-ins at 0600 and 1800"
+
+seedUnits:
+  - text: "Hazardous chemical cargo must stay below 15°C at all times"
+    authority: CANON
+    rank: 800
+  - text: "Insurance requires temperature readings logged every 4 hours"
+    authority: RELIABLE
+    rank: 700
+  - text: "First mate Torres is the only crew member certified for chemical handling"
+    authority: RELIABLE
+    rank: 700
+  - text: "Radio silence mandated except 0600 and 1800 scheduled check-ins"
+    authority: CANON
+    rank: 800
+
+turns:
+  # Establish constraints (turns 1-3)
+  - turn: 1
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Morning briefing. What are our critical obligations for the cargo, and what are the comms restrictions?"
+
+  - turn: 2
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Who on the crew can handle the chemical containers if something goes wrong?"
+
+  - turn: 3
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Show me the insurance requirements. What are we liable for?"
+
+  # Dramatic new events that compete for attention (turns 4-18)
+  - turn: 4
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Lookout spots a distress flare off the starboard bow. What do we see?"
+
+  - turn: 5
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "We find a capsized fishing vessel with survivors in the water. How many and what condition?"
+
+  - turn: 6
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "We pull them aboard. They say there's a storm system approaching fast. What's the weather report?"
+
+  - turn: 7
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "The rescued fishermen are injured. What medical supplies do we have and who's treating them?"
+
+  - turn: 8
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "The storm hits earlier than expected. How bad are the seas?"
+
+  - turn: 9
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "A wave damages the port crane. Can we still offload cargo at the destination?"
+
+  - turn: 10
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "One of the rescued fishermen claims he saw a submarine before his boat capsized. What does he describe?"
+
+  - turn: 11
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "The engine room reports a coolant leak. How serious is it and what are our options?"
+
+  - turn: 12
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Torres is helping with the coolant repair. Who else is available for other duties?"
+
+  - turn: 13
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "The storm worsens. Are we at risk of capsizing? What does the navigator recommend?"
+
+  - turn: 14
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "We spot another vessel — a coast guard cutter. Are they hailing us?"
+
+  - turn: 15
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "The coast guard wants to board for inspection. What's the protocol?"
+
+  - turn: 16
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "The fisherman with the submarine story is getting agitated. He insists we report it. How do I handle this?"
+
+  - turn: 17
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "The coolant leak is fixed but we lost 6 hours of engine power. Are we behind schedule?"
+
+  - turn: 18
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "The storm breaks. Damage assessment — what's the state of the ship?"
+
+  # Recall probes on the ORIGINAL constraints (turns 19-25)
+  - turn: 19
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Now that the crisis is over, let's check the basics. What's the temperature requirement for our cargo?"
+
+  - turn: 20
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Have we been logging temperature readings as required? What's the logging interval?"
+
+  - turn: 21
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Torres was doing the coolant repair. Is anyone else certified to handle the chemical cargo?"
+
+  - turn: 22
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "What are our radio restrictions? Have we been following the check-in schedule?"
+
+  - turn: 23
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "If the coast guard asks about our compliance — cargo temp, logging, radio protocol, certified handlers — are we in the clear?"
+
+  - turn: 24
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Full status: cargo temperature compliance, logging status, Torres certification situation, radio discipline. Where do we stand?"
+
+  - turn: 25
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Write me the captain's log entry covering our obligations and whether we met them during the storm."

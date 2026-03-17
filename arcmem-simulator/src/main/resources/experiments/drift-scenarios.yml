@@ -1,0 +1,12 @@
+name: Natural Drift Scenarios
+conditions:
+  - FULL_AWMU
+  - NO_AWMU
+scenarios:
+  - drift-long-tangent
+  - drift-gradual-dilution
+  - drift-priority-inversion
+  - drift-epistemic-erosion
+repetitions: 5
+model: gpt-4.1-mini
+outputDir: experiment-output/drift
