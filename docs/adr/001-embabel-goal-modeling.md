@@ -102,8 +102,8 @@ promoted++;
 
 Embabel goal actions are strongest when steps are mostly pure typed transforms.
 
-Memory unit promotion is not that:
-- conflict outcomes can mutate existing memory units
+ARC Working Memory Unit (AWMU) promotion is not that:
+- conflict outcomes can mutate existing AWMUs
 - trust re-eval can trigger follow-on demotions/promotions
 - promote can trigger eviction
 
@@ -132,7 +132,7 @@ flowchart TD
     A1 --> A2["@Action detectDuplicates -> DedupResult"]
     A2 --> A3["@Action detectAndResolveConflicts -> ConflictResult"]
     A3 --> A4["@Action evaluateTrust -> TrustResult"]
-    A4 --> A5["@Action @AchievesGoal promoteToMemoryUnit -> PromotedUnit"]
+    A4 --> A5["@Action @AchievesGoal promoteToAWMU -> PromotedUnit"]
 ```
 
 Example style:
@@ -151,7 +151,7 @@ ConflictResult detectAndResolveConflicts(DedupResult d) { ... }
 TrustResult evaluateTrust(ConflictResult c) { ... }
 
 @Action
-@AchievesGoal(description = "Candidate promoted to memory unit")
+@AchievesGoal(description = "Candidate promoted to AWMU")
 PromotedUnit promoteToMemoryUnit(TrustResult t, ConflictResult c) { ... }
 ```
 

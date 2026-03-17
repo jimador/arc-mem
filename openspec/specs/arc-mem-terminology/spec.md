@@ -5,7 +5,7 @@ The project SHALL use the following terminology mapping consistently across all 
 
 | Old Term | New Term | Scope |
 |----------|----------|-------|
-| Context unit | Semantic unit or memory unit, depending on lifecycle stage | Documentation, UI, prompts |
+| Context unit | Semantic unit or ARC Working Memory Unit (AWMU), depending on lifecycle stage | Documentation, UI, prompts |
 | Context unit (class name) | MemoryUnit | Java class/interface names |
 | ArcMemEngine | ArcMemEngine | Java class name |
 | MemoryUnitRepository | MemoryUnitRepository | Java class name |
@@ -25,7 +25,7 @@ Internal implementation names (private methods, local variables, Neo4j node labe
 
 #### Scenario: Documentation uses new terminology
 - **WHEN** any documentation file (CLAUDE.md, blog, whitepaper, README, OpenSpec specs) references the working-memory system
-- **THEN** it SHALL use "ARC-Mem", "semantic unit", "memory unit", "activation score", and "working-memory capacity" rather than legacy "context unit", "rank", or "budget" wording
+- **THEN** it SHALL use "ARC-Mem", "semantic unit", "AWMU", "activation score", and "working-memory capacity" rather than legacy "context unit", "rank", or "budget" wording
 
 #### Scenario: Java public API uses new class names
 - **WHEN** a class or interface is part of the public API surface (non-private, referenced across packages)
@@ -76,4 +76,4 @@ The repository SHALL distinguish between extracted semantic content and promoted
 #### Scenario: Documentation describes both stages of the pipeline
 - **WHEN** architecture documentation describes the extraction-to-memory pipeline
 - **THEN** it SHALL describe semantic units as extracted content
-- **AND** it SHALL describe memory units as promoted ARC-Mem-managed objects
+- **AND** it SHALL describe AWMUs as promoted ARC-Mem-managed objects

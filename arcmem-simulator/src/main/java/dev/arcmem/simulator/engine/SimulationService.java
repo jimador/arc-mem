@@ -164,8 +164,12 @@ public class SimulationService {
         logger.info("compliance.strategy={} budget.strategy={} scenario={} contextId={}",
                 enforcementStrategy, scenarioBudgetStrategyType, scenario.id(), contextId);
 
+        // Ablation: save and restore trust pipeline state so NO_TRUST condition
+        // can disable trust evaluation for the duration of this run only
         var previousProfile = trustPipeline.getActiveProfile();
+        var previousTrustEnabled = trustPipeline.isEnabled();
         trustPipeline.withProfile(DomainProfile.NARRATIVE);
+        trustPipeline.setEnabled(runtimeConfig.trustEnabled());
 
         try {
             var scenarioBudgetStrategy = budgetStrategyFactory.create(scenarioBudgetStrategyType);
@@ -230,7 +234,9 @@ public class SimulationService {
                         scenario.dormancyConfig(),
                         dormancyState,
                         runtimeConfig.rankMutationEnabled(),
-                        runtimeConfig.authorityPromotionEnabled());
+                        runtimeConfig.authorityPromotionEnabled(),
+                        runtimeConfig.complianceEnabled(),
+                        runtimeConfig.lifecycleEnabled());
 
                 var sceneTurn = sceneResult.turn();
                 var scenePlayerMessage = "Set the scene for us. Describe what we see and what we know.";
@@ -344,7 +350,9 @@ public class SimulationService {
                         scenario.dormancyConfig(),
                         dormancyState,
                         runtimeConfig.rankMutationEnabled(),
-                        runtimeConfig.authorityPromotionEnabled());
+                        runtimeConfig.authorityPromotionEnabled(),
+                        runtimeConfig.complianceEnabled(),
+                        runtimeConfig.lifecycleEnabled());
                 long turnDurationMs = System.currentTimeMillis() - turnStart;
 
                 var turn = result.turn();
@@ -401,6 +409,9 @@ public class SimulationService {
             runSpan.setAttribute("sim.total_degraded_conflicts", scoringResult.degradedConflictCount());
             runSpan.setAttribute("sim.rank_mutation_enabled", runtimeConfig.rankMutationEnabled());
             runSpan.setAttribute("sim.authority_promotion_enabled", runtimeConfig.authorityPromotionEnabled());
+            runSpan.setAttribute("sim.trust_enabled", runtimeConfig.trustEnabled());
+            runSpan.setAttribute("sim.compliance_enabled", runtimeConfig.complianceEnabled());
+            runSpan.setAttribute("sim.lifecycle_enabled", runtimeConfig.lifecycleEnabled());
             var totalInvariantViolations = countInvariantViolations(contextId);
             runSpan.setAttribute("sim.total_invariant_violations", totalInvariantViolations);
 
@@ -432,6 +443,7 @@ public class SimulationService {
                     "Simulation failed: " + e.getMessage(), List.of(), false, null));
         } finally {
             trustPipeline.withProfile(previousProfile);
+            trustPipeline.setEnabled(previousTrustEnabled);
             ctx.complete();
             activeContexts.remove(ctx);
             try {

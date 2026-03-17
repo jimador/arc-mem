@@ -39,7 +39,7 @@ What works: turn-level artifacts (messages/verdicts/context traces), benchmark a
 
 ### Observability
 
-Memory unit operations emit OTel spans with useful fields (invariants, degraded conflict counts, trust outcomes). Langfuse integration through OTEL is useful for model-call debugging, but not tuned for production-scale telemetry.
+ARC Working Memory Unit (AWMU) operations emit OTel spans with useful fields (invariants, degraded conflict counts, trust outcomes). Langfuse integration through OTEL is useful for model-call debugging, but not tuned for production-scale telemetry.
 
 ## Approximations and limitations
 
@@ -87,7 +87,7 @@ Every new subsystem is A/B testable in the simulation harness. Every strategy, e
 
 - Drools/KIE (30 JARs, forward chaining) and Evrete (forward chaining only) were rejected. Prolog backward chaining is strictly more capable and already available via DICE 0.1.0-SNAPSHOT.
 - Prolog is a pre-filter, not a replacement. Semantic contradictions still require LLM judgment.
-- All DICE Prolog interaction encapsulated in `MemoryUnitPrologProjector` to isolate from `PrologEngine` API changes.
+- All DICE Prolog interaction encapsulated in `AWMUPrologProjector` to isolate from `PrologEngine` API changes.
 
 ## Already fixed
 
@@ -97,6 +97,6 @@ Every new subsystem is A/B testable in the simulation harness. Every strategy, e
 ## Open research uncertainty (not defects)
 
 - Better semantics for revision vs contradiction vs world progression.
-- Best cascade strategy for dependent memory units after supersession.
+- Best cascade strategy for dependent AWMUs after supersession.
 - Temporal validity vs authority interaction rules.
 - Cross-model generalization behavior.

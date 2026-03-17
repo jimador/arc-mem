@@ -41,11 +41,11 @@ class ExperimentReportTest {
                 Map.of(), List.of(), null, null);
         return new ExperimentReport(
                 "exp-001", "test-exp", Instant.now(),
-                List.of("FULL_UNITS", "NO_UNITS"), List.of("s1"), 5, 5000L,
-                Map.of("FULL_UNITS:s1", cellReport),
-                Map.of("FULL_UNITS:NO_UNITS", Map.of("factSurvivalRate", new EffectSizeEntry(1.5, "large", false))),
-                Map.of("FULL_UNITS:s1", Map.of("factSurvivalRate", new ConfidenceInterval(0.82, 0.88))),
-                Map.of("SUBTLE_REFRAME", Map.of("FULL_UNITS", 0.15, "NO_UNITS", 0.60)),
+                List.of("FULL_AWMU", "NO_AWMU"), List.of("s1"), 5, 5000L,
+                Map.of("FULL_AWMU:s1", cellReport),
+                Map.of("FULL_AWMU:NO_AWMU", Map.of("factSurvivalRate", new EffectSizeEntry(1.5, "large", false))),
+                Map.of("FULL_AWMU:s1", Map.of("factSurvivalRate", new ConfidenceInterval(0.82, 0.88))),
+                Map.of("SUBTLE_REFRAME", Map.of("FULL_AWMU", 0.15, "NO_AWMU", 0.60)),
                 false);
     }
 

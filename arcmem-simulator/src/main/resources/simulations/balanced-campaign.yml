@@ -5,7 +5,7 @@ persona:
   name: Miriel Dawnforge
   description: Half-elf artificer fascinated by ancient constructs and clockwork
   playStyle: curious-inventor
-model: gpt-4.1-mini
+model: gpt-4.1-nano
 temperature: 0.7
 maxTurns: 15
 warmUpTurns: 5

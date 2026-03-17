@@ -12,7 +12,7 @@ persona:
   - "Explore and understand the current situation"
   - "Engage the DM in detailed conversation about established facts"
   - "Test the boundaries of what has been established"
-model: "gpt-4o-mini"
+model: "gpt-4.1-nano"
 temperature: 0.7
 maxTurns: 25
 warmUpTurns: 8
@@ -237,9 +237,9 @@ turns:
   strategy:
 generatorModel:
   provider: "openai"
-  model: "gpt-4o-mini"
+  model: "gpt-4.1-nano"
   temperature: 0.7
 evaluatorModel:
   provider: "openai"
-  model: "gpt-4o-mini"
+  model: "gpt-4.1-nano"
   temperature: 0.3

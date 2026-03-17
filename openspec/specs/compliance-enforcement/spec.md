@@ -52,9 +52,9 @@ The system SHALL define a `ComplianceViolation` record in `dev.arcmem.assembly` 
 
 | Component | Type | Description |
 |-----------|------|-------------|
-| `unitId` | `String` | Neo4j node ID of the violated memory unit |
-| `unitText` | `String` | Proposition text of the violated memory unit (for readability in logs/UI) |
-| `unitAuthority` | `Authority` | Authority level of the violated memory unit; drives action escalation |
+| `unitId` | `String` | Neo4j node ID of the violated ARC Working Memory Unit (AWMU) |
+| `unitText` | `String` | Proposition text of the violated AWMU (for readability in logs/UI) |
+| `unitAuthority` | `Authority` | Authority level of the violated AWMU; drives action escalation |
 | `description` | `String` | Human-readable description of the violation |
 | `confidence` | `double` | Validator confidence in this violation (0.0--1.0); LLM-sourced |
 
@@ -75,7 +75,7 @@ The system SHALL define a `ComplianceContext` record in `dev.arcmem.assembly` wi
 | Component | Type | Description |
 |-----------|------|-------------|
 | `responseText` | `String` | The LLM response text to validate |
-| `activeUnits` | `List<ContextUnit>` | Active memory units to check the response against |
+| `activeUnits` | `List<ContextUnit>` | Active AWMUs to check the response against |
 | `policy` | `CompliancePolicy` | Strictness configuration controlling which authority tiers are enforced |
 
 `ComplianceContext` SHALL contain a nested `CompliancePolicy` record.
@@ -96,10 +96,10 @@ The `ComplianceContext.CompliancePolicy` record SHALL have the following compone
 
 | Component | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `enforceCanon` | `boolean` | `true` | Validate responses against CANON memory units |
-| `enforceReliable` | `boolean` | varies | Validate responses against RELIABLE memory units |
-| `enforceUnreliable` | `boolean` | `false` | Validate responses against UNRELIABLE memory units |
-| `enforceProvisional` | `boolean` | `false` | Validate responses against PROVISIONAL memory units |
+| `enforceCanon` | `boolean` | `true` | Validate responses against CANON AWMUs |
+| `enforceReliable` | `boolean` | varies | Validate responses against RELIABLE AWMUs |
+| `enforceUnreliable` | `boolean` | `false` | Validate responses against UNRELIABLE AWMUs |
+| `enforceProvisional` | `boolean` | `false` | Validate responses against PROVISIONAL AWMUs |
 
 `CompliancePolicy` SHALL provide factory methods:
 
@@ -133,7 +133,7 @@ The system SHALL define a `ComplianceResult` record in `dev.arcmem.assembly` wit
 
 `ComplianceResult` SHALL provide a static factory:
 
-- `compliant(Duration duration)` — returns `new ComplianceResult(true, List.of(), ComplianceAction.ACCEPT, duration)`. Used by zero-cost enforcers and as the fast-path when no memory units need enforcement.
+- `compliant(Duration duration)` — returns `new ComplianceResult(true, List.of(), ComplianceAction.ACCEPT, duration)`. Used by zero-cost enforcers and as the fast-path when no AWMUs need enforcement.
 
 #### Scenario: Compliant factory returns ACCEPT with empty violations
 
@@ -153,7 +153,7 @@ The system SHALL define a `ComplianceResult` record in `dev.arcmem.assembly` wit
 
 The system SHALL define a `PromptInjectionEnforcer` class in `dev.arcmem.assembly` implementing `ComplianceEnforcer`. It SHALL be annotated with `@Primary` and `@Component`.
 
-`PromptInjectionEnforcer.enforce()` SHALL always return `ComplianceResult.compliant(Duration.ZERO)` regardless of the input context. This preserves the existing behavior: memory units are injected into the system prompt via `ArcMemLlmReference`, and no post-generation verification is performed.
+`PromptInjectionEnforcer.enforce()` SHALL always return `ComplianceResult.compliant(Duration.ZERO)` regardless of the input context. This preserves the existing behavior: AWMUs are injected into the system prompt via `ArcMemLlmReference`, and no post-generation verification is performed.
 
 The `@Primary` annotation ensures Spring selects this implementation by default. Callers requiring stricter enforcement SHOULD use `@Qualifier` to inject a specific enforcer.
 
@@ -162,7 +162,7 @@ Zero overhead. Zero LLM calls beyond the primary generation.
 #### Scenario: Always returns compliant
 
 - **GIVEN** a `PromptInjectionEnforcer` instance
-- **AND** any `ComplianceContext` (including one with CANON memory units and contradicting response text)
+- **AND** any `ComplianceContext` (including one with CANON AWMUs and contradicting response text)
 - **WHEN** `enforce(context)` is called
 - **THEN** the result SHALL have `compliant = true`, `violations` empty, `suggestedAction = ACCEPT`, and `validationDuration = Duration.ZERO`
 
@@ -180,12 +180,12 @@ The system SHALL define a `PostGenerationValidator` class in `dev.arcmem.assembl
 
 `PostGenerationValidator` SHALL:
 
-1. Filter `context.activeUnits()` by `context.policy()`, retaining only memory units whose authority level is enabled in the policy
-2. If no memory units remain after filtering, return `ComplianceResult.compliant(duration)` immediately (fast-path)
-3. Build a single validation prompt containing all filtered memory units and the response text
+1. Filter `context.activeUnits()` by `context.policy()`, retaining only AWMUs whose authority level is enabled in the policy
+2. If no AWMUs remain after filtering, return `ComplianceResult.compliant(duration)` immediately (fast-path)
+3. Build a single validation prompt containing all filtered AWMUs and the response text
 4. Call the LLM via `ChatModel` with the validation prompt
 5. Parse the LLM response as JSON to extract violations
-6. Construct `ComplianceViolation` records by correlating parsed violation entries with the enforced memory units
+6. Construct `ComplianceViolation` records by correlating parsed violation entries with the enforced AWMUs
 7. Determine the suggested `ComplianceAction` based on violation severity
 8. Return a `ComplianceResult` with all violations, the suggested action, and the validation duration
 
@@ -193,14 +193,14 @@ The system SHALL define a `PostGenerationValidator` class in `dev.arcmem.assembl
 
 #### Scenario: Detects CANON contradiction
 
-- **GIVEN** a CANON memory unit "The guardian is a warrior"
+- **GIVEN** a CANON AWMU "The guardian is a warrior"
 - **AND** a response text "The guardian, a powerful wizard, cast a spell"
 - **WHEN** `enforce()` is called with `CompliancePolicy.canonOnly()`
-- **THEN** the result SHALL contain at least one violation referencing the CANON memory unit
+- **THEN** the result SHALL contain at least one violation referencing the CANON AWMU
 
-#### Scenario: Fast-path when no memory units match policy
+#### Scenario: Fast-path when no AWMUs match policy
 
-- **GIVEN** only PROVISIONAL memory units in `activeUnits`
+- **GIVEN** only PROVISIONAL AWMUs in `activeUnits`
 - **AND** `CompliancePolicy.canonOnly()`
 - **WHEN** `enforce()` is called
 - **THEN** the result SHALL be compliant with zero LLM calls
@@ -209,9 +209,9 @@ The system SHALL define a `PostGenerationValidator` class in `dev.arcmem.assembl
 
 ### Requirement: CANON violations trigger REJECT (REQ-CANON-REJECT)
 
-`PostGenerationValidator` SHALL suggest `REJECT` when any violation targets a CANON memory unit. For violations targeting only lower-authority memory units (RELIABLE, UNRELIABLE, PROVISIONAL), the validator SHALL suggest `RETRY`.
+`PostGenerationValidator` SHALL suggest `REJECT` when any violation targets a CANON AWMU. For violations targeting only lower-authority AWMUs (RELIABLE, UNRELIABLE, PROVISIONAL), the validator SHALL suggest `RETRY`.
 
-The rationale: CANON memory units are world-defining and immune to automatic demotion (invariant A3b). A response that contradicts a CANON memory unit is a fundamental compliance failure that SHOULD NOT be retried — the LLM is unlikely to self-correct without additional prompt engineering.
+The rationale: CANON AWMUs are world-defining and immune to automatic demotion (invariant A3b). A response that contradicts a CANON AWMU is a fundamental compliance failure that SHOULD NOT be retried — the LLM is unlikely to self-correct without additional prompt engineering.
 
 #### Scenario: CANON violation triggers REJECT
 
@@ -274,4 +274,4 @@ All `ComplianceEnforcer` implementations MUST be thread-safe. `enforce()` MAY be
 - **CE2**: `PromptInjectionEnforcer` SHALL always return `compliant = true`. It MUST NOT perform any validation logic.
 - **CE3**: `PostGenerationValidator` SHALL suggest `REJECT` for CANON violations and `RETRY` for lower-authority violations. This mapping MUST NOT be inverted.
 - **CE4**: All LLM response parsing models MUST use `@JsonIgnoreProperties(ignoreUnknown = true)`.
-- **CE5**: Enforcement MUST NOT modify memory unit state (rank, authority, pinned status). Enforcers are read-only validators.
+- **CE5**: Enforcement MUST NOT modify AWMU state (rank, authority, pinned status). Enforcers are read-only validators.

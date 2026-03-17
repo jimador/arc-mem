@@ -22,6 +22,8 @@ import dev.arcmem.core.assembly.retrieval.*;
  * @param cohensD        Cohen's d effect size value
  * @param interpretation "negligible", "small", "medium", or "large"
  * @param lowConfidence  true if sample count is low or variance is high
+ * @param pValue         BH-corrected p-value from Mann-Whitney U test; NaN if not computed
+ * @param significance   significance label: "***", "**", "*", "ns", or "" if not computed
  */
 public record EffectSizeSummary(
         String conditionA,
@@ -29,5 +31,13 @@ public record EffectSizeSummary(
         String metricKey,
         double cohensD,
         String interpretation,
-        boolean lowConfidence) {
+        boolean lowConfidence,
+        double pValue,
+        String significance) {
+
+    public EffectSizeSummary(String conditionA, String conditionB, String metricKey,
+                             double cohensD, String interpretation, boolean lowConfidence) {
+        this(conditionA, conditionB, metricKey, cohensD, interpretation, lowConfidence,
+             Double.NaN, "");
+    }
 }

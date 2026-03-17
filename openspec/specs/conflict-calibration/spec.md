@@ -33,45 +33,45 @@ All thresholds SHALL be in range (0.0, 1.0]. Default values SHALL match current 
 
 The `ConflictConfig` SHALL include a nested `TierConfig` record providing tier-based confidence modifiers:
 
-- `arc-mem.conflict.tier.hot-defense-modifier` (default: `0.1`) -- added to resolution thresholds for HOT memory units, making them harder to replace or demote
-- `arc-mem.conflict.tier.warm-defense-modifier` (default: `0.0`) -- no modifier for WARM memory units (baseline behavior)
-- `arc-mem.conflict.tier.cold-defense-modifier` (default: `-0.1`) -- subtracted from thresholds for COLD memory units, making them easier to replace or demote
+- `arc-mem.conflict.tier.hot-defense-modifier` (default: `0.1`) -- added to resolution thresholds for HOT ARC Working Memory Units (AWMUs), making them harder to replace or demote
+- `arc-mem.conflict.tier.warm-defense-modifier` (default: `0.0`) -- no modifier for WARM AWMUs (baseline behavior)
+- `arc-mem.conflict.tier.cold-defense-modifier` (default: `-0.1`) -- subtracted from thresholds for COLD AWMUs, making them easier to replace or demote
 
 `AuthorityConflictResolver` SHALL apply the tier modifier to the effective threshold before comparing against incoming confidence. The modifier adjusts the threshold, not the confidence score. The effective threshold is computed as: `effectiveThreshold = baseThreshold + tierModifier`.
 
-Result: a HOT memory unit requires confidence >= 0.9 (0.8 + 0.1) to trigger REPLACE, while a COLD memory unit requires only 0.7 (0.8 - 0.1).
+Result: a HOT AWMU requires confidence >= 0.9 (0.8 + 0.1) to trigger REPLACE, while a COLD AWMU requires only 0.7 (0.8 - 0.1).
 
-CANON memory units SHALL remain immune to replacement regardless of tier modifier -- `KEEP_EXISTING` is always returned for CANON authority.
+CANON AWMUs SHALL remain immune to replacement regardless of tier modifier -- `KEEP_EXISTING` is always returned for CANON authority.
 
-#### Scenario: HOT memory unit harder to replace
+#### Scenario: HOT AWMU harder to replace
 
-- **GIVEN** an existing HOT memory unit at RELIABLE authority
+- **GIVEN** an existing HOT AWMU at RELIABLE authority
 - **AND** `replace-threshold` is `0.8` and `hot-defense-modifier` is `0.1`
-- **WHEN** an incoming proposition with confidence `0.85` conflicts with the memory unit
+- **WHEN** an incoming proposition with confidence `0.85` conflicts with the AWMU
 - **THEN** the effective replace threshold SHALL be `0.9`
 - **AND** the resolver SHALL return `DEMOTE_EXISTING` (confidence 0.85 < effective threshold 0.9)
 
-#### Scenario: COLD memory unit easier to replace
+#### Scenario: COLD AWMU easier to replace
 
-- **GIVEN** an existing COLD memory unit at RELIABLE authority
+- **GIVEN** an existing COLD AWMU at RELIABLE authority
 - **AND** `replace-threshold` is `0.8` and `cold-defense-modifier` is `-0.1`
-- **WHEN** an incoming proposition with confidence `0.75` conflicts with the memory unit
+- **WHEN** an incoming proposition with confidence `0.75` conflicts with the AWMU
 - **THEN** the effective replace threshold SHALL be `0.7`
 - **AND** the resolver SHALL return `REPLACE` (confidence 0.75 >= effective threshold 0.7)
 
-#### Scenario: WARM memory unit at baseline
+#### Scenario: WARM AWMU at baseline
 
-- **GIVEN** an existing WARM memory unit at RELIABLE authority
+- **GIVEN** an existing WARM AWMU at RELIABLE authority
 - **AND** `replace-threshold` is `0.8` and `warm-defense-modifier` is `0.0`
-- **WHEN** an incoming proposition with confidence `0.85` conflicts with the memory unit
+- **WHEN** an incoming proposition with confidence `0.85` conflicts with the AWMU
 - **THEN** the effective replace threshold SHALL be `0.8`
 - **AND** the resolver SHALL return `REPLACE` (confidence 0.85 >= effective threshold 0.8)
 
 #### Scenario: CANON immune regardless of tier
 
-- **GIVEN** an existing COLD memory unit at CANON authority
+- **GIVEN** an existing COLD AWMU at CANON authority
 - **AND** `cold-defense-modifier` is `-0.1`
-- **WHEN** an incoming proposition with confidence `0.95` conflicts with the memory unit
+- **WHEN** an incoming proposition with confidence `0.95` conflicts with the AWMU
 - **THEN** the resolver SHALL return `KEEP_EXISTING`
 - **AND** the tier modifier SHALL NOT affect CANON resolution
 

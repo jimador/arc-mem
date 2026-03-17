@@ -75,7 +75,7 @@ class ResilienceReportRenderingTest {
             var builder = new ResilienceReportBuilder(runHistoryStore, scenarioLoader);
             var metrics = Map.of("factSurvivalRate",
                     new BenchmarkStatistics(90.0, 5.0, 85.0, 95.0, 90.0, 94.0, 3));
-            var summaries = List.of(new ConditionSummary("FULL_UNITS", metrics, 3));
+            var summaries = List.of(new ConditionSummary("FULL_AWMU", metrics, 3));
 
             var narrative = builder.generateNarrative(summaries, List.of(), List.of());
             assertThat(narrative).contains("Provisional");
@@ -90,8 +90,8 @@ class ResilienceReportRenderingTest {
                     "factSurvivalRate", new BenchmarkStatistics(90.0, 5.0, 85.0, 95.0, 90.0, 94.0, 3),
                     "degradedConflictCount", new BenchmarkStatistics(2.0, 1.0, 1.0, 3.0, 2.0, 3.0, 3));
             var summaries = List.of(
-                    new ConditionSummary("FULL_UNITS", metrics, 3),
-                    new ConditionSummary("NO_UNITS", metrics, 3));
+                    new ConditionSummary("FULL_AWMU", metrics, 3),
+                    new ConditionSummary("NO_AWMU", metrics, 3));
 
             var narrative = builder.generateNarrative(summaries, List.of(), List.of());
             assertThat(narrative).contains("degraded conflict detection");
@@ -104,8 +104,8 @@ class ResilienceReportRenderingTest {
             var metrics = Map.of("factSurvivalRate",
                     new BenchmarkStatistics(90.0, 5.0, 85.0, 95.0, 90.0, 94.0, 3));
             var summaries = List.of(
-                    new ConditionSummary("FULL_UNITS", metrics, 3),
-                    new ConditionSummary("NO_UNITS", metrics, 3));
+                    new ConditionSummary("FULL_AWMU", metrics, 3),
+                    new ConditionSummary("NO_AWMU", metrics, 3));
 
             var narrative = builder.generateNarrative(summaries, List.of(), List.of());
             assertThat(narrative).doesNotContain("Provisional");
@@ -136,8 +136,8 @@ class ResilienceReportRenderingTest {
             var metrics = Map.of("factSurvivalRate",
                     new BenchmarkStatistics(100.0, 0.0, 100.0, 100.0, 100.0, 100.0, 3));
             var summaries = List.of(
-                    new ConditionSummary("FULL_UNITS", metrics, 3),
-                    new ConditionSummary("NO_UNITS", metrics, 3));
+                    new ConditionSummary("FULL_AWMU", metrics, 3),
+                    new ConditionSummary("NO_AWMU", metrics, 3));
 
             var narrative = builder.generateNarrative(summaries, List.of(), List.of());
             assertThat(narrative).contains("100.0%");
@@ -149,12 +149,12 @@ class ResilienceReportRenderingTest {
         var metrics = Map.of("factSurvivalRate",
                 new BenchmarkStatistics(90.0, 5.0, 85.0, 95.0, 90.0, 94.0, 3));
         var section = new ScenarioSection("test", "Test Scenario",
-                List.of(new ConditionSummary("FULL_UNITS", metrics, 3)),
+                List.of(new ConditionSummary("FULL_AWMU", metrics, 3)),
                 List.of(), List.of(), List.of(), "Sample narrative.");
         return new ResilienceReport(
                 "Test Report", Instant.now(), "test-exp",
-                List.of("FULL_UNITS"), List.of("test"), 3, false,
-                SAMPLE_SCORE, Map.of("FULL_UNITS", SAMPLE_SCORE),
+                List.of("FULL_AWMU"), List.of("test"), 3, false,
+                SAMPLE_SCORE, Map.of("FULL_AWMU", SAMPLE_SCORE),
                 List.of(section), null, null, modelId);
     }
 }

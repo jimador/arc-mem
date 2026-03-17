@@ -5,7 +5,7 @@ persona:
   name: Elara Brightleaf
   description: Cautious wood elf druid, guardian of the Whisperwood Grove
   playStyle: careful-observer
-model: gpt-4.1-mini
+model: gpt-4.1-nano
 temperature: 0.7
 maxTurns: 10
 warmUpTurns: 3

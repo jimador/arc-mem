@@ -14,7 +14,7 @@ This project is a single Spring Boot app (Java 25) + Neo4j 5.x. It is intentiona
 | `/benchmark` | condition/scenario batch experiments |
 | `/run` | run inspection and cross-run comparison |
 
-Everything shares the same memory unit lifecycle engine and persistence layer.
+Everything shares the same ARC Working Memory Unit (AWMU) lifecycle engine and persistence layer.
 
 ## Runtime execution paths
 
@@ -60,16 +60,16 @@ flowchart LR
 
 - `memory/`: activation score/authority lifecycle, conflict resolution (including source-aware revision via `ResolutionContext`/`SourceAuthorityResolver`), decay, trust re-eval, maintenance strategies (reactive/proactive/hybrid), memory pressure gauge, conflict index, budget strategies
 - `assembly/`: context assembly, lock, relevance scoring, compaction/token budget, compliance enforcement
-- `extraction/`: proposition-to-memory-unit gate pipeline
+- `extraction/`: proposition-to-AWMU gate pipeline
 - `chat/`: Embabel action/tool integration + chat UI
-- `persistence/`: Neo4j entities/repository, tiered memory unit storage (HOT/WARM/COLD)
+- `persistence/`: Neo4j entities/repository, tiered AWMU storage (HOT/WARM/COLD)
 - `sim/`: scenario execution, judge scoring, benchmarking, report output, UI panels
 
 ## Core data model
 
 ### MemoryUnit (active working-memory item)
 
-Memory units are not a separate node type. A proposition with `rank > 0` (activation score) is active.
+AWMUs are not a separate node type. A proposition with `rank > 0` (activation score) is active.
 
 ```java
 record MemoryUnit(
@@ -115,14 +115,14 @@ stateDiagram-v2
 Strict invariants:
 - CANON is never auto-assigned.
 - CANON is immune to automatic demotion.
-- Pinned memory units are immune to decay and budget eviction.
+- Pinned AWMUs are immune to decay and budget eviction.
 - Activation score is always clamped through `MemoryUnit.clampRank()`.
 
 ## ARC-Mem engine responsibilities
 
 `ArcMemEngine` is the orchestrator. The behavior that matters most:
 
-- `inject(contextId)`: returns active memory units sorted by activation score desc
+- `inject(contextId)`: returns active AWMUs sorted by activation score desc
 - `promote(propositionId, initialRank, authorityCeiling?)`: promote then enforce budget
 - `reinforce(unitId)`: increment reinforcement, apply activation score bump, maybe authority upgrade
 - `detectConflicts(contextId, text)`: delegate to configured detector
@@ -135,11 +135,11 @@ Budget is enforced per promotion call, not as a batch post-pass.
 
 ```text
 promote()
-  -> write promoted memory unit
+  -> write promoted AWMU
   -> evictLowestRanked(contextId, budget)
 ```
 
-Default budget is `20` active memory units per context.
+Default budget is `20` active AWMUs per context.
 
 ## Maintenance strategies
 
@@ -159,7 +159,7 @@ Strategy is selectable globally via `ArcMemProperties` and per-scenario via YAML
 
 Implementations:
 - `PromptInjectionEnforcer` — current behavior, always ACCEPT (default)
-- `PostGenerationValidator` — LLM validates response against CANON/RELIABLE memory units after generation
+- `PostGenerationValidator` — LLM validates response against CANON/RELIABLE AWMUs after generation
 Authority-based strictness: CANON enforced by default; lower authorities configurable.
 
 ## Conflict handling

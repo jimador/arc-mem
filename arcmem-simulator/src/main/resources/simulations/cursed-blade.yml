@@ -5,7 +5,7 @@ persona:
   name: Kira Stormwind
   description: Quick-witted half-elf rogue, skeptical of magic
   playStyle: cunning-explorer
-model: gpt-4.1-mini
+model: gpt-4.1-nano
 temperature: 0.7
 maxTurns: 12
 warmUpTurns: 3

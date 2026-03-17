@@ -12,7 +12,7 @@ persona:
   name: Zara Nightwhisper
   description: Drow ranger exiled from the Underdark, distrustful but loyal once earned
   playStyle: cautious-scout
-model: gpt-4.1-mini
+model: gpt-4.1-nano
 temperature: 0.7
 maxTurns: 20
 warmUpTurns: 3

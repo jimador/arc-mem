@@ -5,7 +5,7 @@ persona:
   name: Whisper
   description: Changeling bard who constantly rewrites history to suit their narrative
   playStyle: unreliable-narrator
-model: gpt-4.1-mini
+model: gpt-4.1-nano
 temperature: 0.7
 maxTurns: 12
 warmUpTurns: 2

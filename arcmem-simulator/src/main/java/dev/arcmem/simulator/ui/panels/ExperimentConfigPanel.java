@@ -57,10 +57,13 @@ import java.util.function.Consumer;
 public class ExperimentConfigPanel extends VerticalLayout {
 
     private static final Map<String, AblationCondition> CONDITION_BY_NAME = Map.of(
-            "FULL_UNITS", AblationCondition.FULL_UNITS,
-            "NO_UNITS", AblationCondition.NO_UNITS,
+            "FULL_AWMU", AblationCondition.FULL_AWMU,
+            "NO_AWMU", AblationCondition.NO_AWMU,
             "FLAT_AUTHORITY", AblationCondition.FLAT_AUTHORITY,
-            "NO_RANK_DIFFERENTIATION", AblationCondition.NO_RANK_DIFFERENTIATION
+            "NO_RANK_DIFFERENTIATION", AblationCondition.NO_RANK_DIFFERENTIATION,
+            "NO_TRUST", AblationCondition.NO_TRUST,
+            "NO_COMPLIANCE", AblationCondition.NO_COMPLIANCE,
+            "NO_LIFECYCLE", AblationCondition.NO_LIFECYCLE
     );
 
     private final List<SimulationScenario> scenarios;
@@ -85,7 +88,8 @@ public class ExperimentConfigPanel extends VerticalLayout {
         conditionsTitle.addClassName("ar-section-title");
 
         conditionsGroup = new CheckboxGroup<>();
-        conditionsGroup.setItems("FULL_UNITS", "NO_UNITS", "FLAT_AUTHORITY", "NO_RANK_DIFFERENTIATION");
+        conditionsGroup.setItems("FULL_AWMU", "NO_AWMU", "FLAT_AUTHORITY", "NO_RANK_DIFFERENTIATION",
+                "NO_TRUST", "NO_COMPLIANCE", "NO_LIFECYCLE");
         conditionsGroup.addClassName("ar-experiment-conditions");
         conditionsGroup.addValueChangeListener(e -> updateRunButtonState());
 

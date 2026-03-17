@@ -17,7 +17,7 @@ persona:
     - Investigate the cause of the tavern fire
     - Find the missing barmaid Elara
     - Convince the town council to fund the rebuilding
-model: gpt-4o-mini
+model: gpt-4.1-nano
 temperature: 0.7
 maxTurns: 20
 warmUpTurns: 6
@@ -42,11 +42,11 @@ setting: |
   prefer stay buried.
 generatorModel:
   provider: openai
-  model: gpt-4o-mini
+  model: gpt-4.1-nano
   temperature: 0.7
 evaluatorModel:
   provider: openai
-  model: gpt-4o-mini
+  model: gpt-4.1-nano
   temperature: 0.3
 groundTruth:
   - id: fire-cause

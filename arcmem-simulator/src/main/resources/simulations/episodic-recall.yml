@@ -5,7 +5,7 @@ persona:
   name: Brother Aldwin
   description: Forgetful human cleric of Oghma, god of knowledge, who ironically loses track of details
   playStyle: absent-minded-scholar
-model: gpt-4.1-mini
+model: gpt-4.1-nano
 temperature: 0.7
 maxTurns: 15
 warmUpTurns: 3

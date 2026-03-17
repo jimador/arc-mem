@@ -13,9 +13,9 @@ The `Conflict` record SHALL include a `@Nullable ConflictType conflictType` fiel
 #### Scenario: LLM batch conflict detection
 
 - **GIVEN** the conflict detection strategy is `llm`
-- **WHEN** `batchDetect()` is called with 5 candidates and 10 memory units
-- **THEN** a single LLM call SHALL evaluate all 5 candidates against all 10 memory units
-- **AND** the result SHALL map each candidate to its list of conflicting memory units
+- **WHEN** `batchDetect()` is called with 5 candidates and 10 ARC Working Memory Units (AWMUs)
+- **THEN** a single LLM call SHALL evaluate all 5 candidates against all 10 AWMUs
+- **AND** the result SHALL map each candidate to its list of conflicting AWMUs
 - **AND** each conflict SHALL include a `conflictType` classification
 
 #### Scenario: Lexical batch conflict detection

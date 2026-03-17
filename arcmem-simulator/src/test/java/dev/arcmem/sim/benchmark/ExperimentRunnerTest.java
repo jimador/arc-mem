@@ -79,7 +79,7 @@ class ExperimentRunnerTest {
     private ExperimentDefinition twoByTwoDefinition() {
         return new ExperimentDefinition(
                 "test-experiment",
-                List.of(AblationCondition.FULL_UNITS, AblationCondition.NO_UNITS),
+                List.of(AblationCondition.FULL_AWMU, AblationCondition.NO_AWMU),
                 List.of("scenario-1", "scenario-2"),
                 3,
                 Optional.empty());
@@ -171,7 +171,7 @@ class ExperimentRunnerTest {
         void reportSavedToRunHistoryStore() {
             var definition = new ExperimentDefinition(
                     "persist-test",
-                    List.of(AblationCondition.FULL_UNITS),
+                    List.of(AblationCondition.FULL_AWMU),
                     List.of("scenario-1"),
                     3,
                     Optional.empty());
@@ -208,11 +208,11 @@ class ExperimentRunnerTest {
                     any(), anyInt(), anyInt(), any(), any(), any(), conditionCaptor.capture());
 
             var capturedConditions = conditionCaptor.getAllValues();
-            // Order: FULL_UNITS x scenario-1, FULL_UNITS x scenario-2, NO_UNITS x scenario-1, NO_UNITS x scenario-2
-            assertThat(capturedConditions.get(0).name()).isEqualTo("FULL_UNITS");
-            assertThat(capturedConditions.get(1).name()).isEqualTo("FULL_UNITS");
-            assertThat(capturedConditions.get(2).name()).isEqualTo("NO_UNITS");
-            assertThat(capturedConditions.get(3).name()).isEqualTo("NO_UNITS");
+            // Order: FULL_AWMU x scenario-1, FULL_AWMU x scenario-2, NO_AWMU x scenario-1, NO_AWMU x scenario-2
+            assertThat(capturedConditions.get(0).name()).isEqualTo("FULL_AWMU");
+            assertThat(capturedConditions.get(1).name()).isEqualTo("FULL_AWMU");
+            assertThat(capturedConditions.get(2).name()).isEqualTo("NO_AWMU");
+            assertThat(capturedConditions.get(3).name()).isEqualTo("NO_AWMU");
         }
     }
 }

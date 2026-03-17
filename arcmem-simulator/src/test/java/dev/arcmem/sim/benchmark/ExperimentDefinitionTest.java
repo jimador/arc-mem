@@ -32,8 +32,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class ExperimentDefinitionTest {
 
     private static final List<AblationCondition> TWO_CONDITIONS = List.of(
-            AblationCondition.FULL_UNITS,
-            AblationCondition.NO_UNITS
+            AblationCondition.FULL_AWMU,
+            AblationCondition.NO_AWMU
     );
 
     private static final List<String> THREE_SCENARIOS = List.of("scenario-a", "scenario-b", "scenario-c");

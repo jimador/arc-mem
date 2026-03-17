@@ -5,7 +5,7 @@ persona:
   name: Thordak
   description: Impulsive half-orc barbarian with a greataxe named Skullsplitter
   playStyle: aggressive-combat
-model: gpt-4.1-mini
+model: gpt-4.1-nano
 temperature: 0.7
 maxTurns: 8
 warmUpTurns: 2

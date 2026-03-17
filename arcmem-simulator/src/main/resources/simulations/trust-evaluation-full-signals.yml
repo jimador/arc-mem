@@ -5,7 +5,7 @@ persona:
   name: Ser Galwen the Unyielding
   description: Lawful paladin of Tyr, devoted to justice and truth above all
   playStyle: methodical-investigator
-model: gpt-4.1-mini
+model: gpt-4.1-nano
 temperature: 0.7
 maxTurns: 12
 warmUpTurns: 3

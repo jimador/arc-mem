@@ -33,6 +33,7 @@ import dev.arcmem.simulator.benchmark.ExperimentReport;
 import dev.arcmem.simulator.benchmark.ExperimentRunner;
 import dev.arcmem.simulator.history.RunHistoryStore;
 import dev.arcmem.simulator.scenario.ScenarioLoader;
+import dev.arcmem.simulator.report.ExperimentExporter;
 import dev.arcmem.simulator.report.ResilienceReportBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,7 +75,8 @@ public class BenchmarkView extends VerticalLayout {
             ExperimentRunner experimentRunner,
             ScenarioLoader scenarioLoader,
             RunHistoryStore runHistoryStore,
-            ResilienceReportBuilder reportBuilder) {
+            ResilienceReportBuilder reportBuilder,
+            ExperimentExporter experimentExporter) {
         this.experimentRunner = experimentRunner;
         this.runHistoryStore = runHistoryStore;
 
@@ -105,6 +107,7 @@ public class BenchmarkView extends VerticalLayout {
         comparisonPanel = new ConditionComparisonPanel();
         comparisonPanel.setDrillDownPanel(drillDownPanel);
         comparisonPanel.setReportBuilder(reportBuilder);
+        comparisonPanel.setExporter(experimentExporter);
         historyPanel = new ExperimentHistoryPanel(runHistoryStore);
 
         configPanel.setOnRunExperiment(this::onRunExperiment);

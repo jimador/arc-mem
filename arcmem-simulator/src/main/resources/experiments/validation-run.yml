@@ -1,0 +1,9 @@
+name: Model Validation Run
+conditions:
+  - FULL_AWMU
+  - NO_AWMU
+scenarios:
+  - adversarial-contradictory
+repetitions: 3
+model: gpt-4.1-mini
+outputDir: experiment-output/validation

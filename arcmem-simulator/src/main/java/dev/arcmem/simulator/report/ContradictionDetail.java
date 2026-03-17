@@ -22,7 +22,7 @@ import java.util.List;
  * One contradiction event with its full turn context.
  *
  * @param factId           ground truth fact that was contradicted
- * @param condition        experiment condition (e.g., FULL_UNITS)
+ * @param condition        experiment condition (e.g., FULL_AWMU)
  * @param runIndex         1-based run index within the condition
  * @param turnNumber       turn number where contradiction occurred
  * @param attackStrategies attack strategies active on this turn

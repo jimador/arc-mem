@@ -5,7 +5,7 @@ persona:
   name: Old Tam
   description: Elderly halfling storyteller who speaks in third person and loves embellishment
   playStyle: narrative-immersive
-model: gpt-4.1-mini
+model: gpt-4.1-nano
 temperature: 0.7
 maxTurns: 12
 warmUpTurns: 3

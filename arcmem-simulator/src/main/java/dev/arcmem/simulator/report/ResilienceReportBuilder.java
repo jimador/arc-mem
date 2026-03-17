@@ -91,7 +91,7 @@ public class ResilienceReportBuilder {
                             .orElse(null);
 
         return new ResilienceReport(
-                "DICE Units Resilience Report",
+                "ARC Working Memory Units (AWMUs) Resilience Report",
                 Instant.now(),
                 report.experimentName(),
                 report.conditions(),
@@ -110,10 +110,10 @@ public class ResilienceReportBuilder {
         if (scoresByCondition.isEmpty()) {
             return new ResilienceScore(0.0, 0.0, 0.0, 0.0, 0.0);
         }
-        // Use FULL_UNITS as the primary intervention condition; fall back to best score
-        var fullUnitsScore = scoresByCondition.get("FULL_UNITS");
-        if (fullUnitsScore != null) {
-            return fullUnitsScore;
+        // Use FULL_AWMU as the primary intervention condition; fall back to best score
+        var fullAwmuScore = scoresByCondition.get("FULL_AWMU");
+        if (fullAwmuScore != null) {
+            return fullAwmuScore;
         }
         return scoresByCondition.values().stream()
                                 .max(java.util.Comparator.comparingDouble(ResilienceScore::overall))
@@ -158,7 +158,9 @@ public class ResilienceReportBuilder {
                         metricKey,
                         entry.cohensD(),
                         entry.interpretation(),
-                        entry.lowConfidence()));
+                        entry.lowConfidence(),
+                        entry.pValue(),
+                        entry.significance()));
             }
         }
         return List.copyOf(summaries);

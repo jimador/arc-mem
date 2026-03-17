@@ -82,30 +82,30 @@ The previous fixed-width 28 × 16 px cell grid is **REMOVED**.
 
 Row header MUST include:
 - Authority badge (colored by authority level using existing authority-badge CSS class)
-- Truncated memory unit text (max 20 chars, monospace, 0.75em)
+- Truncated ARC Working Memory Unit (AWMU) text (max 20 chars, monospace, 0.75em)
 - Injection-state dot: `●` in cyan when currently injected, `○` in steel-gray otherwise
 
-Events include: creation (memory unit promoted), reinforcement (activation score increased), decay
-(activation score decreased), archive (memory unit removed). The memory unit text or ID SHALL label each row.
+Events include: creation (AWMU promoted), reinforcement (activation score increased), decay
+(activation score decreased), archive (AWMU removed). The AWMU text or ID SHALL label each row.
 
-#### Scenario: Memory unit row with three events
-- **WHEN** memory unit "The king lives" has events: Created at T2, Reinforced at T5, Decayed at T8
+#### Scenario: AWMU row with three events
+- **WHEN** AWMU "The king lives" has events: Created at T2, Reinforced at T5, Decayed at T8
 - **THEN** its row shows three badge pills: `C` (green), `R` (cyan), `D` (amber)
 - **AND** the badges wrap to a new line if the row overflows
 
-#### Scenario: Memory unit created at turn 2
-- **WHEN** memory unit "Saphira is a gold dragon" is promoted at turn 2
-- **THEN** the memory unit's row shows a creation marker at position 2
+#### Scenario: AWMU created at turn 2
+- **WHEN** AWMU "Saphira is a gold dragon" is promoted at turn 2
+- **THEN** the AWMU's row shows a creation marker at position 2
 
-#### Scenario: Memory unit reinforced then archived
-- **WHEN** a memory unit is reinforced at turn 4 and archived at turn 9
-- **THEN** the memory unit's row shows a reinforcement marker at turn 4 and an archive marker at turn 9
+#### Scenario: AWMU reinforced then archived
+- **WHEN** a AWMU is reinforced at turn 4 and archived at turn 9
+- **THEN** the AWMU's row shows a reinforcement marker at turn 4 and an archive marker at turn 9
 
 ---
 
 ### Requirement: Cell readability at default zoom
 
-**I1**: All drift marker symbols and memory unit event badges MUST be legible at 100 %
+**I1**: All drift marker symbols and AWMU event badges MUST be legible at 100 %
 browser zoom on a 1280 × 800 viewport without requiring the user to scroll
 horizontally to read the per-unit rows. Badge font-size MUST be ≥ 0.7em.
 
@@ -115,13 +115,13 @@ horizontally to read the per-unit rows. Badge font-size MUST be ≥ 0.7em.
 
 Clicking a turn position on the timeline SHALL dispatch a turn-selection event that
 updates other panels. At minimum, clicking a turn SHALL update the
-`ContextInspectorPanel` to show the memory unit state and verdicts for that specific turn.
+`ContextInspectorPanel` to show the AWMU state and verdicts for that specific turn.
 The currently selected turn SHALL be visually highlighted on the timeline with a
 distinct border or background.
 
 #### Scenario: Click turn updates inspector
 - **WHEN** the user clicks turn 5 on the timeline
-- **THEN** the ContextInspectorPanel updates to show the memory units and verdicts from turn 5
+- **THEN** the ContextInspectorPanel updates to show the AWMUs and verdicts from turn 5
 - **AND** the turn 5 position on the timeline is visually highlighted
 
 #### Scenario: Selected turn persists until changed

@@ -1,24 +1,24 @@
 ## ADDED Requirements
 
 ### Requirement: Tabbed sidebar layout
-The chat sidebar SHALL use a tabbed layout with three tabs: Memory Units, Propositions, and Session Info. The Memory Units tab SHALL be selected by default.
+The chat sidebar SHALL use a tabbed layout with three tabs: ARC Working Memory Units (AWMUs), Propositions, and Session Info. The AWMUs tab SHALL be selected by default.
 
 #### Scenario: User switches between tabs
 - **WHEN** a user clicks the Propositions tab
-- **THEN** the sidebar displays the propositions list, hiding the memory units panel
+- **THEN** the sidebar displays the propositions list, hiding the AWMUs panel
 
 ### Requirement: View extracted propositions
-The Propositions tab SHALL display only propositions that have NOT been promoted to memory units (rank == 0) for the `"chat"` context, showing text, confidence score, and knowledge status. The list SHALL refresh after each chat turn.
+The Propositions tab SHALL display only propositions that have NOT been promoted to AWMUs (rank == 0) for the `"chat"` context, showing text, confidence score, and knowledge status. The list SHALL refresh after each chat turn.
 
 #### Scenario: Propositions appear after extraction
 - **GIVEN** a chat turn has completed and DICE extraction has processed the messages
 - **WHEN** the sidebar refreshes
 - **THEN** newly extracted propositions appear in the Propositions tab with their confidence scores
 
-#### Scenario: Promoted propositions move to Memory Units tab
-- **GIVEN** a proposition has been promoted to memory unit status (rank > 0)
+#### Scenario: Promoted propositions move to AWMUs tab
+- **GIVEN** a proposition has been promoted to AWMU status (rank > 0)
 - **WHEN** the sidebar refreshes
-- **THEN** the proposition appears in the Memory Units tab and no longer appears in the Propositions tab
+- **THEN** the proposition appears in the AWMUs tab and no longer appears in the Propositions tab
 
 ### Requirement: Extraction triggers after 2 turns
 The DICE extraction trigger interval SHALL be configured to 2 for the chat context, ensuring propositions appear after the second chat exchange rather than the sixth.
@@ -29,9 +29,9 @@ The DICE extraction trigger interval SHALL be configured to 2 for the chat conte
 - **THEN** extracted propositions are visible in the Propositions tab
 
 ### Requirement: Session info display
-The Session Info tab SHALL display the current context ID, the total number of active memory units, the total number of propositions, and the number of chat turns completed in this session.
+The Session Info tab SHALL display the current context ID, the total number of active AWMUs, the total number of propositions, and the number of chat turns completed in this session.
 
 #### Scenario: Session info updates each turn
 - **GIVEN** the user has completed 5 chat turns
 - **WHEN** the Session Info tab is viewed
-- **THEN** it displays contextId "chat", the current memory unit count, proposition count, and "5 turns"
+- **THEN** it displays contextId "chat", the current AWMU count, proposition count, and "5 turns"

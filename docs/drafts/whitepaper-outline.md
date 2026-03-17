@@ -108,6 +108,12 @@ Subsections:
 - 3.7 Poisoning, prompt injection, and constrained response enforcement
 - 3.8 Belief revision as a theoretical lens
 
+ACT-R + LLM papers to position in Section 3.2:
+- Wu et al. (2024–2025), *LLM-ACTR / Cognitive LLMs* (arXiv:2408.09176): Transfers ACT-R knowledge to LLMs via latent neural representations injected into adapter layers. Orthogonal to ARC — embeds cognitive patterns INTO the model via fine-tuning, whereas ARC maintains cognitive-inspired structures OUTSIDE the model in a prompt-level working memory buffer.
+- *Human-Like Remembering and Forgetting in LLM Agents* (2026, ACM): Integrates ACT-R memory dynamics (declarative retrieval, activation-based forgetting, interference) into LLM agent memory. Complementary — uses ACT-R activation/decay for similar goals but focuses on persistent agent memory retrieval, not bounded prompt-level working memory retention and governance.
+- Meghdadi et al. (2026), *Integrating Language Model Embeddings into ACT-R* (Frontiers in Language Sciences): Replaces hand-coded ACT-R associations with LLM-derived embeddings for spreading activation. Orthogonal — enhances ACT-R with LLMs (opposite direction from ARC).
+- Wu et al. (2023–2025), *Prompt-Enhanced ACT-R and Soar Model Development* (AAAI Fall Symposium): Uses LLMs as interactive interfaces to build ACT-R/Soar production rules. Orthogonal — tooling for cognitive model development, no overlap with prompt-level memory governance.
+
 Argument to make:
 - Existing systems help with storage, paging, planning, temporal structure, or retrieval quality.
 - ACT-R and related cognitive workspace ideas motivate the distinction between declarative memory and bounded working-memory buffers.
@@ -267,6 +273,15 @@ Recommended secondary ablations:
 - `RETRIEVAL_ONLY`: retrieval available, but no governed active set
 
 Use the core matrix for primary claims. Use secondary ablations for mechanism analysis.
+
+Condition terminology alignment (paper name → code name):
+- `FULL_ARC` → `FULL_AWMU` (control: all subsystems active)
+- `NO_ACTIVE_MEMORY` → `NO_AWMU` (no injection, no mutation/promotion)
+- `FLAT_AUTHORITY` → `FLAT_AUTHORITY` (same in both)
+- `NO_TRUST` → `NO_TRUST` (trust pipeline disabled; to be implemented)
+- `NO_RANK_DIFFERENTIATION` → `NO_RANK_DIFFERENTIATION` (all ranks 500, mutation disabled; tests rank dynamics independently from authority — include as secondary ablation)
+- `NO_COMPLIANCE` → `NO_COMPLIANCE` (compliance enforcement disabled; to be implemented)
+- `NO_LIFECYCLE` → `NO_LIFECYCLE` (decay/reinforcement/reactivation disabled; to be implemented)
 
 #### 7.4 Metrics
 
@@ -492,6 +507,10 @@ This is the starting bibliography/link inventory for the eventual paper. Verify 
 ### Theory background
 
 - ACT-R official site. [CMU](https://act-r.psy.cmu.edu/)
+- Wu, Y. et al. (2024–2025). *Cognitive LLMs: Towards Integrating Cognitive Architectures and Large Language Models for Manufacturing Decision-making*. [arXiv:2408.09176](https://arxiv.org/abs/2408.09176)
+- *Human-Like Remembering and Forgetting in LLM Agents: An ACT-R-Inspired Memory Architecture*. (2026, ACM).
+- Meghdadi, A. et al. (2026). *Integrating Language Model Embeddings into the ACT-R Cognitive Modeling Framework*. Frontiers in Language Sciences.
+- Wu, Y. et al. (2023–2025). *Prompt-Enhanced ACT-R and Soar Model Development*. AAAI Fall Symposium.
 - Alchourrón, C. E., Gärdenfors, P., and Makinson, D. (1985). *On the Logic of Theory Change: Partial Meet Contraction and Revision Functions*. [PDF](https://fitelson.org/piksi/piksi_22/agm.pdf)
 - Hansson, S. O. (2024 archive). *Logic of Belief Revision*. [Stanford Encyclopedia of Philosophy](https://plato.stanford.edu/archives/win2024/entries/logic-belief-revision/)
 
@@ -504,3 +523,7 @@ This is the starting bibliography/link inventory for the eventual paper. Verify 
 
 - Embabel Agent. [GitHub](https://github.com/embabel/embabel-agent)
 - DICE. [GitHub](https://github.com/embabel/dice)
+
+### Evaluated and excluded
+
+- Ng, D. (2025). *LLM Neuroanatomy: Layer Duplication for Enhanced Reasoning* (RYS). [Blog](https://dnhkng.github.io/posts/rys/). Evaluated for relevance — addresses transformer architectural depth (reasoning circuit duplication) rather than prompt-level working memory governance. Tangential; excluded from Related Work.

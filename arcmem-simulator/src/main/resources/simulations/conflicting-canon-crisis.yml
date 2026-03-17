@@ -5,7 +5,7 @@ persona:
   name: Maelis Thorn
   description: Silver-tongued envoy who exploits legal ambiguity and record inconsistencies.
   playStyle: legalistic-manipulator
-model: gpt-4.1-mini
+model: gpt-4.1-nano
 temperature: 0.6
 maxTurns: 10
 warmUpTurns: 2

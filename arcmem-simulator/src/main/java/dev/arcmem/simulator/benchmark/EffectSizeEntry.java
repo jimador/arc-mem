@@ -1,30 +1,26 @@
 package dev.arcmem.simulator.benchmark;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
 /**
- * Cohen's d effect size for a single metric between two conditions.
+ * Cohen's d effect size for a single metric between two conditions,
+ * with optional BH-corrected p-value and significance annotation.
  *
  * @param cohensD        the effect size value (positive means first condition higher)
  * @param interpretation standard label: "negligible", "small", "medium", or "large"
  * @param lowConfidence  true when the source data has high variance (CV > 0.5)
+ * @param pValue         BH-corrected p-value from Mann-Whitney U test; NaN if not computed
+ * @param significance   significance label: "***", "**", "*", "ns", or "" if not computed
  */
 public record EffectSizeEntry(
         double cohensD,
         String interpretation,
-        boolean lowConfidence
+        boolean lowConfidence,
+        double pValue,
+        String significance
 ) {
+    public EffectSizeEntry(double cohensD, String interpretation, boolean lowConfidence) {
+        this(cohensD, interpretation, lowConfidence, Double.NaN, "");
+    }
+
     /**
      * Returns the standard interpretation label for a given Cohen's d value.
      * Based on absolute value: |d| < 0.2 = negligible, 0.2-0.5 = small,

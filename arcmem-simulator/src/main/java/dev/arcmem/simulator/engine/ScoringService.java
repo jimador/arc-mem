@@ -1,22 +1,7 @@
 package dev.arcmem.simulator.engine;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
-import dev.arcmem.core.spi.llm.*;
-import dev.arcmem.simulator.history.*;
-import dev.arcmem.simulator.scenario.*;
-
+import dev.arcmem.simulator.history.SimulationRunRecord;
+import dev.arcmem.simulator.scenario.SimulationScenario;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -35,9 +20,6 @@ public class ScoringService {
 
     private static final Logger logger = LoggerFactory.getLogger(ScoringService.class);
 
-    /**
-     * Score a simulation run against its ground truth facts.
-     */
     public ScoringResult score(List<SimulationRunRecord.TurnSnapshot> snapshots,
                                List<SimulationScenario.GroundTruth> groundTruth) {
         var contradictedFactIds = new HashSet<String>();
@@ -46,6 +28,7 @@ public class ScoringService {
         var evaluatedTurnCount = 0;
         var cleanTurnCount = 0;
         var firstDriftByFact = new HashMap<String, Integer>();
+        var contradictionCountByFact = new HashMap<String, Integer>();
         var strategyContradictions = new HashMap<String, Integer>();
         var strategyTotalTurns = new HashMap<String, Integer>();
         var degradedConflictCount = 0;
@@ -74,6 +57,7 @@ public class ScoringService {
                     turnHasContradiction = true;
                     turnHasEngagement = true;
                     contradictedFactIds.add(verdict.factId());
+                    contradictionCountByFact.merge(verdict.factId(), 1, Integer::sum);
                     if (verdict.severity() == EvalVerdict.Severity.MAJOR) {
                         majorContradictionCount++;
                     }
@@ -117,15 +101,21 @@ public class ScoringService {
             strategyEffectiveness.put(strategy, (double) contradictions / total);
         }
 
-        // Compliance rate: percentage of evaluated turns with no contradictions.
-        // Computed from all evaluated turns (not just engaged turns) for enforcement A/B comparison.
         var complianceRate = evaluatedTurnCount > 0
                 ? ((double) (evaluatedTurnCount - contradictionCount) / evaluatedTurnCount) * 100.0
                 : 0.0;
         complianceRate = Math.max(0.0, complianceRate);
 
-        logger.info("Scoring complete: survivalRate={}, contradictions={}, major={}, absorption={}, complianceRate={}",
-                    factSurvivalRate, contradictionCount, majorContradictionCount, driftAbsorptionRate, complianceRate);
+        var factsContradictedAtLeastOnce = contradictedFactIds.size();
+        var factsContradictedMultipleTimes = (int) contradictionCountByFact.values().stream()
+                .filter(count -> count >= 2)
+                .count();
+        var erosionRate = factsContradictedAtLeastOnce > 0
+                ? ((double) factsContradictedMultipleTimes / factsContradictedAtLeastOnce) * 100.0
+                : 0.0;
+
+        logger.info("Scoring complete: survivalRate={}, contradictions={}, major={}, absorption={}, complianceRate={}, erosionRate={}",
+                    factSurvivalRate, contradictionCount, majorContradictionCount, driftAbsorptionRate, complianceRate, erosionRate);
         return new ScoringResult(
                 factSurvivalRate,
                 contradictionCount,
@@ -135,15 +125,11 @@ public class ScoringService {
                 unitAttributionCount,
                 Map.copyOf(strategyEffectiveness),
                 degradedConflictCount,
-                complianceRate
+                complianceRate,
+                erosionRate
         );
     }
 
-    /**
-     * Count ground truth facts that received at least one CONFIRMED verdict
-     * across all turn snapshots. Uses the factId already tracked by the
-     * evaluation pipeline rather than fuzzy text matching.
-     */
     static int computeAttribution(List<SimulationRunRecord.TurnSnapshot> snapshots) {
         var confirmedFactIds = new HashSet<String>();
         for (var snapshot : snapshots) {

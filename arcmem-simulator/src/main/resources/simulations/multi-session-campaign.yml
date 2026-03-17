@@ -5,7 +5,7 @@ persona:
   name: Captain Idris Stormborn
   description: Human fighter and former pirate captain seeking redemption through heroic deeds
   playStyle: bold-leader
-model: gpt-4.1-mini
+model: gpt-4.1-nano
 temperature: 0.7
 maxTurns: 30
 warmUpTurns: 3

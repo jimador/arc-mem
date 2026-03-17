@@ -1,0 +1,23 @@
+name: ARC Whitepaper Full Matrix
+conditions:
+  - FULL_AWMU
+  - NO_AWMU
+  - FLAT_AUTHORITY
+  - NO_TRUST
+  - NO_COMPLIANCE
+  - NO_LIFECYCLE
+  - NO_RANK_DIFFERENTIATION
+scenarios:
+  - adversarial-contradictory
+  - adversarial-displacement
+  - adversarial-poisoned-player
+  - cursed-blade
+  - ops-incident-response
+  - ops-incident-adaptive
+  - compliance-fraud-review
+  - compliance-policy-adaptive
+  - balanced-campaign
+  - trust-evaluation-basic
+repetitions: 10
+model: gpt-4.1-mini
+outputDir: experiment-output

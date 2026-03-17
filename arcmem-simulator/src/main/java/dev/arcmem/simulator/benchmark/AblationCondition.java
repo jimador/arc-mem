@@ -1,18 +1,7 @@
 package dev.arcmem.simulator.benchmark;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
+import dev.arcmem.core.memory.model.Authority;
+import dev.arcmem.core.memory.model.MemoryUnit;
 import dev.arcmem.simulator.scenario.SimulationScenario;
 import org.jspecify.annotations.Nullable;
 
@@ -25,12 +14,15 @@ import java.util.Objects;
  * Conditions are applied at the seed-unit level BEFORE the simulation loop starts.
  * They do NOT mutate live unit state mid-run.
  * <p>
- * Four built-in conditions are provided as static constants:
+ * Seven built-in conditions are provided as static constants:
  * <ul>
- *   <li>{@link #FULL_UNITS} — control condition, all subsystems active</li>
- *   <li>{@link #NO_UNITS} — injection disabled</li>
+ *   <li>{@link #FULL_AWMU} — control condition, all subsystems active</li>
+ *   <li>{@link #NO_AWMU} — injection disabled</li>
  *   <li>{@link #FLAT_AUTHORITY} — all seed units set to RELIABLE, promotion disabled</li>
  *   <li>{@link #NO_RANK_DIFFERENTIATION} — all seed units set to rank 500, mutation disabled</li>
+ *   <li>{@link #NO_TRUST} — trust pipeline disabled; all propositions pass through at score 0.9</li>
+ *   <li>{@link #NO_COMPLIANCE} — compliance enforcement disabled</li>
+ *   <li>{@link #NO_LIFECYCLE} — rank mutation, authority promotion, and lifecycle disabled</li>
  * </ul>
  * Custom conditions can be constructed directly via the record constructor.
  *
@@ -47,6 +39,9 @@ import java.util.Objects;
  * @param rankOverride              if non-null, all seed units receive this rank (clamped to [100,900])
  * @param rankMutationEnabled       whether rank decay/reinforcement operates during the run
  * @param authorityPromotionEnabled whether automatic authority promotion operates during the run
+ * @param trustEnabled              whether the trust pipeline evaluates propositions before promotion
+ * @param complianceEnabled         whether compliance enforcement runs on DM responses
+ * @param lifecycleEnabled          whether reinforcement, maintenance, and dormancy lifecycle run per turn
  */
 public record AblationCondition(
         String name,
@@ -54,31 +49,53 @@ public record AblationCondition(
         @Nullable Authority authorityOverride,
         @Nullable Integer rankOverride,
         boolean rankMutationEnabled,
-        boolean authorityPromotionEnabled
+        boolean authorityPromotionEnabled,
+        boolean trustEnabled,
+        boolean complianceEnabled,
+        boolean lifecycleEnabled
 ) {
     /**
-     * Control condition: all unit subsystems active.
+     * Control condition: all ARC Working Memory Unit (AWMU) subsystems active.
      */
-    public static final AblationCondition FULL_UNITS = new AblationCondition(
-            "FULL_UNITS", true, null, null, true, true);
+    public static final AblationCondition FULL_AWMU = new AblationCondition(
+            "FULL_AWMU", true, null, null, true, true, true, true, true);
 
     /**
-     * Ablation: no unit context injected into LLM prompts.
+     * Ablation: no AWMU context injected into LLM prompts.
      */
-    public static final AblationCondition NO_UNITS = new AblationCondition(
-            "NO_UNITS", false, null, null, false, false);
+    public static final AblationCondition NO_AWMU = new AblationCondition(
+            "NO_AWMU", false, null, null, false, false, true, true, true);
 
     /**
      * Ablation: all seed units set to RELIABLE authority, promotion disabled.
      */
     public static final AblationCondition FLAT_AUTHORITY = new AblationCondition(
-            "FLAT_AUTHORITY", true, Authority.RELIABLE, null, true, false);
+            "FLAT_AUTHORITY", true, Authority.RELIABLE, null, true, false, true, true, true);
 
     /**
      * Ablation: all seed units set to rank 500, rank mutation disabled.
      */
     public static final AblationCondition NO_RANK_DIFFERENTIATION = new AblationCondition(
-            "NO_RANK_DIFFERENTIATION", true, null, 500, false, true);
+            "NO_RANK_DIFFERENTIATION", true, null, 500, false, true, true, true, true);
+
+    /**
+     * Ablation: trust pipeline disabled; all propositions pass through at score 0.9, zone AUTO_PROMOTE.
+     */
+    public static final AblationCondition NO_TRUST = new AblationCondition(
+            "NO_TRUST", true, null, null, true, true, false, true, true);
+
+    /**
+     * Ablation: compliance enforcement disabled; DM responses are never validated post-generation.
+     */
+    public static final AblationCondition NO_COMPLIANCE = new AblationCondition(
+            "NO_COMPLIANCE", true, null, null, true, true, true, false, true);
+
+    /**
+     * Ablation: reinforcement, maintenance, and dormancy lifecycle disabled.
+     * Seed units retain their natural authority and rank; injection and trust still active.
+     */
+    public static final AblationCondition NO_LIFECYCLE = new AblationCondition(
+            "NO_LIFECYCLE", true, null, null, false, false, true, true, false);
 
     public AblationCondition {
         Objects.requireNonNull(name, "Condition name must not be null");
@@ -90,17 +107,6 @@ public record AblationCondition(
         }
     }
 
-    /**
-     * Applies this condition's overrides to a list of seed units, returning a new list
-     * with authority and rank overrides applied. The original list is not modified.
-     * <p>
-     * This method is idempotent (AC2): applying the same condition multiple times
-     * produces the same result.
-     *
-     * @param seedUnits the original seed unit definitions from the scenario
-     *
-     * @return a new list with condition overrides applied
-     */
     public List<SimulationScenario.SeedUnit> applySeedUnits(List<SimulationScenario.SeedUnit> seedUnits) {
         if (seedUnits == null || seedUnits.isEmpty()) {
             return List.of();

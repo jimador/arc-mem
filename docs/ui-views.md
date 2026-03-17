@@ -4,13 +4,13 @@ Engineer-facing route map for the Vaadin UI.
 
 ## `/` SimulationView
 
-Primary role: run scenario turns and inspect memory unit behavior in-flight.
+Primary role: run scenario turns and inspect ARC Working Memory Unit (AWMU) behavior in-flight.
 
 ### Main panels
 
 - conversation transcript
 - context inspector
-- memory unit timeline
+- AWMU timeline
 - drift summary
 - knowledge browser
 - manipulation panel (only while paused)
@@ -43,11 +43,11 @@ Technical details:
 
 ## `/chat` ChatView
 
-Primary role: interactive DM chat with live memory unit/proposition controls.
+Primary role: interactive DM chat with live AWMU/proposition controls.
 
 ### Sidebar function groups
 
-- Memory Units: activation score/authority/pin/revision controls
+- AWMUs: activation score/authority/pin/revision controls
 - Propositions: promote candidates
 - Context: rendered injection preview
 - Session info: context and turn counters
@@ -100,9 +100,9 @@ URL modes:
 
 Tabs:
 - conversation
-- memory units
+- AWMUs
 - drift
-- memory unit diff (single-run mode)
+- AWMU diff (single-run mode)
 - comparison (cross-run mode)
 
 Technical details:

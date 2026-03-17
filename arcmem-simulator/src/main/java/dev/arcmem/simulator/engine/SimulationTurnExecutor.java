@@ -126,6 +126,22 @@ public class SimulationTurnExecutor {
             int tokenBudget,
             List<SimulationScenario.GroundTruth> groundTruth,
             List<String> conversationHistory) {
+        return executeTurn(contextId, turnNumber, playerMessage, turnType, attackStrategies,
+                           setting, injectionEnabled, tokenBudget, groundTruth, conversationHistory, true);
+    }
+
+    private SimulationTurn executeTurn(
+            String contextId,
+            int turnNumber,
+            String playerMessage,
+            TurnType turnType,
+            List<AttackStrategy> attackStrategies,
+            String setting,
+            boolean injectionEnabled,
+            int tokenBudget,
+            List<SimulationScenario.GroundTruth> groundTruth,
+            List<String> conversationHistory,
+            boolean complianceEnabled) {
 
         var currentSpan = Span.current();
         currentSpan.setAttribute("sim.turn", turnNumber);
@@ -169,7 +185,7 @@ public class SimulationTurnExecutor {
 
         var dmResponse = callLlm(systemPrompt, userPrompt);
 
-        var complianceSnapshot = enforceCompliance(dmResponse, units, injectionEnabled);
+        var complianceSnapshot = enforceCompliance(dmResponse, units, injectionEnabled, complianceEnabled);
 
         // token estimates: ~4 chars per token
         var unitTokens = injectedContextBlock.length() / 4;
@@ -254,6 +270,8 @@ public class SimulationTurnExecutor {
                 dormancyConfig,
                 dormancyState,
                 true,
+                true,
+                true,
                 true);
     }
 
@@ -275,21 +293,25 @@ public class SimulationTurnExecutor {
             SimulationScenario.DormancyConfig dormancyConfig,
             Map<String, Integer> dormancyState,
             boolean rankMutationEnabled,
-            boolean authorityPromotionEnabled) {
+            boolean authorityPromotionEnabled,
+            boolean complianceEnabled,
+            boolean lifecycleEnabled) {
         if (simulatorProperties.sim() != null && simulatorProperties.sim().parallelPostResponse()) {
             return executeTurnFullParallel(
                     contextId, turnNumber, playerMessage, turnType, attackStrategies,
                     setting, injectionEnabled, tokenBudget, groundTruth, conversationHistory,
                     previousUnitState, compactionProvider, compactionConfig,
                     extractionEnabled, dormancyConfig, dormancyState,
-                    rankMutationEnabled, authorityPromotionEnabled);
+                    rankMutationEnabled, authorityPromotionEnabled,
+                    complianceEnabled, lifecycleEnabled);
         }
         return executeTurnFullSequential(
                 contextId, turnNumber, playerMessage, turnType, attackStrategies,
                 setting, injectionEnabled, tokenBudget, groundTruth, conversationHistory,
                 previousUnitState, compactionProvider, compactionConfig,
                 extractionEnabled, dormancyConfig, dormancyState,
-                rankMutationEnabled, authorityPromotionEnabled);
+                rankMutationEnabled, authorityPromotionEnabled,
+                complianceEnabled, lifecycleEnabled);
     }
 
     /**
@@ -315,7 +337,9 @@ public class SimulationTurnExecutor {
             SimulationScenario.DormancyConfig dormancyConfig,
             Map<String, Integer> dormancyState,
             boolean rankMutationEnabled,
-            boolean authorityPromotionEnabled) {
+            boolean authorityPromotionEnabled,
+            boolean complianceEnabled,
+            boolean lifecycleEnabled) {
 
         var mutableDormancyState = dormancyState != null ? dormancyState : new HashMap<String, Integer>();
 
@@ -362,7 +386,7 @@ public class SimulationTurnExecutor {
         // sequential — must complete before forking
         var dmResponse = callLlm(systemPrompt, userPrompt);
 
-        var complianceSnapshot = enforceCompliance(dmResponse, units, injectionEnabled);
+        var complianceSnapshot = enforceCompliance(dmResponse, units, injectionEnabled, complianceEnabled);
 
         // token estimates: ~4 chars per token
         var unitTokens = injectedContextBlock.length() / 4;
@@ -451,7 +475,8 @@ public class SimulationTurnExecutor {
                 contextId, turnNumber, playerMessage, turn, extractionResult,
                 injectionEnabled, previousUnitState, compactionProvider,
                 compactionConfig, dormancyConfig, mutableDormancyState,
-                rankMutationEnabled, authorityPromotionEnabled);
+                rankMutationEnabled, authorityPromotionEnabled,
+                lifecycleEnabled);
         setTurnObservabilityAttributes(currentSpan, contextId, turnResult);
         return turnResult;
     }
@@ -479,13 +504,16 @@ public class SimulationTurnExecutor {
             SimulationScenario.DormancyConfig dormancyConfig,
             Map<String, Integer> dormancyState,
             boolean rankMutationEnabled,
-            boolean authorityPromotionEnabled) {
+            boolean authorityPromotionEnabled,
+            boolean complianceEnabled,
+            boolean lifecycleEnabled) {
 
         var mutableDormancyState = dormancyState != null ? dormancyState : new HashMap<String, Integer>();
 
         var turn = executeTurn(
                 contextId, turnNumber, playerMessage, turnType, attackStrategies,
-                setting, injectionEnabled, tokenBudget, groundTruth, conversationHistory);
+                setting, injectionEnabled, tokenBudget, groundTruth, conversationHistory,
+                complianceEnabled);
 
         var extractionResult = ExtractionResult.empty();
         if (extractionEnabled) {
@@ -503,7 +531,8 @@ public class SimulationTurnExecutor {
                 contextId, turnNumber, playerMessage, turn, extractionResult,
                 injectionEnabled, previousUnitState, compactionProvider,
                 compactionConfig, dormancyConfig, mutableDormancyState,
-                rankMutationEnabled, authorityPromotionEnabled);
+                rankMutationEnabled, authorityPromotionEnabled,
+                lifecycleEnabled);
         setTurnObservabilityAttributes(Span.current(), contextId, turnResult);
         return turnResult;
     }
@@ -526,10 +555,13 @@ public class SimulationTurnExecutor {
             SimulationScenario.DormancyConfig dormancyConfig,
             Map<String, Integer> mutableDormancyState,
             boolean rankMutationEnabled,
-            boolean authorityPromotionEnabled) {
+            boolean authorityPromotionEnabled,
+            boolean lifecycleEnabled) {
 
+        // Ablation guard: lifecycleEnabled=false skips reinforcement, maintenance, and dormancy
+        // for the NO_LIFECYCLE condition
         var reinforcedUnitIds = new HashSet<String>();
-        if (injectionEnabled && originalTraceHasUnits(turn.contextTrace())) {
+        if (lifecycleEnabled && injectionEnabled && originalTraceHasUnits(turn.contextTrace())) {
             for (var injectedUnit : turn.contextTrace().injectedUnits()) {
                 arcMemEngine.reinforce(
                         injectedUnit.id(),
@@ -539,10 +571,13 @@ public class SimulationTurnExecutor {
             }
         }
 
-        var sweepSnapshot = runMaintenanceIfNeeded(contextId, turnNumber, turn.contextTrace().injectedUnits());
+        var sweepSnapshot = lifecycleEnabled
+                ? runMaintenanceIfNeeded(contextId, turnNumber, turn.contextTrace().injectedUnits())
+                : SweepSnapshot.none();
 
         var currentUnits = arcMemEngine.inject(contextId);
-        var dormancyLifecycleEnabled = rankMutationEnabled
+        var dormancyLifecycleEnabled = lifecycleEnabled
+                                       && rankMutationEnabled
                                        && dormancyConfig != null
                                        && dormancyConfig.decayRate() > 0
                                        && dormancyConfig.dormancyTurns() > 0;
@@ -617,8 +652,9 @@ public class SimulationTurnExecutor {
         }
     }
 
-    private ComplianceSnapshot enforceCompliance(String dmResponse, List<MemoryUnit> units, boolean injectionEnabled) {
-        if (!injectionEnabled || turnServices.complianceEnforcer() == null) {
+    // Ablation guard: complianceEnabled=false bypasses enforcement for the NO_COMPLIANCE condition
+    private ComplianceSnapshot enforceCompliance(String dmResponse, List<MemoryUnit> units, boolean injectionEnabled, boolean complianceEnabled) {
+        if (!complianceEnabled || !injectionEnabled || turnServices.complianceEnforcer() == null) {
             return ComplianceSnapshot.none();
         }
         try {

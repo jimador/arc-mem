@@ -58,7 +58,7 @@ Graphiti/Zep-like systems are complementary, not competitors. ARC-Mem operates a
 
 Active research backlog for ARC-Mem.
 
-### A. Collaborative memory unit mutation (primary track)
+### A. Collaborative ARC Working Memory Unit (AWMU) mutation (primary track)
 
 Goal: support legitimate revisions without weakening contradiction resistance.
 
@@ -82,7 +82,7 @@ AGM belief revision is the primary theoretical foundation.
 
 | AGM concept | ARC-Mem equivalent |
 |---|---|
-| belief set | active memory unit pool |
+| belief set | active AWMU pool |
 | contraction | archive/remove |
 | revision | supersede old with new |
 | entrenchment | authority tiers |
@@ -91,7 +91,7 @@ AGM belief revision is the primary theoretical foundation.
 Potential implementation shape for cascade:
 
 ```text
-revise(memoryUnit A)
+revise(AWMU A)
   -> find dependents D(A)
   -> classify impact radius
   -> hard invalidate low-authority dependents
@@ -112,7 +112,7 @@ To strengthen claims:
 
 - entity-centric traversal
 - subgraph extraction
-- relevance scoring that combines retrieval + memory unit policy
+- relevance scoring that combines retrieval + AWMU policy
 
 #### Track D2: multi-agent governance
 
@@ -132,7 +132,7 @@ Validate beyond tabletop narrative:
 
 - repetition/reinforcement abuse
 - authority laundering through revision chains
-- budget starvation and memory unit flooding
+- budget starvation and AWMU flooding
 - extraction poisoning attacks
 
 ```mermaid
@@ -163,6 +163,15 @@ gantt
     Retrieval quality hardening           :a3, after a2, 45d
     Cross-domain validation               :a4, after a3, 60d
 ```
+## Integrated into whitepaper outline (2026-03-16):
+- LLM-ACTR / Cognitive LLMs (Wu et al., 2024–2025; arXiv:2408.09176, AAAI Symposium, Neurosymbolic AI Journal)
+A neuro-symbolic framework that transfers knowledge from ACT-R cognitive models to LLMs via latent neural representations (extracted from ACT-R's decision processes), injected into trainable adapter layers for fine-tuning. Applied to manufacturing decision-making (e.g., Design for Manufacturing tasks), it improves grounded, human-aligned reasoning over pure LLM baselines (like chain-of-thought). Core idea: ACT-R provides symbolic grounding to make LLMs more deliberate and less noisy.
+- Human-Like Remembering and Forgetting in LLM Agents: An ACT-R-Inspired Memory Architecture (2026, ACM)
+Integrates ACT-R directly into LLM agents to implement human-like memory dynamics (declarative retrieval, activation-based forgetting, interference). Focuses on persistent agents where LLMs need better episodic/semantic handling without endless context—echoes ACT-R's spreading activation and base-level decay for salience management.
+- Integrating Language Model Embeddings into the ACT-R Cognitive Modeling Framework (Meghdadi et al., 2026, Frontiers in Language Sciences)
+Adapts classic ACT-R by replacing hand-coded associations with LLM-derived embeddings (e.g., Word2Vec/BERT cosine similarities) for spreading activation in tasks like lexical decision/associative priming. Improves scalability while keeping ACT-R's interpretability—more "ACT-R enhanced by LLMs" than the reverse, but relevant for hybrid cognition.
+- Prompt-Enhanced ACT-R and Soar Model Development (Wu et al., 2023–2025, AAAI Fall Symposium)
+Uses LLMs (ChatGPT-4, Google Bard) as interactive interfaces to build and refine ACT-R (and Soar) models via prompting. Demonstrates human-in-the-loop where LLMs generate production rules or simulate cognitive tasks—bridges traditional cognitive architectures to LLM-assisted development.
 
 ## References
 

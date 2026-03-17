@@ -75,7 +75,7 @@ public class BenchmarkRunner {
      * Execute a benchmark: run the scenario {@code runCount} times in parallel,
      * aggregate results, and persist the report.
      * <p>
-     * Delegates to the condition-aware overload with {@link AblationCondition#FULL_UNITS}
+     * Delegates to the condition-aware overload with {@link AblationCondition#FULL_AWMU}
      * (backward compatible).
      *
      * @param scenario               the scenario to benchmark
@@ -99,7 +99,7 @@ public class BenchmarkRunner {
             Consumer<BenchmarkProgress> onProgress) {
 
         return runBenchmark(scenario, maxTurns, runCount, injectionStateSupplier,
-                            tokenBudgetSupplier, onProgress, AblationCondition.FULL_UNITS);
+                            tokenBudgetSupplier, onProgress, AblationCondition.FULL_AWMU);
     }
 
     /**
@@ -163,6 +163,9 @@ public class BenchmarkRunner {
         currentSpan.setAttribute("benchmark.condition", condition.name());
         currentSpan.setAttribute("benchmark.rank_mutation_enabled", condition.rankMutationEnabled());
         currentSpan.setAttribute("benchmark.authority_promotion_enabled", condition.authorityPromotionEnabled());
+        currentSpan.setAttribute("benchmark.trust_enabled", condition.trustEnabled());
+        currentSpan.setAttribute("benchmark.compliance_enabled", condition.complianceEnabled());
+        currentSpan.setAttribute("benchmark.lifecycle_enabled", condition.lifecycleEnabled());
 
         var parallelism = simulatorProperties.sim().benchmarkParallelism();
         logger.info("Starting benchmark: scenario='{}', runCount={}, condition='{}', parallelism={}",
@@ -193,7 +196,10 @@ public class BenchmarkRunner {
                                     runIndex, runCount, scenario.id(), condition.name());
                         var runtimeConfig = new SimulationRuntimeConfig(
                                 condition.rankMutationEnabled(),
-                                condition.authorityPromotionEnabled());
+                                condition.authorityPromotionEnabled(),
+                                condition.trustEnabled(),
+                                condition.complianceEnabled(),
+                                condition.lifecycleEnabled());
                         simulationService.runSimulation(conditionedScenario, maxTurns,
                                                         effectiveInjectionSupplier, tokenBudgetSupplier,
                                                         progress -> {

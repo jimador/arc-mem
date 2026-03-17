@@ -6,7 +6,7 @@ persona:
   name: Nira Quickquill
   description: Hyper-verbal courier who mixes critical updates with overwhelming irrelevant detail.
   playStyle: detail-saturation
-model: gpt-4.1-mini
+model: gpt-4.1-nano
 temperature: 0.7
 maxTurns: 16
 warmUpTurns: 2

@@ -32,7 +32,8 @@ import static org.assertj.core.api.Assertions.within;
 @DisplayName("EffectSizeCalculator")
 class EffectSizeCalculatorTest {
 
-    private final EffectSizeCalculator calculator = new EffectSizeCalculator();
+    private final StatisticalTestRunner statisticalTestRunner = new StatisticalTestRunner();
+    private final EffectSizeCalculator calculator = new EffectSizeCalculator(statisticalTestRunner);
 
     private static BenchmarkReport cellReport(String scenarioId, double survivalMean, double survivalStddev, int n) {
         var stats = new BenchmarkStatistics(survivalMean, survivalStddev,
@@ -52,14 +53,14 @@ class EffectSizeCalculatorTest {
         @DisplayName("two conditions with different means produce positive Cohen's d")
         void differentMeansProducePositiveCohensD() {
             var cellReports = Map.of(
-                    "FULL_UNITS:scenario-1", cellReport("scenario-1", 0.90, 0.05, 30),
-                    "NO_UNITS:scenario-1", cellReport("scenario-1", 0.60, 0.05, 30)
+                    "FULL_AWMU:scenario-1", cellReport("scenario-1", 0.90, 0.05, 30),
+                    "NO_AWMU:scenario-1", cellReport("scenario-1", 0.60, 0.05, 30)
             );
-            var conditions = List.of(AblationCondition.FULL_UNITS, AblationCondition.NO_UNITS);
+            var conditions = List.of(AblationCondition.FULL_AWMU, AblationCondition.NO_AWMU);
 
             var matrix = calculator.computeEffectSizes(cellReports, conditions);
 
-            var entry = matrix.get("FULL_UNITS:NO_UNITS").get("factSurvivalRate");
+            var entry = matrix.get("FULL_AWMU:NO_AWMU").get("factSurvivalRate");
             assertThat(entry.cohensD()).isGreaterThan(0.0);
             assertThat(entry.interpretation()).isEqualTo("large");
         }
@@ -98,18 +99,18 @@ class EffectSizeCalculatorTest {
         @DisplayName("CS1: effect size is symmetric in magnitude |d(A,B)| == |d(B,A)|")
         void effectSizeSymmetricInMagnitude() {
             var cellReports = Map.of(
-                    "FULL_UNITS:scenario-1", cellReport("scenario-1", 0.85, 0.05, 20),
-                    "NO_UNITS:scenario-1", cellReport("scenario-1", 0.70, 0.08, 20)
+                    "FULL_AWMU:scenario-1", cellReport("scenario-1", 0.85, 0.05, 20),
+                    "NO_AWMU:scenario-1", cellReport("scenario-1", 0.70, 0.08, 20)
             );
 
             var matrixAB = calculator.computeEffectSizes(cellReports,
-                    List.of(AblationCondition.FULL_UNITS, AblationCondition.NO_UNITS));
-            var dAB = matrixAB.get("FULL_UNITS:NO_UNITS").get("factSurvivalRate").cohensD();
+                    List.of(AblationCondition.FULL_AWMU, AblationCondition.NO_AWMU));
+            var dAB = matrixAB.get("FULL_AWMU:NO_AWMU").get("factSurvivalRate").cohensD();
 
-            // Reverse order — alphabetical key should still be "FULL_UNITS:NO_UNITS"
+            // Reverse order — alphabetical key should still be "FULL_AWMU:NO_AWMU"
             var matrixBA = calculator.computeEffectSizes(cellReports,
-                    List.of(AblationCondition.NO_UNITS, AblationCondition.FULL_UNITS));
-            var dBA = matrixBA.get("FULL_UNITS:NO_UNITS").get("factSurvivalRate").cohensD();
+                    List.of(AblationCondition.NO_AWMU, AblationCondition.FULL_AWMU));
+            var dBA = matrixBA.get("FULL_AWMU:NO_AWMU").get("factSurvivalRate").cohensD();
 
             assertThat(Math.abs(dAB)).isCloseTo(Math.abs(dBA), within(1e-10));
         }
@@ -118,14 +119,14 @@ class EffectSizeCalculatorTest {
         @DisplayName("zero variance in both conditions returns Cohen's d = 0.0")
         void zeroVarianceReturnsDZero() {
             var cellReports = Map.of(
-                    "FULL_UNITS:scenario-1", cellReport("scenario-1", 0.80, 0.0, 10),
-                    "NO_UNITS:scenario-1", cellReport("scenario-1", 0.80, 0.0, 10)
+                    "FULL_AWMU:scenario-1", cellReport("scenario-1", 0.80, 0.0, 10),
+                    "NO_AWMU:scenario-1", cellReport("scenario-1", 0.80, 0.0, 10)
             );
-            var conditions = List.of(AblationCondition.FULL_UNITS, AblationCondition.NO_UNITS);
+            var conditions = List.of(AblationCondition.FULL_AWMU, AblationCondition.NO_AWMU);
 
             var matrix = calculator.computeEffectSizes(cellReports, conditions);
 
-            var entry = matrix.get("FULL_UNITS:NO_UNITS").get("factSurvivalRate");
+            var entry = matrix.get("FULL_AWMU:NO_AWMU").get("factSurvivalRate");
             assertThat(entry.cohensD()).isEqualTo(0.0);
         }
 
@@ -133,14 +134,14 @@ class EffectSizeCalculatorTest {
         @DisplayName("CS2: matrix contains N*(N-1)/2 entries for N conditions")
         void matrixSizeMatchesPairCount() {
             var cellReports = Map.of(
-                    "FULL_UNITS:scenario-1", cellReport("scenario-1", 0.90, 0.05, 10),
-                    "NO_UNITS:scenario-1", cellReport("scenario-1", 0.60, 0.05, 10),
+                    "FULL_AWMU:scenario-1", cellReport("scenario-1", 0.90, 0.05, 10),
+                    "NO_AWMU:scenario-1", cellReport("scenario-1", 0.60, 0.05, 10),
                     "FLAT_AUTHORITY:scenario-1", cellReport("scenario-1", 0.75, 0.05, 10),
                     "NO_RANK_DIFFERENTIATION:scenario-1", cellReport("scenario-1", 0.80, 0.05, 10)
             );
             var conditions = List.of(
-                    AblationCondition.FULL_UNITS,
-                    AblationCondition.NO_UNITS,
+                    AblationCondition.FULL_AWMU,
+                    AblationCondition.NO_AWMU,
                     AblationCondition.FLAT_AUTHORITY,
                     AblationCondition.NO_RANK_DIFFERENTIATION
             );
@@ -157,14 +158,14 @@ class EffectSizeCalculatorTest {
             // CV = stddev/mean = 0.6/0.8 = 0.75 > 0.5 → high variance
             var highVarianceReport = cellReport("scenario-1", 0.80, 0.60, 10);
             var cellReports = Map.of(
-                    "FULL_UNITS:scenario-1", highVarianceReport,
-                    "NO_UNITS:scenario-1", cellReport("scenario-1", 0.60, 0.05, 10)
+                    "FULL_AWMU:scenario-1", highVarianceReport,
+                    "NO_AWMU:scenario-1", cellReport("scenario-1", 0.60, 0.05, 10)
             );
-            var conditions = List.of(AblationCondition.FULL_UNITS, AblationCondition.NO_UNITS);
+            var conditions = List.of(AblationCondition.FULL_AWMU, AblationCondition.NO_AWMU);
 
             var matrix = calculator.computeEffectSizes(cellReports, conditions);
 
-            var entry = matrix.get("FULL_UNITS:NO_UNITS").get("factSurvivalRate");
+            var entry = matrix.get("FULL_AWMU:NO_AWMU").get("factSurvivalRate");
             assertThat(entry.lowConfidence()).isTrue();
         }
     }
@@ -182,12 +183,12 @@ class EffectSizeCalculatorTest {
             // lower ≈ 0.85 - 0.032667 ≈ 0.81733
             // upper ≈ 0.85 + 0.032667 ≈ 0.88267
             var cellReports = Map.of(
-                    "FULL_UNITS:scenario-1", cellReport("scenario-1", 0.85, 0.05, 10)
+                    "FULL_AWMU:scenario-1", cellReport("scenario-1", 0.85, 0.05, 10)
             );
 
             var intervals = calculator.computeConfidenceIntervals(cellReports);
 
-            var ci = intervals.get("FULL_UNITS:scenario-1").get("factSurvivalRate");
+            var ci = intervals.get("FULL_AWMU:scenario-1").get("factSurvivalRate");
             var sampleSd = 0.05 * Math.sqrt(10.0 / 9.0);
             var expectedMargin = 1.96 * sampleSd / Math.sqrt(10);
             assertThat(ci.lower()).isCloseTo(0.85 - expectedMargin, within(1e-6));
@@ -212,15 +213,15 @@ class EffectSizeCalculatorTest {
                     List.of(), null, null);
 
             var cellReports = Map.of(
-                    "FULL_UNITS:scenario-1", fullReport,
-                    "NO_UNITS:scenario-1", noReport
+                    "FULL_AWMU:scenario-1", fullReport,
+                    "NO_AWMU:scenario-1", noReport
             );
 
             var deltas = calculator.computeStrategyDeltas(cellReports);
 
             assertThat(deltas).containsKey("SUBTLE_REFRAME");
-            assertThat(deltas.get("SUBTLE_REFRAME").get("FULL_UNITS")).isCloseTo(0.7, within(1e-6));
-            assertThat(deltas.get("SUBTLE_REFRAME").get("NO_UNITS")).isCloseTo(0.3, within(1e-6));
+            assertThat(deltas.get("SUBTLE_REFRAME").get("FULL_AWMU")).isCloseTo(0.7, within(1e-6));
+            assertThat(deltas.get("SUBTLE_REFRAME").get("NO_AWMU")).isCloseTo(0.3, within(1e-6));
         }
     }
 

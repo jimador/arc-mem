@@ -1,23 +1,4 @@
 package dev.arcmem.simulator.ui.panels;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
-
-import dev.arcmem.simulator.engine.*;
-import dev.arcmem.simulator.history.*;
-import dev.arcmem.simulator.scenario.*;
-import dev.arcmem.simulator.ui.controllers.*;
-import dev.arcmem.simulator.ui.views.*;
 
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
@@ -33,6 +14,7 @@ import com.vaadin.flow.server.StreamResource;
 import dev.arcmem.simulator.benchmark.BenchmarkReport;
 import dev.arcmem.simulator.benchmark.BenchmarkStatistics;
 import dev.arcmem.simulator.benchmark.ExperimentReport;
+import dev.arcmem.simulator.report.ExperimentExporter;
 import dev.arcmem.simulator.report.MarkdownReportRenderer;
 import dev.arcmem.simulator.report.ResilienceReportBuilder;
 import org.slf4j.Logger;
@@ -45,6 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 import static dev.arcmem.simulator.ui.panels.BenchmarkRenderUtils.HIGHER_IS_BETTER;
 import static dev.arcmem.simulator.ui.panels.BenchmarkRenderUtils.METRIC_LABELS;
@@ -66,6 +49,7 @@ public class ConditionComparisonPanel extends VerticalLayout {
 
     private FactDrillDownPanel drillDownPanel;
     private ResilienceReportBuilder reportBuilder;
+    private ExperimentExporter exporter;
 
     public ConditionComparisonPanel() {
         setPadding(true);
@@ -74,26 +58,18 @@ public class ConditionComparisonPanel extends VerticalLayout {
         addClassName("ar-condition-comparison-panel");
     }
 
-    /**
-     * Set the drill-down renderer used to populate per-fact survival tables
-     * inside each metric's {@link Details} content area.
-     */
     public void setDrillDownPanel(FactDrillDownPanel drillDownPanel) {
         this.drillDownPanel = drillDownPanel;
     }
 
-    /**
-     * Set the report builder used to generate resilience evaluation reports.
-     */
     public void setReportBuilder(ResilienceReportBuilder reportBuilder) {
         this.reportBuilder = reportBuilder;
     }
 
-    /**
-     * Render the full experiment report. Clears all existing children before rendering.
-     *
-     * @param report the completed (or cancelled) experiment report to display
-     */
+    public void setExporter(ExperimentExporter exporter) {
+        this.exporter = exporter;
+    }
+
     public void showReport(ExperimentReport report) {
         removeAll();
 
@@ -104,7 +80,6 @@ public class ConditionComparisonPanel extends VerticalLayout {
             add(banner);
         }
 
-        // Group cell reports by scenarioId preserving encounter order
         var byScenario = groupByScenario(report);
 
         for (var scenarioEntry : byScenario.entrySet()) {
@@ -115,36 +90,30 @@ public class ConditionComparisonPanel extends VerticalLayout {
             scenarioHeader.addClassName("ar-scenario-header");
             add(scenarioHeader);
 
-            // Per-metric Details rows with inline drill-down
             for (var details : buildMetricRows(report, scenarioId, cellsByCondition)) {
                 add(details);
             }
 
-            // Heatmap
             add(buildHeatmap(report.conditions(), cellsByCondition));
         }
 
-        // Strategy effectiveness table
         if (!report.strategyDeltas().isEmpty()) {
             add(buildStrategyTable(report));
         }
 
-        // Generate Report button
         if (reportBuilder != null) {
             add(buildGenerateReportButton(report));
         }
+        if (exporter != null) {
+            add(buildExportButtons(report));
+        }
     }
 
-    /**
-     * Build a "Generate Report" button that triggers async report generation
-     * and Markdown download via {@link StreamResource}.
-     */
     private HorizontalLayout buildGenerateReportButton(ExperimentReport report) {
         var generateBtn = new Button("Generate Report");
         generateBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         generateBtn.addClassName("ar-generate-report-btn");
 
-        // Vaadin Anchor cannot be navigated programmatically without this hidden element trick
         var downloadLink = new Anchor();
         downloadLink.getElement().setAttribute("download", true);
         downloadLink.getStyle().set("display", "none");
@@ -186,11 +155,40 @@ public class ConditionComparisonPanel extends VerticalLayout {
         return row;
     }
 
-    /**
-     * Build one {@link Details} component per metric. Each Details summary shows
-     * the horizontal card row (condition cards + delta badges) for a single metric.
-     * The content area is lazily populated with a per-fact drill-down table on expand.
-     */
+    private HorizontalLayout buildExportButtons(ExperimentReport report) {
+        var layout = new HorizontalLayout();
+        layout.setSpacing(true);
+        layout.addClassName("ar-export-buttons");
+        layout.add(buildDownloadButton("Export JSON", report, "application/json", ".json",
+                exporter::exportJson));
+        layout.add(buildDownloadButton("Export CSV", report, "text/csv", ".csv",
+                exporter::exportCsv));
+        return layout;
+    }
+
+    private Div buildDownloadButton(
+            String label, ExperimentReport report, String contentType, String extension,
+            Function<ExperimentReport, String> exportFn) {
+        var btn = new Button(label);
+        btn.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        var downloadLink = new Anchor();
+        downloadLink.getElement().setAttribute("download", true);
+        downloadLink.getStyle().set("display", "none");
+
+        btn.addClickListener(event -> {
+            var content = exportFn.apply(report);
+            var fileName = "%s%s".formatted(
+                    report.experimentName().replaceAll("[^a-zA-Z0-9_-]", "_"), extension);
+            var resource = new StreamResource(fileName,
+                    () -> new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)));
+            resource.setContentType(contentType);
+            downloadLink.setHref(resource);
+            downloadLink.getElement().callJsFunction("click");
+        });
+
+        return new Div(btn, downloadLink);
+    }
+
     private List<Details> buildMetricRows(
             ExperimentReport report,
             String scenarioId,
@@ -260,10 +258,6 @@ public class ConditionComparisonPanel extends VerticalLayout {
         return rows;
     }
 
-    /**
-     * Build the delta badge and effect-size annotation for a single metric
-     * between two adjacent conditions.
-     */
     private VerticalLayout buildSingleMetricDelta(
             ExperimentReport report,
             String metricKey,
@@ -312,9 +306,6 @@ public class ConditionComparisonPanel extends VerticalLayout {
         return deltaColumn;
     }
 
-    /**
-     * Build a CSS grid heatmap: rows = conditions, columns = metrics.
-     */
     private Div buildHeatmap(List<String> conditions, Map<String, BenchmarkReport> cellsByCondition) {
         var metricKeys = new ArrayList<>(METRIC_LABELS.keySet());
         var numMetrics = metricKeys.size();
@@ -368,10 +359,6 @@ public class ConditionComparisonPanel extends VerticalLayout {
         return heatmap;
     }
 
-    /**
-     * Build the strategy effectiveness table showing each strategy's mean effectiveness
-     * per condition.
-     */
     private VerticalLayout buildStrategyTable(ExperimentReport report) {
         var section = new VerticalLayout();
         section.setPadding(false);
@@ -429,10 +416,6 @@ public class ConditionComparisonPanel extends VerticalLayout {
         return section;
     }
 
-    /**
-     * Group cell reports by scenario ID, preserving encounter order via LinkedHashMap.
-     * The map value is keyed by condition name.
-     */
     private Map<String, Map<String, BenchmarkReport>> groupByScenario(ExperimentReport report) {
         Map<String, Map<String, BenchmarkReport>> result = new LinkedHashMap<>();
 

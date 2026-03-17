@@ -9,40 +9,40 @@ The system SHALL support both promotion (upward) and demotion (downward) authori
 | Invariant | Rule |
 |-----------|------|
 | **A3a** | CANON is never assigned by automatic promotion. Only explicit action (seed units, manual tool call, or approved canonization request) can set CANON. |
-| **A3b** | CANON memory units are immune to automatic demotion (decay, trust re-evaluation). Only explicit action (conflict resolution DEMOTE_EXISTING, manual tool call, or approved decanonization request) can demote CANON. |
+| **A3b** | CANON ARC Working AWMUs (AWMUs) are immune to automatic demotion (decay, trust re-evaluation). Only explicit action (conflict resolution DEMOTE_EXISTING, manual tool call, or approved decanonization request) can demote CANON. |
 | **A3c** | Automatic demotion (via decay or trust re-evaluation) applies to RELIABLE → UNRELIABLE → PROVISIONAL. |
-| **A3d** | Pinned memory units are immune to automatic demotion. Explicit demotion still works. |
+| **A3d** | Pinned AWMUs are immune to automatic demotion. Explicit demotion still works. |
 | **A3e** | All authority transitions (both directions) publish `AuthorityChanged` lifecycle events. |
 
-#### Scenario: Promote memory unit through reinforcement
+#### Scenario: Promote AWMU through reinforcement
 
-- **GIVEN** a memory unit at PROVISIONAL authority with 2 reinforcements
-- **WHEN** the memory unit is reinforced a 3rd time and the reinforcement policy threshold is met
-- **THEN** the memory unit's authority is upgraded to UNRELIABLE and an `AuthorityChanged` event is published with direction PROMOTED
+- **GIVEN** a AWMU at PROVISIONAL authority with 2 reinforcements
+- **WHEN** the AWMU is reinforced a 3rd time and the reinforcement policy threshold is met
+- **THEN** the AWMU's authority is upgraded to UNRELIABLE and an `AuthorityChanged` event is published with direction PROMOTED
 
-#### Scenario: Demote memory unit via conflict resolution
+#### Scenario: Demote AWMU via conflict resolution
 
-- **GIVEN** a memory unit at RELIABLE authority
+- **GIVEN** a AWMU at RELIABLE authority
 - **WHEN** conflict resolution returns DEMOTE_EXISTING for a contradicting incoming proposition
-- **THEN** the memory unit's authority is demoted to UNRELIABLE, an `AuthorityChanged` event is published with direction DEMOTED and reason CONFLICT_EVIDENCE
+- **THEN** the AWMU's authority is demoted to UNRELIABLE, an `AuthorityChanged` event is published with direction DEMOTED and reason CONFLICT_EVIDENCE
 
 #### Scenario: CANON immune to automatic demotion
 
-- **GIVEN** a memory unit at CANON authority whose rank has decayed below 400
-- **WHEN** the decay policy evaluates the memory unit for authority demotion
-- **THEN** the memory unit remains at CANON authority (invariant A3b)
+- **GIVEN** a AWMU at CANON authority whose rank has decayed below 400
+- **WHEN** the decay policy evaluates the AWMU for authority demotion
+- **THEN** the AWMU remains at CANON authority (invariant A3b)
 
-#### Scenario: Pinned memory unit immune to automatic demotion
+#### Scenario: Pinned AWMU immune to automatic demotion
 
-- **GIVEN** a pinned memory unit at RELIABLE authority whose trust score has dropped below the RELIABLE threshold
+- **GIVEN** a pinned AWMU at RELIABLE authority whose trust score has dropped below the RELIABLE threshold
 - **WHEN** trust re-evaluation runs
-- **THEN** the memory unit remains at RELIABLE authority (invariant A3d)
+- **THEN** the AWMU remains at RELIABLE authority (invariant A3d)
 
 #### Scenario: Demote PROVISIONAL archives instead
 
-- **GIVEN** a memory unit at PROVISIONAL authority
+- **GIVEN** a AWMU at PROVISIONAL authority
 - **WHEN** a demotion is requested (conflict resolution or explicit)
-- **THEN** the memory unit is archived instead of demoted, and an `Archived` lifecycle event is published with reason CONFLICT_EVIDENCE or MANUAL
+- **THEN** the AWMU is archived instead of demoted, and an `Archived` lifecycle event is published with reason CONFLICT_EVIDENCE or MANUAL
 
 ### Requirement: Authority enum with previousLevel()
 
@@ -71,27 +71,27 @@ The `Authority` enum SHALL provide a `previousLevel()` method symmetric with the
 **Modifies**: `ArcMemEngine` public API.
 
 `ArcMemEngine` SHALL provide a `demote(String unitId, DemotionReason reason)` method that:
-1. Looks up the memory unit's current authority
+1. Looks up the AWMU's current authority
 2. Computes `previousLevel()` of the current authority
-3. If already PROVISIONAL, archives the memory unit instead
+3. If already PROVISIONAL, archives the AWMU instead
 4. Otherwise, calls `repository.setAuthority(unitId, newAuthority)`
 5. Publishes an `AuthorityChanged` event with direction DEMOTED and the given reason
 
-#### Scenario: Demote RELIABLE memory unit
+#### Scenario: Demote RELIABLE AWMU
 
-- **GIVEN** a memory unit "A1" at RELIABLE authority
+- **GIVEN** a AWMU "A1" at RELIABLE authority
 - **WHEN** `demote("A1", DemotionReason.CONFLICT_EVIDENCE)` is called
-- **THEN** the memory unit's authority becomes UNRELIABLE and an `AuthorityChanged` event is published with direction DEMOTED
+- **THEN** the AWMU's authority becomes UNRELIABLE and an `AuthorityChanged` event is published with direction DEMOTED
 
-#### Scenario: Demote PROVISIONAL memory unit falls through to archive
+#### Scenario: Demote PROVISIONAL AWMU falls through to archive
 
-- **GIVEN** a memory unit "A1" at PROVISIONAL authority
+- **GIVEN** a AWMU "A1" at PROVISIONAL authority
 - **WHEN** `demote("A1", DemotionReason.RANK_DECAY)` is called
-- **THEN** the memory unit is archived (not demoted) and an `Archived` event is published
+- **THEN** the AWMU is archived (not demoted) and an `Archived` event is published
 
-#### Scenario: Demote non-existent memory unit
+#### Scenario: Demote non-existent AWMU
 
-- **GIVEN** no memory unit exists with ID "missing"
+- **GIVEN** no AWMU exists with ID "missing"
 - **WHEN** `demote("missing", DemotionReason.MANUAL)` is called
 - **THEN** a WARN-level log is emitted and no exception is thrown
 
@@ -111,15 +111,15 @@ The system SHALL define a `DemotionReason` enum with the following values:
 
 #### Scenario: Set authority to lower level
 
-- **GIVEN** a memory unit "A1" at RELIABLE authority
+- **GIVEN** a AWMU "A1" at RELIABLE authority
 - **WHEN** `setAuthority("A1", "UNRELIABLE")` is called
-- **THEN** the memory unit's authority is updated to UNRELIABLE in Neo4j
+- **THEN** the AWMU's authority is updated to UNRELIABLE in Neo4j
 
 #### Scenario: Set authority to higher level
 
-- **GIVEN** a memory unit "A1" at PROVISIONAL authority
+- **GIVEN** a AWMU "A1" at PROVISIONAL authority
 - **WHEN** `setAuthority("A1", "UNRELIABLE")` is called
-- **THEN** the memory unit's authority is updated to UNRELIABLE in Neo4j
+- **THEN** the AWMU's authority is updated to UNRELIABLE in Neo4j
 
 ### Requirement: AuthorityChanged lifecycle event
 
@@ -133,13 +133,13 @@ The `AuthorityChangeDirection` enum SHALL have values `PROMOTED` and `DEMOTED`.
 
 #### Scenario: Promotion publishes AuthorityChanged with PROMOTED direction
 
-- **GIVEN** a memory unit at UNRELIABLE authority
+- **GIVEN** a AWMU at UNRELIABLE authority
 - **WHEN** reinforcement upgrades authority to RELIABLE
 - **THEN** an `AuthorityChanged` event is published with previousAuthority=UNRELIABLE, newAuthority=RELIABLE, direction=PROMOTED
 
 #### Scenario: Demotion publishes AuthorityChanged with DEMOTED direction
 
-- **GIVEN** a memory unit at RELIABLE authority
+- **GIVEN** a AWMU at RELIABLE authority
 - **WHEN** conflict resolution triggers demotion to UNRELIABLE
 - **THEN** an `AuthorityChanged` event is published with previousAuthority=RELIABLE, newAuthority=UNRELIABLE, direction=DEMOTED, reason="CONFLICT_EVIDENCE"
 
@@ -147,31 +147,31 @@ The `AuthorityChangeDirection` enum SHALL have values `PROMOTED` and `DEMOTED`.
 
 **Modifies**: `UnitLifecycleEvent` sealed hierarchy.
 
-The system SHALL add an `Evicted` event type to the lifecycle event hierarchy containing: `unitId`, `contextId`, and `previousRank`. The event is published for each memory unit evicted during budget enforcement.
+The system SHALL add an `Evicted` event type to the lifecycle event hierarchy containing: `unitId`, `contextId`, and `previousRank`. The event is published for each AWMU evicted during budget enforcement.
 
-`MemoryUnitRepository.evictLowestRanked()` SHALL return a `List<EvictedUnitInfo>` (containing memory unit ID and rank) instead of `int`, so the engine can publish individual eviction events.
+`MemoryUnitRepository.evictLowestRanked()` SHALL return a `List<EvictedUnitInfo>` (containing AWMU ID and rank) instead of `int`, so the engine can publish individual eviction events.
 
-**Event ordering**: During `ArcMemEngine.promote()`, the `Promoted` event fires before any `Evicted` events. Budget enforcement (eviction) occurs after the new memory unit is written. The brief intermediate state where active count exceeds budget is not observable externally because both operations occur within a single `promote()` call.
+**Event ordering**: During `ArcMemEngine.promote()`, the `Promoted` event fires before any `Evicted` events. Budget enforcement (eviction) occurs after the new AWMU is written. The brief intermediate state where active count exceeds budget is not observable externally because both operations occur within a single `promote()` call.
 
-#### Scenario: Eviction publishes events for each evicted memory unit
+#### Scenario: Eviction publishes events for each evicted AWMU
 
-- **GIVEN** the unit budget is 20 and there are 21 active memory units in context "ctx-1"
-- **WHEN** a new memory unit is promoted in context "ctx-1"
-- **THEN** the lowest-ranked non-pinned memory unit is evicted AND an `Evicted` lifecycle event is published with the evicted memory unit's ID and previous rank
+- **GIVEN** the unit budget is 20 and there are 21 active AWMUs in context "ctx-1"
+- **WHEN** a new AWMU is promoted in context "ctx-1"
+- **THEN** the lowest-ranked non-pinned AWMU is evicted AND an `Evicted` lifecycle event is published with the evicted AWMU's ID and previous rank
 
-#### Scenario: Pinned memory units not evicted
+#### Scenario: Pinned AWMUs not evicted
 
-- **GIVEN** the unit budget is 3, there are 3 active memory units, and the lowest-ranked memory unit is pinned
-- **WHEN** a new memory unit is promoted
-- **THEN** the next-lowest-ranked non-pinned memory unit is evicted instead
+- **GIVEN** the unit budget is 3, there are 3 active AWMUs, and the lowest-ranked AWMU is pinned
+- **WHEN** a new AWMU is promoted
+- **THEN** the next-lowest-ranked non-pinned AWMU is evicted instead
 
 ### Requirement: Decay-based authority demotion
 
 The `DecayPolicy` SPI SHALL include a `shouldDemoteAuthority(ContextUnit unit, int newRank)` method that returns `true` when the decayed rank drops below authority-specific thresholds.
 
 Default thresholds (configurable via `ArcMemProperties`):
-- `arc-mem.unit.reliable-rank-threshold` (default: `400`) — RELIABLE memory units with rank below this are demoted to UNRELIABLE
-- `arc-mem.unit.unreliable-rank-threshold` (default: `200`) — UNRELIABLE memory units with rank below this are demoted to PROVISIONAL
+- `arc-mem.unit.reliable-rank-threshold` (default: `400`) — RELIABLE AWMUs with rank below this are demoted to UNRELIABLE
+- `arc-mem.unit.unreliable-rank-threshold` (default: `200`) — UNRELIABLE AWMUs with rank below this are demoted to PROVISIONAL
 - CANON is never demoted by decay (invariant A3b)
 - PROVISIONAL has no lower threshold
 
@@ -179,15 +179,15 @@ Default thresholds (configurable via `ArcMemProperties`):
 
 #### Scenario: Rank decay triggers authority demotion
 
-- **GIVEN** a memory unit at RELIABLE authority with rank 450
+- **GIVEN** a AWMU at RELIABLE authority with rank 450
 - **WHEN** decay reduces the rank to 380
-- **THEN** the memory unit's rank is updated to 380 AND `demote()` is called with reason RANK_DECAY, reducing authority to UNRELIABLE
+- **THEN** the AWMU's rank is updated to 380 AND `demote()` is called with reason RANK_DECAY, reducing authority to UNRELIABLE
 
 #### Scenario: Rank decay does not demote CANON
 
-- **GIVEN** a memory unit at CANON authority with rank 300
+- **GIVEN** a AWMU at CANON authority with rank 300
 - **WHEN** decay reduces the rank to 250
-- **THEN** the memory unit's rank is updated to 250 but authority remains CANON
+- **THEN** the AWMU's rank is updated to 250 but authority remains CANON
 
 ### Requirement: Optional returns for repository finders
 
@@ -195,15 +195,15 @@ Default thresholds (configurable via `ArcMemProperties`):
 
 `findPropositionNodeById(String id)` SHALL return `Optional<PropositionNode>` instead of nullable `PropositionNode`. All callers in `ArcMemEngine` and `ArcMemTools` SHALL be updated to use `Optional` methods (`ifPresent`, `ifPresentOrElse`, `orElse`, etc.).
 
-#### Scenario: Found memory unit returns present Optional
+#### Scenario: Found AWMU returns present Optional
 
-- **GIVEN** a memory unit exists with ID "A1"
+- **GIVEN** a AWMU exists with ID "A1"
 - **WHEN** `findPropositionNodeById("A1")` is called
 - **THEN** `Optional.of(node)` is returned
 
-#### Scenario: Missing memory unit returns empty Optional
+#### Scenario: Missing AWMU returns empty Optional
 
-- **GIVEN** no memory unit exists with ID "missing"
+- **GIVEN** no AWMU exists with ID "missing"
 - **WHEN** `findPropositionNodeById("missing")` is called
 - **THEN** `Optional.empty()` is returned
 
@@ -242,21 +242,21 @@ Violations SHALL throw `IllegalStateException` with a descriptive message, preve
 
 ### Requirement: Invariant enforcement hook before archive
 
-`ArcMemEngine.archive()` SHALL evaluate all applicable invariants via `InvariantEvaluator.evaluate(ARCHIVE, unitId, contextId)` before committing the archive operation. If the evaluation returns `blocked = true` (a MUST-strength invariant is violated), the archive SHALL NOT proceed and the method SHALL return without modifying memory unit state.
+`ArcMemEngine.archive()` SHALL evaluate all applicable invariants via `InvariantEvaluator.evaluate(ARCHIVE, unitId, contextId)` before committing the archive operation. If the evaluation returns `blocked = true` (a MUST-strength invariant is violated), the archive SHALL NOT proceed and the method SHALL return without modifying AWMU state.
 
 When the evaluation returns `blocked = false` but contains SHOULD-strength violations, the archive SHALL proceed and violation events SHALL be published.
 
-The invariant evaluation SHALL occur after the memory unit lookup but before calling `repository.archiveUnit()`.
+The invariant evaluation SHALL occur after the AWMU lookup but before calling `repository.archiveUnit()`.
 
 #### Scenario: MUST-strength invariant blocks archive
 
-- **GIVEN** a MUST-strength `UNIT_PROTECTED` invariant for memory unit "A1"
+- **GIVEN** a MUST-strength `UNIT_PROTECTED` invariant for AWMU "A1"
 - **WHEN** `ArcMemEngine.archive("A1", ArchiveReason.MANUAL)` is called
-- **THEN** the archive SHALL be blocked, memory unit "A1" SHALL remain active, and an `InvariantViolation` event SHALL be published with `blocked = true`
+- **THEN** the archive SHALL be blocked, AWMU "A1" SHALL remain active, and an `InvariantViolation` event SHALL be published with `blocked = true`
 
 #### Scenario: SHOULD-strength invariant warns but allows archive
 
-- **GIVEN** a SHOULD-strength `UNIT_PROTECTED` invariant for memory unit "A1"
+- **GIVEN** a SHOULD-strength `UNIT_PROTECTED` invariant for AWMU "A1"
 - **WHEN** `ArcMemEngine.archive("A1", ArchiveReason.MANUAL)` is called
 - **THEN** the archive SHALL proceed, an `InvariantViolation` event SHALL be published with `blocked = false`, and an `Archived` event SHALL be published
 
@@ -268,57 +268,57 @@ The invariant evaluation SHALL occur after the memory unit lookup but before cal
 
 ### Requirement: Invariant enforcement hook before eviction
 
-`ArcMemEngine.promote()` SHALL evaluate invariants via `InvariantEvaluator.evaluate(EVICT, candidateUnitId, contextId)` for each eviction candidate during budget enforcement. If the evaluation returns `blocked = true`, that candidate SHALL be skipped and the next-lowest-ranked non-pinned memory unit SHALL be considered.
+`ArcMemEngine.promote()` SHALL evaluate invariants via `InvariantEvaluator.evaluate(EVICT, candidateUnitId, contextId)` for each eviction candidate during budget enforcement. If the evaluation returns `blocked = true`, that candidate SHALL be skipped and the next-lowest-ranked non-pinned AWMU SHALL be considered.
 
 The eviction loop SHALL iterate through candidates in rank order (ascending) until either:
 1. A non-blocked candidate is found and evicted, or
 2. All candidates are blocked by MUST-strength invariants, in which case the budget temporarily exceeds the limit and a WARN-level log is emitted
 
-#### Scenario: Protected memory unit skipped during eviction
+#### Scenario: Protected AWMU skipped during eviction
 
-- **GIVEN** a MUST-strength `UNIT_PROTECTED` invariant for memory unit "A1"
-- **AND** the budget is 3 with 3 active memory units, and "A1" has the lowest rank
-- **WHEN** a new memory unit is promoted
-- **THEN** "A1" SHALL be skipped and the next-lowest-ranked non-pinned, non-protected memory unit SHALL be evicted
+- **GIVEN** a MUST-strength `UNIT_PROTECTED` invariant for AWMU "A1"
+- **AND** the budget is 3 with 3 active AWMUs, and "A1" has the lowest rank
+- **WHEN** a new AWMU is promoted
+- **THEN** "A1" SHALL be skipped and the next-lowest-ranked non-pinned, non-protected AWMU SHALL be evicted
 
-#### Scenario: Multiple protected memory units in eviction candidates
+#### Scenario: Multiple protected AWMUs in eviction candidates
 
-- **GIVEN** MUST-strength `UNIT_PROTECTED` invariants for memory units "A1" and "A2"
-- **AND** the budget is 3 with 3 active memory units, "A1" and "A2" being the two lowest-ranked
-- **WHEN** a new memory unit is promoted
-- **THEN** "A1" and "A2" SHALL be skipped and the third-lowest-ranked non-pinned memory unit SHALL be evicted
+- **GIVEN** MUST-strength `UNIT_PROTECTED` invariants for AWMUs "A1" and "A2"
+- **AND** the budget is 3 with 3 active AWMUs, "A1" and "A2" being the two lowest-ranked
+- **WHEN** a new AWMU is promoted
+- **THEN** "A1" and "A2" SHALL be skipped and the third-lowest-ranked non-pinned AWMU SHALL be evicted
 
 #### Scenario: All eviction candidates protected
 
-- **GIVEN** MUST-strength `UNIT_PROTECTED` invariants for all non-pinned memory units
+- **GIVEN** MUST-strength `UNIT_PROTECTED` invariants for all non-pinned AWMUs
 - **AND** the budget is full
-- **WHEN** a new memory unit is promoted
-- **THEN** no memory unit SHALL be evicted, the budget SHALL temporarily exceed the limit, and a WARN-level log SHALL be emitted: "Invariant protection prevented eviction; budget exceeded"
+- **WHEN** a new AWMU is promoted
+- **THEN** no AWMU SHALL be evicted, the budget SHALL temporarily exceed the limit, and a WARN-level log SHALL be emitted: "Invariant protection prevented eviction; budget exceeded"
 
 ### Requirement: Invariant enforcement hook before demotion
 
 `ArcMemEngine.demote()` SHALL evaluate invariants via `InvariantEvaluator.evaluate(DEMOTE, unitId, contextId)` before committing the demotion. If the evaluation returns `blocked = true`, the demotion SHALL NOT proceed.
 
-The invariant evaluation SHALL occur after the canonization gate check (CANON memory units route through the gate first) but before computing `previousLevel()` and writing the new authority.
+The invariant evaluation SHALL occur after the canonization gate check (CANON AWMUs route through the gate first) but before computing `previousLevel()` and writing the new authority.
 
 #### Scenario: AUTHORITY_FLOOR invariant blocks demotion
 
-- **GIVEN** a MUST-strength `AUTHORITY_FLOOR` invariant for memory unit "A1" with minimum authority RELIABLE
-- **AND** memory unit "A1" is at RELIABLE authority
+- **GIVEN** a MUST-strength `AUTHORITY_FLOOR` invariant for AWMU "A1" with minimum authority RELIABLE
+- **AND** AWMU "A1" is at RELIABLE authority
 - **WHEN** `demote("A1", DemotionReason.RANK_DECAY)` is called
-- **THEN** the demotion SHALL be blocked and memory unit "A1" SHALL remain at RELIABLE
+- **THEN** the demotion SHALL be blocked and AWMU "A1" SHALL remain at RELIABLE
 
 #### Scenario: AUTHORITY_FLOOR allows demotion above floor
 
-- **GIVEN** a MUST-strength `AUTHORITY_FLOOR` invariant for memory unit "A1" with minimum authority UNRELIABLE
-- **AND** memory unit "A1" is at RELIABLE authority
+- **GIVEN** a MUST-strength `AUTHORITY_FLOOR` invariant for AWMU "A1" with minimum authority UNRELIABLE
+- **AND** AWMU "A1" is at RELIABLE authority
 - **WHEN** `demote("A1", DemotionReason.RANK_DECAY)` is called
 - **THEN** the demotion SHALL proceed (RELIABLE to UNRELIABLE is at the floor, not below it)
 
 #### Scenario: CONTEXT_FROZEN blocks all demotions in context
 
 - **GIVEN** a MUST-strength `CONTEXT_FROZEN` invariant for context "ctx-1"
-- **WHEN** `demote("A1", DemotionReason.CONFLICT_EVIDENCE)` is called for a memory unit in "ctx-1"
+- **WHEN** `demote("A1", DemotionReason.CONFLICT_EVIDENCE)` is called for a AWMU in "ctx-1"
 - **THEN** the demotion SHALL be blocked
 
 ### Requirement: Invariant enforcement hook before authority change
@@ -334,7 +334,7 @@ The `AUTHORITY_CHANGE` evaluation is in addition to the action-specific evaluati
 #### Scenario: Authority promotion blocked by CONTEXT_FROZEN
 
 - **GIVEN** a MUST-strength `CONTEXT_FROZEN` invariant for context "ctx-1"
-- **AND** a memory unit in "ctx-1" reaches the reinforcement threshold for authority upgrade
+- **AND** a AWMU in "ctx-1" reaches the reinforcement threshold for authority upgrade
 - **WHEN** `reinforce()` attempts to promote authority
 - **THEN** the authority promotion SHALL be blocked, but the rank boost SHALL still be applied
 
@@ -357,12 +357,12 @@ If any step blocks the action, subsequent steps SHALL NOT be evaluated. This sho
 #### Scenario: Canonization gate blocks before invariant check
 
 - **GIVEN** the canonization gate is enabled and a MUST-strength invariant exists
-- **WHEN** `demote()` is called on a CANON memory unit
+- **WHEN** `demote()` is called on a CANON AWMU
 - **THEN** the canonization gate creates a pending request and returns; invariant evaluation SHALL NOT run
 
 #### Scenario: Primary action blocked before AUTHORITY_CHANGE check
 
-- **GIVEN** a MUST-strength `UNIT_PROTECTED` invariant blocks `DEMOTE` for memory unit "A1"
+- **GIVEN** a MUST-strength `UNIT_PROTECTED` invariant blocks `DEMOTE` for AWMU "A1"
 - **AND** a separate `AUTHORITY_CHANGE` invariant exists
 - **WHEN** `demote("A1", ...)` is called
 - **THEN** the `DEMOTE` invariant blocks the action and the `AUTHORITY_CHANGE` invariant SHALL NOT be evaluated
@@ -414,7 +414,7 @@ This is a correctness and security fix — the system resists adversarial prompt
 
 **Modifies**: `ArcMemEngine.promote()` and the "Eviction lifecycle events" requirement.
 
-`ArcMemEngine.promote()` SHALL set `validFrom = Instant.now()` and `transactionStart = Instant.now()` on the newly promoted memory unit, in addition to all existing promotion behavior (rank assignment, tier computation, budget enforcement, event publishing).
+`ArcMemEngine.promote()` SHALL set `validFrom = Instant.now()` and `transactionStart = Instant.now()` on the newly promoted AWMU, in addition to all existing promotion behavior (rank assignment, tier computation, budget enforcement, event publishing).
 
 The temporal fields SHALL be persisted to `PropositionNode` as part of the promotion write operation.
 
@@ -422,52 +422,52 @@ The temporal fields SHALL be persisted to `PropositionNode` as part of the promo
 
 - **GIVEN** a proposition passes all promotion gates
 - **WHEN** `ArcMemEngine.promote()` completes at instant T1
-- **THEN** the new memory unit SHALL have `validFrom = T1` and `transactionStart = T1`
+- **THEN** the new AWMU SHALL have `validFrom = T1` and `transactionStart = T1`
 - **AND** `validTo` and `transactionEnd` SHALL be null
 
 #### Scenario: Promotion temporal fields coexist with tier assignment
 
 - **GIVEN** a proposition promoted with `initialRank = 700`
 - **WHEN** `ArcMemEngine.promote()` completes at instant T1
-- **THEN** the memory unit SHALL have `memoryTier = HOT`, `validFrom = T1`, and `transactionStart = T1`
+- **THEN** the AWMU SHALL have `memoryTier = HOT`, `validFrom = T1`, and `transactionStart = T1`
 
 ### Requirement: Temporal fields and supersession on archive
 
 **Modifies**: `ArcMemEngine.archive()` (implicit in "UnitArchivedEvent" requirement from unit-lifecycle-events spec, and "Eviction lifecycle events" requirement).
 
-`ArcMemEngine.archive()` SHALL set `validTo = Instant.now()` and `transactionEnd = Instant.now()` on the archived memory unit, in addition to existing archive behavior (status change, event publishing).
+`ArcMemEngine.archive()` SHALL set `validTo = Instant.now()` and `transactionEnd = Instant.now()` on the archived AWMU, in addition to existing archive behavior (status change, event publishing).
 
 When archiving due to conflict replacement (reason = `CONFLICT_REPLACEMENT`), `archive()` SHALL also:
-1. Create a `SUPERSEDES` relationship from the incoming memory unit to the archived memory unit
-2. Set `supersededBy` on the archived memory unit to the incoming memory unit's ID
-3. Set `supersedes` on the incoming memory unit to the archived memory unit's ID
+1. Create a `SUPERSEDES` relationship from the incoming AWMU to the archived AWMU
+2. Set `supersededBy` on the archived AWMU to the incoming AWMU's ID
+3. Set `supersedes` on the incoming AWMU to the archived AWMU's ID
 
 #### Scenario: Archive sets temporal end fields
 
-- **GIVEN** an active memory unit "A1" with `validFrom = T1`
+- **GIVEN** an active AWMU "A1" with `validFrom = T1`
 - **WHEN** `ArcMemEngine.archive("A1", ArchiveReason.MANUAL)` is called at instant T5
-- **THEN** memory unit "A1" SHALL have `validTo = T5` and `transactionEnd = T5`
+- **THEN** AWMU "A1" SHALL have `validTo = T5` and `transactionEnd = T5`
 
 #### Scenario: Archive for conflict replacement creates supersession
 
-- **GIVEN** an active memory unit "A1" conflicting with incoming proposition
+- **GIVEN** an active AWMU "A1" conflicting with incoming proposition
 - **AND** conflict resolution returns REPLACE
 - **WHEN** the engine archives "A1" and promotes the incoming proposition as "A2" at instant T5
-- **THEN** memory unit "A1" SHALL have `validTo = T5`, `transactionEnd = T5`, and `supersededBy = "A2"`
-- **AND** memory unit "A2" SHALL have `supersedes = "A1"`
+- **THEN** AWMU "A1" SHALL have `validTo = T5`, `transactionEnd = T5`, and `supersededBy = "A2"`
+- **AND** AWMU "A2" SHALL have `supersedes = "A1"`
 - **AND** a `SUPERSEDES` relationship SHALL exist from "A2" to "A1" with `reason = "CONFLICT_REPLACEMENT"`
 
 #### Scenario: Archive for eviction sets temporal fields
 
-- **GIVEN** the unit budget is full and a new memory unit is being promoted
-- **WHEN** memory unit "A1" is evicted (lowest-ranked non-pinned) at instant T5
-- **THEN** memory unit "A1" SHALL have `validTo = T5` and `transactionEnd = T5`
+- **GIVEN** the unit budget is full and a new AWMU is being promoted
+- **WHEN** AWMU "A1" is evicted (lowest-ranked non-pinned) at instant T5
+- **THEN** AWMU "A1" SHALL have `validTo = T5` and `transactionEnd = T5`
 
 ## ADDED Requirements
 
 ### Requirement: TierChanged lifecycle event
 
-The system SHALL publish a `TierChanged` lifecycle event whenever a memory unit's `memoryTier` changes as a result of a rank-modifying operation (reinforce, decay, promote). The event SHALL be a member of the `UnitLifecycleEvent` sealed hierarchy.
+The system SHALL publish a `TierChanged` lifecycle event whenever a AWMU's `memoryTier` changes as a result of a rank-modifying operation (reinforce, decay, promote). The event SHALL be a member of the `UnitLifecycleEvent` sealed hierarchy.
 
 The `TierChanged` event SHALL include:
 - `unitId` (String)
@@ -480,19 +480,19 @@ Event publishing SHALL be gated by `arcMemConfig.lifecycleEventsEnabled()`, cons
 
 #### Scenario: Reinforcement causes tier upgrade event
 
-- **GIVEN** a memory unit in WARM tier with `rank = 580` and `hotThreshold = 600`
+- **GIVEN** a AWMU in WARM tier with `rank = 580` and `hotThreshold = 600`
 - **WHEN** `ArcMemEngine.reinforce()` boosts rank to 630
 - **THEN** a `TierChanged` event SHALL be published with `previousTier = WARM` and `newTier = HOT`
 
 #### Scenario: Decay causes tier downgrade event
 
-- **GIVEN** a memory unit in WARM tier with `rank = 360` and `warmThreshold = 350`
+- **GIVEN** a AWMU in WARM tier with `rank = 360` and `warmThreshold = 350`
 - **WHEN** decay reduces rank to 340
 - **THEN** a `TierChanged` event SHALL be published with `previousTier = WARM` and `newTier = COLD`
 
 #### Scenario: Rank change without tier change
 
-- **GIVEN** a memory unit in HOT tier with `rank = 800`
+- **GIVEN** a AWMU in HOT tier with `rank = 800`
 - **WHEN** decay reduces rank to 750 (still above `hotThreshold = 600`)
 - **THEN** no `TierChanged` event SHALL be published
 
@@ -505,18 +505,18 @@ Event publishing SHALL be gated by `arcMemConfig.lifecycleEventsEnabled()`, cons
 ### Requirement: ArcMemEngine tier tracking
 
 `ArcMemEngine` SHALL compute and compare memory tier before and after every rank-modifying operation (`promote`, `reinforce`, `applyDecay`). When the tier changes, the engine SHALL:
-1. Update the persisted `memoryTier` on the memory unit
+1. Update the persisted `memoryTier` on the AWMU
 2. Publish a `TierChanged` event (if events enabled)
 
 #### Scenario: Promote with tier tracking
 
 - **GIVEN** a proposition promoted with `initialRank = 700`
 - **WHEN** `ArcMemEngine.promote()` completes
-- **THEN** the memory unit SHALL have `memoryTier = HOT` persisted and no `TierChanged` event (initial assignment, not a transition)
+- **THEN** the AWMU SHALL have `memoryTier = HOT` persisted and no `TierChanged` event (initial assignment, not a transition)
 
 #### Scenario: Sequential reinforcements crossing tiers
 
-- **GIVEN** a memory unit with `rank = 340` (COLD, `warmThreshold = 350`)
+- **GIVEN** a AWMU with `rank = 340` (COLD, `warmThreshold = 350`)
 - **WHEN** `ArcMemEngine.reinforce()` boosts rank to 390
 - **THEN** `memoryTier` SHALL be updated to WARM and a `TierChanged(COLD → WARM)` event SHALL be published
 

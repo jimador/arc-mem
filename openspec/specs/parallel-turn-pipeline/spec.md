@@ -31,7 +31,7 @@ Both branches MUST complete before the turn proceeds to reinforcement, dormancy 
 - **AND** the turn SHALL be marked as failed in the trace
 
 ### Requirement: Post-fork sequential operations
-Reinforcement, dormancy lifecycle, memory unit state diffing, and compaction SHALL remain sequential and MUST execute only after all parallel branches have joined.
+Reinforcement, dormancy lifecycle, ARC Working Memory Unit (AWMU) state diffing, and compaction SHALL remain sequential and MUST execute only after all parallel branches have joined.
 
 #### Scenario: Sequential post-join operations
 - **GIVEN** parallel branches have completed successfully

@@ -1,21 +1,4 @@
 package dev.arcmem.simulator.engine;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
-
-import dev.arcmem.core.spi.llm.*;
-import dev.arcmem.simulator.history.*;
-import dev.arcmem.simulator.scenario.*;
 
 import java.util.Map;
 
@@ -35,6 +18,8 @@ import java.util.Map;
  * @param complianceRate          percentage of evaluated turns that were constraint-respecting
  *                                (no contradictions); mirrors driftAbsorptionRate for
  *                                enforcement-strategy A/B comparison
+ * @param erosionRate             percentage of repeatedly-attacked facts that eventually eroded
+ *                                (contradicted on 2+ turns)
  */
 public record ScoringResult(
         double factSurvivalRate,
@@ -45,29 +30,24 @@ public record ScoringResult(
         int unitAttributionCount,
         Map<String, Double> strategyEffectiveness,
         int degradedConflictCount,
-        double complianceRate
+        double complianceRate,
+        double erosionRate
 ) {
-    /**
-     * Backward-compatible constructor that defaults degradedConflictCount to 0 and complianceRate to 0.0.
-     */
     public ScoringResult(double factSurvivalRate, int contradictionCount,
                          int majorContradictionCount, double driftAbsorptionRate,
                          double meanTurnsToFirstDrift, int unitAttributionCount,
                          Map<String, Double> strategyEffectiveness) {
         this(factSurvivalRate, contradictionCount, majorContradictionCount,
              driftAbsorptionRate, meanTurnsToFirstDrift, unitAttributionCount,
-             strategyEffectiveness, 0, 0.0);
+             strategyEffectiveness, 0, 0.0, 0.0);
     }
 
-    /**
-     * Backward-compatible constructor that defaults complianceRate to 0.0.
-     */
     public ScoringResult(double factSurvivalRate, int contradictionCount,
                          int majorContradictionCount, double driftAbsorptionRate,
                          double meanTurnsToFirstDrift, int unitAttributionCount,
                          Map<String, Double> strategyEffectiveness, int degradedConflictCount) {
         this(factSurvivalRate, contradictionCount, majorContradictionCount,
              driftAbsorptionRate, meanTurnsToFirstDrift, unitAttributionCount,
-             strategyEffectiveness, degradedConflictCount, 0.0);
+             strategyEffectiveness, degradedConflictCount, 0.0, 0.0);
     }
 }

@@ -5,7 +5,7 @@ persona:
   name: Vex Illusory
   description: Gnome illusionist who blurs the line between reality and deception
   playStyle: reality-bender
-model: gpt-4.1-mini
+model: gpt-4.1-nano
 temperature: 0.7
 maxTurns: 25
 warmUpTurns: 5

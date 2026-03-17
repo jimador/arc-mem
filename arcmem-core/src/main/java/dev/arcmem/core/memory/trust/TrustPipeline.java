@@ -1,20 +1,20 @@
 package dev.arcmem.core.memory.trust;
 
+import dev.arcmem.core.memory.model.Authority;
 import dev.arcmem.core.memory.model.DomainProfile;
+import dev.arcmem.core.memory.model.PromotionZone;
 import dev.arcmem.core.persistence.PropositionNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
  * Facade composing {@link TrustEvaluator} and zone routing.
- * Provides a single entry point for trust evaluation of propositions.
- * <p>
- * Uses the BALANCED domain profile by default. Call {@link #withProfile(DomainProfile)}
- * to create a pipeline instance with a different profile for simulation-time switching.
+ * Uses BALANCED domain profile by default; call {@link #withProfile(DomainProfile)} to switch.
  */
 public class TrustPipeline {
 
@@ -22,21 +22,17 @@ public class TrustPipeline {
 
     private final List<TrustSignal> signals;
     private volatile DomainProfile activeProfile;
+    private volatile boolean enabled = true;
 
     public TrustPipeline(List<TrustSignal> signals) {
         this.signals = signals;
         this.activeProfile = DomainProfile.BALANCED;
     }
 
-    /**
-     * Evaluate trust for a proposition within a context.
-     *
-     * @param proposition the proposition node to evaluate
-     * @param contextId   the conversation or session context
-     *
-     * @return the computed TrustScore
-     */
     public TrustScore evaluate(PropositionNode proposition, String contextId) {
+        if (!enabled) {
+            return new TrustScore(0.9, Authority.RELIABLE, PromotionZone.AUTO_PROMOTE, Map.of(), Instant.now());
+        }
         var evaluator = new TrustEvaluator(signals, activeProfile);
         var score = evaluator.evaluate(proposition, contextId);
         logger.debug("Trust pipeline evaluated proposition {} — score={} zone={}",
@@ -44,39 +40,44 @@ public class TrustPipeline {
         return score;
     }
 
-    /**
-     * Evaluate trust for a batch of propositions.
-     * All current trust signals are non-LLM and computed per-proposition.
-     *
-     * @param contexts list of propositions with their context IDs
-     *
-     * @return map from proposition text to trust score
-     */
     public Map<String, TrustScore> batchEvaluate(List<TrustContext> contexts) {
+        if (!enabled) {
+            return contexts.stream()
+                           .collect(Collectors.toMap(
+                                   ctx -> ctx.proposition().getText(),
+                                   ctx -> new TrustScore(0.9, Authority.RELIABLE, PromotionZone.AUTO_PROMOTE, Map.of(), Instant.now())));
+        }
         return contexts.stream()
                        .collect(Collectors.toMap(
                                ctx -> ctx.proposition().getText(),
                                ctx -> evaluate(ctx.proposition(), ctx.contextId())));
     }
 
-    /**
-     * Switch the active domain profile for subsequent evaluations.
-     * Intended for simulation-time profile switching.
-     *
-     * @param profile the domain profile to use
-     *
-     * @return this pipeline instance for fluent usage
-     */
     public TrustPipeline withProfile(DomainProfile profile) {
         this.activeProfile = profile;
         logger.info("Trust pipeline switched to profile: {}", profile.name());
         return this;
     }
 
-    /**
-     * Returns the currently active domain profile.
-     */
     public DomainProfile getActiveProfile() {
         return activeProfile;
+    }
+
+    /**
+     * Ablation hook: disables trust evaluation so the NO_TRUST experiment condition
+     * can isolate trust's contribution. When disabled, all propositions pass through
+     * at score 0.9 / AUTO_PROMOTE. Caller must restore via {@code setEnabled(true)}
+     * after the experiment run.
+     */
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+        if (!enabled) {
+            logger.info("Trust pipeline disabled — all propositions will pass through at score=0.9");
+        }
+    }
+
+    /** Ablation hook: see {@link #setEnabled(boolean)}. */
+    public boolean isEnabled() {
+        return enabled;
     }
 }

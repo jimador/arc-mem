@@ -25,7 +25,7 @@ This project uses tabletop RPGs as its proving ground, but the approach is domai
 
 - **Invariants are legible.** World facts, character states, and rules form a clear set of constraints. A dead NPC stays dead (barring necromancy shenanigans). Violations are immediately obvious.
 - **Creative freedom is the point.** The value of the LLM is improvisation, elaboration, and responsive storytelling. Restricting this defeats the purpose.
-- **Adversarial pressure is a useful stress harness.** Players routinely test boundaries, make false claims, and try to manipulate the narrative — giving us a deliberate way to force contradiction/hallucination cases and test whether relevant memory units hold.
+- **Adversarial pressure is a useful stress harness.** Players routinely test boundaries, make false claims, and try to manipulate the narrative — giving us a deliberate way to force contradiction/hallucination cases and test whether relevant ARC Working Memory Units (AWMUs) hold.
 - **Long horizons are the norm.** Campaigns span dozens of sessions. Facts established early must persist across hundreds of turns.
 
 This tension — *be creative, but don't break the rules* — exists wherever agentic systems operate within constraints.
@@ -34,18 +34,18 @@ This tension — *be creative, but don't break the rules* — exists wherever ag
 
 LLMs are great at continuation, not persistence. In long-running conversations, facts that *should* stay stable slowly degrade as new turns reweight attention. That's fine for creativity; it's a problem when you're trying to preserve rules, world state, decisions, or any other "we already settled this" constraints.
 
-**Memory units** are promoted [DICE](https://github.com/embabel/dice) propositions with extra control fields:
+**AWMUs** are promoted [DICE](https://github.com/embabel/dice) propositions with extra control fields:
 
 - **Activation score** — importance under memory pressure
 - **Authority** — trust level (PROVISIONAL ↔ UNRELIABLE ↔ RELIABLE ↔ CANON); bidirectional with invariant guards
 - **Authority ceiling** — the highest level this fact can auto-reach based on provenance
-- **Budget membership** — explicit inclusion in a bounded working set (default: max 20 active memory units)
+- **Budget membership** — explicit inclusion in a bounded working set (default: max 20 active AWMUs)
 
-At runtime, memory units are injected into every prompt as a ranked reference block. That makes memory an explicit, governed mechanism instead of an accidental side effect:
+At runtime, AWMUs are injected into every prompt as a ranked reference block. That makes memory an explicit, governed mechanism instead of an accidental side effect:
 
 - conflict checks gate contradictory updates
 - trust scoring gates promotion and authority movement
-- budget enforcement evicts low-value memory units first
+- budget enforcement evicts low-value AWMUs first
 - reinforcement/decay updates importance over time
 
 Knowledge graphs answer "what facts exist." ARC-Mem answers "what must stay salient and trusted *right now*." That distinction is the whole point.
@@ -56,11 +56,11 @@ Knowledge graphs answer "what facts exist." ARC-Mem answers "what must stay sali
 
 **Authority tiers as governance primitive.** A four-level hierarchy creates policy hooks you don't get with flat retrieval stacks. Bidirectional transitions with invariant guards prevent unsupported downgrade and unauthorized escalation.
 
-**Hard budget enforcement.** A cap (default 20 active memory units) prevents context bloat. Long-context capability doesn't fix attention-allocation failures. In our testing, a small focused fact set outperforms a large dump.
+**Hard budget enforcement.** A cap (default 20 active AWMUs) prevents context bloat. Long-context capability doesn't fix attention-allocation failures. In our testing, a small focused fact set outperforms a large dump.
 
-**Contradiction/hallucination control by design.** Memory units are formatted as authoritative instructions with explicit correction directives. The model is told to preserve relevant established facts under long-horizon pressure, not just recall facts opportunistically.
+**Contradiction/hallucination control by design.** AWMUs are formatted as authoritative instructions with explicit correction directives. The model is told to preserve relevant established facts under long-horizon pressure, not just recall facts opportunistically.
 
-**Mandatory injection over retrieval.** RAG content competes for attention. Summarization can drop things. Memory units occupy a fixed system-prompt block injected before the user message — they're always there.
+**Mandatory injection over retrieval.** RAG content competes for attention. Summarization can drop things. AWMUs occupy a fixed system-prompt block injected before the user message — they're always there.
 
 ## Why DICE + Embabel?
 
@@ -78,9 +78,9 @@ Practically: DICE/Embabel handle acquisition and flow; ARC-Mem handles memory pr
 
 | Package        | Purpose |
 |----------------|---------|
-| `arcmem/`      | Memory unit lifecycle: `ArcMemEngine` (budget + promotion), conflict detection/resolution, trust pipeline, reinforcement/decay policies, memory tiers, invariant evaluation |
-| `assembly/`    | Prompt assembly: `ArcMemLlmReference` (inject memory units into prompts), `PromptBudgetEnforcer` (token limits), `CompactedContextProvider` (context summarization), `ArcMemContextLock` (multi-request safety) |
-| `chat/`        | Chat flow: `ChatView` (Vaadin UI), `ChatActions` (Embabel Agent `@EmbabelComponent`), memory unit tools |
+| `arcmem/`      | AWMU lifecycle: `ArcMemEngine` (budget + promotion), conflict detection/resolution, trust pipeline, reinforcement/decay policies, memory tiers, invariant evaluation |
+| `assembly/`    | Prompt assembly: `ArcMemLlmReference` (inject AWMUs into prompts), `PromptBudgetEnforcer` (token limits), `CompactedContextProvider` (context summarization), `ArcMemContextLock` (multi-request safety) |
+| `chat/`        | Chat flow: `ChatView` (Vaadin UI), `ChatActions` (Embabel Agent `@EmbabelComponent`), AWMU tools |
 | `extract/`     | DICE integration: `DuplicateDetector` (near-dupes), `SemanticUnitPromoter` (promotion) |
 | `persistence/` | Neo4j repository layer: `MemoryUnitRepository`, `PropositionNode` (Drivine ORM) |
 | `prompt/`      | Prompt templates: `PromptTemplates`, `PromptPathConstants`, Jinja2 template files |
@@ -91,11 +91,11 @@ Practically: DICE/Embabel handle acquisition and flow; ARC-Mem handles memory pr
 ```text
 ChatView (user types)
   → ChatActions (Embabel @EmbabelComponent)
-  → ArcMemLlmReference (inject memory units into system prompt)
+  → ArcMemLlmReference (inject AWMUs into system prompt)
   → LLM (gpt-4.1-mini) + PromptBudgetEnforcer (token limits)
   → Extract propositions (DICE extraction)
-  → SemanticUnitPromoter (promote promising propositions to memory units)
-  → ArcMemEngine (reinforce existing memory units, manage budget)
+  → SemanticUnitPromoter (promote promising propositions to AWMUs)
+  → ArcMemEngine (reinforce existing AWMUs, manage budget)
   → Neo4j persistence (Drivine ORM)
 ```
 
@@ -103,9 +103,9 @@ ChatView (user types)
 
 ```text
 SimulationView (user selects scenario and hits "Run")
-  → SimulationService (load scenario YAML, seed memory units, phase state machine)
+  → SimulationService (load scenario YAML, seed AWMUs, phase state machine)
   → SimulationTurnExecutor (per turn):
-     - Assemble memory unit + system/user prompts
+     - Assemble AWMU + system/user prompts
      - Call LLM (DM response)
      - If ATTACK turn: evaluate drift against ground truth (concurrent)
      - Extract propositions from DM response (concurrent)
@@ -113,20 +113,20 @@ SimulationView (user selects scenario and hits "Run")
   → Adversary strategy (adaptive or scripted from scenario YAML)
   → LLM again (generate adversarial player message)
   → Repeat until scenario ends
-  → SimulationView updates with final memory unit state, drift verdicts, and rankings
+  → SimulationView updates with final AWMU state, drift verdicts, and rankings
 ```
 
 ## Key Features
 
-### Memory Unit Lifecycle
+### AWMU Lifecycle
 
-A memory unit is a fact promoted to special status in the LLM's context:
+An AWMU is a fact promoted to special status in the LLM's context:
 
 - **Activation score** `[100–900]` — higher activation score = more influence under budget pressure
 - **Authority** — PROVISIONAL → UNRELIABLE → RELIABLE → CANON (bidirectional — promoted via reinforcement, demoted via decay/trust re-evaluation; CANON is never auto-assigned and immune to auto-demotion)
 - **Reinforcement tracking** — reuse boosts activation score and may upgrade authority
-- **Decay** — unused memory units decay exponentially; eventually auto-archived at `MIN_RANK`
-- **Budget enforcement** — max 20 active memory units; evicts lowest-ranked non-pinned when exceeded
+- **Decay** — unused AWMUs decay exponentially; eventually auto-archived at `MIN_RANK`
+- **Budget enforcement** — max 20 active AWMUs; evicts lowest-ranked non-pinned when exceeded
 
 ### Trust Pipeline
 
@@ -146,7 +146,7 @@ The simulation harness runs scenarios turn-by-turn with drift evaluation:
 - **Drift verdicts** — each ground-truth fact is evaluated as `CONTRADICTED`, `CONFIRMED`, or `NOT_MENTIONED` per turn
 - **Epistemic hedging** — DM declines to affirm without asserting the opposite → `NOT_MENTIONED`, not `CONTRADICTED`
 - **Scene-setting turn 0** — when `setting` is non-blank and extraction is enabled, an `ESTABLISH` turn runs before turn 1 to seed initial propositions organically
-- **Adversary modes** — scripted (explicit player messages in YAML) or adaptive (strategy selection based on memory unit state and attack history)
+- **Adversary modes** — scripted (explicit player messages in YAML) or adaptive (strategy selection based on AWMU state and attack history)
 
 ### Context Compaction
 
@@ -201,7 +201,7 @@ Range `[100, 900]`, clamped by `MemoryUnit.clampRank()`. Initial activation scor
 Activation-score-triggered authority demotion:
 - RELIABLE demotes to UNRELIABLE when activation score drops below 400
 - UNRELIABLE demotes to PROVISIONAL when activation score drops below 200
-- CANON and pinned memory units are immune to activation-score-triggered demotion
+- CANON and pinned AWMUs are immune to activation-score-triggered demotion
 
 ### Authority
 
@@ -216,7 +216,7 @@ Authority is **bidirectional** with the following invariants:
 | A3a | CANON is never auto-assigned; requires explicit action through `CanonizationGate` |
 | A3b | CANON is immune to automatic demotion (decay, trust re-evaluation); only explicit action can demote |
 | A3c | Automatic demotion applies to RELIABLE → UNRELIABLE → PROVISIONAL via activation score decay or trust degradation |
-| A3d | Pinned memory units are immune to automatic demotion |
+| A3d | Pinned AWMUs are immune to automatic demotion |
 | A3e | All transitions (both directions) publish `AuthorityChanged` lifecycle events |
 
 RFC 2119 compliance mapping: CANON = MUST (absolute requirement), RELIABLE = SHOULD (strong recommendation), UNRELIABLE = MAY (optional consideration), PROVISIONAL = tentative.
@@ -261,17 +261,17 @@ Conflicts are classified by `ConflictType`:
 | `REVISION` | Incoming updates/refines existing (non-adversarial) | Authority-gated: CANON immutable, PROVISIONAL always replaceable |
 | `WORLD_PROGRESSION` | Narrative change, not a conflict | Always `COEXIST` |
 
-Resolution outcomes: `KEEP_EXISTING`, `REPLACE`, `DEMOTE_EXISTING`, `COEXIST`. Memory tier defense modifiers adjust resolution thresholds (HOT memory units get +0.1 defense, COLD get -0.1).
+Resolution outcomes: `KEEP_EXISTING`, `REPLACE`, `DEMOTE_EXISTING`, `COEXIST`. Memory tier defense modifiers adjust resolution thresholds (HOT AWMUs get +0.1 defense, COLD get -0.1).
 
 ### Promotion Pipeline
 
 `SemanticUnitPromoter` runs a 5-gate pipeline: **confidence → dedup → conflict → trust → promote**.
 
 1. **Confidence gate** — drops propositions below `autoActivateThreshold` (default 0.65)
-2. **Dedup gate** — `DuplicateDetector` removes near-duplicates of existing memory units
-3. **Conflict gate** — `ConflictDetector` checks for contradictions/revisions with existing memory units; `ConflictResolver` determines outcome
+2. **Dedup gate** — `DuplicateDetector` removes near-duplicates of existing AWMUs
+3. **Conflict gate** — `ConflictDetector` checks for contradictions/revisions with existing AWMUs; `ConflictResolver` determines outcome
 4. **Trust gate** — `TrustPipeline` evaluates composite trust score; routes to AUTO_PROMOTE, REVIEW, or ARCHIVE
-5. **Promote** — `ArcMemEngine.promote()` writes the memory unit and runs budget enforcement
+5. **Promote** — `ArcMemEngine.promote()` writes the AWMU and runs budget enforcement
 
 ### Canonization Gate
 
@@ -279,7 +279,7 @@ Resolution outcomes: `KEEP_EXISTING`, `REPLACE`, `DEMOTE_EXISTING`, `COEXIST`. M
 - Canonization and decanonization requests queue as `PENDING` in Neo4j
 - Auto-approved in simulation contexts (`contextId` starting with `sim-`)
 - In chat contexts, requires explicit `approve()` or `reject()` call
-- Stale detection — if the memory unit's authority changed since the request was created, the request is marked `STALE`
+- Stale detection — if the AWMU's authority changed since the request was created, the request is marked `STALE`
 
 ## DICE Integration
 
@@ -291,7 +291,7 @@ ARC-Mem is a downstream consumer of DICE, not a replacement. Everything here is 
 |-------------------------|--------------------------------|-----------------------------------------------------------------------------------------------------------|
 | Proposition extraction  | Raw material                   | DICE extracts propositions from conversation text; ARC-Mem selects a subset for promotion                 |
 | Proposition revision    | Conflict/reinforcement trigger | DICE revisions feed ARC-Mem conflict detection and reinforcement pipelines                                |
-| Entity mentions         | Subject filtering              | DICE entities used by `SubjectFilter` to scope memory unit queries                                       |
+| Entity mentions         | Subject filtering              | DICE entities used by `SubjectFilter` to scope AWMU queries                                       |
 | Proposition persistence | Shared store                   | Both use `MemoryUnitRepository` (Neo4j/Drivine). ARC-Mem adds activation score/authority/tier metadata    |
 | Incremental analysis    | Turn-by-turn extraction        | DICE `ConversationPropositionExtraction` runs per turn; ARC-Mem processes results through promotion gates |
 
@@ -306,13 +306,13 @@ DICE Agent Memory and ARC-Mem serve different purposes and run as separate layer
 | **DICE Agent Memory** | `searchByTopic`, `searchRecent`, `searchByType` | Broad retrieval of relevant propositions, entity relationships, and historical context on demand |
 | **ARC-Mem working set** | Activation-score-sorted mandatory injection into system prompt | Guaranteed presence of load-bearing facts regardless of retrieval relevance scoring |
 
-ARC-Mem augments DICE memory — doesn't replace it. DICE retrieval provides the broader knowledge base. ARC-Mem provides the invariant enforcement layer. A proposition can exist in DICE memory and never become a memory unit. A memory unit always has a corresponding DICE proposition as its origin.
+ARC-Mem augments DICE memory — doesn't replace it. DICE retrieval provides the broader knowledge base. ARC-Mem provides the invariant enforcement layer. A proposition can exist in DICE memory and never become an AWMU. An AWMU always has a corresponding DICE proposition as its origin.
 
 ### Low-Trust Knowledge
 
-Not all extracted knowledge deserves memory unit status. The authority hierarchy keeps low-trust knowledge available without contaminating the invariant set:
+Not all extracted knowledge deserves AWMU status. The authority hierarchy keeps low-trust knowledge available without contaminating the invariant set:
 
-- **PROVISIONAL** memory units carry provenance qualifiers in the injected context (tagged `[PROVISIONAL]`), signaling the model to treat them as tentative.
+- **PROVISIONAL** AWMUs carry provenance qualifiers in the injected context (tagged `[PROVISIONAL]`), signaling the model to treat them as tentative.
 - Propositions below the AUTO_PROMOTE threshold (trust score < 0.80) enter the REVIEW queue or are archived, remaining in DICE's proposition store for retrieval without occupying memory budget.
 - Authority ceiling (persisted at promotion) constrains how high a low-provenance fact can be upgraded — designed to prevent adversarial escalation through repetition alone.
 - The `TrustSignal` composite evaluates source authority, extraction confidence, and reinforcement history to gate promotion decisions.
@@ -337,7 +337,7 @@ Not all extracted knowledge deserves memory unit status. The authority hierarchy
 
 - **No DICE lifecycle hooks** — promotion and tiering run after extraction completes. There's no way to hook into the extraction pipeline itself.
 - **No temporal validity** — DICE propositions have no `validFrom`/`validTo`. Representing "this was true then but not now" takes app-level workarounds.
-- **Separate audit schemas** — memory unit lifecycle events and DICE extraction events use different structures, so unified tracing takes extra plumbing.
+- **Separate audit schemas** — AWMU lifecycle events and DICE extraction events use different structures, so unified tracing takes extra plumbing.
 - **Text-keyed maps** — the trust pipeline and promotion paths key by proposition text, not a stable DICE proposition ID. Text normalization edge cases could cause collisions.
 - **Parse failure quarantine** — duplicate/conflict parse failures quarantine instead of auto-accepting, but what operators actually do with quarantined items is still undefined.
 - **Upstream divergence** — if DICE adds its own memory tiering, our patterns may need to adapt. Adapter boundaries help, but it's a real risk.
@@ -348,7 +348,7 @@ Not all extracted knowledge deserves memory unit status. The authority hierarchy
 
 | Dimension       | Status                                                                                                                                                                                                    |
 |-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Intent**      | Demonstrate working-memory memory units as a composable layer over DICE extraction                                                                                                                      |
+| **Intent**      | Demonstrate working-memory AWMUs as a composable layer over DICE extraction                                                                                                                      |
 | **Current fit** | DICE provides extraction; ARC-Mem consumes output and adds lifecycle governance. Integration is functional but loosely coupled (no shared hooks)                                                          |
 | **Known gaps**  | No DICE lifecycle hooks, no temporal primitives, text-keyed maps, fail-open parse paths                                                                                                                   |
 | **Next steps**  | (1) add temporal metadata to persistence model, (2) publish deterministic ablation manifests                                                                                                              |
@@ -415,7 +415,7 @@ All properties are under the `arc-mem` prefix in `application.yml`. Defaults are
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `budget` | int | `20` | Maximum active memory units per context. Lowest-ranked non-pinned units are evicted when exceeded. |
+| `budget` | int | `20` | Maximum active AWMUs per context. Lowest-ranked non-pinned AWMUs are evicted when exceeded. |
 | `initial-rank` | int | `500` | Activation score assigned on promotion. Must be within `[min-rank, max-rank]`. |
 | `min-rank` | int | `100` | Activation score floor. Clamped by `MemoryUnit.clampRank()`. |
 | `max-rank` | int | `900` | Activation score ceiling. Must be > `min-rank`. |
@@ -465,14 +465,14 @@ All properties are under the `arc-mem` prefix in `application.yml`. Defaults are
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `enabled` | boolean | `false` | Pre-populate chat contexts with seed memory units. |
+| `enabled` | boolean | `false` | Pre-populate chat contexts with seed AWMUs. |
 | `units` | list | `[]` | Seed unit definitions. Each has `text`, `authority` (default `RELIABLE`), `rank` (default `500`), `pinned` (default `false`). |
 
 ### `arc-mem.assembly` — Prompt Assembly
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `prompt-token-budget` | int | `0` | Maximum tokens for memory unit injection block. `0` = unlimited. |
+| `prompt-token-budget` | int | `0` | Maximum tokens for AWMU injection block. `0` = unlimited. |
 | `adaptive-footprint-enabled` | boolean | `false` | Authority-graduated templates: PROVISIONAL gets full text, CANON gets minimal reference. |
 | `enforcement-strategy` | enum | `PROMPT_ONLY` | How compliance is enforced. `PROMPT_ONLY` (prompt instructions), `POST_GENERATION` (LLM validation), `HYBRID` (both), `PROLOG` (deterministic invariant checking). |
 
@@ -503,7 +503,7 @@ All properties are under the `arc-mem` prefix in `application.yml`. Defaults are
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `clear-on-start` | boolean | `false` | Wipe all propositions and memory units on application startup. Useful for development. |
+| `clear-on-start` | boolean | `false` | Wipe all propositions and AWMUs on application startup. Useful for development. |
 
 ### `arc-mem.sim` — Simulation Engine
 
@@ -640,14 +640,14 @@ Go to `http://localhost:8089` (routes to `SimulationView`).
 **UI Controls:**
 
 - **Scenario selector** — dropdown of all loaded scenarios from `src/main/resources/simulations/`
-- **Injection toggle** — enable/disable memory unit injection mid-run
+- **Injection toggle** — enable/disable AWMU injection mid-run
 - **Run / Pause / Resume / Cancel** — turn-boundary execution controls
 - **Conversation panel** — turn-by-turn messages with verdict badges
-- **Context Inspector** — 4-tab view: memory unit state, system prompt, context trace, compaction
-- **Memory Unit Timeline** — visual lifecycle event log
+- **Context Inspector** — 4-tab view: AWMU state, system prompt, context trace, compaction
+- **AWMU Timeline** — visual lifecycle event log
 - **Drift Summary** — aggregate metrics (survival rate, contradiction counts, strategy effectiveness)
 - **Run History** — cross-run comparison
-- **Manipulation Panel** — modify memory unit activation scores during paused simulation
+- **Manipulation Panel** — modify AWMU activation scores during paused simulation
 
 Each run generates a unique `contextId` (`sim-{uuid}`) for Neo4j isolation.
 
@@ -657,7 +657,7 @@ Navigate to `http://localhost:8089/benchmark`.
 
 **Configure the benchmark matrix:**
 
-- **Conditions**: `FULL_UNITS`, `NO_UNITS`, `FLAT_AUTHORITY` (and `NO_TRUST` once implemented)
+- **Conditions**: `FULL_AWMU`, `NO_AWMU`, `FLAT_AUTHORITY` (and `NO_TRUST` once implemented)
 - **Scenario pack**: deterministic claim pack for primary evidence; stochastic stress pack for secondary
 - **Repetitions**: 10-20 per cell for stable results
 
@@ -676,13 +676,13 @@ Scenarios are YAML files in `src/main/resources/simulations/`. Each file defines
 | `model`, `temperature`, `maxTurns`, `warmUpTurns` | Execution parameters |
 | `setting`                                         | Multi-line campaign context injected into the DM system prompt |
 | `groundTruth`                                     | Facts to evaluate against (id + text) |
-| `seedUnits`                                       | Pre-seeded memory units (text, authority, activation score) |
+| `seedUnits`                                       | Pre-seeded AWMUs (text, authority, activation score) |
 | `turns`                                           | Scripted player turns with type, strategy, prompt, targetFact |
 | `assertions`                                      | Post-run validation (unit-count, activation-score-distribution, kg-context-contains, etc.) |
 | `trustConfig`                                     | Optional trust profile and weight overrides |
 | `compactionConfig`                                | Optional compaction triggers and thresholds |
 
-**Scene-setting turn 0** — when `setting` is non-blank and extraction is enabled, an `ESTABLISH` turn runs before turn 1. The DM narrates the setting; DICE extraction captures initial propositions as memory units.
+**Scene-setting turn 0** — when `setting` is non-blank and extraction is enabled, an `ESTABLISH` turn runs before turn 1. The DM narrates the setting; DICE extraction captures initial propositions as AWMUs.
 
 Current corpus: 22 scenarios (plus strategy catalog), 357 scripted turns, 180 evaluated turns.
 
@@ -690,25 +690,25 @@ Current corpus: 22 scenarios (plus strategy catalog), 357 scripted turns, 180 ev
 
 - `adaptive-tavern-fire.yml` — Adaptive adversary in tavern fire narrative
 - `adversarial-contradictory.yml` — Straightforward contradiction attacks
-- `adversarial-displacement.yml` — Memory unit displacement attacks
+- `adversarial-displacement.yml` — AWMU displacement attacks
 - `adversarial-poisoned-player.yml` — Attack via indirect NPC persona compromise
 - `context-drift.yml` — Test semantic drift over long turns
 - `authority-inversion-chain.yml` — Authority hierarchy inversion attacks
 - `balanced-campaign.yml` — Multi-session campaign with dormancy
-- `budget-starvation-interference.yml` — Budget exhaustion via low-value memory unit flooding
+- `budget-starvation-interference.yml` — Budget exhaustion via low-value AWMU flooding
 - `compaction-stress.yml` — Stress-test context summarization
 - `conflicting-canon-crisis.yml` — Conflicting CANON-level assertions
 - `cursed-blade.yml` — Narrative scenario (artifact curse detection)
 - `dead-kingdom.yml` — High-complexity kingdom state
 - `dormancy-revival.yml` — Test activation score decay and archive/revival
-- `dungeon-of-mirrors.yml` — Illusion-based memory unit confusion attacks
-- `episodic-recall.yml` — Multi-episode memory unit retention
+- `dungeon-of-mirrors.yml` — Illusion-based AWMU confusion attacks
+- `episodic-recall.yml` — Multi-episode AWMU retention
 - `evidence-laundering-poisoning.yml` — Evidence laundering through indirect attribution
 - `extraction-baseline.yaml` — Extraction accuracy baseline (no attacks)
 - `extraction-under-attack.yaml` — Extraction accuracy under stress-test contradiction pressure
 - `gen-adversarial-dungeon.yml` — LLM-generated dungeon + adaptive attacks
 - `gen-easy-dungeon.yml` — LLM-generated dungeon + baseline (no attacks)
-- `multi-session-campaign.yml` — Memory units persisted across sessions
+- `multi-session-campaign.yml` — AWMUs persisted across sessions
 - `narrative-dm-driven.yml` — DM-controlled narrative (no adversary)
 - `trust-evaluation-basic.yml` — Basic trust score evaluation
 - `trust-evaluation-full-signals.yml` — Full trust score with all signals
@@ -738,8 +738,8 @@ groundTruth:                      # Facts to evaluate against
   - id: string                    # Fact identifier (referenced in turns)
     text: string                  # The ground truth statement
 
-seedUnits:                        # Pre-seeded memory units at scenario start
-  - text: string                  # Memory unit text
+seedUnits:                        # Pre-seeded AWMUs at scenario start
+  - text: string                  # AWMU text
     authority: string             # PROVISIONAL | UNRELIABLE | RELIABLE | CANON
     rank: int                     # Initial activation score [100-900]
 
@@ -772,28 +772,28 @@ assertions:                       # Optional post-run validation
 
 | Type | Params | Validates |
 |------|--------|-----------|
-| `unit-count` | `min`, `max` | Final memory unit count is within range |
-| `activation-score-distribution` | `minAbove`, `rankThreshold` | At least N memory units have activation score above threshold |
+| `unit-count` | `min`, `max` | Final AWMU count is within range |
+| `activation-score-distribution` | `minAbove`, `rankThreshold` | At least N AWMUs have activation score above threshold |
 | `trust-score-range` | `min`, `max` | All trust scores fall within range |
-| `promotion-zone` | `zone`, `minCount` | At least N memory units are in the specified zone |
-| `authority-at-most` | `maxAuthority` | No memory unit exceeds the specified authority level |
-| `kg-context-contains` | `patterns` | Final memory unit texts contain all specified patterns |
-| `kg-context-empty` | (none) | No active memory units remain |
-| `no-canon-auto-assigned` | (none) | No memory unit has CANON authority |
+| `promotion-zone` | `zone`, `minCount` | At least N AWMUs are in the specified zone |
+| `authority-at-most` | `maxAuthority` | No AWMU exceeds the specified authority level |
+| `kg-context-contains` | `patterns` | Final AWMU texts contain all specified patterns |
+| `kg-context-empty` | (none) | No active AWMUs remain |
+| `no-canon-auto-assigned` | (none) | No AWMU has CANON authority |
 | `compaction-integrity` | `requiredFacts` | All required facts survive compaction |
 
 ### Per-Turn Execution Sequence
 
 `SimulationTurnExecutor` runs each turn:
 
-1. Query active memory units via `ArcMemEngine.inject(contextId)`
-2. Format memory units as `ESTABLISHED FACTS` block (if injection enabled)
+1. Query active AWMUs via `ArcMemEngine.inject(contextId)`
+2. Format AWMUs as `ESTABLISHED FACTS` block (if injection enabled)
 3. Build system prompt — DM persona, campaign setting, context block, contradiction resistance instructions
 4. Build user prompt — recent conversation history + current player message
 5. Call LLM via Spring AI `ChatModel`
-6. Build `ContextTrace` (token counts, injected memory units, full prompts)
+6. Build `ContextTrace` (token counts, injected AWMUs, full prompts)
 7. If turn type requires evaluation — send to evaluator LLM, parse JSON verdicts with severity
-8. Diff memory unit state vs previous turn — detect CREATED, REINFORCED, DECAYED, AUTHORITY_CHANGED, EVICTED, ARCHIVED events
+8. Diff AWMU state vs previous turn — detect CREATED, REINFORCED, DECAYED, AUTHORITY_CHANGED, EVICTED, ARCHIVED events
 9. Check compaction thresholds; compact if needed (`CompactionValidator` checks protected fact survival)
 10. Return `TurnExecutionResult`
 
@@ -893,22 +893,22 @@ arc-mem uses [OpenSpec](https://github.com/Fission-AI/OpenSpec) for structured f
 
 ## Ongoing Research
 
-### Collaborative Memory Unit Mutation
+### Collaborative AWMU Mutation
 
-The [collaborative-unit-mutation roadmap](openspec/changes/archive/roadmap/2026-03-03-collaborative-unit-mutation/roadmap.md) tackles legitimate revision of established memory units in multi-actor contexts — when an update isn't a contradiction but the memory unit still needs to change. Main threads:
+The [collaborative-unit-mutation roadmap](openspec/changes/archive/roadmap/2026-03-03-collaborative-unit-mutation/roadmap.md) tackles legitimate revision of established AWMUs in multi-actor contexts — when an update isn't a contradiction but the AWMU still needs to change. Main threads:
 
 - **Revision intent classification** — `ConflictType` enum distinguishing REVISION from CONTRADICTION
-- **Authority-gated revision eligibility** — prompt compliance carveout for memory units that can be revised
-- **Dependent memory unit cascade** — invalidation of dependent memory units on supersession
+- **Authority-gated revision eligibility** — prompt compliance carveout for AWMUs that can be revised
+- **Dependent AWMU cascade** — invalidation of dependent AWMUs on supersession
 - **Provenance metadata** — extraction turn and speaker role tracking
-- **UI-controlled mutation** — explicit memory unit editing via the chat sidebar
+- **UI-controlled mutation** — explicit AWMU editing via the chat sidebar
 
 The most interesting finding so far: none of the AI memory frameworks I looked at distinguish update from contradiction. They either let the model overwrite memory or reject the conflicting input outright. Revision as a first-class operation seems underexplored.
 
 ### Current Direction: AGM Belief Revision
 
 AGM belief revision theory turned out to be a good theoretical fit:
-- **Contraction** maps to memory unit archival
+- **Contraction** maps to AWMU archival
 - **Revision** maps to supersession (archive + create successor)
 - **Entrenchment ordering** maps to authority tiers
 - **Minimal change principle** constrains cascade scope
@@ -918,23 +918,23 @@ Also drawing on truth maintenance systems for cascade propagation patterns, Wiki
 ### Future Work
 
 - **Creative retrieval** — spreading activation and graph-native retrieval for serendipitous knowledge discovery
-- **A2A governance** — multi-agent memory unit revision protocols
+- **A2A governance** — multi-agent AWMU revision protocols
 - Memory poisoning threat model and defenses
 - Expanding test harness to multiple Semantic Unit types.  
 
 ### Known Limitations
 
-- **Weak instruction followers** — some models ignore system prompt directives regardless of formatting. Memory units can't help if the model won't read them.
-- **Cross-session persistence** — memory units must survive context resets and be reconstructed from storage. This works but hasn't been stress-tested.
+- **Weak instruction followers** — some models ignore system prompt directives regardless of formatting. AWMUs can't help if the model won't read them.
+- **Cross-session persistence** — AWMUs must survive context resets and be reconstructed from storage. This works but hasn't been stress-tested.
 
 ### Open Questions
 
 1. **Dynamic budget and memory pressure** — Could ARC-Mem adapt budget dynamically based on conversation pressure? ACON's failure-driven compression suggests eviction policy could be driven by what causes drift, not just activation score.
-2. **Premature commitment and memory unit timing** — Memory units established in early turns could compound premature commitment (per Laban et al.). When should memory units be promoted? Is there a minimum conversation maturity threshold?
+2. **Premature commitment and AWMU timing** — AWMUs established in early turns could compound premature commitment (per Laban et al.). When should AWMUs be promoted? Is there a minimum conversation maturity threshold?
 3. **Bi-temporal validity** — Graphiti/Zep distinguishes world-time validity from system-recording time. ARC-Mem currently has no temporal dimension. How should temporal validity interact with authority?
 4. **Graph-based reinforcement** — HippoRAG uses spreading activation and personalized PageRank. Current reinforcement is count-based (+50 per mention). Could reinforcement consider knowledge graph position (centrality)?
-5. **Self-editing memory units** — MemGPT allows model self-editing of memory blocks. Could the model propose modifications to memory units? Authority constraints could limit this to PROVISIONAL memory units.
-6. **Operator-defined invariants** — In production, the most valuable memory units will be defined upfront by operators. This points toward an invariant definition API.
+5. **Self-editing AWMUs** — MemGPT allows model self-editing of memory blocks. Could the model propose modifications to AWMUs? Authority constraints could limit this to PROVISIONAL AWMUs.
+6. **Operator-defined invariants** — In production, the most valuable AWMUs will be defined upfront by operators. This points toward an invariant definition API.
 7. **Conflict detection at scale** — As the pool grows, conflicts may be indirect (two facts individually consistent but collectively contradictory). Graph-based consistency checking may be needed.
 
 ## Links

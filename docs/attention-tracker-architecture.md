@@ -1,6 +1,6 @@
 # Attention Tracker Architecture
 
-This subsystem tracks short-horizon attention pressure per memory unit.
+This subsystem tracks short-horizon attention pressure per ARC Working Memory Unit (AWMU).
 
 ## Package
 
@@ -16,10 +16,10 @@ Core classes:
 ## Event flow
 
 ```text
-MemoryUnitLifecycleEvent
+AWMULifecycleEvent
   -> AttentionTracker.onLifecycleEvent()
   -> update window in ConcurrentHashMap.compute(key, ...)
-  -> evaluate per-unit thresholds
+  -> evaluate per-AWMU thresholds
   -> evaluateClusterDrift(contextId)
   -> publish AttentionSignal with AttentionSnapshot
 ```
@@ -28,7 +28,7 @@ Per-key update path is atomic because of `compute(...)`.
 
 ```mermaid
 flowchart TD
-    E["MemoryUnitLifecycleEvent"] --> L["onLifecycleEvent()"]
+    E["AWMULifecycleEvent"] --> L["onLifecycleEvent()"]
     L --> U["windows.compute(key, updater)"]
     U --> T["evaluateThresholds(key, window)"]
     T --> C["evaluateClusterDrift(contextId)"]
@@ -47,7 +47,7 @@ burstFactor   = recentQuarterDensity / uniformExpectedDensity
 ```
 
 Interpretation:
-- high `heatScore`: this memory unit is active now
+- high `heatScore`: this AWMU is active now
 - high `pressureScore`: conflict-heavy activity
 - high `burstFactor`: sudden concentrated activity burst
 
@@ -55,8 +55,8 @@ Interpretation:
 
 - `PRESSURE_SPIKE`: conflict pressure exceeded threshold and minimum conflict floor
 - `HEAT_PEAK`: heat crossed peak threshold
-- `HEAT_DROP`: memory unit cooled below drop threshold after a peak
-- `CLUSTER_DRIFT`: enough memory units in same context are in active `HEAT_DROP`
+- `HEAT_DROP`: AWMU cooled below drop threshold after a peak
+- `CLUSTER_DRIFT`: enough AWMUs in same context are in active `HEAT_DROP`
 
 Cluster drift is tracked via synthetic key `("__cluster__", contextId)` in hysteresis state.
 
@@ -111,7 +111,7 @@ All under `arc-mem.attention.*`.
 | `min-conflicts-for-pressure` | `3` | minimum conflict count guard |
 | `heat-peak-threshold` | `0.7` | heat peak threshold |
 | `heat-drop-threshold` | `0.2` | cool-down threshold |
-| `cluster-drift-min-units` | `3` | memory units required for drift signal |
+| `cluster-drift-min-units` | `3` | AWMUs required for drift signal |
 | `max-expected-events-per-window` | `20` | heat normalization ceiling |
 
 ## Design choices
@@ -122,6 +122,6 @@ All under `arc-mem.attention.*`.
 
 ## Near-term improvements
 
-1. Fold attention into `RelevanceScorer` to boost contested memory units in prompt injection.
+1. Fold attention into `RelevanceScorer` to boost contested AWMUs in prompt injection.
 2. Surface `CLUSTER_DRIFT` warnings in `RunInspectorView`.
 3. Add tests for async-event safety if listener mode changes.

@@ -52,11 +52,11 @@ The `NO_ANCHORS` condition SHALL configure: `injectionEnabled = false`. All othe
 - **WHEN** the `NO_ANCHORS` condition is inspected
 - **THEN** `injectionEnabled` SHALL be `false`
 
-#### Scenario: Simulation runs with NO_ANCHORS receive no memory unit context
+#### Scenario: Simulation runs with NO_ANCHORS receive no ARC Working Memory Unit (AWMU) context
 
 - **GIVEN** a scenario with seed units
 - **WHEN** the scenario is run with `NO_ANCHORS` applied
-- **THEN** the simulation SHALL proceed without injecting memory unit context into the LLM prompt
+- **THEN** the simulation SHALL proceed without injecting AWMU context into the LLM prompt
 
 ### Requirement: FLAT_AUTHORITY condition
 
@@ -94,21 +94,21 @@ The `NO_RANK_DIFFERENTIATION` condition SHALL configure: `injectionEnabled = tru
 
 ### Requirement: Condition application timing
 
-Ablation conditions SHALL be applied at the seed-unit level BEFORE the simulation loop starts. Conditions SHALL NOT mutate live memory unit state mid-run. Specifically, when a condition specifies an `authorityOverride` or `rankOverride`, those overrides SHALL be applied to the seed unit definitions prior to their insertion into the simulation context, not to memory units that are already persisted in the simulation.
+Ablation conditions SHALL be applied at the seed-unit level BEFORE the simulation loop starts. Conditions SHALL NOT mutate live AWMU state mid-run. Specifically, when a condition specifies an `authorityOverride` or `rankOverride`, those overrides SHALL be applied to the seed unit definitions prior to their insertion into the simulation context, not to AWMUs that are already persisted in the simulation.
 
 #### Scenario: Condition applied before simulation loop
 
 - **GIVEN** a scenario with 3 seed units and the `FLAT_AUTHORITY` condition
 - **WHEN** the simulation begins
 - **THEN** the seed units SHALL be modified to have `authority = RELIABLE` before the first turn executes
-- **AND** no memory unit state SHALL be mutated by the condition after turn 1 begins
+- **AND** no AWMU state SHALL be mutated by the condition after turn 1 begins
 
-#### Scenario: Condition does not affect memory units created during simulation
+#### Scenario: Condition does not affect AWMUs created during simulation
 
 - **GIVEN** a scenario running under `NO_RANK_DIFFERENTIATION` with `rankOverride = 500`
-- **WHEN** a new memory unit is created during the simulation via the normal promotion path
-- **THEN** the newly created memory unit's rank SHALL NOT be overridden to 500 by the condition
-- **AND** the memory unit SHALL receive whatever rank the promotion logic assigns
+- **WHEN** a new AWMU is created during the simulation via the normal promotion path
+- **THEN** the newly created AWMU's rank SHALL NOT be overridden to 500 by the condition
+- **AND** the AWMU SHALL receive whatever rank the promotion logic assigns
 
 ### Requirement: Condition extensibility
 
@@ -116,13 +116,13 @@ The ablation condition model SHOULD support custom conditions beyond the four bu
 
 #### Scenario: Custom condition with specific overrides
 
-- **GIVEN** a need to test with all memory units at rank 300 and authority UNRELIABLE
+- **GIVEN** a need to test with all AWMUs at rank 300 and authority UNRELIABLE
 - **WHEN** a custom condition is created with `injectionEnabled = true`, `authorityOverride = UNRELIABLE`, `rankOverride = 300`, `rankMutationEnabled = true`, `authorityPromotionEnabled = false`
 - **THEN** the condition SHALL be usable in an experiment definition alongside built-in conditions
 
 ### Requirement: Condition respects ARC-Mem invariants
 
-Ablation conditions SHALL NOT violate the existing ARC-Mem invariants: A1 (active count <= budget), A2 (rank clamped to [100, 900]), A3 (explicit promotion only), A4 (authority upgrade-only). If a `rankOverride` value falls outside [100, 900], it SHALL be clamped using `ContextUnit.clampRank()`. If an `authorityOverride` would represent a downgrade for a seed unit, the override SHALL still be applied because the condition is configuring seed state, not mutating live memory unit state.
+Ablation conditions SHALL NOT violate the existing ARC-Mem invariants: A1 (active count <= budget), A2 (rank clamped to [100, 900]), A3 (explicit promotion only), A4 (authority upgrade-only). If a `rankOverride` value falls outside [100, 900], it SHALL be clamped using `ContextUnit.clampRank()`. If an `authorityOverride` would represent a downgrade for a seed unit, the override SHALL still be applied because the condition is configuring seed state, not mutating live AWMU state.
 
 #### Scenario: Rank override clamped to valid range
 

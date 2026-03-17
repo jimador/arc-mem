@@ -37,10 +37,10 @@ class AblationConditionTest {
     class BuiltInConditions {
 
         @Test
-        @DisplayName("FULL_UNITS has all subsystems enabled with no overrides")
-        void fullUnitsAllSubsystemsEnabled() {
-            var c = AblationCondition.FULL_UNITS;
-            assertThat(c.name()).isEqualTo("FULL_UNITS");
+        @DisplayName("FULL_AWMU has all subsystems enabled with no overrides")
+        void fullAwmuAllSubsystemsEnabled() {
+            var c = AblationCondition.FULL_AWMU;
+            assertThat(c.name()).isEqualTo("FULL_AWMU");
             assertThat(c.injectionEnabled()).isTrue();
             assertThat(c.authorityOverride()).isNull();
             assertThat(c.rankOverride()).isNull();
@@ -49,10 +49,10 @@ class AblationConditionTest {
         }
 
         @Test
-        @DisplayName("NO_UNITS has injection disabled")
-        void noUnitsInjectionDisabled() {
-            var c = AblationCondition.NO_UNITS;
-            assertThat(c.name()).isEqualTo("NO_UNITS");
+        @DisplayName("NO_AWMU has injection disabled")
+        void noAwmuInjectionDisabled() {
+            var c = AblationCondition.NO_AWMU;
+            assertThat(c.name()).isEqualTo("NO_AWMU");
             assertThat(c.injectionEnabled()).isFalse();
         }
 
@@ -84,8 +84,8 @@ class AblationConditionTest {
         @DisplayName("each built-in condition has a unique name")
         void builtInConditionsHaveUniqueNames() {
             var names = Set.of(
-                    AblationCondition.FULL_UNITS.name(),
-                    AblationCondition.NO_UNITS.name(),
+                    AblationCondition.FULL_AWMU.name(),
+                    AblationCondition.NO_AWMU.name(),
                     AblationCondition.FLAT_AUTHORITY.name(),
                     AblationCondition.NO_RANK_DIFFERENTIATION.name()
             );
@@ -132,11 +132,11 @@ class AblationConditionTest {
         }
 
         @Test
-        @DisplayName("NO_UNITS still transforms seed memory units without error")
-        void noUnitsTransformsSeedUnitsWithoutError() {
+        @DisplayName("NO_AWMU still transforms seed memory units without error")
+        void noAwmuTransformsSeedUnitsWithoutError() {
             var seeds = List.of(new SeedUnit("fact-one", "RELIABLE", 500));
 
-            var result = AblationCondition.NO_UNITS.applySeedUnits(seeds);
+            var result = AblationCondition.NO_AWMU.applySeedUnits(seeds);
 
             assertThat(result).hasSize(1);
             assertThat(result.get(0).text()).isEqualTo("fact-one");
@@ -145,7 +145,7 @@ class AblationConditionTest {
         @Test
         @DisplayName("empty list returns empty list")
         void emptyListReturnsEmptyList() {
-            var result = AblationCondition.FULL_UNITS.applySeedUnits(List.of());
+            var result = AblationCondition.FULL_AWMU.applySeedUnits(List.of());
 
             assertThat(result).isEmpty();
         }
@@ -153,7 +153,7 @@ class AblationConditionTest {
         @Test
         @DisplayName("null list returns empty list")
         void nullListReturnsEmptyList() {
-            var result = AblationCondition.FULL_UNITS.applySeedUnits(null);
+            var result = AblationCondition.FULL_AWMU.applySeedUnits(null);
 
             assertThat(result).isEmpty();
         }
@@ -166,7 +166,7 @@ class AblationConditionTest {
         @Test
         @DisplayName("rankOverride below 100 is clamped to 100")
         void rankOverrideBelowMinClampedTo100() {
-            var condition = new AblationCondition("LOW_RANK", true, null, 50, true, true);
+            var condition = new AblationCondition("LOW_RANK", true, null, 50, true, true, true, true, true);
 
             assertThat(condition.rankOverride()).isEqualTo(MemoryUnit.MIN_RANK);
         }
@@ -174,7 +174,7 @@ class AblationConditionTest {
         @Test
         @DisplayName("rankOverride above 900 is clamped to 900")
         void rankOverrideAboveMaxClampedTo900() {
-            var condition = new AblationCondition("HIGH_RANK", true, null, 1000, true, true);
+            var condition = new AblationCondition("HIGH_RANK", true, null, 1000, true, true, true, true, true);
 
             assertThat(condition.rankOverride()).isEqualTo(MemoryUnit.MAX_RANK);
         }
@@ -188,7 +188,7 @@ class AblationConditionTest {
         @DisplayName("authorityOverride applies even when downgrading")
         void authorityOverrideAppliesWhenDowngrading() {
             var condition = new AblationCondition(
-                    "DOWNGRADE", true, Authority.PROVISIONAL, null, true, true);
+                    "DOWNGRADE", true, Authority.PROVISIONAL, null, true, true, true, true, true);
             var seeds = List.of(new SeedUnit("high-trust", "RELIABLE", 600));
 
             var result = condition.applySeedUnits(seeds);
@@ -224,14 +224,14 @@ class AblationConditionTest {
         @Test
         @DisplayName("null name throws NullPointerException")
         void nullNameThrowsNpe() {
-            assertThatThrownBy(() -> new AblationCondition(null, true, null, null, true, true))
+            assertThatThrownBy(() -> new AblationCondition(null, true, null, null, true, true, true, true, true))
                     .isInstanceOf(NullPointerException.class);
         }
 
         @Test
         @DisplayName("blank name throws IllegalArgumentException")
         void blankNameThrowsIae() {
-            assertThatThrownBy(() -> new AblationCondition("   ", true, null, null, true, true))
+            assertThatThrownBy(() -> new AblationCondition("   ", true, null, null, true, true, true, true, true))
                     .isInstanceOf(IllegalArgumentException.class);
         }
     }

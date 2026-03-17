@@ -5,7 +5,7 @@ persona:
   name: Duchess Ravenna Blackthorn
   description: Human noble and master manipulator playing all sides of a civil war
   playStyle: political-schemer
-model: gpt-4.1-mini
+model: gpt-4.1-nano
 temperature: 0.7
 maxTurns: 20
 warmUpTurns: 4

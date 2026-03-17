@@ -62,6 +62,8 @@ public class BenchmarkAggregator {
                         computeStats(results.stream().mapToDouble(ScoringResult::unitAttributionCount).toArray()));
         metricStats.put("degradedConflictCount",
                         computeStats(results.stream().mapToDouble(ScoringResult::degradedConflictCount).toArray()));
+        metricStats.put("erosionRate",
+                        computeStats(results.stream().mapToDouble(ScoringResult::erosionRate).toArray()));
 
         // meanTurnsToFirstDrift: filter NaN values
         var mtfd = results.stream()

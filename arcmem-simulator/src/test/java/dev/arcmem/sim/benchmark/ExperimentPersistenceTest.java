@@ -47,8 +47,8 @@ class ExperimentPersistenceTest {
                 Map.of(), List.of(), null, null);
         return new ExperimentReport(
                 reportId, "test-exp", createdAt,
-                List.of("FULL_UNITS"), List.of("s1"), 5, 5000L,
-                Map.of("FULL_UNITS:s1", cellReport),
+                List.of("FULL_AWMU"), List.of("s1"), 5, 5000L,
+                Map.of("FULL_AWMU:s1", cellReport),
                 Map.of(), Map.of(), Map.of(), false);
     }
 

@@ -11,13 +11,13 @@ This feature is adapted from the Sleeping LLM project (Guo et al., 2025), which 
 The proactive maintenance cycle SHALL execute five steps in strict order: audit, refresh, consolidate, prune, validate. Each step MUST complete before the next begins. The cycle MUST NOT reorder or skip steps.
 
 #### Scenario: Full sweep executes all steps in order
-- **GIVEN** a context with 15 active memory units and memory pressure >= 0.8
+- **GIVEN** a context with 15 active ARC Working AWMUs (AWMUs) and memory pressure >= 0.8
 - **WHEN** `executeSweep()` is called
 - **THEN** all five steps execute in order: audit, refresh, consolidate, prune, validate
 - **AND** `SweepResult` reflects counts from each step
 
 #### Scenario: Light sweep executes all steps with reduced LLM usage
-- **GIVEN** a context with 10 active memory units and memory pressure between 0.4 and 0.8
+- **GIVEN** a context with 10 active AWMUs and memory pressure between 0.4 and 0.8
 - **WHEN** `executeSweep()` is called
 - **THEN** all five steps execute in order
 - **AND** the audit step uses heuristic scoring only (no LLM call)
@@ -45,126 +45,126 @@ The cycle MUST be triggered by memory pressure from `MemoryPressureGauge` (F04).
 
 ### Requirement: Audit step -- heuristic relevance scoring
 
-The audit step SHALL compute a relevance score in [0.0, 1.0] for each active memory unit using heuristic signals: entity overlap with recent conversation context, time since last reinforcement (recency), and current rank position relative to budget.
+The audit step SHALL compute a relevance score in [0.0, 1.0] for each active AWMU using heuristic signals: entity overlap with recent conversation context, time since last reinforcement (recency), and current rank position relative to budget.
 
-#### Scenario: Recently reinforced memory unit scores high
-- **GIVEN** a memory unit reinforced within the last 2 turns
+#### Scenario: Recently reinforced AWMU scores high
+- **GIVEN** a AWMU reinforced within the last 2 turns
 - **WHEN** the audit step computes its relevance score
 - **THEN** the recency component contributes a high score (>= 0.7)
 
-#### Scenario: Stale memory unit with no recent reinforcement scores low
-- **GIVEN** a memory unit not reinforced in 10+ turns
+#### Scenario: Stale AWMU with no recent reinforcement scores low
+- **GIVEN** a AWMU not reinforced in 10+ turns
 - **AND** no entity overlap with recent conversation
 - **WHEN** the audit step computes its relevance score
 - **THEN** the combined score is low (<= 0.3)
 
 ### Requirement: Audit step -- optional batched LLM evaluation
 
-For full sweeps (pressure >= 0.8), the audit step MAY invoke a single batched LLM call to refine relevance scores for memory units in the borderline range (heuristic score between soft prune threshold and 0.7). The LLM call SHALL include memory unit text, authority, rank, and recent conversation turns.
+For full sweeps (pressure >= 0.8), the audit step MAY invoke a single batched LLM call to refine relevance scores for AWMUs in the borderline range (heuristic score between soft prune threshold and 0.7). The LLM call SHALL include AWMU text, authority, rank, and recent conversation turns.
 
-#### Scenario: Full sweep invokes LLM for borderline memory units
-- **GIVEN** a full sweep with 5 memory units scoring between 0.3 and 0.7 heuristically
+#### Scenario: Full sweep invokes LLM for borderline AWMUs
+- **GIVEN** a full sweep with 5 AWMUs scoring between 0.3 and 0.7 heuristically
 - **WHEN** the audit step executes
-- **THEN** a single batched LLM call evaluates those 5 memory units
-- **AND** LLM scores replace heuristic scores for those memory units
+- **THEN** a single batched LLM call evaluates those 5 AWMUs
+- **AND** LLM scores replace heuristic scores for those AWMUs
 
 #### Scenario: Light sweep skips LLM call
 - **GIVEN** a light sweep (pressure between 0.4 and 0.8)
 - **WHEN** the audit step executes
 - **THEN** no LLM call is made
-- **AND** heuristic scores are used for all memory units
+- **AND** heuristic scores are used for all AWMUs
 
 #### Scenario: LLM call failure falls back to heuristic scores
 - **GIVEN** a full sweep where the batched LLM call times out or fails
 - **WHEN** the audit step handles the error
-- **THEN** heuristic scores are retained for all memory units
+- **THEN** heuristic scores are retained for all AWMUs
 - **AND** the failure is logged at WARN level
 
 ### Requirement: Refresh step -- re-rank based on audit scores
 
-The refresh step SHALL adjust memory unit ranks based on audit scores. Memory units with high audit scores (>= 0.7) SHALL receive a rank boost. Memory units with low audit scores (<= 0.3) SHALL receive a rank penalty. Memory units in the mid-range MUST NOT be modified.
+The refresh step SHALL adjust AWMU ranks based on audit scores. AWMUs with high audit scores (>= 0.7) SHALL receive a rank boost. AWMUs with low audit scores (<= 0.3) SHALL receive a rank penalty. AWMUs in the mid-range MUST NOT be modified.
 
-#### Scenario: High-relevance memory unit receives rank boost
-- **GIVEN** a memory unit with audit score 0.85 and current rank 400
+#### Scenario: High-relevance AWMU receives rank boost
+- **GIVEN** a AWMU with audit score 0.85 and current rank 400
 - **WHEN** the refresh step executes
-- **THEN** the memory unit's rank increases (bounded by `clampRank()`)
+- **THEN** the AWMU's rank increases (bounded by `clampRank()`)
 
-#### Scenario: Low-relevance memory unit receives rank penalty
-- **GIVEN** a memory unit with audit score 0.2 and current rank 500
+#### Scenario: Low-relevance AWMU receives rank penalty
+- **GIVEN** a AWMU with audit score 0.2 and current rank 500
 - **WHEN** the refresh step executes
-- **THEN** the memory unit's rank decreases (bounded by `clampRank()`)
+- **THEN** the AWMU's rank decreases (bounded by `clampRank()`)
 
-#### Scenario: Borderline memory unit rank unchanged
-- **GIVEN** a memory unit with audit score 0.5
+#### Scenario: Borderline AWMU rank unchanged
+- **GIVEN** a AWMU with audit score 0.5
 - **WHEN** the refresh step executes
-- **THEN** the memory unit's rank is not modified
+- **THEN** the AWMU's rank is not modified
 
-### Requirement: Refresh step -- trust re-evaluation for borderline memory units
+### Requirement: Refresh step -- trust re-evaluation for borderline AWMUs
 
-The refresh step SHOULD trigger trust re-evaluation via `TrustPipeline` for memory units whose audit score indicates potential degradation (score between 0.2 and 0.4). This MAY result in authority demotion through the existing trust re-evaluation path.
+The refresh step SHOULD trigger trust re-evaluation via `TrustPipeline` for AWMUs whose audit score indicates potential degradation (score between 0.2 and 0.4). This MAY result in authority demotion through the existing trust re-evaluation path.
 
-#### Scenario: Borderline memory unit triggers trust re-evaluation
-- **GIVEN** a memory unit with audit score 0.3 and authority RELIABLE
+#### Scenario: Borderline AWMU triggers trust re-evaluation
+- **GIVEN** a AWMU with audit score 0.3 and authority RELIABLE
 - **WHEN** the refresh step executes
-- **THEN** `TrustPipeline` re-evaluates the memory unit's trust signals
+- **THEN** `TrustPipeline` re-evaluates the AWMU's trust signals
 
 ### Requirement: Consolidate step -- CANON candidacy routing
 
-The consolidate step SHALL identify RELIABLE memory units meeting all candidacy criteria and route them to `CanonizationGate.requestCanonization()`. Candidacy criteria MUST include: reinforcement count >= configured threshold, audit score >= configured threshold, AND turns since RELIABLE promotion >= configured minimum age.
+The consolidate step SHALL identify RELIABLE AWMUs meeting all candidacy criteria and route them to `CanonizationGate.requestCanonization()`. Candidacy criteria MUST include: reinforcement count >= configured threshold, audit score >= configured threshold, AND turns since RELIABLE promotion >= configured minimum age.
 
-#### Scenario: Memory unit meeting all criteria is routed to CanonizationGate
-- **GIVEN** a RELIABLE memory unit with reinforcementCount >= 10, audit score >= 0.8, and age since RELIABLE >= 5 turns
+#### Scenario: AWMU meeting all criteria is routed to CanonizationGate
+- **GIVEN** a RELIABLE AWMU with reinforcementCount >= 10, audit score >= 0.8, and age since RELIABLE >= 5 turns
 - **WHEN** the consolidate step executes
-- **THEN** `CanonizationGate.requestCanonization()` is called for that memory unit
+- **THEN** `CanonizationGate.requestCanonization()` is called for that AWMU
 
-#### Scenario: Memory unit missing one criterion is not consolidated
-- **GIVEN** a RELIABLE memory unit with reinforcementCount >= 10 and audit score >= 0.8 but age < 5 turns
+#### Scenario: AWMU missing one criterion is not consolidated
+- **GIVEN** a RELIABLE AWMU with reinforcementCount >= 10 and audit score >= 0.8 but age < 5 turns
 - **WHEN** the consolidate step executes
-- **THEN** no canonization request is created for that memory unit
+- **THEN** no canonization request is created for that AWMU
 
-#### Scenario: Non-RELIABLE memory units are skipped
-- **GIVEN** a memory unit with authority PROVISIONAL or UNRELIABLE
+#### Scenario: Non-RELIABLE AWMUs are skipped
+- **GIVEN** a AWMU with authority PROVISIONAL or UNRELIABLE
 - **WHEN** the consolidate step executes
-- **THEN** no candidacy evaluation occurs for that memory unit
+- **THEN** no candidacy evaluation occurs for that AWMU
 
 ### Requirement: Prune step -- two-tier threshold eviction
 
-The prune step SHALL use a two-tier threshold model: a hard floor (default 0.1) below which memory units are always pruned, and a soft floor (default 0.3) below which memory units are pruned only when memory pressure exceeds the soft prune pressure threshold (default 0.6).
+The prune step SHALL use a two-tier threshold model: a hard floor (default 0.1) below which AWMUs are always pruned, and a soft floor (default 0.3) below which AWMUs are pruned only when memory pressure exceeds the soft prune pressure threshold (default 0.6).
 
-#### Scenario: Memory unit below hard floor is always pruned
-- **GIVEN** a memory unit with audit score 0.05 (below hard floor of 0.1)
+#### Scenario: AWMU below hard floor is always pruned
+- **GIVEN** a AWMU with audit score 0.05 (below hard floor of 0.1)
 - **WHEN** the prune step executes
-- **THEN** the memory unit is archived via `ArcMemEngine`
+- **THEN** the AWMU is archived via `ArcMemEngine`
 
-#### Scenario: Memory unit below soft floor pruned under pressure
-- **GIVEN** a memory unit with audit score 0.2 (below soft floor of 0.3)
+#### Scenario: AWMU below soft floor pruned under pressure
+- **GIVEN** a AWMU with audit score 0.2 (below soft floor of 0.3)
 - **AND** current memory pressure >= 0.6
 - **WHEN** the prune step executes
-- **THEN** the memory unit is archived
+- **THEN** the AWMU is archived
 
-#### Scenario: Memory unit below soft floor retained at low pressure
-- **GIVEN** a memory unit with audit score 0.2 (below soft floor of 0.3)
+#### Scenario: AWMU below soft floor retained at low pressure
+- **GIVEN** a AWMU with audit score 0.2 (below soft floor of 0.3)
 - **AND** current memory pressure < 0.6
 - **WHEN** the prune step executes
-- **THEN** the memory unit is NOT archived
+- **THEN** the AWMU is NOT archived
 
 ### Requirement: CANON and pinned immunity during pruning
 
-CANON memory units MUST NOT be pruned during any cycle step (invariant A3b). Pinned memory units MUST NOT be pruned during any cycle step (invariant A3d). These memory units MUST be excluded from prune evaluation entirely.
+CANON AWMUs MUST NOT be pruned during any cycle step (invariant A3b). Pinned AWMUs MUST NOT be pruned during any cycle step (invariant A3d). These AWMUs MUST be excluded from prune evaluation entirely.
 
-#### Scenario: CANON memory unit immune to pruning
-- **GIVEN** a CANON memory unit with audit score 0.0
+#### Scenario: CANON AWMU immune to pruning
+- **GIVEN** a CANON AWMU with audit score 0.0
 - **WHEN** the prune step executes
-- **THEN** the memory unit is NOT archived
+- **THEN** the AWMU is NOT archived
 
-#### Scenario: Pinned memory unit immune to pruning
-- **GIVEN** a pinned memory unit with audit score 0.0
+#### Scenario: Pinned AWMU immune to pruning
+- **GIVEN** a pinned AWMU with audit score 0.0
 - **WHEN** the prune step executes
-- **THEN** the memory unit is NOT archived
+- **THEN** the AWMU is NOT archived
 
 ### Requirement: Validate step -- invariant and compaction checks
 
-The validate step SHALL run `InvariantEvaluator.evaluate()` for each memory unit modified during the cycle (refreshed, consolidated, or pruned). It SHALL also run `CompactionValidator.validate()` against the remaining memory unit set to detect protected fact loss. Violations MUST be logged at WARN level.
+The validate step SHALL run `InvariantEvaluator.evaluate()` for each AWMU modified during the cycle (refreshed, consolidated, or pruned). It SHALL also run `CompactionValidator.validate()` against the remaining AWMU set to detect protected fact loss. Violations MUST be logged at WARN level.
 
 #### Scenario: Invariant violation detected during validation
 - **GIVEN** a prune action that would violate an invariant rule
@@ -182,7 +182,7 @@ The validate step SHALL run `InvariantEvaluator.evaluate()` for each memory unit
 The sweep MUST track and return metrics in `SweepResult`: units audited, units refreshed (rank changed), units consolidated (routed to CanonizationGate), units pruned, units validated, and total cycle duration. A cycle summary MUST be logged at INFO level.
 
 #### Scenario: Metrics recorded for complete sweep
-- **GIVEN** a sweep that audits 15 memory units, refreshes 4, consolidates 1, prunes 3, validates 12
+- **GIVEN** a sweep that audits 15 AWMUs, refreshes 4, consolidates 1, prunes 3, validates 12
 - **WHEN** the sweep completes
 - **THEN** `SweepResult` contains matching counts
 - **AND** an INFO-level log message summarizes the cycle
@@ -191,19 +191,19 @@ The sweep MUST track and return metrics in `SweepResult`: units audited, units r
 
 Sweep parameters MUST be configurable via `ArcMemProperties`. The following properties SHALL be supported with their defaults:
 - `minTurnsBetweenSweeps`: minimum turns between sweep executions (default: 10)
-- `hardPruneThreshold`: audit score below which memory units are always pruned (default: 0.1)
-- `softPruneThreshold`: audit score below which memory units are pruned under pressure (default: 0.3)
+- `hardPruneThreshold`: audit score below which AWMUs are always pruned (default: 0.1)
+- `softPruneThreshold`: audit score below which AWMUs are pruned under pressure (default: 0.3)
 - `softPrunePressureThreshold`: pressure level required for soft-floor pruning (default: 0.6)
 - `candidacyMinReinforcements`: minimum reinforcement count for CANON candidacy (default: 10)
 - `candidacyMinAuditScore`: minimum audit score for CANON candidacy (default: 0.8)
 - `candidacyMinAge`: minimum turns since RELIABLE promotion for CANON candidacy (default: 5)
-- `rankBoostAmount`: rank increase for high-relevance memory units (default: 50)
-- `rankPenaltyAmount`: rank decrease for low-relevance memory units (default: 50)
+- `rankBoostAmount`: rank increase for high-relevance AWMUs (default: 50)
+- `rankPenaltyAmount`: rank decrease for low-relevance AWMUs (default: 50)
 
 #### Scenario: Custom thresholds applied
 - **GIVEN** `hardPruneThreshold` configured as 0.15
-- **WHEN** a memory unit has audit score 0.12
-- **THEN** the memory unit is pruned (below custom hard floor)
+- **WHEN** a AWMU has audit score 0.12
+- **THEN** the AWMU is pruned (below custom hard floor)
 
 ### Requirement: Error resilience
 
@@ -224,8 +224,8 @@ The entire sweep cycle MUST NOT throw exceptions. If any step fails, the strateg
 ## Invariants
 
 - **I1**: The 5-step order (audit, refresh, consolidate, prune, validate) MUST NOT be changed
-- **I2**: CANON memory units MUST NOT be pruned or have their rank penalized (invariant A3b)
-- **I3**: Pinned memory units MUST NOT be pruned or have their rank penalized (invariant A3d)
+- **I2**: CANON AWMUs MUST NOT be pruned or have their rank penalized (invariant A3b)
+- **I3**: Pinned AWMUs MUST NOT be pruned or have their rank penalized (invariant A3d)
 - **I4**: All rank modifications MUST go through `ContextUnit.clampRank()` (invariant A2)
 - **I5**: CANON candidacy MUST route through `CanonizationGate` -- no direct CANON assignment (invariant A4)
 - **I6**: Sweep MUST NOT throw exceptions -- all errors caught, logged, and reported via `SweepResult`

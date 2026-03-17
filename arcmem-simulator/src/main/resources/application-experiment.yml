@@ -1,0 +1,2 @@
+# Experiment profile — runs alongside the full app (Vaadin requires web context).
+# The ExperimentMatrixCli CommandLineRunner activates when arc-mem.experiment.config is set.

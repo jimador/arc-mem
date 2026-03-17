@@ -5,7 +5,7 @@ persona:
   name: Archivist Pen
   description: Human wizard obsessed with cataloging every detail of every dungeon
   playStyle: meticulous-recorder
-model: gpt-4.1-mini
+model: gpt-4.1-nano
 temperature: 0.7
 maxTurns: 20
 warmUpTurns: 3

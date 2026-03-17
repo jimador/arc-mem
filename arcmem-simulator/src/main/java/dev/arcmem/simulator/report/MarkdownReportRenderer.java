@@ -175,15 +175,19 @@ public final class MarkdownReportRenderer {
         }
 
         sb.append("### Effect Sizes\n\n");
-        sb.append("| Comparison | Metric | Cohen's d | Interpretation |\n");
-        sb.append("|------------|--------|-----------|----------------|\n");
+        sb.append("| Comparison | Metric | Cohen's d | p-value (BH) | Sig. | Interpretation |\n");
+        sb.append("|------------|--------|-----------|--------------|------|----------------|\n");
 
         for (var es : effectSizes) {
             var comparison = es.conditionA() + " vs " + es.conditionB();
             var lowConfidenceMarker = es.lowConfidence() ? " *" : "";
+            var pValueCell = Double.isNaN(es.pValue()) ? "—" :
+                    (es.pValue() < 0.001 ? "< 0.001" : "%.4f".formatted(es.pValue()));
             sb.append("| ").append(comparison)
               .append(" | ").append(es.metricKey())
               .append(" | ").append("%.2f".formatted(es.cohensD()))
+              .append(" | ").append(pValueCell)
+              .append(" | ").append(es.significance())
               .append(" | ").append(es.interpretation()).append(lowConfidenceMarker)
               .append(" |\n");
         }

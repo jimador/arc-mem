@@ -16,7 +16,7 @@ pressure = (w_budget * budget_pressure)
 The result MUST be clamped to the range [0.0, 1.0]. The computation MUST be deterministic for the same inputs.
 
 #### Scenario: Pressure computable for any context
-- **GIVEN** a context with 15 active memory units and a budget cap of 20
+- **GIVEN** a context with 15 active ARC Working Memory Units (AWMUs) and a budget cap of 20
 - **AND** no recent conflicts, decays, or compactions
 - **WHEN** `computePressure(contextId)` is called
 - **THEN** the returned `PressureScore` MUST have a total in [0.0, 1.0]
@@ -24,7 +24,7 @@ The result MUST be clamped to the range [0.0, 1.0]. The computation MUST be dete
 - **AND** the conflict, decay, and compaction dimensions MUST each be 0.0
 
 #### Scenario: Pressure deterministic for identical state
-- **GIVEN** two calls to `computePressure(contextId)` with identical memory unit state and event history
+- **GIVEN** two calls to `computePressure(contextId)` with identical AWMU state and event history
 - **WHEN** both calls complete
 - **THEN** both MUST return identical `PressureScore` values
 
@@ -37,7 +37,7 @@ The result MUST be clamped to the range [0.0, 1.0]. The computation MUST be dete
 
 Each pressure dimension MUST be independently computable and reportable within the `PressureScore` record.
 
-**BUDGET**: Measures memory unit count utilization against the configured budget cap.
+**BUDGET**: Measures AWMU count utilization against the configured budget cap.
 
 ```
 budget_pressure = (activeCount / budgetCap) ^ exponent
@@ -70,18 +70,18 @@ compaction_pressure = compactionsInWindow / windowSize
 The compaction count MUST be incremented when a compaction event is recorded. The value MUST be clamped to [0.0, 1.0].
 
 #### Scenario: Budget pressure uses non-linear exponent
-- **GIVEN** a context with 18 active memory units and a budget cap of 20
+- **GIVEN** a context with 18 active AWMUs and a budget cap of 20
 - **AND** the exponent is 1.5
 - **WHEN** budget pressure is computed
 - **THEN** the raw budget pressure MUST equal `(18/20)^1.5` (approximately 0.859)
 
 #### Scenario: Budget pressure at zero utilization
-- **GIVEN** a context with 0 active memory units
+- **GIVEN** a context with 0 active AWMUs
 - **WHEN** budget pressure is computed
 - **THEN** the raw budget pressure MUST be 0.0
 
 #### Scenario: Budget pressure at full capacity
-- **GIVEN** a context with 20 active memory units and a budget cap of 20
+- **GIVEN** a context with 20 active AWMUs and a budget cap of 20
 - **WHEN** budget pressure is computed
 - **THEN** the raw budget pressure MUST be 1.0
 
@@ -105,7 +105,7 @@ The budget pressure exponent MUST be configurable via `ArcMemProperties` and MUS
 
 #### Scenario: Custom exponent changes pressure curve
 - **GIVEN** a configured exponent of 2.0
-- **AND** a context with 15 active memory units and a budget cap of 20
+- **AND** a context with 15 active AWMUs and a budget cap of 20
 - **WHEN** budget pressure is computed
 - **THEN** the raw budget pressure MUST equal `(15/20)^2.0` (0.5625)
 - **AND** this MUST differ from the default exponent result of `(15/20)^1.5` (approximately 0.515)
@@ -202,7 +202,7 @@ History MUST be cleared when the context is cleaned up (via `clearContext(contex
 |---|---|
 | `ConflictDetected` | conflict counter |
 | `AuthorityChanged` (direction=DEMOTED) | decay counter |
-| `Promoted`, `Archived`, `Evicted` | (trigger recount of active memory units for budget dimension) |
+| `Promoted`, `Archived`, `Evicted` | (trigger recount of active AWMUs for budget dimension) |
 
 Compaction events MUST be trackable via an explicit `recordCompaction(contextId)` method, since compaction is not currently an `UnitLifecycleEvent` subtype.
 
@@ -225,7 +225,7 @@ The gauge MUST NOT subscribe to its own `PressureThresholdBreached` events to av
 
 ### REQ-PERF: Performance constraints
 
-Pressure computation MUST NOT require LLM calls and MUST complete within millisecond-level latency. The gauge MUST NOT introduce blocking I/O or network calls. All inputs MUST be sourced from in-memory state (event counters, memory unit counts from the repository, and configuration values).
+Pressure computation MUST NOT require LLM calls and MUST complete within millisecond-level latency. The gauge MUST NOT introduce blocking I/O or network calls. All inputs MUST be sourced from in-memory state (event counters, AWMU counts from the repository, and configuration values).
 
 `MemoryPressureGauge` MUST NOT have any dependency on `ChatModel`, `LlmCallService`, or any LLM-related service.
 
@@ -240,6 +240,6 @@ Pressure computation MUST NOT require LLM calls and MUST complete within millise
 - **I3**: Dimension weights MUST sum to 1.0 (tolerance 0.001).
 - **I4**: `fullSweep` threshold MUST be strictly greater than `lightSweep` threshold.
 - **I5**: Pressure computation MUST be deterministic for the same inputs.
-- **I6**: The pressure gauge MUST NOT modify memory unit state. It is a read-only observer.
+- **I6**: The pressure gauge MUST NOT modify AWMU state. It is a read-only observer.
 - **I7**: `PressureThresholdBreached` events MUST NOT re-fire while the score remains above the threshold.
 - **I8**: All ARC-Mem invariants (A1-A4 per Article V of the constitution) MUST be preserved.

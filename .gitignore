@@ -39,3 +39,5 @@ nul
 
 .vaadin-node-tasks.lock
 .worktrees/
+
+**/experiment-output

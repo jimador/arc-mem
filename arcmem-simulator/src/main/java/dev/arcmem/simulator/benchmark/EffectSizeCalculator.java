@@ -1,17 +1,4 @@
 package dev.arcmem.simulator.benchmark;
-import dev.arcmem.core.memory.budget.*;
-import dev.arcmem.core.memory.canon.*;
-import dev.arcmem.core.memory.conflict.*;
-import dev.arcmem.core.memory.engine.*;
-import dev.arcmem.core.memory.maintenance.*;
-import dev.arcmem.core.memory.model.*;
-import dev.arcmem.core.memory.mutation.*;
-import dev.arcmem.core.memory.trust.*;
-import dev.arcmem.core.assembly.budget.*;
-import dev.arcmem.core.assembly.compaction.*;
-import dev.arcmem.core.assembly.compliance.*;
-import dev.arcmem.core.assembly.protection.*;
-import dev.arcmem.core.assembly.retrieval.*;
 
 import org.springframework.stereotype.Service;
 
@@ -20,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 /**
  * Computes cross-condition statistical comparisons for ablation experiments.
@@ -46,20 +34,16 @@ public class EffectSizeCalculator {
 
     private static final List<String> METRICS = List.of(
             "factSurvivalRate", "contradictionCount", "majorContradictionCount",
-            "driftAbsorptionRate", "meanTurnsToFirstDrift", "unitAttributionCount"
+            "driftAbsorptionRate", "meanTurnsToFirstDrift", "unitAttributionCount",
+            "erosionRate", "complianceRate"
     );
 
-    /**
-     * Computes Cohen's d effect size between every pair of conditions for each scoring metric.
-     * <p>
-     * Cell reports are keyed by "conditionName:scenarioId". For each condition pair,
-     * metrics are aggregated across all scenarios that both conditions share.
-     *
-     * @param cellReports cell-level BenchmarkReports keyed by "conditionName:scenarioId"
-     * @param conditions  the ablation conditions tested
-     *
-     * @return effect size matrix keyed by "condA:condB" (alphabetical order) → metric name → entry
-     */
+    private final StatisticalTestRunner statisticalTestRunner;
+
+    public EffectSizeCalculator(StatisticalTestRunner statisticalTestRunner) {
+        this.statisticalTestRunner = statisticalTestRunner;
+    }
+
     public Map<String, Map<String, EffectSizeEntry>> computeEffectSizes(
             Map<String, BenchmarkReport> cellReports,
             List<AblationCondition> conditions) {
@@ -106,16 +90,9 @@ public class EffectSizeCalculator {
             }
         }
 
-        return Map.copyOf(matrix);
+        return applyHypothesisTests(matrix, cellReports);
     }
 
-    /**
-     * Computes 95% confidence intervals for each metric in each cell.
-     *
-     * @param cellReports cell-level BenchmarkReports keyed by "conditionName:scenarioId"
-     *
-     * @return map of cell key → metric name → ConfidenceInterval
-     */
     public Map<String, Map<String, ConfidenceInterval>> computeConfidenceIntervals(
             Map<String, BenchmarkReport> cellReports) {
 
@@ -140,14 +117,6 @@ public class EffectSizeCalculator {
         return Map.copyOf(result);
     }
 
-    /**
-     * Computes per-strategy effectiveness deltas across conditions.
-     * For each strategy, extracts the mean effectiveness from each cell's strategyStatistics.
-     *
-     * @param cellReports cell-level BenchmarkReports keyed by "conditionName:scenarioId"
-     *
-     * @return map of strategy name → condition name → mean effectiveness
-     */
     public Map<String, Map<String, Double>> computeStrategyDeltas(
             Map<String, BenchmarkReport> cellReports) {
 
@@ -161,7 +130,6 @@ public class EffectSizeCalculator {
         for (var strategy : allStrategies) {
             var conditionMeans = new LinkedHashMap<String, Double>();
 
-            // Group cells by condition (extract condition name from cell key "condition:scenario")
             var conditionValues = new LinkedHashMap<String, List<Double>>();
             for (var entry : cellReports.entrySet()) {
                 var conditionName = entry.getKey().split(":")[0];
@@ -184,11 +152,6 @@ public class EffectSizeCalculator {
         return Map.copyOf(result);
     }
 
-    /**
-     * Computes Cohen's d between two groups.
-     * Uses pooled standard deviation with Bessel's correction (N-1).
-     * Returns 0.0 when pooled SD is 0 (avoids Infinity/NaN).
-     */
     double computeCohensD(double mean1, double sd1, int n1, double mean2, double sd2, int n2) {
         var pooledVariance = ((n1 - 1) * sd1 * sd1 + (n2 - 1) * sd2 * sd2)
                              / (n1 + n2 - 2);
@@ -201,15 +164,77 @@ public class EffectSizeCalculator {
         return (mean1 - mean2) / pooledSd;
     }
 
-    /**
-     * Converts population stddev (N denominator) to sample stddev (N-1 denominator).
-     * Formula: sampleStddev = popStddev × √(n / (n-1))
-     */
     static double toSampleStddev(double popStddev, int n) {
         if (n < 2 || Double.isNaN(popStddev)) {
             return popStddev;
         }
         return popStddev * Math.sqrt((double) n / (n - 1));
+    }
+
+    private Map<String, Map<String, EffectSizeEntry>> applyHypothesisTests(
+            Map<String, Map<String, EffectSizeEntry>> matrix,
+            Map<String, BenchmarkReport> cellReports) {
+
+        record EntryRef(String pairKey, String metric, EffectSizeEntry entry) {}
+        var refs = new ArrayList<EntryRef>();
+        var rawPValues = new ArrayList<Double>();
+
+        for (var pairEntry : matrix.entrySet()) {
+            var pair = pairEntry.getKey().split(":", 2);
+            var condA = pair[0];
+            var condB = pair[1];
+
+            for (var metricEntry : pairEntry.getValue().entrySet()) {
+                var valuesA = collectRawMetricValues(cellReports, condA, metricEntry.getKey());
+                var valuesB = collectRawMetricValues(cellReports, condB, metricEntry.getKey());
+                var p = statisticalTestRunner.mannWhitneyU(
+                        valuesA.stream().mapToDouble(Double::doubleValue).toArray(),
+                        valuesB.stream().mapToDouble(Double::doubleValue).toArray());
+                refs.add(new EntryRef(pairEntry.getKey(), metricEntry.getKey(), metricEntry.getValue()));
+                rawPValues.add(Double.isNaN(p) ? Double.NaN : p);
+            }
+        }
+
+        if (refs.isEmpty()) {
+            return Map.copyOf(matrix);
+        }
+
+        var pArray = rawPValues.stream().mapToDouble(Double::doubleValue).toArray();
+        var corrected = statisticalTestRunner.benjaminiHochberg(pArray);
+
+        var result = new LinkedHashMap<String, Map<String, EffectSizeEntry>>();
+        for (int i = 0; i < refs.size(); i++) {
+            var ref = refs.get(i);
+            var correctedP = corrected[i];
+            var sig = StatisticalTestRunner.significanceLabel(correctedP);
+            result.computeIfAbsent(ref.pairKey(), k -> new LinkedHashMap<>())
+                  .put(ref.metric(), new EffectSizeEntry(
+                          ref.entry().cohensD(), ref.entry().interpretation(),
+                          ref.entry().lowConfidence(), correctedP, sig));
+        }
+
+        return Map.copyOf(result.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> Map.copyOf(e.getValue()),
+                        (a, b) -> a,
+                        LinkedHashMap::new)));
+    }
+
+    private List<Double> collectRawMetricValues(
+            Map<String, BenchmarkReport> cellReports, String conditionName, String metric) {
+        var values = new ArrayList<Double>();
+        for (var entry : cellReports.entrySet()) {
+            if (entry.getKey().startsWith(conditionName + ":")) {
+                var stats = entry.getValue().metricStatistics().get(metric);
+                if (stats != null && !Double.isNaN(stats.mean())) {
+                    for (int i = 0; i < stats.sampleCount(); i++) {
+                        values.add(stats.mean());
+                    }
+                }
+            }
+        }
+        return values;
     }
 
     private List<BenchmarkStatistics> collectMetricStats(
@@ -240,7 +265,6 @@ public class EffectSizeCalculator {
         if (stats.size() == 1) {
             return toSampleStddev(stats.getFirst().stddev(), stats.getFirst().sampleCount());
         }
-        // Pool across multiple cells: convert each to sample variance, pool
         var totalN = totalSampleCount(stats);
         if (totalN < 2) {
             return 0.0;

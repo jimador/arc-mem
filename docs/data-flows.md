@@ -4,9 +4,9 @@ End-to-end execution traces for the major ARC-Mem data paths. Each scenario show
 
 For structural diagrams (module map, component relationships, config defaults), see [architecture.md](architecture.md). For mutation semantics and gate details, see [promotion-revision-supersession.md](promotion-revision-supersession.md).
 
-## 1. End-to-End: User Message → Memory Units → LLM Response
+## 1. End-to-End: User Message → ARC Working Memory Units (AWMUs) → LLM Response
 
-This is the complete path for the chat flow. A user sends a message, propositions are extracted, promoted to memory units, and assembled into the next LLM prompt.
+This is the complete path for the chat flow. A user sends a message, propositions are extracted, promoted to AWMUs, and assembled into the next LLM prompt.
 
 ```mermaid
 sequenceDiagram
@@ -30,7 +30,7 @@ sequenceDiagram
     Note over CA,REF: Prompt assembly (next turn context)
     CA->>REF: getContent()
     REF->>AE: inject(contextId)
-    AE->>DB: load active units (rank > 0)
+    AE->>DB: load active AWMUs (rank > 0)
     DB-->>AE: List<MemoryUnit>
     AE-->>REF: sorted by rank desc
     REF-->>CA: formatted context block
@@ -39,7 +39,7 @@ sequenceDiagram
     LLM-->>CA: model response
 
     Note over CA,CE: Post-generation compliance check
-    CA->>CE: enforce(response, activeUnits, policy)
+    CA->>CE: enforce(response, activeAWMUs, policy)
     CE-->>CA: ComplianceResult (ACCEPT/RETRY/REJECT)
 
     CA-->>User: display response
@@ -77,10 +77,10 @@ sequenceDiagram
 
 - Context assembly happens **before** the LLM call — the model sees the current state of working memory.
 - Extraction and promotion happen **after** the response — new facts from the conversation are processed asynchronously.
-- Compliance enforcement occurs **after** generation — the response is validated against active memory units.
-- Budget enforcement runs **inside** `ArcMemEngine.promote()` — if capacity is exceeded, the lowest-ranked non-pinned unit is evicted immediately.
+- Compliance enforcement occurs **after** generation — the response is validated against active AWMUs.
+- Budget enforcement runs **inside** `ArcMemEngine.promote()` — if capacity is exceeded, the lowest-ranked non-pinned AWMU is evicted immediately.
 
-## 2. Scenario A: Promotion Trace
+## 2. Scenario A: AWMU Promotion Trace
 
 A new fact is extracted and promoted from PROVISIONAL through reinforcement to RELIABLE.
 
@@ -134,7 +134,7 @@ sequenceDiagram
 
 ## 3. Scenario B: Conflict Resolution with REPLACE
 
-An incoming fact contradicts an existing PROVISIONAL unit. The resolver chooses REPLACE, archiving the predecessor and linking the successor via supersession.
+An incoming fact contradicts an existing PROVISIONAL AWMU. The resolver chooses REPLACE, archiving the predecessor and linking the successor via supersession.
 
 ```mermaid
 sequenceDiagram
@@ -178,7 +178,7 @@ sequenceDiagram
 
 ## 4. Scenario C: Decay Demotion
 
-A RELIABLE unit decays over several turns without reinforcement, eventually dropping below the demotion threshold.
+A RELIABLE AWMU decays over several turns without reinforcement, eventually dropping below the demotion threshold.
 
 ```mermaid
 sequenceDiagram
@@ -226,12 +226,12 @@ sequenceDiagram
 
 ## 5. Scenario D: Canonization via HITL
 
-An operator explicitly promotes a RELIABLE unit to CANON through the `CanonizationGate`.
+An operator explicitly promotes a RELIABLE AWMU to CANON through the `CanonizationGate`.
 
 ```mermaid
 sequenceDiagram
     actor Operator
-    participant UI as ChatView / MemoryUnitMutationTools
+    participant UI as ChatView / AWMU MutationTools
     participant CG as CanonizationGate
     participant AE as ArcMemEngine
     participant INV as InvariantEvaluator
@@ -272,7 +272,7 @@ sequenceDiagram
 
 ## 6. Scenario E: Supersession with Lineage Chain
 
-A memory unit is superseded by a newer version. The predecessor is archived and linked to the successor, forming a queryable lineage chain.
+An AWMU is superseded by a newer version. The predecessor is archived and linked to the successor, forming a queryable lineage chain.
 
 ```mermaid
 sequenceDiagram
@@ -310,7 +310,7 @@ sequenceDiagram
 | Reason | Trigger |
 |--------|---------|
 | `CONFLICT_REPLACEMENT` | Conflict resolver chose REPLACE |
-| `BUDGET_EVICTION` | Working-memory capacity exceeded |
+| `BUDGET_EVICTION` | AWMU working-memory capacity exceeded |
 | `DECAY_DEMOTION` | Activation score decayed below minimum |
 | `USER_REVISION` | Operator explicitly revised via UI/tool |
 | `MANUAL` | Programmatic supersession |
@@ -321,4 +321,4 @@ sequenceDiagram
 - `findPredecessor(unitId)` — returns the immediate predecessor (if any)
 - `findSuccessor(unitId)` — returns the immediate successor (if any)
 
-Current limitation: lineage is 1:1 (no merge/split semantics). A unit has at most one predecessor and one successor.
+Current limitation: lineage is 1:1 (no merge/split semantics). An AWMU has at most one predecessor and one successor.

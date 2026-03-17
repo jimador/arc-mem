@@ -6,7 +6,7 @@ persona:
   name: Rax Shadowmere
   description: Chaotic neutral tiefling warlock, patron is a trickster archfey
   playStyle: manipulative-trickster
-model: gpt-4.1-mini
+model: gpt-4.1-nano
 temperature: 0.7
 maxTurns: 15
 warmUpTurns: 3

@@ -102,15 +102,15 @@ See `.arc-mem/coding-style.md` for the complete reference.
 
 - **Two-module** Maven project: `arcmem-core` (engine, persistence, assembly, extraction, trust, conflict, maintenance) and `arcmem-simulator` (Spring Boot app with Vaadin UI at four routes: `/` SimulationView, `/chat` ChatView, `/benchmark` BenchmarkView, `/run` RunInspectorView)
 - **Neo4j only** -- no PostgreSQL. Drivine for ORM, Neo4j 5.x for persistence
-- **Memory units = Propositions + extra fields** -- `rank > 0` means it's a memory unit. No separate node type.
-- **Budget enforcement** -- configurable max active memory units (default 20). Evicts lowest-ranked non-pinned when over budget.
-- **Authority bidirectional** -- PROVISIONAL ↔ UNRELIABLE ↔ RELIABLE ↔ CANON. Promoted via reinforcement, demoted via activation score decay or trust re-evaluation. CANON immune to auto-demotion. Pinned memory units immune to auto-demotion.
+- **ARC Working Memory Units (AWMUs) = Propositions + extra fields** -- `rank > 0` means it's an AWMU. No separate node type.
+- **Budget enforcement** -- configurable max active AWMUs (default 20). Evicts lowest-ranked non-pinned when over budget.
+- **Authority bidirectional** -- PROVISIONAL ↔ UNRELIABLE ↔ RELIABLE ↔ CANON. Promoted via reinforcement, demoted via activation score decay or trust re-evaluation. CANON immune to auto-demotion. Pinned AWMUs immune to auto-demotion.
 - **Activation score clamped [100-900]** -- `MemoryUnit.clampRank()`
 - **Sim isolation via contextId** -- Each run gets `sim-{uuid}`, cleaned up after.
 - **Embabel Agent** for chat orchestration (`ChatActions` @EmbabelComponent)
 - **DICE extraction** for proposition management in chat flow
 - **Simulation harness** with YAML-defined adversarial/baseline scenarios, turn-by-turn execution, drift evaluation, scene-setting turn 0
-- **Benchmarking** with multi-condition ablation experiments, statistical aggregation, resilience scoring, and Markdown report export
+- **Benchmarking** with multi-condition ablation experiments (7 conditions: FULL_AWMU, NO_AWMU, FLAT_AUTHORITY, NO_RANK_DIFFERENTIATION, NO_TRUST, NO_COMPLIANCE, NO_LIFECYCLE), statistical hypothesis testing (Mann-Whitney U + Benjamini-Hochberg FDR correction), resilience scoring, JSON/CSV/Markdown export, and automated matrix runner with YAML config and CLI
 - **Maintenance strategies** -- `MaintenanceStrategy` sealed interface supports REACTIVE (per-turn decay/reinforcement), PROACTIVE (sleeping-LLM-inspired sweep triggered by `MemoryPressureGauge`), and HYBRID modes. Strategy selectable globally and per-simulation for A/B comparison.
 - **Compliance enforcement** -- `ComplianceEnforcer` abstracts compliance over prompt injection and post-generation validation. Strictness configurable per authority level.
 - **Source-aware revision** -- `MemoryUnit.sourceId` tracks fact ownership. `SourceAuthorityResolver` (caller-provided) compares source authorities for revision eligibility. `ResolutionContext` carries source relation into conflict resolution. Core is domain-agnostic; simulator defines the hierarchy (DM outranks player).
@@ -197,6 +197,11 @@ See `.arc-mem/coding-style.md` for the complete reference.
 | Condition comparison panel | `arcmem-simulator/src/main/java/dev/arcmem/simulator/ui/panels/ConditionComparisonPanel.java` |
 | Fact drill-down panel | `arcmem-simulator/src/main/java/dev/arcmem/simulator/ui/panels/FactDrillDownPanel.java` |
 | Benchmark runner | `arcmem-simulator/src/main/java/dev/arcmem/simulator/benchmark/BenchmarkRunner.java` |
+| Statistical test runner | `arcmem-simulator/src/main/java/dev/arcmem/simulator/benchmark/StatisticalTestRunner.java` |
+| Experiment matrix runner | `arcmem-simulator/src/main/java/dev/arcmem/simulator/benchmark/ExperimentMatrixRunner.java` |
+| Experiment matrix CLI | `arcmem-simulator/src/main/java/dev/arcmem/simulator/benchmark/ExperimentMatrixCli.java` |
+| Experiment matrix config | `arcmem-simulator/src/main/java/dev/arcmem/simulator/benchmark/ExperimentMatrixConfig.java` |
+| Run manifest | `arcmem-simulator/src/main/java/dev/arcmem/simulator/benchmark/RunManifest.java` |
 | Resilience report | `arcmem-simulator/src/main/java/dev/arcmem/simulator/report/ResilienceReport.java` |
 | Report builder | `arcmem-simulator/src/main/java/dev/arcmem/simulator/report/ResilienceReportBuilder.java` |
 | Markdown renderer | `arcmem-simulator/src/main/java/dev/arcmem/simulator/report/MarkdownReportRenderer.java` |
@@ -205,9 +210,13 @@ See `.arc-mem/coding-style.md` for the complete reference.
 | Scenario section | `arcmem-simulator/src/main/java/dev/arcmem/simulator/report/ScenarioSection.java` |
 | Fact survival loader | `arcmem-simulator/src/main/java/dev/arcmem/simulator/report/FactSurvivalLoader.java` |
 | Contradiction detail loader | `arcmem-simulator/src/main/java/dev/arcmem/simulator/report/ContradictionDetailLoader.java` |
+| Experiment exporter | `arcmem-simulator/src/main/java/dev/arcmem/simulator/report/ExperimentExporter.java` |
 | Sim prompt templates | `arcmem-simulator/src/main/resources/prompts/` |
 | Spring config | `arcmem-simulator/src/main/resources/application.yml` |
 | Sim scenarios | `arcmem-simulator/src/main/resources/simulations/` |
+| Ops scenarios | `arcmem-simulator/src/main/resources/simulations/ops-*.yml` |
+| Compliance scenarios | `arcmem-simulator/src/main/resources/simulations/compliance-*.yml` |
+| Experiment configs | `arcmem-simulator/src/main/resources/experiments/` |
 | Docker Compose (Neo4j) | `docker-compose.yml` |
 | Docker Compose (full stack) | `docker-compose.app.yml` |
 | Docker Compose (Langfuse) | `docker-compose.langfuse.yml` |
@@ -215,16 +224,16 @@ See `.arc-mem/coding-style.md` for the complete reference.
 
 ## Key Design Decisions
 
-1. **Memory units = Propositions + extra fields** — `rank > 0` means it's a memory unit. No separate node type.
+1. **AWMUs = Propositions + extra fields** — `rank > 0` means it's an AWMU. No separate node type.
 2. **Neo4j everywhere** — Both chat and sim use the same `MemoryUnitRepository` (Drivine-backed).
-3. **Budget enforcement** — configurable max active memory units (default 20). Evicts lowest-ranked non-pinned when over budget.
-4. **Authority bidirectional** — PROVISIONAL ↔ UNRELIABLE ↔ RELIABLE ↔ CANON. Promoted via reinforcement, demoted via activation score decay or trust re-evaluation. CANON immune to auto-demotion (A3b). Pinned memory units immune to auto-demotion (A3d).
+3. **Budget enforcement** — configurable max active AWMUs (default 20). Evicts lowest-ranked non-pinned when over budget.
+4. **Authority bidirectional** — PROVISIONAL ↔ UNRELIABLE ↔ RELIABLE ↔ CANON. Promoted via reinforcement, demoted via activation score decay or trust re-evaluation. CANON immune to auto-demotion (A3b). Pinned AWMUs immune to auto-demotion (A3d).
 5. **Activation score clamped [100-900]** — `MemoryUnit.clampRank()`.
 6. **Sim isolation via contextId** — Each run gets `sim-{uuid}`, cleaned up after.
 7. **Persistence layer copied from impromptu** — re-packaged to `dev.arcmem.core.persistence`.
 8. **Scene-setting turn 0** — When `scenario.setting()` is non-blank and extraction is enabled, `SimulationService` executes an ESTABLISH turn before turn 1. The DM narrates the setting; DICE extraction captures initial propositions. This gives the ARC-Mem framework material to stabilize before stress-test contradiction turns begin. Skipped if setting is blank or extraction is disabled.
 9. **Drift evaluator: epistemic hedging = NOT_MENTIONED** — The drift evaluation prompt distinguishes three DM response categories: (1) contradiction (asserts the opposite), (2) world progression (narrative change that isn't a contradiction), (3) epistemic hedging (declines to affirm without asserting the opposite). Hedging is classified as NOT_MENTIONED, not CONTRADICTED. The player message is included in the evaluator prompt so the evaluator can distinguish defensive resistance from genuine forgetting.
-10. **No seed memory units required** — Scenarios may have no seed memory units. The expected flow is that scene-setting turn 0 + warm-up turns allow the ARC-Mem framework to accumulate propositions organically before stress-test contradiction turns.
+10. **No seed AWMUs required** — Scenarios may have no seed AWMUs. The expected flow is that scene-setting turn 0 + warm-up turns allow the ARC-Mem framework to accumulate propositions organically before stress-test contradiction turns.
 11. **Composite conflict detection** — `CompositeConflictDetector` chains multiple strategies (LLM semantic + negation lexical). Strategy selection is configurable via `ConflictDetectionStrategy`.
 12. **Trust pipeline** — `TrustPipeline` evaluates propositions through multiple trust signals (source authority, extraction confidence, reinforcement history) before promotion. `TrustAuditRecord` captures the decision trail.
 13. **Context compaction** — `CompactedContextProvider` summarizes older context when token thresholds are exceeded. `CompactionValidator` ensures protected facts survive compaction.
@@ -240,6 +249,9 @@ See `.arc-mem/coding-style.md` for the complete reference.
 23. **Adaptive prompt footprint** — Authority-graduated templates: PROVISIONAL (full), RELIABLE (condensed), CANON (minimal reference). Higher authority = less token budget.
 24. **Count-based budget strategy** — `BudgetStrategy` sealed interface with `CountBasedBudgetStrategy` enforcing a simple maximum on active units.
 25. **Source-aware conflict resolution** — `MemoryUnit.sourceId` tracks who established a fact (read from `PropositionNode.sourceIds[0]`). `SourceAuthorityResolver` (caller-provided `@FunctionalInterface`) compares source authorities. `ResolutionContext` carries source relation (SAME_SOURCE, INCOMING_OUTRANKS, EXISTING_OUTRANKS, UNKNOWN) into `RevisionAwareConflictResolver`. Core never references domain-specific roles; the simulator provides the authority hierarchy.
+26. **Cross-domain scenario packs** — Operations/incident-response and compliance/rule-bound scenarios validate ARC beyond the D&D/narrative domain. Attack strategies map from D&D equivalents (SUBTLE_REFRAME → "the database is back in write mode") to domain-appropriate social engineering.
+27. **Statistical hardening** — Mann-Whitney U (non-parametric) for hypothesis testing between condition pairs. Benjamini-Hochberg FDR correction for multiple comparisons across all metric × condition-pair tests. Significance annotations in Markdown reports.
+28. **Hybrid model pricing** — Scenarios use gpt-4.1-nano for DM responses (cheaper, weaker model is actually useful — more susceptible to contradictions, making ARC effects more visible). Evaluator model override uses gpt-4.1-mini for drift evaluation accuracy.
 
 ## OpenSpec (Spec-Driven Development)
 
@@ -263,9 +275,9 @@ arc-mem uses [OpenSpec](https://github.com/Fission-AI/OpenSpec) for structured s
 - Do not add wildcard imports
 - Do not use mutable defaults -- `List.of()` not `new ArrayList<>()`
 - Do not create checked exceptions
-- Do not modify memory unit activation score outside [100, 900] range -- use `clampRank()`
-- Do not auto-promote propositions to memory units -- promotion is always explicit
-- Do not assume `ContextTrace.assembledPrompt` contains the full LLM prompt -- it only contains the memory unit injection block; use `fullSystemPrompt`/`fullUserPrompt` for the complete prompt
+- Do not modify AWMU activation score outside [100, 900] range -- use `clampRank()`
+- Do not auto-promote propositions to AWMUs -- promotion is always explicit
+- Do not assume `ContextTrace.assembledPrompt` contains the full LLM prompt -- it only contains the AWMU injection block; use `fullSystemPrompt`/`fullUserPrompt` for the complete prompt
 - Do not classify DM epistemic hedging as CONTRADICTED -- "the guardian's properties aren't established yet" is NOT_MENTIONED, not a contradiction
 
 ## Reference Codebases

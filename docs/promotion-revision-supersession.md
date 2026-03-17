@@ -1,6 +1,6 @@
 # Promotion, Revision, and Supersession
 
-Mutation semantics reference for memory units.
+Mutation semantics reference for ARC Working Memory Units (AWMUs).
 
 ## 1) Promotion pipeline
 
@@ -21,7 +21,7 @@ flowchart LR
     G3 -->|KEEP_EXISTING reject| R3["Reject"]
     G4 -->|AUTO_PROMOTE| G5["Promote Gate"]
     G4 -->|REVIEW/ARCHIVE| R4["Hold or Skip"]
-    G5 --> A["Active Memory Unit"]
+    G5 --> A["Active AWMU"]
 ```
 
 ### Gate details
@@ -31,7 +31,7 @@ flowchart LR
 - only eligible statuses continue
 
 2. dedup gate
-- `DuplicateDetector.isDuplicate(text, memoryUnits)`
+- `DuplicateDetector.isDuplicate(text, AWMUs)`
 - batch mode does fast exact checks before model-assisted dedup
 
 3. conflict gate
@@ -54,7 +54,7 @@ flowchart LR
 ## Promotion invariants
 
 - gate order is fixed and must not be reordered
-- duplicates must not create separate memory units
+- duplicates must not create separate AWMUs
 - conflict outcomes must be executed, not logged and ignored
 - budget enforcement is per-promotion, not deferred to batch end
 
@@ -79,7 +79,7 @@ COEXIST         -> arcMemEngine.reEvaluateTrust(existing.id)
 Revision is not contradiction.
 
 Conflict typing:
-- `REVISION`: refine/update existing memory unit
+- `REVISION`: refine/update existing AWMU
 - `CONTRADICTION`: assert opposite
 - `WORLD_PROGRESSION`: state changed over narrative time
 
@@ -135,7 +135,7 @@ Each `MemoryUnit` carries an optional `sourceId` identifying who established the
 
 Core defines `SourceAuthorityResolver` as a `@FunctionalInterface`. The simulator provides a concrete implementation (DM outranks player). Core never references domain-specific roles.
 
-## 4) MemoryUnitMutationStrategy gate
+## 4) AWMU MutationStrategy gate
 
 All mutation attempts pass through `MemoryUnitMutationStrategy`.
 
@@ -176,9 +176,9 @@ flowchart LR
 - `USER_REVISION`
 - `MANUAL`
 
-Current limitation: lineage is still 1:1 (no merge/split semantics).
+Current limitation: AWMU lineage is still 1:1 (no merge/split semantics).
 
-## 6) Decay, demotion, reinforcement
+## 6) AWMU Decay, demotion, reinforcement
 
 Decay model:
 
@@ -197,6 +197,6 @@ Reinforcement behavior:
 - authority upgrades at reinforcement thresholds
 - CANON is never auto-assigned
 
-## 7) Trust re-evaluation hook
+## 7) AWMU Trust re-evaluation hook
 
 `ArcMemEngine.reEvaluateTrust(unitId)` can demote when score falls below configured demotion threshold.
