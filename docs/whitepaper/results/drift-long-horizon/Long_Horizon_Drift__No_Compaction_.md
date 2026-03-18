@@ -1,3 +1,5 @@
+> **Note:** This scenario also produced a null result — 100% fact survival in both conditions across all 10 runs. Compaction was disabled and turns were extended to 50, but GPT-4.1-nano's 1M token context window makes 50 turns trivial (~30-40K tokens, roughly 3% of capacity). The conversation never grew large enough to push early facts out of the model's attention. Testing natural drift from conversation length alone would require either hundreds of turns or a model with a much smaller context window. See experiment-findings.md for the adversarial results where ARC's contribution is clear.
+
 # ARC Working Memory Units (AWMUs) Resilience Report
 
 | Field | Value |

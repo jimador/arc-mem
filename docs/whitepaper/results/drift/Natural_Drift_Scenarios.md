@@ -1,3 +1,5 @@
+> **Note:** These scenarios produced a null result — 100% fact survival in both FULL_AWMU and NO_AWMU across all 40 runs. The compaction threshold was set to 4,000 tokens, which triggered summarization every few turns. The model never worked with raw conversation history — it always had a compacted summary, and that summary preserved the facts. This tested whether compaction drops facts (it doesn't), not whether the model loses facts over long conversations. See experiment-findings.md for the adversarial results where ARC's contribution is clear.
+
 # ARC Working Memory Units (AWMUs) Resilience Report
 
 | Field | Value |
