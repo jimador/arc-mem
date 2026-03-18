@@ -1,0 +1,9 @@
+name: Long Horizon Drift (No Compaction)
+conditions:
+  - FULL_AWMU
+  - NO_AWMU
+scenarios:
+  - drift-long-horizon-no-compaction
+repetitions: 5
+model: gpt-4.1-mini
+outputDir: experiment-output/drift-long-horizon

@@ -124,11 +124,11 @@ We ran 4 non-adversarial scenarios designed to test natural long-horizon drift �
 
 No effect sizes, no p-values — both conditions scored identically. Zero contradictions in all 40 runs.
 
-**What this tells us:** 25-turn conversations with compaction at 4000 tokens don't exhaust the model's ability to retain facts from conversation history alone. Even gpt-4.1-nano maintains established facts through long tangents, detail floods, priority competition, and epistemic hedging without any working memory governance.
+**What this tells us:** The compaction threshold was set to 4,000 tokens, which triggered summarization every few turns. The model was never working with raw conversation history — it always had a compacted summary, and that summary preserved the facts. So this experiment actually tested whether compaction drops facts (it doesn't), not whether the model loses facts over long conversations.
 
-Natural drift — facts silently losing force over time — likely requires much longer conversations (50-100+ turns), much more aggressive compaction, or actual context window exhaustion. At 25 turns, the model's native context handling is sufficient.
+To test actual natural drift, we need to either disable compaction entirely (let raw conversation grow) or set the threshold high enough that the model works with full history for most of the conversation. A follow-up experiment with compaction disabled and 50+ turns would test whether facts fade from attention in a long raw conversation — the real-world failure mode.
 
-**What this means for the paper:** The evidence for ARC is currently limited to adversarial scenarios where someone actively pushes false claims. ARC's value in those cases is clear (18.5-point gap). But we haven't yet demonstrated that natural drift is a real problem at the conversation lengths we tested, which means we can't yet claim ARC prevents natural drift — only that it prevents adversarial drift. Longer-horizon experiments are needed.
+**What this means for the paper:** The adversarial results (18.5-point gap) remain the primary evidence. The drift scenarios confirmed that compaction preserves facts through summarization, which is a useful secondary finding. Testing natural drift from conversation length alone requires longer scenarios without compaction — deferred to follow-up.
 
 ---
 
