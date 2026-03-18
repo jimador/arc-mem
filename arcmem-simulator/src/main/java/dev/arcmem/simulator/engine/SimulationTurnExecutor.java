@@ -16,14 +16,14 @@ import dev.arcmem.simulator.compaction.CompactedContextProvider;
 
 import dev.arcmem.core.spi.llm.*;
 import dev.arcmem.simulator.config.ArcMemSimulatorProperties;
+import dev.arcmem.simulator.evaluation.DriftReEvaluator;
+import dev.arcmem.simulator.evaluation.JudgeConfig;
 import dev.arcmem.simulator.history.*;
 import dev.arcmem.simulator.scenario.*;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.arcmem.core.config.ArcMemProperties;
 import dev.arcmem.core.memory.event.ArchiveReason;
 import dev.arcmem.core.persistence.MemoryUnitRepository;
-import dev.arcmem.core.prompt.PromptPathConstants;
 import dev.arcmem.core.prompt.PromptTemplates;
 import dev.arcmem.simulator.prompt.SimulationPromptPaths;
 import io.micrometer.observation.annotation.Observed;
@@ -64,8 +64,6 @@ import java.util.stream.Collectors;
 public class SimulationTurnExecutor {
 
     private static final Logger logger = LoggerFactory.getLogger(SimulationTurnExecutor.class);
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final Pattern CODE_FENCE = Pattern.compile("^```(?:json)?\\s*|\\s*```$");
 
     // 5-minute ceiling for the combined post-response parallel block; long enough
     // for real LLM evaluation + DICE extraction pipeline calls.
@@ -81,8 +79,8 @@ public class SimulationTurnExecutor {
     private final SimulationExtractionService extractionService;
     private final RelevanceScorer relevanceScorer;
     private final ArcMemProperties.UnitConfig unitConfig;
-    private final String driftEvalSystemPrompt;
     private final SimulationTurnServices turnServices;
+    private final DriftReEvaluator driftReEvaluator;
 
     public SimulationTurnExecutor(
             ChatModelHolder chatModel,
@@ -93,7 +91,8 @@ public class SimulationTurnExecutor {
             CompliancePolicy compliancePolicy,
             TokenCounter tokenCounter,
             RelevanceScorer relevanceScorer,
-            SimulationTurnServices turnServices) {
+            SimulationTurnServices turnServices,
+            DriftReEvaluator driftReEvaluator) {
         this.chatModel = chatModel;
         this.arcMemEngine = arcMemEngine;
         this.contextUnitRepository = contextUnitRepository;
@@ -105,7 +104,7 @@ public class SimulationTurnExecutor {
         this.extractionService = turnServices.extractionService();
         this.relevanceScorer = relevanceScorer;
         this.unitConfig = properties != null ? properties.unit() : null;
-        this.driftEvalSystemPrompt = PromptTemplates.load(PromptPathConstants.DRIFT_EVALUATION_SYSTEM);
+        this.driftReEvaluator = driftReEvaluator;
     }
 
     /**
@@ -913,104 +912,7 @@ public class SimulationTurnExecutor {
             List<SimulationScenario.GroundTruth> groundTruth,
             String playerMessage,
             List<MemoryUnit> injectedUnits) {
-        var serializedGroundTruth = groundTruth.stream()
-                                               .filter(fact -> fact.text() != null && !fact.text().isBlank())
-                                               .map(fact -> Map.of("id", fact.id(), "text", fact.text()))
-                                               .toList();
-        var templateVars = new HashMap<String, Object>();
-        templateVars.put("ground_truth", serializedGroundTruth);
-        templateVars.put("dm_response", dmResponse != null ? dmResponse : "");
-        if (playerMessage != null && !playerMessage.isBlank()) {
-            templateVars.put("player_message", playerMessage);
-        }
-        if (injectedUnits != null && !injectedUnits.isEmpty()) {
-            templateVars.put("active_units", injectedUnits.stream()
-                    .map(a -> Map.of("authority", a.authority().name(), "text", a.text()))
-                    .toList());
-        }
-        var userPrompt = PromptTemplates.render(SimulationPromptPaths.DRIFT_EVALUATION_USER, templateVars);
-
-        try {
-            var evalResponse = chatModel.call(new Prompt(List.of(
-                    new SystemMessage(driftEvalSystemPrompt),
-                    new UserMessage(userPrompt))));
-            var raw = evalResponse.getResult().getOutput().getText();
-            return parseVerdictsJson(raw, groundTruth);
-        } catch (Exception e) {
-            logger.warn("Drift evaluation failed: {}", e.getMessage());
-            return List.of();
-        }
-    }
-
-    /**
-     * Parse drift evaluation response as JSON, falling back to keyword heuristic.
-     */
-    List<EvalVerdict> parseVerdictsJson(
-            String raw,
-            List<SimulationScenario.GroundTruth> groundTruth) {
-        var json = stripCodeFences(raw);
-        try {
-            var result = MAPPER.readValue(json, DriftEvaluationResult.class);
-            return result.toEvalVerdicts();
-        } catch (Exception e) {
-            logger.debug("JSON verdict parsing failed, using fallback: {}", e.getMessage());
-            return fallbackParseVerdicts(raw, groundTruth);
-        }
-    }
-
-    /**
-     * Strip markdown code fences (```json ... ```) from LLM output.
-     */
-    static String stripCodeFences(String raw) {
-        if (raw == null) {
-            return "";
-        }
-        var trimmed = raw.strip();
-        if (trimmed.startsWith("```")) {
-            trimmed = CODE_FENCE.matcher(trimmed).replaceAll("");
-        }
-        return trimmed.strip();
-    }
-
-    /**
-     * Fallback keyword heuristic parser — scans for verdict keywords per fact ID
-     * when JSON parsing fails.
-     */
-    private List<EvalVerdict> fallbackParseVerdicts(
-            String raw,
-            List<SimulationScenario.GroundTruth> groundTruth) {
-        var verdicts = new ArrayList<EvalVerdict>();
-        var lower = raw.toLowerCase();
-
-        for (var fact : groundTruth) {
-            var factId = fact.id();
-            var factLower = factId.toLowerCase();
-
-            // Look for the fact ID in the text and extract verdict keyword near it
-            var factIdx = lower.indexOf(factLower);
-            if (factIdx >= 0) {
-                var regionEnd = Math.min(lower.length(), factIdx + factLower.length() + 200);
-                var region = lower.substring(factIdx, regionEnd);
-
-                if (region.contains("contradicted")) {
-                    verdicts.add(EvalVerdict.contradicted(factId, EvalVerdict.Severity.MAJOR,
-                                                          "Fallback parse: contradicted keyword detected"));
-                } else if (region.contains("confirmed")) {
-                    verdicts.add(EvalVerdict.confirmed(factId, "Fallback parse: confirmed keyword detected"));
-                } else {
-                    verdicts.add(EvalVerdict.notMentioned(factId));
-                }
-            } else {
-                // Fact ID not found at all — try global scan
-                if (lower.contains("contradicted") && groundTruth.size() == 1) {
-                    verdicts.add(EvalVerdict.contradicted(factId, EvalVerdict.Severity.MAJOR,
-                                                          "Fallback parse: single fact, contradicted keyword detected"));
-                } else {
-                    verdicts.add(EvalVerdict.notMentioned(factId));
-                }
-            }
-        }
-        return verdicts;
+        return driftReEvaluator.evaluate(dmResponse, groundTruth, playerMessage, injectedUnits, JudgeConfig.hardened());
     }
 
     private static String truncate(String s, int max) {

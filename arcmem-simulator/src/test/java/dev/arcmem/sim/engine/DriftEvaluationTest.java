@@ -15,6 +15,7 @@ import dev.arcmem.core.assembly.retrieval.*;
 
 import dev.arcmem.core.spi.llm.*;
 import dev.arcmem.simulator.engine.*;
+import dev.arcmem.simulator.evaluation.DriftReEvaluator;
 import dev.arcmem.simulator.history.*;
 import dev.arcmem.simulator.scenario.*;
 
@@ -25,7 +26,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -129,27 +129,27 @@ class DriftEvaluationTest {
         @DisplayName("stripsJsonCodeFences")
         void stripsJsonCodeFences() {
             var input = "```json\n{\"verdicts\": []}\n```";
-            assertThat(SimulationTurnExecutor.stripCodeFences(input)).isEqualTo("{\"verdicts\": []}");
+            assertThat(DriftReEvaluator.stripCodeFences(input)).isEqualTo("{\"verdicts\": []}");
         }
 
         @Test
         @DisplayName("stripsPlainCodeFences")
         void stripsPlainCodeFences() {
             var input = "```\n{\"verdicts\": []}\n```";
-            assertThat(SimulationTurnExecutor.stripCodeFences(input)).isEqualTo("{\"verdicts\": []}");
+            assertThat(DriftReEvaluator.stripCodeFences(input)).isEqualTo("{\"verdicts\": []}");
         }
 
         @Test
         @DisplayName("passesPlainJsonThrough")
         void passesPlainJsonThrough() {
             var input = "{\"verdicts\": []}";
-            assertThat(SimulationTurnExecutor.stripCodeFences(input)).isEqualTo("{\"verdicts\": []}");
+            assertThat(DriftReEvaluator.stripCodeFences(input)).isEqualTo("{\"verdicts\": []}");
         }
 
         @Test
         @DisplayName("handlesNullInput")
         void handlesNullInput() {
-            assertThat(SimulationTurnExecutor.stripCodeFences(null)).isEmpty();
+            assertThat(DriftReEvaluator.stripCodeFences(null)).isEmpty();
         }
     }
 
@@ -297,16 +297,7 @@ class DriftEvaluationTest {
     @DisplayName("Full parse pipeline")
     class FullParsePipeline {
 
-        private final SimulationTurnExecutor executor = new SimulationTurnExecutor(
-                null, null, null, null, null, CompliancePolicy.tiered(), null, null,
-                new SimulationTurnServices(
-                        null,
-                        new ReactiveMaintenanceStrategy(
-                                DecayPolicy.exponential(1000.0),
-                                ReinforcementPolicy.threshold()),
-                        ctx -> ComplianceResult.compliant(Duration.ZERO),
-                        null,
-                        new LoggingPromptInjectionEnforcer()));
+        private final DriftReEvaluator driftReEvaluator = new DriftReEvaluator(null);
 
         private List<SimulationScenario.GroundTruth> groundTruth(String... ids) {
             var list = new ArrayList<SimulationScenario.GroundTruth>();
@@ -325,7 +316,7 @@ class DriftEvaluationTest {
                     ]}
                     """;
 
-            var verdicts = executor.parseVerdictsJson(json, groundTruth("f1"));
+            var verdicts = driftReEvaluator.parseVerdictsJson(json, groundTruth("f1"));
             assertThat(verdicts).hasSize(1);
             assertThat(verdicts.get(0).verdict()).isEqualTo(EvalVerdict.Verdict.CONFIRMED);
         }
@@ -335,7 +326,7 @@ class DriftEvaluationTest {
         void codeFencedJsonParsedSuccessfully() {
             var raw = "```json\n{\"verdicts\": [{\"factId\": \"f1\", \"verdict\": \"CONTRADICTED\", \"severity\": \"MAJOR\", \"explanation\": \"Denied\"}]}\n```";
 
-            var verdicts = executor.parseVerdictsJson(raw, groundTruth("f1"));
+            var verdicts = driftReEvaluator.parseVerdictsJson(raw, groundTruth("f1"));
             assertThat(verdicts).hasSize(1);
             assertThat(verdicts.get(0).verdict()).isEqualTo(EvalVerdict.Verdict.CONTRADICTED);
         }
@@ -345,7 +336,7 @@ class DriftEvaluationTest {
         void malformedJsonFallsBackToKeywordHeuristic() {
             var raw = "FACT: f1 is CONTRADICTED because the DM denied it. FACT: f2 is CONFIRMED.";
 
-            var verdicts = executor.parseVerdictsJson(raw, groundTruth("f1", "f2"));
+            var verdicts = driftReEvaluator.parseVerdictsJson(raw, groundTruth("f1", "f2"));
             assertThat(verdicts).hasSize(2);
             assertThat(verdicts.get(0).verdict()).isEqualTo(EvalVerdict.Verdict.CONTRADICTED);
             assertThat(verdicts.get(1).verdict()).isEqualTo(EvalVerdict.Verdict.CONFIRMED);
@@ -356,7 +347,7 @@ class DriftEvaluationTest {
         void fallbackDefaultsToNotMentionedWhenNoKeywordsFound() {
             var raw = "I cannot determine the relationship between these statements.";
 
-            var verdicts = executor.parseVerdictsJson(raw, groundTruth("f1"));
+            var verdicts = driftReEvaluator.parseVerdictsJson(raw, groundTruth("f1"));
             assertThat(verdicts).hasSize(1);
             assertThat(verdicts.get(0).verdict()).isEqualTo(EvalVerdict.Verdict.NOT_MENTIONED);
         }

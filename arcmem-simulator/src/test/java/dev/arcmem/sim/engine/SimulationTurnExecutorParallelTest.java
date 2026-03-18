@@ -15,6 +15,7 @@ import dev.arcmem.core.assembly.retrieval.*;
 
 import dev.arcmem.core.spi.llm.*;
 import dev.arcmem.simulator.engine.*;
+import dev.arcmem.simulator.evaluation.DriftReEvaluator;
 import dev.arcmem.simulator.history.*;
 import dev.arcmem.simulator.scenario.*;
 
@@ -78,7 +79,8 @@ class SimulationTurnExecutorParallelTest {
                 CompliancePolicy.flat(),
                 text -> Math.max(1, text.length() / 4),
                 null,
-                turnServices);
+                turnServices,
+                new DriftReEvaluator(chatModel));
     }
 
     private static MemoryUnit unit(String id, String text) {
