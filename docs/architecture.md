@@ -3,7 +3,7 @@
 
 # Architecture
 
-This project is a single Spring Boot app (Java 25) + Neo4j 5.x. It is intentionally opinionated and demo-focused.
+This project is a two-module Maven project (Java 25) + Neo4j 5.x: `arcmem-core` (engine, persistence, assembly, extraction, trust, conflict, maintenance) and `arcmem-simulator` (Spring Boot app with Vaadin UI). It is intentionally opinionated and demo-focused.
 
 ## System topology
 
@@ -22,13 +22,17 @@ Simulation path:
 
 `ScenarioLoader -> SimulationService -> SimulationTurnExecutor -> (LLM call + ComplianceEnforcer.enforce()) -> (extraction + ConflictPreCheck + SemanticUnitPromoter) -> (MaintenanceStrategy.onTurnComplete()) -> ScoringService -> RunHistoryStore`
 
+`SimulationTurnExecutor` checks runtime config flags (`trustEnabled`, `complianceEnabled`, `lifecycleEnabled`) to conditionally skip trust evaluation, compliance enforcement, and lifecycle management (reinforcement, maintenance, dormancy). These flags are set by `AblationCondition` and plumbed through `SimulationRuntimeConfig` to support the seven ablation conditions used in benchmarking.
+
 Chat path:
 
 `ChatView -> ChatActions -> prompt assembly -> model response -> async extraction event -> SemanticUnitPromoter`
 
 Benchmark/report path:
 
-`ExperimentRunner -> BenchmarkRunner -> ResilienceReportBuilder -> MarkdownReportRenderer`
+`ExperimentMatrixRunner -> ExperimentRunner -> BenchmarkRunner -> ResilienceReportBuilder -> MarkdownReportRenderer`
+
+`ExperimentMatrixRunner` reads a YAML experiment config and delegates to `ExperimentRunner`, which delegates to `BenchmarkRunner` per condition. Results are exported via `ExperimentExporter` (JSON/CSV/Markdown). `StatisticalTestRunner` computes Mann-Whitney U with Benjamini-Hochberg FDR correction across all metric × condition-pair comparisons; effect sizes use Hedges' g (small-sample-corrected).
 
 ```mermaid
 flowchart LR
@@ -45,8 +49,7 @@ flowchart LR
         CV["ChatView"] --> CA["ChatActions"]
         CA --> PA["Prompt Assembly"]
         PA --> CR["Model Response"]
-        CR --> EVT["ConversationAnalysisRequestEvent"]
-        EVT --> AP["SemanticUnitPromoter"]
+        CR --> AP["SemanticUnitPromoter (async)"]
     end
 
     subgraph Bench["Benchmark Path"]

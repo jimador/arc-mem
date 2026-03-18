@@ -28,7 +28,7 @@ arc-mem is a standalone application and test bed for **ARC-Mem (Activation-Ranke
 - **sim/engine/** — Simulation harness (SimulationService, SimulationTurnExecutor, SimulationExtractionService, SimulationRuntimeConfig, LlmCallService, ScoringService, ContextTrace, ScenarioLoader, SimulationTurnServices)
 - **sim/engine/adversary/** — Adversary strategies (AdversaryStrategy, AdaptiveAttackPrompter, StrategyCatalog)
 - **sim/benchmark/** — Multi-condition ablation experiments (BenchmarkRunner, ExperimentRunner, BenchmarkAggregator, BenchmarkStatistics, EffectSizeCalculator)
-- **sim/report/** — Resilience reporting (ResilienceReport, ResilienceReportBuilder, ResilienceScoreCalculator, MarkdownReportRenderer, FactSurvivalLoader, ContradictionDetailLoader)
+- **sim/report/** — Resilience reporting (ResilienceReport, ResilienceReportBuilder, ResilienceScoreCalculator, MarkdownReportRenderer, FactSurvivalLoader, ContradictionDetailLoader, ExperimentExporter)
 - **sim/assertions/** — Post-run validation (assertion types declared in scenario YAML)
 - **sim/views/** — Vaadin UI panels (SimulationView, RunInspectorView, BenchmarkView, ContextInspectorPanel, EntityMentionNetworkView, FactDrillDownPanel, and ~17 supporting panels)
 

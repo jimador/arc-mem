@@ -126,7 +126,7 @@ Composite score is secondary; raw metrics drive decisions.
 Hypothesis testing between condition pairs:
 - **Mann-Whitney U** (non-parametric) for pairwise metric comparisons
 - **Benjamini-Hochberg FDR correction** for multiple comparisons across all metric × condition-pair tests
-- **Cohen's d** effect sizes for all significant pairs
+- **Hedges' g** effect sizes for all significant pairs
 - **95% confidence intervals** on all primary metrics
 
 Significance annotations appear in Markdown reports. FDR-corrected p-values are used for claim decisions.
