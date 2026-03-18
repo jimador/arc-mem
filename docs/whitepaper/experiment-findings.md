@@ -124,11 +124,29 @@ We ran 4 non-adversarial scenarios designed to test natural long-horizon drift �
 
 No effect sizes, no p-values — both conditions scored identically. Zero contradictions in all 40 runs.
 
-**What this tells us:** The compaction threshold was set to 4,000 tokens, which triggered summarization every few turns. The model was never working with raw conversation history — it always had a compacted summary, and that summary preserved the facts. So this experiment actually tested whether compaction drops facts (it doesn't), not whether the model loses facts over long conversations.
+**What this tells us:** The compaction threshold was set to 4,000 tokens, which triggered summarization every few turns. The model was always working with a compacted summary, not raw history. So this actually tested whether compaction drops facts (it doesn't), not whether the model loses facts over long conversations.
 
-To test actual natural drift, we need to either disable compaction entirely (let raw conversation grow) or set the threshold high enough that the model works with full history for most of the conversation. A follow-up experiment with compaction disabled and 50+ turns would test whether facts fade from attention in a long raw conversation — the real-world failure mode.
+### Long Horizon Follow-Up (no compaction, 50 turns)
 
-**What this means for the paper:** The adversarial results (18.5-point gap) remain the primary evidence. The drift scenarios confirmed that compaction preserves facts through summarization, which is a useful secondary finding. Testing natural drift from conversation length alone requires longer scenarios without compaction — deferred to follow-up.
+**Date**: 2026-03-18
+**Config**: 2 conditions × 1 scenario × 5 reps = 10 runs, 1.8 hours
+
+We disabled compaction entirely and extended to 50 turns — 35 turns of unrelated exploration between fact establishment and recall probes.
+
+| Scenario | FULL_AWMU survival | NO_AWMU survival | Contradictions |
+|----------|-------------------|-----------------|----------------|
+| drift-long-horizon-no-compaction | 100% ± 0.0 | 100% ± 0.0 | 0 |
+
+Same result. 100% survival, zero contradictions, both conditions identical.
+
+GPT-4.1-nano has a 1M token context window. 50 turns of conversation produces maybe 30-40K tokens of history — roughly 3% of the context window. The model has no reason to lose facts at this scale. Natural drift from pure conversation length would require either hundreds of turns, a model with a much smaller context window, or both.
+
+**What this means for the paper:** We ran three rounds of drift experiments (25 turns with compaction, 25 turns without, 50 turns without) and found no natural drift in any of them. Two secondary findings emerged:
+
+1. Compaction preserves facts — summarization doesn't drop established facts even through multiple rounds
+2. GPT-4.1-nano retains facts across 50 turns of unrelated conversation without any governance
+
+The failure mode the paper describes — facts losing force over time — may require either much longer conversations than we tested, a weaker model with a smaller context window, or active adversarial pressure to manifest. With current-generation models and their large context windows, the adversarial case is where ARC's value is clearest.
 
 ---
 

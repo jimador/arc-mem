@@ -36,7 +36,7 @@ Long-running LLM conversations degrade because established facts lose force over
 
 ## What we know is weak
 
-1. **Natural drift didn't manifest at 25 turns** — the model retains facts through long conversations without ARC; longer horizons needed
+1. **Natural drift didn't manifest at 25 or 50 turns** — three rounds of drift testing (with compaction, without compaction, 50-turn no compaction) all showed 100% survival in both conditions; nano's 1M context window makes 50 turns trivial
 2. **Cross-domain scenarios are too easy** — most show 100% survival regardless of condition
 3. **gpt-4.1-nano is very susceptible** — a stronger model might resist contradictions without ARC
 4. **Statistical significance is marginal** — large effect sizes but BH-corrected p-values mostly non-significant

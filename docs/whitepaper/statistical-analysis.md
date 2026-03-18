@@ -184,13 +184,18 @@ Full per-metric (contradictionCount, driftAbsorptionRate, erosionRate) breakdown
 
 ## Natural Drift Follow-Up (2026-03-18)
 
-40 additional runs tested natural drift (no adversarial pressure) across 4 scenarios with 25 turns each, compaction enabled.
+Three rounds of drift experiments, no adversarial pressure:
 
-**Result:** 100% fact survival in both FULL_AWMU and NO_AWMU across all scenarios. Zero contradictions, zero effect sizes. Both conditions performed identically.
+| Experiment | Turns | Compaction | Runs | Result |
+|-----------|-------|-----------|------|--------|
+| 4 drift scenarios (tangent, dilution, priority, epistemic) | 25 | Yes (4K threshold) | 40 | 100% survival both conditions |
+| Long horizon, no compaction | 50 | Disabled | 10 | 100% survival both conditions |
 
-This null result indicates that 25-turn conversations with compaction at 4000 tokens do not induce natural drift in gpt-4.1-nano. The model retains established facts through long tangents, detail dilution, priority competition, and epistemic hedging without governance. Longer conversations (50-100+ turns) or more aggressive compaction may be needed to observe natural drift.
+Zero contradictions across all 50 drift runs. No effect sizes — both conditions performed identically.
 
-The adversarial results remain the primary evidence for ARC's value. Natural drift testing is deferred to follow-up work with longer conversation horizons.
+The first round tested whether compaction drops facts (it doesn't — summarization preserves them). The second round tested whether raw conversation length causes drift at 50 turns (it doesn't — 50 turns is ~3% of nano's 1M context window).
+
+Natural drift from pure conversation length would require either hundreds of turns, a model with a smaller context window, or both. With current-generation 1M-context models, the adversarial case is where ARC's value is observable.
 
 ---
 
