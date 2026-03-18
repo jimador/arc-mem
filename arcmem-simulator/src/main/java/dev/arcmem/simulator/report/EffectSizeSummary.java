@@ -19,7 +19,7 @@ import dev.arcmem.core.assembly.retrieval.*;
  * @param conditionA     first condition name
  * @param conditionB     second condition name
  * @param metricKey      the metric being compared
- * @param cohensD        Cohen's d effect size value
+ * @param cohensD        Hedges' g (small-sample corrected) effect size value
  * @param interpretation "negligible", "small", "medium", or "large"
  * @param lowConfidence  true if sample count is low or variance is high
  * @param pValue         BH-corrected p-value from Mann-Whitney U test; NaN if not computed

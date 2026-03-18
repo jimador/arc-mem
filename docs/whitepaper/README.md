@@ -32,7 +32,7 @@
 
 | # | Claim | Verdict |
 |---|-------|---------|
-| H1 | ARC improves fact survival vs no governance | Supported (d = 5.31 on adversarial-contradictory) |
+| H1 | ARC improves fact survival vs no governance | Supported (g = 5.31 on adversarial-contradictory) |
 | H2 | Trust, rank, lifecycle each contribute independently | Not supported (all within ±2 points of FULL_AWMU) |
 | H3 | Hierarchical authority > flat authority | Not supported (FLAT_AUTHORITY ≈ FULL_AWMU) |
 | H5 | ARC improves observability | Supported (per-fact, per-turn, per-strategy drill-down) |

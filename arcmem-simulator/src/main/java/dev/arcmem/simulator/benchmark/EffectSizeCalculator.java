@@ -77,7 +77,7 @@ public class EffectSizeCalculator {
                         continue;
                     }
 
-                    var d = computeCohensD(meanA, sampleSdA, nA, meanB, sampleSdB, nB);
+                    var d = computeHedgesG(meanA, sampleSdA, nA, meanB, sampleSdB, nB);
                     var interpretation = EffectSizeEntry.interpret(d);
                     var lowConfidence = nA < 10 || nB < 10
                                         || statsA.stream().anyMatch(BenchmarkStatistics::isHighVariance)
@@ -152,7 +152,8 @@ public class EffectSizeCalculator {
         return Map.copyOf(result);
     }
 
-    double computeCohensD(double mean1, double sd1, int n1, double mean2, double sd2, int n2) {
+    // Hedges' g: Cohen's d with small-sample correction factor J = 1 - 3/(4(n1+n2) - 9)
+    double computeHedgesG(double mean1, double sd1, int n1, double mean2, double sd2, int n2) {
         var pooledVariance = ((n1 - 1) * sd1 * sd1 + (n2 - 1) * sd2 * sd2)
                              / (n1 + n2 - 2);
         var pooledSd = Math.sqrt(pooledVariance);
@@ -161,7 +162,10 @@ public class EffectSizeCalculator {
             return 0.0;
         }
 
-        return (mean1 - mean2) / pooledSd;
+        var d = (mean1 - mean2) / pooledSd;
+        var df = n1 + n2 - 2;
+        var correctionFactor = df < 1 ? 1.0 : 1.0 - 3.0 / (4.0 * df - 1.0);
+        return d * correctionFactor;
     }
 
     static double toSampleStddev(double popStddev, int n) {

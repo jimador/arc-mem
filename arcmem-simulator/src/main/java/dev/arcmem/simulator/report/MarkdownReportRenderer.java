@@ -175,7 +175,7 @@ public final class MarkdownReportRenderer {
         }
 
         sb.append("### Effect Sizes\n\n");
-        sb.append("| Comparison | Metric | Cohen's d | p-value (BH) | Sig. | Interpretation |\n");
+        sb.append("| Comparison | Metric | Hedges' g | p-value (BH) | Sig. | Interpretation |\n");
         sb.append("|------------|--------|-----------|--------------|------|----------------|\n");
 
         for (var es : effectSizes) {

@@ -60,22 +60,24 @@
 
 - Mean and population standard deviation (N denominator) as reported by `BenchmarkStatistics`
 - 95% confidence intervals computed as: mean ± 1.96 × (sample stddev / √N), where sample stddev uses Bessel's correction (N-1 denominator)
-- Population stddev is converted to sample stddev before CI and Cohen's d calculation: s = σ × √(N/(N-1))
+- Population stddev is converted to sample stddev before CI and Hedges' g calculation: s = σ × √(N/(N-1))
 
 ### Effect Sizes
 
-Cohen's d with pooled sample standard deviation:
+Hedges' g (Cohen's d with small-sample correction):
 
 ```
 d = (μ₁ - μ₂) / s_pooled
 s_pooled = √(((n₁-1)s₁² + (n₂-1)s₂²) / (n₁+n₂-2))
+g = J × d
+J = 1 - 3/(4df - 1), where df = n₁+n₂-2
 ```
 
 Interpretation thresholds:
-- |d| < 0.2: negligible
-- 0.2 ≤ |d| < 0.5: small
-- 0.5 ≤ |d| < 0.8: medium
-- |d| ≥ 0.8: large
+- |g| < 0.2: negligible
+- 0.2 ≤ |g| < 0.5: small
+- 0.5 ≤ |g| < 0.8: medium
+- |g| ≥ 0.8: large
 
 ### Hypothesis Tests
 
@@ -102,7 +104,7 @@ Benjamini-Hochberg false discovery rate (FDR) procedure. Hypotheses ranked by p-
 
 The highest-discrimination scenario. Sustained, targeted contradiction pressure over multiple turns.
 
-| Metric | FULL_AWMU mean ± sd | NO_AWMU mean ± sd | Cohen's d |
+| Metric | FULL_AWMU mean ± sd | NO_AWMU mean ± sd | Hedges' g |
 |--------|--------------------|--------------------|-----------|
 | factSurvivalRate (%) | 86.0 ± 15.6 | 6.7 ± 9.4 | ~5.31 (large) |
 | contradictionCount | 1.3 ± 2.4 | 15.4 ± 3.1 | ~5.57 (large) |
@@ -115,7 +117,7 @@ All effect sizes are large. The high within-condition variance on FULL_AWMU (ero
 
 Displacement attack: adversary attempts to establish a new fact that displaces an existing one without direct contradiction.
 
-| Metric | FULL_AWMU mean ± sd | NO_AWMU mean ± sd | Cohen's d |
+| Metric | FULL_AWMU mean ± sd | NO_AWMU mean ± sd | Hedges' g |
 |--------|--------------------|--------------------|-----------|
 | factSurvivalRate (%) | 88.0 ± 9.8 | 34.0 ± 25.4 | ~2.84 (large) |
 | contradictionCount | — | — | — |
@@ -128,7 +130,7 @@ Note: contradictionCount, driftAbsorptionRate, and erosionRate breakdowns for ad
 
 Player-injection attack: adversarial player utterances attempt to introduce false facts as player-established canon.
 
-| Metric | FULL_AWMU mean ± sd | NO_AWMU mean ± sd | Cohen's d |
+| Metric | FULL_AWMU mean ± sd | NO_AWMU mean ± sd | Hedges' g |
 |--------|--------------------|--------------------|-----------|
 | factSurvivalRate (%) | 100.0 ± 0.0 | 82.0 ± 6.0 | ~3.27 (large) |
 | contradictionCount | — | — | — |
@@ -188,7 +190,7 @@ Full per-metric (contradictionCount, driftAbsorptionRate, erosionRate) breakdown
 
 2. **Bootstrapped CIs**: Would bootstrapped confidence intervals be more appropriate than parametric z-based CIs given the small N and potential non-normality? The ceiling-effect cells (100% ± 0.0) break normality assumptions entirely.
 
-3. **Effect size reporting convention**: We plan to lead with Cohen's d and report p-values as supplementary. Is this appropriate for an arXiv cs.AI submission? Are there preferred alternatives (Glass's delta, Hedges' g) given the unequal variances between conditions?
+3. **Effect size reporting convention**: We plan to lead with Hedges' g (small-sample corrected Cohen's d) and report p-values as supplementary. Is this appropriate for an arXiv cs.AI submission? Are there preferred alternatives (Glass's delta) given the unequal variances between conditions?
 
 4. **Adversarial-only reporting**: Given the ceiling effects in non-adversarial scenarios, should the primary analysis report adversarial-scenario results separately from the full 10-scenario aggregate? Mixing ceiling-effect scenarios into the overall resilience score dilutes the between-condition signal.
 

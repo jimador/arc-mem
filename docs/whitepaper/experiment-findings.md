@@ -18,7 +18,7 @@ The individual subsystem ablations show that no single component (trust, lifecyc
 
 | Hypothesis | Verdict | Evidence |
 |-----------|---------|----------|
-| **H1**: ARC improves survival vs no governance | **SUPPORTED** | 18.5-point resilience gap. Adversarial-contradictory: 86% vs 7% survival. Cohen's d = 5.31 (large) on that scenario. |
+| **H1**: ARC improves survival vs no governance | **SUPPORTED** | 18.5-point resilience gap. Adversarial-contradictory: 86% vs 7% survival. Hedges' g = 5.31 (large) on that scenario. |
 | **H2**: Trust, rank, lifecycle each contribute independently | **NOT SUPPORTED** | Removing any single subsystem produces negligible differences from FULL_AWMU (all within ±2 points). |
 | **H3**: Hierarchical authority > flat authority | **NOT SUPPORTED** | FLAT_AUTHORITY (95.5) ≈ FULL_AWMU (95.2). No meaningful difference. |
 | **H5**: ARC improves observability | **SUPPORTED** | Per-fact, per-turn, per-strategy drill-down enables failure attribution not possible without governance. |
@@ -96,7 +96,7 @@ This is the scenario that best isolates ARC's contribution because it applies su
 | Drift absorption | 89.0% ± 18.7 | 10.1% ± 6.7 | **+78.9** |
 | Erosion rate | 15.0% ± 32.0 | 82.8% ± 13.4 | **-67.8** |
 
-Cohen's d = 5.31 on factSurvivalRate. That's >11σ on a direct z-conversion, though the BH-corrected p-value lands at ~0.05 due to the non-parametric test's conservatism at small n.
+Hedges' g = 5.31 on factSurvivalRate. That's >11σ on a direct z-conversion, though the BH-corrected p-value lands at ~0.05 due to the non-parametric test's conservatism at small n.
 
 ---
 
@@ -113,7 +113,7 @@ Both attack strategies are devastating without ARC and nearly completely blocked
 
 ## Statistical Significance
 
-The effect sizes between ARC-enabled and NO_AWMU are large (d = 1.18 overall, d = 5.31 on adversarial-contradictory). On the adversarial scenarios specifically, the z-score exceeds 5σ.
+The effect sizes between ARC-enabled and NO_AWMU are large (g = 1.18 overall, g = 5.31 on adversarial-contradictory). On the adversarial scenarios specifically, the z-score exceeds 5σ.
 
 The aggregate p-values are weaker (~2σ after BH correction) because the overall analysis pools adversarial scenarios where ARC matters with non-adversarial scenarios where both conditions score identically. This dilutes the signal.
 
