@@ -24,7 +24,7 @@
 
 ## Experiment Summary
 
-600 runs. 6 conditions × 10 scenarios × 10 reps. gpt-4.1-nano DM, gpt-4.1-mini evaluator. ~$30 total cost. 18.6 hours wall clock.
+600 runs. 6 conditions × 10 scenarios × 10 reps. gpt-4.1-nano DM, gpt-4.1-mini evaluator.
 
 **Core result**: ARC-enabled conditions score 94.4–96.0 overall resilience. NO_AWMU scores 76.7. The gap comes from scenarios with sustained, repeated attacks on the same facts — not single contradictions.
 
