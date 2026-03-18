@@ -41,6 +41,16 @@ Long-running LLM conversations degrade because established facts lose force over
 4. **Compliance (H4) was never tested** — the enforcer was a no-op (PROMPT_ONLY mode); H4 is excluded from the findings
 5. **Ceiling effects** — many cells at 100% provide no discriminating power
 
+## How we control for LLM-as-judge error
+
+The drift evaluator (gpt-4.1-mini) is itself an LLM and produces false positives. We address this with:
+
+- **Hardened evaluator prompt**: conservative anchoring, structured evidence quoting, confidence gating (threshold 2/5)
+- **Judge mode as ANCOVA covariate**: same simulation output re-evaluated under open and hardened judge modes; ANCOVA confirms ARC effects survive after controlling for judge measurement error
+- **Human calibration sample**: planned precision/recall measurement against human-labeled verdicts
+
+Full methodology in `statistical-analysis.md` § "Controlling for LLM-as-Judge Measurement Error."
+
 ## Target venue
 
 arXiv (cs.AI / cs.CL). Not a top-tier venue submission yet — this is a working paper establishing the pattern and evaluation methodology.

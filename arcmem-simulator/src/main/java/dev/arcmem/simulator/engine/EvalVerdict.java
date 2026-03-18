@@ -25,6 +25,9 @@ public record EvalVerdict(
         String factId,
         Verdict verdict,
         Severity severity,
+        int confidence,
+        String evidenceQuote,
+        String reasoning,
         String explanation
 ) {
     public enum Verdict {
@@ -61,20 +64,14 @@ public record EvalVerdict(
      * Convenience factory for a contradiction verdict.
      */
     public static EvalVerdict contradicted(String factId, Severity severity, String explanation) {
-        return new EvalVerdict(factId, Verdict.CONTRADICTED, severity, explanation);
+        return new EvalVerdict(factId, Verdict.CONTRADICTED, severity, 5, "", "", explanation);
     }
 
-    /**
-     * Convenience factory for a confirmed verdict.
-     */
     public static EvalVerdict confirmed(String factId, String explanation) {
-        return new EvalVerdict(factId, Verdict.CONFIRMED, Severity.NONE, explanation);
+        return new EvalVerdict(factId, Verdict.CONFIRMED, Severity.NONE, 5, "", "", explanation);
     }
 
-    /**
-     * Convenience factory for a not-mentioned verdict.
-     */
     public static EvalVerdict notMentioned(String factId) {
-        return new EvalVerdict(factId, Verdict.NOT_MENTIONED, Severity.NONE, "");
+        return new EvalVerdict(factId, Verdict.NOT_MENTIONED, Severity.NONE, 0, "", "", "");
     }
 }

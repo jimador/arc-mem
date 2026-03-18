@@ -17,31 +17,41 @@ import dev.arcmem.core.spi.llm.*;
 import dev.arcmem.simulator.history.*;
 import dev.arcmem.simulator.scenario.*;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.util.List;
 
-/**
- * Structured result from the drift evaluation LLM call.
- * Designed for Jackson deserialization from the evaluator's JSON output.
- */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record DriftEvaluationResult(List<FactVerdict> verdicts) {
 
-    /**
-     * Single fact verdict as returned by the evaluator LLM in JSON format.
-     * Mapped to {@link EvalVerdict} after parsing.
-     */
+    static final int DEFAULT_CONFIDENCE_THRESHOLD = 2;
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public record FactVerdict(
             String factId,
             String verdict,
             String severity,
+            String evidenceQuote,
+            String reasoning,
+            Integer confidence,
             String explanation
     ) {
-        /**
-         * Convert to the domain-level {@link EvalVerdict}.
-         */
         public EvalVerdict toEvalVerdict() {
+            return toEvalVerdict(DEFAULT_CONFIDENCE_THRESHOLD);
+        }
+
+        public EvalVerdict toEvalVerdict(int confidenceThreshold) {
             var v = parseVerdict(verdict);
             var s = parseSeverity(severity, v);
-            return new EvalVerdict(factId, v, s, explanation != null ? explanation : "");
+            int conf = confidence != null ? confidence : 3;
+            if (v == EvalVerdict.Verdict.CONTRADICTED && conf < confidenceThreshold) {
+                v = EvalVerdict.Verdict.NOT_MENTIONED;
+                s = EvalVerdict.Severity.NONE;
+            }
+            return new EvalVerdict(factId, v, s, conf,
+                    evidenceQuote != null ? evidenceQuote : "",
+                    reasoning != null ? reasoning : "",
+                    explanation != null ? explanation : "");
         }
 
         private static EvalVerdict.Verdict parseVerdict(String raw) {
@@ -70,15 +80,16 @@ public record DriftEvaluationResult(List<FactVerdict> verdicts) {
         }
     }
 
-    /**
-     * Convert all fact verdicts to domain-level {@link EvalVerdict} list.
-     */
     public List<EvalVerdict> toEvalVerdicts() {
+        return toEvalVerdicts(DEFAULT_CONFIDENCE_THRESHOLD);
+    }
+
+    public List<EvalVerdict> toEvalVerdicts(int confidenceThreshold) {
         if (verdicts == null) {
             return List.of();
         }
         return verdicts.stream()
-                       .map(FactVerdict::toEvalVerdict)
+                       .map(fv -> fv.toEvalVerdict(confidenceThreshold))
                        .toList();
     }
 }

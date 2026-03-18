@@ -154,6 +154,117 @@ class DriftEvaluationTest {
     }
 
     @Nested
+    @DisplayName("Confidence gating")
+    class ConfidenceGating {
+
+        @Test
+        @DisplayName("lowConfidenceContradictionDowngradedToNotMentioned")
+        void lowConfidenceContradictionDowngradedToNotMentioned() throws Exception {
+            var json = """
+                    {
+                      "verdicts": [
+                        {"factId": "f1", "verdict": "CONTRADICTED", "severity": "MAJOR",
+                         "evidenceQuote": "vague passage", "reasoning": "uncertain",
+                         "confidence": 1, "explanation": "Low confidence"}
+                      ]
+                    }
+                    """;
+
+            var result = MAPPER.readValue(json, DriftEvaluationResult.class);
+            var verdicts = result.toEvalVerdicts();
+
+            assertThat(verdicts.get(0).verdict()).isEqualTo(EvalVerdict.Verdict.NOT_MENTIONED);
+            assertThat(verdicts.get(0).severity()).isEqualTo(EvalVerdict.Severity.NONE);
+            assertThat(verdicts.get(0).confidence()).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("highConfidenceContradictionPreserved")
+        void highConfidenceContradictionPreserved() throws Exception {
+            var json = """
+                    {
+                      "verdicts": [
+                        {"factId": "f1", "verdict": "CONTRADICTED", "severity": "MAJOR",
+                         "evidenceQuote": "There was never a bridge", "reasoning": "Direct denial",
+                         "confidence": 4, "explanation": "Clear contradiction"}
+                      ]
+                    }
+                    """;
+
+            var result = MAPPER.readValue(json, DriftEvaluationResult.class);
+            var verdicts = result.toEvalVerdicts();
+
+            assertThat(verdicts.get(0).verdict()).isEqualTo(EvalVerdict.Verdict.CONTRADICTED);
+            assertThat(verdicts.get(0).severity()).isEqualTo(EvalVerdict.Severity.MAJOR);
+            assertThat(verdicts.get(0).confidence()).isEqualTo(4);
+        }
+
+        @Test
+        @DisplayName("missingConfidenceDefaultsToThreeAndPassesGate")
+        void missingConfidenceDefaultsToThreeAndPassesGate() throws Exception {
+            var json = """
+                    {
+                      "verdicts": [
+                        {"factId": "f1", "verdict": "CONTRADICTED", "severity": "MINOR", "explanation": "No confidence field"}
+                      ]
+                    }
+                    """;
+
+            var result = MAPPER.readValue(json, DriftEvaluationResult.class);
+            var verdicts = result.toEvalVerdicts();
+
+            assertThat(verdicts.get(0).verdict()).isEqualTo(EvalVerdict.Verdict.CONTRADICTED);
+            assertThat(verdicts.get(0).confidence()).isEqualTo(3);
+        }
+
+        @Test
+        @DisplayName("customThresholdFiltersAccordingly")
+        void customThresholdFiltersAccordingly() throws Exception {
+            var json = """
+                    {
+                      "verdicts": [
+                        {"factId": "f1", "verdict": "CONTRADICTED", "severity": "MAJOR",
+                         "confidence": 2, "explanation": "Borderline"},
+                        {"factId": "f2", "verdict": "CONTRADICTED", "severity": "MAJOR",
+                         "confidence": 3, "explanation": "Moderate"}
+                      ]
+                    }
+                    """;
+
+            var result = MAPPER.readValue(json, DriftEvaluationResult.class);
+
+            var withThreshold3 = result.toEvalVerdicts(3);
+            assertThat(withThreshold3.get(0).verdict()).isEqualTo(EvalVerdict.Verdict.NOT_MENTIONED);
+            assertThat(withThreshold3.get(1).verdict()).isEqualTo(EvalVerdict.Verdict.CONTRADICTED);
+
+            var withThreshold2 = result.toEvalVerdicts(2);
+            assertThat(withThreshold2.get(0).verdict()).isEqualTo(EvalVerdict.Verdict.CONTRADICTED);
+            assertThat(withThreshold2.get(1).verdict()).isEqualTo(EvalVerdict.Verdict.CONTRADICTED);
+        }
+
+        @Test
+        @DisplayName("evidenceQuoteAndReasoningPreservedOnVerdict")
+        void evidenceQuoteAndReasoningPreservedOnVerdict() throws Exception {
+            var json = """
+                    {
+                      "verdicts": [
+                        {"factId": "f1", "verdict": "CONFIRMED", "severity": "NONE",
+                         "evidenceQuote": "The guards challenge you at the gate",
+                         "reasoning": "Implies the gate is guarded",
+                         "confidence": 5, "explanation": "Confirmed"}
+                      ]
+                    }
+                    """;
+
+            var result = MAPPER.readValue(json, DriftEvaluationResult.class);
+            var verdict = result.toEvalVerdicts().get(0);
+
+            assertThat(verdict.evidenceQuote()).isEqualTo("The guards challenge you at the gate");
+            assertThat(verdict.reasoning()).isEqualTo("Implies the gate is guarded");
+        }
+    }
+
+    @Nested
     @DisplayName("Severity classification")
     class SeverityClassification {
 

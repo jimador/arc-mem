@@ -121,6 +121,26 @@ The aggregate p-values are weaker (~2σ after BH correction) because the overall
 
 ---
 
+## Evaluator Measurement Control
+
+All metrics above are derived from an LLM-as-judge (gpt-4.1-mini) evaluating whether the DM's response contradicts ground truth facts. LLM judges produce false positives — we observed the judge flagging paraphrases, elaborations, and world progression as contradictions that a human would not consider genuine.
+
+We address this through three layered mitigations:
+
+1. **Hardened evaluator prompt** — conservative anchoring with explicit NOT-a-contradiction examples, forced evidence quoting before classification, and a confidence gate (1–5 scale, threshold 2) that downgrades the lowest-confidence contradictions to NOT_MENTIONED.
+
+2. **Judge mode as ANCOVA covariate** — the same simulation output is re-evaluated under both the original ("open") and hardened judge modes. ANCOVA tests whether the ARC condition effect survives after controlling for judge mode. A non-significant judge × condition interaction confirms the bias was condition-uniform.
+
+3. **Human calibration sample** — a random sample of judge verdicts will be human-labeled to measure precision and inter-rater reliability.
+
+The confidence gate threshold is set low (2/5) intentionally — we filter only the weakest signals to reduce false positives while preserving recall of genuine contradictions. The ANCOVA design lets us quantify exactly how much the judge inflates metrics, rather than just acknowledging it as a limitation.
+
+If anything, the bias works against our hypothesis: FULL_AWMU injects richer context into the prompt, giving the judge more material to over-interpret as contradictions. Results showing FULL_AWMU outperforming NO_AWMU are therefore conservative.
+
+Full methodology in `statistical-analysis.md` § "Controlling for LLM-as-Judge Measurement Error."
+
+---
+
 ## What We Didn't Find
 
 We ran separate drift experiments (25-turn and 50-turn scenarios with no adversarial pressure) to test whether facts fade naturally over long conversations. They didn't — 100% survival in both conditions across all drift scenarios. GPT-4.1-nano's 1M token context window makes 50 turns of conversation trivial. Natural drift from pure conversation length would require either much longer conversations or a model with a smaller context window.

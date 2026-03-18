@@ -159,10 +159,87 @@ Interpretation: the gap is between ARC-present and ARC-absent conditions, not be
 
 ---
 
+## Controlling for LLM-as-Judge Measurement Error
+
+### The Problem
+
+Drift evaluation relies on gpt-4.1-mini as a judge to classify whether the DM's response contradicts, confirms, or fails to mention each ground truth fact. LLM judges produce **false positives** — flagging contradictions that a human evaluator would not consider genuine. Observed false positive patterns include:
+
+- **Paraphrasing misclassified as contradiction**: The DM restates a fact in different words; the judge interprets the difference in phrasing as a factual conflict.
+- **Elaboration misclassified as contradiction**: The DM adds compatible detail to an established fact; the judge treats the added information as altering the original fact.
+- **World progression misclassified as contradiction**: Narrative events that change the world state (a bridge collapsing, a king being assassinated) are flagged as denials of the original fact rather than temporal progression.
+- **Tangential references misclassified as contradiction**: The DM mentions a related concept without addressing the specific fact; the judge infers an implicit conflict.
+
+These false positives inflate erosion and contradiction metrics across all conditions. The critical question for the experiment is whether this bias is **condition-uniform** (inflating absolute numbers equally, preserving relative comparisons) or **condition-differential** (systematically biasing one condition over another).
+
+### Mitigation 1: Hardened Evaluator Prompt
+
+The drift evaluation prompt was hardened with three layered defenses:
+
+**Conservative anchoring.** The system prompt includes explicit NOT-a-contradiction examples covering the observed false positive patterns: elaboration, paraphrasing, world progression, tangential reference, and epistemic hedging. These anchor the judge's classification boundary toward higher precision.
+
+**Structured reasoning.** The judge is required to produce three fields before classifying each fact:
+
+1. `evidenceQuote` — the exact passage from the DM's response relevant to the fact (or its absence)
+2. `reasoning` — an explanation of why the quoted evidence supports the chosen verdict
+3. `verdict` / `severity` / `confidence` — the classification
+
+Forcing the judge to show its work before classifying creates a chain-of-thought calibration effect. Verdicts that cannot be supported by a direct quote are more likely to self-correct during reasoning.
+
+**Confidence gating.** The judge assigns a confidence score (1–5) to each verdict:
+
+| Score | Meaning |
+|-------|---------|
+| 5 | Explicit, unambiguous assertion of the opposite |
+| 4 | Strong contradiction with clear textual evidence |
+| 3 | Likely contradiction but requires interpretation |
+| 2 | Possible contradiction but ambiguous |
+| 1 | Weak signal — may be paraphrasing, elaboration, or progression |
+
+Contradictions below the confidence threshold (default: 2) are downgraded to NOT_MENTIONED. The threshold is intentionally low to preserve recall — we accept most judge calls but filter out the least confident ones where false positive risk is highest. Missing confidence values default to 3 (passes the gate).
+
+### Mitigation 2: Judge Mode as Experimental Covariate (ANCOVA)
+
+To quantify the judge's impact on experimental conclusions, the same simulation output is evaluated under two judge modes:
+
+| Mode | Prompt | Confidence gate | Expected effect |
+|------|--------|----------------|-----------------|
+| **Open** | Original evaluator prompt (pre-hardening) | None — all verdicts accepted | Higher false positive rate; inflated erosion metrics |
+| **Hardened** | Conservative anchoring + structured reasoning | Threshold 2 — lowest-confidence contradictions filtered | Lower false positive rate; more conservative erosion metrics |
+
+This is a **post-hoc re-evaluation** — the same DM responses from the original experiment runs are scored by both judge modes. No additional simulation runs are needed because drift evaluation is decoupled from turn execution.
+
+The analysis uses ANCOVA (Analysis of Covariance) with:
+
+- **Dependent variable**: Erosion rate (or fact survival, contradiction count, etc.)
+- **Independent variable**: ARC condition (FULL_AWMU, NO_AWMU, ablations)
+- **Covariate**: Judge mode (open vs hardened)
+
+This design answers three questions:
+
+1. **Does judge mode have a significant main effect?** If yes, the false positive problem is real and measurable. The magnitude of the judge mode coefficient quantifies how much the original results were inflated.
+
+2. **Does the ARC condition effect survive after controlling for judge mode?** If the ARC effect remains significant in the ANCOVA, the finding is robust to evaluator measurement error. This is the primary claim we need to defend.
+
+3. **Is there a judge × condition interaction?** A non-significant interaction means the judge bias was condition-uniform — it inflated absolute numbers but did not differentially favor or penalize any condition. A significant interaction would indicate the judge was systematically harder or easier on certain conditions, which would require further investigation.
+
+**Expected outcome.** FULL_AWMU produces richer context (more active memory units in the prompt), giving the judge more material to potentially over-interpret as contradictions. If anything, this biases the open-mode judge *against* FULL_AWMU. A finding that FULL_AWMU outperforms NO_AWMU despite this bias is conservative — the true effect is likely larger than reported.
+
+### Reporting
+
+The paper will report:
+
+1. **Primary results using the hardened evaluator** — this is the methodologically stronger measurement.
+2. **ANCOVA results** showing the judge mode effect and confirming that ARC condition effects hold after controlling for it.
+3. **Open vs hardened comparison table** for the adversarial scenarios, showing the delta in erosion/survival metrics between judge modes per condition.
+4. **Precision estimate** from a human calibration sample (target: 50–100 verdicts) measuring inter-rater reliability between the hardened judge and human ground truth.
+
+---
+
 ## Known Limitations
 
-### Evaluator bias
-Drift evaluation uses gpt-4.1-mini as judge. LLM-as-judge introduces its own variance and potential systematic bias (e.g., the judge may be more lenient toward certain phrasings). The judge's error rate is not separately characterized.
+### Evaluator bias (partially mitigated)
+Drift evaluation uses gpt-4.1-mini as judge. The hardened evaluator prompt (conservative anchoring, structured reasoning, confidence gating) and ANCOVA covariate analysis mitigate but do not eliminate judge measurement error. The residual false positive rate after hardening is characterized via human calibration sample but not zero. See "Controlling for LLM-as-Judge Measurement Error" above.
 
 ### Model susceptibility
 gpt-4.1-nano is more susceptible to adversarial contradictions than larger models. The magnitude of the ARC-on vs ARC-off effect may shrink substantially with gpt-4.1 or gpt-5 as the DM. Results should not be generalized to claims about all LLMs without replication.
@@ -195,3 +272,7 @@ Full per-metric (contradictionCount, driftAbsorptionRate, erosionRate) breakdown
 4. **Adversarial-only reporting**: Given the ceiling effects in non-adversarial scenarios, should the primary analysis report adversarial-scenario results separately from the full 10-scenario aggregate? Mixing ceiling-effect scenarios into the overall resilience score dilutes the between-condition signal.
 
 5. **BH vs Bonferroni**: BH FDR is used throughout. Given the small number of primary hypotheses (H1, H2, H3, H5), would Bonferroni correction be more appropriate for the primary comparisons, reserving BH for the exploratory per-metric per-scenario tests?
+
+6. **ANCOVA for judge mode**: We plan to use ANCOVA with judge mode (open vs hardened) as a covariate to control for LLM-as-judge measurement error. With only two judge modes and the same underlying simulation data re-evaluated, is ANCOVA the right framework? Alternatives considered: paired difference analysis (hardened − open delta per run), mixed-effects model with judge mode as a random effect. The paired approach is simpler but doesn't directly test the condition × judge interaction. The mixed-effects model may be overparameterized given only two judge levels.
+
+7. **Human calibration sample size**: We plan 50–100 randomly sampled verdicts for human annotation to measure judge precision/recall. Is this sufficient for a reliable estimate given the expected base rate of ~15–25% CONTRADICTED verdicts in the adversarial scenarios? Should the sample be stratified by condition to test for differential bias?
