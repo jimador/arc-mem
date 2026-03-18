@@ -247,8 +247,11 @@ gpt-4.1-nano is more susceptible to adversarial contradictions than larger model
 ### Standard deviation reporting
 `BenchmarkStatistics` computes population stddev (N denominator). CIs and Cohen's d in this document use sample stddev (N-1 denominator) converted as: s = σ × √(N/(N-1)). With N=10, the correction factor is √(10/9) ≈ 1.054 — modest but non-trivial.
 
+### Setting injection as baseline assistance
+8 of 10 scenarios embed ground truth facts in the scenario `setting` field, which is injected into the DM's system prompt on every turn. The NO_AWMU baseline therefore has prompt-level access to the correct facts throughout the run. This makes the baseline stronger than a truly unassisted model, meaning the reported ARC effect sizes are conservative — the gap would be larger without setting injection. Non-adversarial ceiling effects (100% survival in both conditions) are partially or fully explained by this design artifact. See `experiment-findings.md` § "Setting Injection and Baseline Assistance" for the per-scenario breakdown.
+
 ### Ceiling effects
-Many cells show 100% fact survival across all conditions. These cells contribute no between-condition discriminating power and inflate the within-condition means without adding information. The adversarial scenarios are the only cells where between-condition differences are reliably observable.
+Many cells show 100% fact survival across all conditions. These cells contribute no between-condition discriminating power and inflate the within-condition means without adding information. The adversarial scenarios are the only cells where between-condition differences are reliably observable. Setting injection (above) is a contributing factor.
 
 ### Normal approximation for Mann-Whitney U
 With n=10 per group, the normal approximation to the Mann-Whitney U distribution is less accurate than exact computation or permutation testing. The approximation is anti-conservative — it may overstate significance. Results reported as "significant" should be treated with caution.

@@ -141,9 +141,30 @@ Full methodology in `statistical-analysis.md` § "Controlling for LLM-as-Judge M
 
 ---
 
+## Setting Injection and Baseline Assistance
+
+A design detail that affects interpretation: 8 of 10 paper experiment scenarios embed ground truth facts directly in the scenario `setting` field. The simulation harness injects the setting into the DM's system prompt on every turn. This means the NO_AWMU baseline is not truly "unassisted" — the model sees the correct facts in its system prompt throughout the run.
+
+| Scenario category | Ground truth in setting? | Implication |
+|-------------------|------------------------|-------------|
+| Adversarial (contradictory, displacement) | Partial — world context but not all specific facts | Mild baseline assistance |
+| Adversarial (poisoned-player, cursed-blade) | Complete or near-complete | Strong baseline assistance |
+| Ops & compliance (all 4) | Complete — policy facts define the constraint space | Strong baseline assistance; necessary for rule-based domains |
+| Non-adversarial (balanced-campaign, trust-evaluation) | Complete | Explains 100% survival in both conditions |
+
+**What this means for the results:**
+
+The adversarial effect sizes are **conservative**. The adversary had to overcome both the setting reminder in the system prompt AND ARC's governance to achieve contradiction. Without setting injection, the NO_AWMU baseline would perform worse, and the gap between conditions would be larger.
+
+The non-adversarial 100% survival in both conditions is explained by the setting injection — the model can't forget facts that appear in its system prompt every turn, regardless of ARC.
+
+**For future experiments:** Drift scenarios (designed after this observation) deliberately separate setting (narrative flavor only) from ground truth (introduced through early ESTABLISH turns only). This isolates whether the model retains conversationally established facts without prompt-level reminders.
+
+---
+
 ## What We Didn't Find
 
-We ran separate drift experiments (25-turn and 50-turn scenarios with no adversarial pressure) to test whether facts fade naturally over long conversations. They didn't — 100% survival in both conditions across all drift scenarios. GPT-4.1-nano's 1M token context window makes 50 turns of conversation trivial. Natural drift from pure conversation length would require either much longer conversations or a model with a smaller context window.
+We ran separate drift experiments (25-turn and 50-turn scenarios with no adversarial pressure) to test whether facts fade naturally over long conversations. They didn't — 100% survival in both conditions across all drift scenarios. However, these early drift experiments also had ground truth embedded in the setting (see above), so they cannot distinguish natural retention from prompt-level reminder. Redesigned drift scenarios (drift-epistemic-erosion, drift-gradual-dilution, drift-priority-inversion, drift-long-tangent, drift-long-horizon-no-compaction) introduce facts through conversational turns only and will provide a cleaner test of natural drift.
 
 The failure mode we *did* demonstrate — repeated adversarial erosion — is directly relevant to agentic systems where established constraints get tested repeatedly over long workflows. An agent told "never modify /prod" at turn 1 doesn't fail because it forgets the constraint. It fails because 40 turns of context make the constraint less salient, and someone (or the agent's own reasoning) starts treating it as flexible.
 
