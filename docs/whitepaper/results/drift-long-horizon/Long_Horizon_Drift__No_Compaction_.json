@@ -1,0 +1,301 @@
+{
+  "reportId" : "exp-35b7a684",
+  "experimentName" : "Long Horizon Drift (No Compaction)",
+  "createdAt" : "2026-03-18T04:34:04.823624Z",
+  "conditions" : [ "FULL_AWMU", "NO_AWMU" ],
+  "scenarioIds" : [ "drift-long-horizon-no-compaction" ],
+  "repetitionsPerCell" : 5,
+  "totalDurationMs" : 6562214,
+  "cellReports" : {
+    "FULL_AWMU:drift-long-horizon-no-compaction" : {
+      "reportId" : "bench-961228ec",
+      "scenarioId" : "drift-long-horizon-no-compaction",
+      "createdAt" : "2026-03-18T03:38:51.586387Z",
+      "runCount" : 5,
+      "totalDurationMs" : 3248927,
+      "metricStatistics" : {
+        "contradictionCount" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "factSurvivalRate" : {
+          "mean" : 100.0,
+          "stddev" : 0.0,
+          "min" : 100.0,
+          "max" : 100.0,
+          "median" : 100.0,
+          "p95" : 100.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "erosionRate" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "driftAbsorptionRate" : {
+          "mean" : 100.0,
+          "stddev" : 0.0,
+          "min" : 100.0,
+          "max" : 100.0,
+          "median" : 100.0,
+          "p95" : 100.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "majorContradictionCount" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "meanTurnsToFirstDrift" : {
+          "mean" : "NaN",
+          "stddev" : "NaN",
+          "min" : "NaN",
+          "max" : "NaN",
+          "median" : "NaN",
+          "p95" : "NaN",
+          "sampleCount" : 0,
+          "highVariance" : false
+        },
+        "unitAttributionCount" : {
+          "mean" : 5.0,
+          "stddev" : 0.0,
+          "min" : 5.0,
+          "max" : 5.0,
+          "median" : 5.0,
+          "p95" : 5.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "degradedConflictCount" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        }
+      },
+      "strategyStatistics" : { },
+      "runIds" : [ "fda240b5", "8a0da7e8", "7c1a5e86", "cfa7c61d", "365a36f1" ],
+      "baselineReportId" : null,
+      "baselineDeltas" : null,
+      "modelId" : "default"
+    },
+    "NO_AWMU:drift-long-horizon-no-compaction" : {
+      "reportId" : "bench-60960b35",
+      "scenarioId" : "drift-long-horizon-no-compaction",
+      "createdAt" : "2026-03-18T04:34:04.786196Z",
+      "runCount" : 5,
+      "totalDurationMs" : 3313060,
+      "metricStatistics" : {
+        "contradictionCount" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "factSurvivalRate" : {
+          "mean" : 100.0,
+          "stddev" : 0.0,
+          "min" : 100.0,
+          "max" : 100.0,
+          "median" : 100.0,
+          "p95" : 100.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "erosionRate" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "driftAbsorptionRate" : {
+          "mean" : 100.0,
+          "stddev" : 0.0,
+          "min" : 100.0,
+          "max" : 100.0,
+          "median" : 100.0,
+          "p95" : 100.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "majorContradictionCount" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "meanTurnsToFirstDrift" : {
+          "mean" : "NaN",
+          "stddev" : "NaN",
+          "min" : "NaN",
+          "max" : "NaN",
+          "median" : "NaN",
+          "p95" : "NaN",
+          "sampleCount" : 0,
+          "highVariance" : false
+        },
+        "unitAttributionCount" : {
+          "mean" : 5.0,
+          "stddev" : 0.0,
+          "min" : 5.0,
+          "max" : 5.0,
+          "median" : 5.0,
+          "p95" : 5.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "degradedConflictCount" : {
+          "mean" : 1.8,
+          "stddev" : 3.6000000000000005,
+          "min" : 0.0,
+          "max" : 9.0,
+          "median" : 0.0,
+          "p95" : 7.199999999999998,
+          "sampleCount" : 5,
+          "highVariance" : true
+        }
+      },
+      "strategyStatistics" : { },
+      "runIds" : [ "c055c053", "b504b53b", "019719a2", "4f243cec", "43fd8499" ],
+      "baselineReportId" : null,
+      "baselineDeltas" : null,
+      "modelId" : "default"
+    }
+  },
+  "effectSizeMatrix" : {
+    "FULL_AWMU:NO_AWMU" : {
+      "factSurvivalRate" : {
+        "cohensD" : 0.0,
+        "interpretation" : "negligible",
+        "lowConfidence" : true,
+        "pValue" : 1.0,
+        "significance" : "ns"
+      },
+      "unitAttributionCount" : {
+        "cohensD" : 0.0,
+        "interpretation" : "negligible",
+        "lowConfidence" : true,
+        "pValue" : 1.0,
+        "significance" : "ns"
+      },
+      "majorContradictionCount" : {
+        "cohensD" : 0.0,
+        "interpretation" : "negligible",
+        "lowConfidence" : true,
+        "pValue" : 1.0,
+        "significance" : "ns"
+      },
+      "contradictionCount" : {
+        "cohensD" : 0.0,
+        "interpretation" : "negligible",
+        "lowConfidence" : true,
+        "pValue" : 1.0,
+        "significance" : "ns"
+      },
+      "driftAbsorptionRate" : {
+        "cohensD" : 0.0,
+        "interpretation" : "negligible",
+        "lowConfidence" : true,
+        "pValue" : 1.0,
+        "significance" : "ns"
+      },
+      "erosionRate" : {
+        "cohensD" : 0.0,
+        "interpretation" : "negligible",
+        "lowConfidence" : true,
+        "pValue" : 1.0,
+        "significance" : "ns"
+      }
+    }
+  },
+  "confidenceIntervals" : {
+    "FULL_AWMU:drift-long-horizon-no-compaction" : {
+      "unitAttributionCount" : {
+        "lower" : 5.0,
+        "upper" : 5.0
+      },
+      "majorContradictionCount" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      },
+      "contradictionCount" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      },
+      "factSurvivalRate" : {
+        "lower" : 100.0,
+        "upper" : 100.0
+      },
+      "driftAbsorptionRate" : {
+        "lower" : 100.0,
+        "upper" : 100.0
+      },
+      "erosionRate" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      }
+    },
+    "NO_AWMU:drift-long-horizon-no-compaction" : {
+      "unitAttributionCount" : {
+        "lower" : 5.0,
+        "upper" : 5.0
+      },
+      "majorContradictionCount" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      },
+      "contradictionCount" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      },
+      "factSurvivalRate" : {
+        "lower" : 100.0,
+        "upper" : 100.0
+      },
+      "driftAbsorptionRate" : {
+        "lower" : 100.0,
+        "upper" : 100.0
+      },
+      "erosionRate" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      }
+    }
+  },
+  "strategyDeltas" : { },
+  "cancelled" : false
+}

@@ -1,0 +1,14 @@
+{
+  "configHash" : "8ffb408ab7519e7a",
+  "gitCommit" : "a0516ba4fbe6",
+  "startedAt" : "2026-03-17T23:09:24.238896Z",
+  "completedAt" : "2026-03-18T02:24:59.304822Z",
+  "wallClockMs" : 11735066,
+  "javaVersion" : "25",
+  "conditions" : [ "FULL_AWMU", "NO_AWMU" ],
+  "scenarios" : [ "drift-long-tangent", "drift-gradual-dilution", "drift-priority-inversion", "drift-epistemic-erosion" ],
+  "repetitionsPerCell" : 5,
+  "totalCells" : 8,
+  "totalRuns" : 40,
+  "cancelled" : false
+}
