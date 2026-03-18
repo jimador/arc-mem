@@ -41,4 +41,3 @@ nul
 .worktrees/
 
 **/experiment-output
-.claude/hooks/post-tool-call.py

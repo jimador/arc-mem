@@ -182,23 +182,6 @@ Full per-metric (contradictionCount, driftAbsorptionRate, erosionRate) breakdown
 
 ---
 
-## Natural Drift Follow-Up (2026-03-18)
-
-Three rounds of drift experiments, no adversarial pressure:
-
-| Experiment | Turns | Compaction | Runs | Result |
-|-----------|-------|-----------|------|--------|
-| 4 drift scenarios (tangent, dilution, priority, epistemic) | 25 | Yes (4K threshold) | 40 | 100% survival both conditions |
-| Long horizon, no compaction | 50 | Disabled | 10 | 100% survival both conditions |
-
-Zero contradictions across all 50 drift runs. No effect sizes — both conditions performed identically.
-
-The first round tested whether compaction drops facts (it doesn't — summarization preserves them). The second round tested whether raw conversation length causes drift at 50 turns (it doesn't — 50 turns is ~3% of nano's 1M context window).
-
-Natural drift from pure conversation length would require either hundreds of turns, a model with a smaller context window, or both. With current-generation 1M-context models, the adversarial case is where ARC's value is observable.
-
----
-
 ## Questions for Statistical Reviewer
 
 1. **Mann-Whitney U vs t-test**: Given N=10 and roughly symmetric distributions (no strong prior that the data is non-normal), is Mann-Whitney U the right default? Should we use Welch's t-test instead, or bootstrapped permutation tests?

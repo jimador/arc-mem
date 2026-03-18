@@ -20,7 +20,6 @@ Long-running LLM conversations degrade because established facts lose force over
 - **ARC on vs off**: 18.5-point resilience gap (95.2 vs 76.7 on 100-point scale)
 - **Adversarial scenarios**: Fact survival jumps from 7-34% (no ARC) to 86-100% (with ARC)
 - **Non-adversarial scenarios**: Model naturally resists contradictions even without ARC
-- **Natural drift scenarios**: 25-turn conversations with tangents, dilution, priority inversion, and epistemic hedging showed 100% survival in both conditions — natural drift didn't manifest at this conversation length
 - **Subsystem ablations**: No individual component (trust, authority, lifecycle, rank) is independently critical — the pattern itself is what matters
 
 ## Key files
@@ -36,12 +35,11 @@ Long-running LLM conversations degrade because established facts lose force over
 
 ## What we know is weak
 
-1. **Natural drift didn't manifest at 25 or 50 turns** — three rounds of drift testing (with compaction, without compaction, 50-turn no compaction) all showed 100% survival in both conditions; nano's 1M context window makes 50 turns trivial
-2. **Cross-domain scenarios are too easy** — most show 100% survival regardless of condition
-3. **gpt-4.1-nano is very susceptible** — a stronger model might resist contradictions without ARC
-4. **Statistical significance is marginal** — large effect sizes but BH-corrected p-values mostly non-significant
-5. **Compliance (H4) was never tested** — the enforcer was a no-op (PROMPT_ONLY mode); H4 is excluded from the findings
-6. **Ceiling effects** — many cells at 100% provide no discriminating power
+1. **Cross-domain scenarios are too easy** — most show 100% survival regardless of condition
+2. **gpt-4.1-nano is very susceptible** — a stronger model might resist contradictions without ARC
+3. **Statistical significance is marginal** — large effect sizes but BH-corrected p-values mostly non-significant
+4. **Compliance (H4) was never tested** — the enforcer was a no-op (PROMPT_ONLY mode); H4 is excluded from the findings
+5. **Ceiling effects** — many cells at 100% provide no discriminating power
 
 ## Target venue
 
