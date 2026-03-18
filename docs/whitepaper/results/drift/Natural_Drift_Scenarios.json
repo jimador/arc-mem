@@ -1,0 +1,1021 @@
+{
+  "reportId" : "exp-e1e6151c",
+  "experimentName" : "Natural Drift Scenarios",
+  "createdAt" : "2026-03-18T02:24:59.144531Z",
+  "conditions" : [ "FULL_AWMU", "NO_AWMU" ],
+  "scenarioIds" : [ "drift-long-tangent", "drift-gradual-dilution", "drift-priority-inversion", "drift-epistemic-erosion" ],
+  "repetitionsPerCell" : 5,
+  "totalDurationMs" : 11734871,
+  "cellReports" : {
+    "FULL_AWMU:drift-gradual-dilution" : {
+      "reportId" : "bench-5413cb8c",
+      "scenarioId" : "drift-gradual-dilution",
+      "createdAt" : "2026-03-18T00:12:44.087385Z",
+      "runCount" : 5,
+      "totalDurationMs" : 1903512,
+      "metricStatistics" : {
+        "factSurvivalRate" : {
+          "mean" : 100.0,
+          "stddev" : 0.0,
+          "min" : 100.0,
+          "max" : 100.0,
+          "median" : 100.0,
+          "p95" : 100.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "erosionRate" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "driftAbsorptionRate" : {
+          "mean" : 100.0,
+          "stddev" : 0.0,
+          "min" : 100.0,
+          "max" : 100.0,
+          "median" : 100.0,
+          "p95" : 100.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "majorContradictionCount" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "meanTurnsToFirstDrift" : {
+          "mean" : "NaN",
+          "stddev" : "NaN",
+          "min" : "NaN",
+          "max" : "NaN",
+          "median" : "NaN",
+          "p95" : "NaN",
+          "sampleCount" : 0,
+          "highVariance" : false
+        },
+        "unitAttributionCount" : {
+          "mean" : 5.0,
+          "stddev" : 0.0,
+          "min" : 5.0,
+          "max" : 5.0,
+          "median" : 5.0,
+          "p95" : 5.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "degradedConflictCount" : {
+          "mean" : 2.8,
+          "stddev" : 3.4292856398964493,
+          "min" : 0.0,
+          "max" : 7.0,
+          "median" : 0.0,
+          "p95" : 7.0,
+          "sampleCount" : 5,
+          "highVariance" : true
+        },
+        "contradictionCount" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        }
+      },
+      "strategyStatistics" : { },
+      "runIds" : [ "c11fb88a", "50640023", "469072ba", "df1ee99b", "4675ad92" ],
+      "baselineReportId" : null,
+      "baselineDeltas" : null,
+      "modelId" : "default"
+    },
+    "NO_AWMU:drift-priority-inversion" : {
+      "reportId" : "bench-b3c6fb6f",
+      "scenarioId" : "drift-priority-inversion",
+      "createdAt" : "2026-03-18T02:21:47.338183Z",
+      "runCount" : 5,
+      "totalDurationMs" : 1642701,
+      "metricStatistics" : {
+        "factSurvivalRate" : {
+          "mean" : 100.0,
+          "stddev" : 0.0,
+          "min" : 100.0,
+          "max" : 100.0,
+          "median" : 100.0,
+          "p95" : 100.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "erosionRate" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "driftAbsorptionRate" : {
+          "mean" : 100.0,
+          "stddev" : 0.0,
+          "min" : 100.0,
+          "max" : 100.0,
+          "median" : 100.0,
+          "p95" : 100.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "majorContradictionCount" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "meanTurnsToFirstDrift" : {
+          "mean" : "NaN",
+          "stddev" : "NaN",
+          "min" : "NaN",
+          "max" : "NaN",
+          "median" : "NaN",
+          "p95" : "NaN",
+          "sampleCount" : 0,
+          "highVariance" : false
+        },
+        "unitAttributionCount" : {
+          "mean" : 4.0,
+          "stddev" : 0.0,
+          "min" : 4.0,
+          "max" : 4.0,
+          "median" : 4.0,
+          "p95" : 4.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "degradedConflictCount" : {
+          "mean" : 0.6,
+          "stddev" : 1.2,
+          "min" : 0.0,
+          "max" : 3.0,
+          "median" : 0.0,
+          "p95" : 2.3999999999999995,
+          "sampleCount" : 5,
+          "highVariance" : true
+        },
+        "contradictionCount" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        }
+      },
+      "strategyStatistics" : { },
+      "runIds" : [ "4ef62115", "25119381", "f5d26fc5", "edd5e052", "de69d801" ],
+      "baselineReportId" : null,
+      "baselineDeltas" : null,
+      "modelId" : "default"
+    },
+    "FULL_AWMU:drift-epistemic-erosion" : {
+      "reportId" : "bench-3fa4014d",
+      "scenarioId" : "drift-epistemic-erosion",
+      "createdAt" : "2026-03-18T00:45:52.830014Z",
+      "runCount" : 5,
+      "totalDurationMs" : 228920,
+      "metricStatistics" : {
+        "factSurvivalRate" : {
+          "mean" : 100.0,
+          "stddev" : 0.0,
+          "min" : 100.0,
+          "max" : 100.0,
+          "median" : 100.0,
+          "p95" : 100.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "erosionRate" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "driftAbsorptionRate" : {
+          "mean" : 100.0,
+          "stddev" : 0.0,
+          "min" : 100.0,
+          "max" : 100.0,
+          "median" : 100.0,
+          "p95" : 100.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "majorContradictionCount" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "meanTurnsToFirstDrift" : {
+          "mean" : "NaN",
+          "stddev" : "NaN",
+          "min" : "NaN",
+          "max" : "NaN",
+          "median" : "NaN",
+          "p95" : "NaN",
+          "sampleCount" : 0,
+          "highVariance" : false
+        },
+        "unitAttributionCount" : {
+          "mean" : 5.0,
+          "stddev" : 0.0,
+          "min" : 5.0,
+          "max" : 5.0,
+          "median" : 5.0,
+          "p95" : 5.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "degradedConflictCount" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "contradictionCount" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        }
+      },
+      "strategyStatistics" : { },
+      "runIds" : [ "4466140f", "4447eaac", "ef655789", "fc1f018d", "bbab51be" ],
+      "baselineReportId" : null,
+      "baselineDeltas" : null,
+      "modelId" : "default"
+    },
+    "FULL_AWMU:drift-priority-inversion" : {
+      "reportId" : "bench-77ec9115",
+      "scenarioId" : "drift-priority-inversion",
+      "createdAt" : "2026-03-18T00:42:03.567099Z",
+      "runCount" : 5,
+      "totalDurationMs" : 1759343,
+      "metricStatistics" : {
+        "factSurvivalRate" : {
+          "mean" : 100.0,
+          "stddev" : 0.0,
+          "min" : 100.0,
+          "max" : 100.0,
+          "median" : 100.0,
+          "p95" : 100.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "erosionRate" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "driftAbsorptionRate" : {
+          "mean" : 100.0,
+          "stddev" : 0.0,
+          "min" : 100.0,
+          "max" : 100.0,
+          "median" : 100.0,
+          "p95" : 100.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "majorContradictionCount" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "meanTurnsToFirstDrift" : {
+          "mean" : "NaN",
+          "stddev" : "NaN",
+          "min" : "NaN",
+          "max" : "NaN",
+          "median" : "NaN",
+          "p95" : "NaN",
+          "sampleCount" : 0,
+          "highVariance" : false
+        },
+        "unitAttributionCount" : {
+          "mean" : 4.0,
+          "stddev" : 0.0,
+          "min" : 4.0,
+          "max" : 4.0,
+          "median" : 4.0,
+          "p95" : 4.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "degradedConflictCount" : {
+          "mean" : 2.6,
+          "stddev" : 3.2,
+          "min" : 0.0,
+          "max" : 7.0,
+          "median" : 0.0,
+          "p95" : 6.8,
+          "sampleCount" : 5,
+          "highVariance" : true
+        },
+        "contradictionCount" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        }
+      },
+      "strategyStatistics" : { },
+      "runIds" : [ "eff2c42e", "98662110", "2435e939", "7c72637f", "e8864ac4" ],
+      "baselineReportId" : null,
+      "baselineDeltas" : null,
+      "modelId" : "default"
+    },
+    "NO_AWMU:drift-epistemic-erosion" : {
+      "reportId" : "bench-bbceb4a3",
+      "scenarioId" : "drift-epistemic-erosion",
+      "createdAt" : "2026-03-18T02:24:59.095084Z",
+      "runCount" : 5,
+      "totalDurationMs" : 191689,
+      "metricStatistics" : {
+        "factSurvivalRate" : {
+          "mean" : 100.0,
+          "stddev" : 0.0,
+          "min" : 100.0,
+          "max" : 100.0,
+          "median" : 100.0,
+          "p95" : 100.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "erosionRate" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "driftAbsorptionRate" : {
+          "mean" : 100.0,
+          "stddev" : 0.0,
+          "min" : 100.0,
+          "max" : 100.0,
+          "median" : 100.0,
+          "p95" : 100.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "majorContradictionCount" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "meanTurnsToFirstDrift" : {
+          "mean" : "NaN",
+          "stddev" : "NaN",
+          "min" : "NaN",
+          "max" : "NaN",
+          "median" : "NaN",
+          "p95" : "NaN",
+          "sampleCount" : 0,
+          "highVariance" : false
+        },
+        "unitAttributionCount" : {
+          "mean" : 5.0,
+          "stddev" : 0.0,
+          "min" : 5.0,
+          "max" : 5.0,
+          "median" : 5.0,
+          "p95" : 5.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "degradedConflictCount" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "contradictionCount" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        }
+      },
+      "strategyStatistics" : { },
+      "runIds" : [ "527db8f1", "355e50bf", "be4ef30f", "3f77ad47", "7b1a230f" ],
+      "baselineReportId" : null,
+      "baselineDeltas" : null,
+      "modelId" : "default"
+    },
+    "NO_AWMU:drift-long-tangent" : {
+      "reportId" : "bench-5529988e",
+      "scenarioId" : "drift-long-tangent",
+      "createdAt" : "2026-03-18T01:24:10.603302Z",
+      "runCount" : 5,
+      "totalDurationMs" : 2297602,
+      "metricStatistics" : {
+        "factSurvivalRate" : {
+          "mean" : 100.0,
+          "stddev" : 0.0,
+          "min" : 100.0,
+          "max" : 100.0,
+          "median" : 100.0,
+          "p95" : 100.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "erosionRate" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "driftAbsorptionRate" : {
+          "mean" : 100.0,
+          "stddev" : 0.0,
+          "min" : 100.0,
+          "max" : 100.0,
+          "median" : 100.0,
+          "p95" : 100.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "majorContradictionCount" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "meanTurnsToFirstDrift" : {
+          "mean" : "NaN",
+          "stddev" : "NaN",
+          "min" : "NaN",
+          "max" : "NaN",
+          "median" : "NaN",
+          "p95" : "NaN",
+          "sampleCount" : 0,
+          "highVariance" : false
+        },
+        "unitAttributionCount" : {
+          "mean" : 5.0,
+          "stddev" : 0.0,
+          "min" : 5.0,
+          "max" : 5.0,
+          "median" : 5.0,
+          "p95" : 5.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "degradedConflictCount" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "contradictionCount" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        }
+      },
+      "strategyStatistics" : { },
+      "runIds" : [ "396424ef", "96e850d2", "f858da4b", "e4861b3c", "e04bf0e3" ],
+      "baselineReportId" : null,
+      "baselineDeltas" : null,
+      "modelId" : "default"
+    },
+    "FULL_AWMU:drift-long-tangent" : {
+      "reportId" : "bench-3c28acd6",
+      "scenarioId" : "drift-long-tangent",
+      "createdAt" : "2026-03-17T23:41:00.421137Z",
+      "runCount" : 5,
+      "totalDurationMs" : 1896113,
+      "metricStatistics" : {
+        "factSurvivalRate" : {
+          "mean" : 100.0,
+          "stddev" : 0.0,
+          "min" : 100.0,
+          "max" : 100.0,
+          "median" : 100.0,
+          "p95" : 100.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "erosionRate" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "driftAbsorptionRate" : {
+          "mean" : 100.0,
+          "stddev" : 0.0,
+          "min" : 100.0,
+          "max" : 100.0,
+          "median" : 100.0,
+          "p95" : 100.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "majorContradictionCount" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "meanTurnsToFirstDrift" : {
+          "mean" : "NaN",
+          "stddev" : "NaN",
+          "min" : "NaN",
+          "max" : "NaN",
+          "median" : "NaN",
+          "p95" : "NaN",
+          "sampleCount" : 0,
+          "highVariance" : false
+        },
+        "unitAttributionCount" : {
+          "mean" : 5.0,
+          "stddev" : 0.0,
+          "min" : 5.0,
+          "max" : 5.0,
+          "median" : 5.0,
+          "p95" : 5.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "degradedConflictCount" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "contradictionCount" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        }
+      },
+      "strategyStatistics" : { },
+      "runIds" : [ "4f064f69", "9720482e", "1976caf1", "416f1a06", "a37c73fc" ],
+      "baselineReportId" : null,
+      "baselineDeltas" : null,
+      "modelId" : "default"
+    },
+    "NO_AWMU:drift-gradual-dilution" : {
+      "reportId" : "bench-e693b886",
+      "scenarioId" : "drift-gradual-dilution",
+      "createdAt" : "2026-03-18T01:54:24.558602Z",
+      "runCount" : 5,
+      "totalDurationMs" : 1812911,
+      "metricStatistics" : {
+        "factSurvivalRate" : {
+          "mean" : 100.0,
+          "stddev" : 0.0,
+          "min" : 100.0,
+          "max" : 100.0,
+          "median" : 100.0,
+          "p95" : 100.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "erosionRate" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "driftAbsorptionRate" : {
+          "mean" : 100.0,
+          "stddev" : 0.0,
+          "min" : 100.0,
+          "max" : 100.0,
+          "median" : 100.0,
+          "p95" : 100.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "majorContradictionCount" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "meanTurnsToFirstDrift" : {
+          "mean" : "NaN",
+          "stddev" : "NaN",
+          "min" : "NaN",
+          "max" : "NaN",
+          "median" : "NaN",
+          "p95" : "NaN",
+          "sampleCount" : 0,
+          "highVariance" : false
+        },
+        "unitAttributionCount" : {
+          "mean" : 5.0,
+          "stddev" : 0.0,
+          "min" : 5.0,
+          "max" : 5.0,
+          "median" : 5.0,
+          "p95" : 5.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        },
+        "degradedConflictCount" : {
+          "mean" : 1.2,
+          "stddev" : 1.5999999999999999,
+          "min" : 0.0,
+          "max" : 4.0,
+          "median" : 0.0,
+          "p95" : 3.5999999999999996,
+          "sampleCount" : 5,
+          "highVariance" : true
+        },
+        "contradictionCount" : {
+          "mean" : 0.0,
+          "stddev" : 0.0,
+          "min" : 0.0,
+          "max" : 0.0,
+          "median" : 0.0,
+          "p95" : 0.0,
+          "sampleCount" : 5,
+          "highVariance" : false
+        }
+      },
+      "strategyStatistics" : { },
+      "runIds" : [ "25cdcb62", "c8a475bf", "dd1f3de9", "c43f0523", "0bb343c2" ],
+      "baselineReportId" : null,
+      "baselineDeltas" : null,
+      "modelId" : "default"
+    }
+  },
+  "effectSizeMatrix" : {
+    "FULL_AWMU:NO_AWMU" : {
+      "factSurvivalRate" : {
+        "cohensD" : 0.0,
+        "interpretation" : "negligible",
+        "lowConfidence" : false,
+        "pValue" : 1.0,
+        "significance" : "ns"
+      },
+      "unitAttributionCount" : {
+        "cohensD" : 0.0,
+        "interpretation" : "negligible",
+        "lowConfidence" : false,
+        "pValue" : 1.0,
+        "significance" : "ns"
+      },
+      "majorContradictionCount" : {
+        "cohensD" : 0.0,
+        "interpretation" : "negligible",
+        "lowConfidence" : false,
+        "pValue" : 1.0,
+        "significance" : "ns"
+      },
+      "contradictionCount" : {
+        "cohensD" : 0.0,
+        "interpretation" : "negligible",
+        "lowConfidence" : false,
+        "pValue" : 1.0,
+        "significance" : "ns"
+      },
+      "driftAbsorptionRate" : {
+        "cohensD" : 0.0,
+        "interpretation" : "negligible",
+        "lowConfidence" : false,
+        "pValue" : 1.0,
+        "significance" : "ns"
+      },
+      "erosionRate" : {
+        "cohensD" : 0.0,
+        "interpretation" : "negligible",
+        "lowConfidence" : false,
+        "pValue" : 1.0,
+        "significance" : "ns"
+      }
+    }
+  },
+  "confidenceIntervals" : {
+    "FULL_AWMU:drift-gradual-dilution" : {
+      "unitAttributionCount" : {
+        "lower" : 5.0,
+        "upper" : 5.0
+      },
+      "majorContradictionCount" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      },
+      "contradictionCount" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      },
+      "factSurvivalRate" : {
+        "lower" : 100.0,
+        "upper" : 100.0
+      },
+      "driftAbsorptionRate" : {
+        "lower" : 100.0,
+        "upper" : 100.0
+      },
+      "erosionRate" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      }
+    },
+    "NO_AWMU:drift-priority-inversion" : {
+      "unitAttributionCount" : {
+        "lower" : 4.0,
+        "upper" : 4.0
+      },
+      "majorContradictionCount" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      },
+      "contradictionCount" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      },
+      "factSurvivalRate" : {
+        "lower" : 100.0,
+        "upper" : 100.0
+      },
+      "driftAbsorptionRate" : {
+        "lower" : 100.0,
+        "upper" : 100.0
+      },
+      "erosionRate" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      }
+    },
+    "FULL_AWMU:drift-epistemic-erosion" : {
+      "unitAttributionCount" : {
+        "lower" : 5.0,
+        "upper" : 5.0
+      },
+      "majorContradictionCount" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      },
+      "contradictionCount" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      },
+      "factSurvivalRate" : {
+        "lower" : 100.0,
+        "upper" : 100.0
+      },
+      "driftAbsorptionRate" : {
+        "lower" : 100.0,
+        "upper" : 100.0
+      },
+      "erosionRate" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      }
+    },
+    "FULL_AWMU:drift-priority-inversion" : {
+      "unitAttributionCount" : {
+        "lower" : 4.0,
+        "upper" : 4.0
+      },
+      "majorContradictionCount" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      },
+      "contradictionCount" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      },
+      "factSurvivalRate" : {
+        "lower" : 100.0,
+        "upper" : 100.0
+      },
+      "driftAbsorptionRate" : {
+        "lower" : 100.0,
+        "upper" : 100.0
+      },
+      "erosionRate" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      }
+    },
+    "NO_AWMU:drift-epistemic-erosion" : {
+      "unitAttributionCount" : {
+        "lower" : 5.0,
+        "upper" : 5.0
+      },
+      "majorContradictionCount" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      },
+      "contradictionCount" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      },
+      "factSurvivalRate" : {
+        "lower" : 100.0,
+        "upper" : 100.0
+      },
+      "driftAbsorptionRate" : {
+        "lower" : 100.0,
+        "upper" : 100.0
+      },
+      "erosionRate" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      }
+    },
+    "NO_AWMU:drift-long-tangent" : {
+      "unitAttributionCount" : {
+        "lower" : 5.0,
+        "upper" : 5.0
+      },
+      "majorContradictionCount" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      },
+      "contradictionCount" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      },
+      "factSurvivalRate" : {
+        "lower" : 100.0,
+        "upper" : 100.0
+      },
+      "driftAbsorptionRate" : {
+        "lower" : 100.0,
+        "upper" : 100.0
+      },
+      "erosionRate" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      }
+    },
+    "FULL_AWMU:drift-long-tangent" : {
+      "unitAttributionCount" : {
+        "lower" : 5.0,
+        "upper" : 5.0
+      },
+      "majorContradictionCount" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      },
+      "contradictionCount" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      },
+      "factSurvivalRate" : {
+        "lower" : 100.0,
+        "upper" : 100.0
+      },
+      "driftAbsorptionRate" : {
+        "lower" : 100.0,
+        "upper" : 100.0
+      },
+      "erosionRate" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      }
+    },
+    "NO_AWMU:drift-gradual-dilution" : {
+      "unitAttributionCount" : {
+        "lower" : 5.0,
+        "upper" : 5.0
+      },
+      "majorContradictionCount" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      },
+      "contradictionCount" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      },
+      "factSurvivalRate" : {
+        "lower" : 100.0,
+        "upper" : 100.0
+      },
+      "driftAbsorptionRate" : {
+        "lower" : 100.0,
+        "upper" : 100.0
+      },
+      "erosionRate" : {
+        "lower" : 0.0,
+        "upper" : 0.0
+      }
+    }
+  },
+  "strategyDeltas" : { },
+  "cancelled" : false
+}

@@ -99,6 +99,39 @@ Attack strategies are devastatingly effective without ARC but nearly completely 
 
 ---
 
+## Natural Drift Scenarios (follow-up experiment)
+
+**Date**: 2026-03-18
+**Config**: 2 conditions × 4 scenarios × 5 reps = 40 runs, 3.3 hours
+
+We ran 4 non-adversarial scenarios designed to test natural long-horizon drift — the actual failure mode the paper is about — rather than adversarial contradiction pressure.
+
+| Scenario | Drift mechanism | Turns |
+|----------|----------------|-------|
+| drift-long-tangent | 14 turns of unrelated conversation between fact establishment and recall | 25 |
+| drift-gradual-dilution | Related details accumulate and crowd out originals | 25 |
+| drift-priority-inversion | Dramatic new events compete for salience over standing constraints | 25 |
+| drift-epistemic-erosion | Hedging and qualification erode certainty without contradiction | 25 |
+
+**Result: 100% survival across all scenarios and both conditions.**
+
+| Scenario | FULL_AWMU survival | NO_AWMU survival | Contradictions |
+|----------|-------------------|-----------------|----------------|
+| drift-long-tangent | 100% ± 0.0 | 100% ± 0.0 | 0 |
+| drift-gradual-dilution | 100% ± 0.0 | 100% ± 0.0 | 0 |
+| drift-priority-inversion | 100% ± 0.0 | 100% ± 0.0 | 0 |
+| drift-epistemic-erosion | 100% ± 0.0 | 100% ± 0.0 | 0 |
+
+No effect sizes, no p-values — both conditions scored identically. Zero contradictions in all 40 runs.
+
+**What this tells us:** 25-turn conversations with compaction at 4000 tokens don't exhaust the model's ability to retain facts from conversation history alone. Even gpt-4.1-nano maintains established facts through long tangents, detail floods, priority competition, and epistemic hedging without any working memory governance.
+
+Natural drift — facts silently losing force over time — likely requires much longer conversations (50-100+ turns), much more aggressive compaction, or actual context window exhaustion. At 25 turns, the model's native context handling is sufficient.
+
+**What this means for the paper:** The evidence for ARC is currently limited to adversarial scenarios where someone actively pushes false claims. ARC's value in those cases is clear (18.5-point gap). But we haven't yet demonstrated that natural drift is a real problem at the conversation lengths we tested, which means we can't yet claim ARC prevents natural drift — only that it prevents adversarial drift. Longer-horizon experiments are needed.
+
+---
+
 ## Revised Thesis
 
 The original thesis assumed each subsystem (trust, authority, lifecycle) would contribute independently. The data says otherwise.

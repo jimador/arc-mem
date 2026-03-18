@@ -182,6 +182,18 @@ Full per-metric (contradictionCount, driftAbsorptionRate, erosionRate) breakdown
 
 ---
 
+## Natural Drift Follow-Up (2026-03-18)
+
+40 additional runs tested natural drift (no adversarial pressure) across 4 scenarios with 25 turns each, compaction enabled.
+
+**Result:** 100% fact survival in both FULL_AWMU and NO_AWMU across all scenarios. Zero contradictions, zero effect sizes. Both conditions performed identically.
+
+This null result indicates that 25-turn conversations with compaction at 4000 tokens do not induce natural drift in gpt-4.1-nano. The model retains established facts through long tangents, detail dilution, priority competition, and epistemic hedging without governance. Longer conversations (50-100+ turns) or more aggressive compaction may be needed to observe natural drift.
+
+The adversarial results remain the primary evidence for ARC's value. Natural drift testing is deferred to follow-up work with longer conversation horizons.
+
+---
+
 ## Questions for Statistical Reviewer
 
 1. **Mann-Whitney U vs t-test**: Given N=10 and roughly symmetric distributions (no strong prior that the data is non-normal), is Mann-Whitney U the right default? Should we use Welch's t-test instead, or bootstrapped permutation tests?
