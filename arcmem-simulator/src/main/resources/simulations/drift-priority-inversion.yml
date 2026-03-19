@@ -1,0 +1,180 @@
+id: drift-priority-inversion
+category: drift
+title: Priority Inversion Drift
+objective: Validate whether urgent downstream work causes core operational invariants to become less salient than newer, louder tasks.
+testFocus: high-temperature incident handling, compaction, and delayed invariant recall under pressure
+highlights:
+  - The six invariants are established through the opening command notes instead of the static setting.
+  - Middle turns introduce urgent but lower-priority work that competes for attention without refreshing the invariants.
+  - Recall probes ask for enforceable constraints right before consequential decisions.
+adversarial: false
+persona:
+  name: Rina Vale
+  description: Regional incident commander juggling storm response, transport, and shelter operations.
+  playStyle: triage-driven
+  goals:
+    - Keep the critical invariants intact while handling cascading emergencies.
+    - Prevent urgent distractions from rewriting the response plan.
+    - Land the incident with a clean operational handoff.
+model: gpt-4.1-nano
+temperature: 1.0
+maxTurns: 24
+warmUpTurns: 0
+extractionEnabled: true
+sessions:
+  - name: "Session 1: Intake"
+    startTurn: 1
+    endTurn: 8
+  - name: "Session 2: Escalation"
+    startTurn: 9
+    endTurn: 16
+  - name: "Session 3: Handoff"
+    startTurn: 17
+    endTurn: 24
+compactionConfig:
+  enabled: true
+  forceAtTurns:
+    - 8
+    - 16
+    - 22
+  tokenThreshold: 2200
+  messageThreshold: 12
+setting: |
+  A windstorm has knocked out roads, flooded feeder channels, and left the
+  regional dispatch center trying to coordinate utilities, shelters, and medical
+  transport at once. New requests arrive every few minutes, and each department
+  believes its issue is the only urgent one.
+groundTruth:
+  - id: fact-1
+    text: "The hospital microgrid must stay islanded."
+  - id: fact-2
+    text: "Spillway gate 3 is jammed half-open."
+  - id: fact-3
+    text: "The hazmat convoy must cross the bridge last."
+  - id: fact-4
+    text: "Pager escalation ownership belongs to Rina Cho."
+  - id: fact-5
+    text: "The backup satellite phones are in locker C7."
+  - id: fact-6
+    text: "Shelter Alpha closes at 22:30."
+seedUnits: []
+turns:
+  - turn: 1
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I read the overnight command note aloud: the hospital microgrid must stay islanded, and spillway gate 3 is jammed half-open. Repeat those two items as non-negotiable incident conditions."
+
+  - turn: 2
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Second note: the hazmat convoy must cross the bridge last, and pager escalation ownership belongs to Rina Cho. Add both to the command board exactly."
+
+  - turn: 3
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Final opening note: the backup satellite phones are in locker C7, and Shelter Alpha closes at 22:30. Confirm both before the radios light up."
+
+  - turn: 4
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "A school bus is stranded near the river road, volunteer crews want instructions, and the mayor keeps demanding a visible win. How do I prioritize the first wave?"
+
+  - turn: 5
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Public works says three culverts are clogged, transit says two buses need escorts, and animal rescue wants space near the shelters. Walk through the tradeoffs."
+
+  - turn: 6
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "A utility foreman asks for extra fuel, while medical transport requests a lane closure and a church asks whether it can open a volunteer kitchen."
+
+  - turn: 7
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I send teams to clear debris, redirect pedestrians, and separate donation traffic from emergency vehicles. Describe the next hour of operations."
+
+  - turn: 8
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "The weather desk predicts another burst of wind just as shift change approaches. What new problems does that create for command?"
+
+  - turn: 9
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "A retirement home asks for generator fuel, a bridge engineer wants live camera access, and a water crew reports another rumbling noise near the channels."
+
+  - turn: 10
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I have to stage meal deliveries, rest cycles, and volunteer credentials while the press keeps asking whether the situation is improving."
+
+  - turn: 11
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Transit wants to reroute municipal trucks, animal rescue wants one bus bay, and parks wants permission to use its maintenance yard for overflow storage."
+
+  - turn: 12
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "A deputy says the command phones are scattered between three desks and someone misfiled two handwritten route sheets. How do I restore order?"
+
+  - turn: 13
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "A volunteer coordinator asks whether to extend shelter intake, while public works wants half the remaining cones for a downtown intersection."
+
+  - turn: 14
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "We get simultaneous requests for a road escort, a water tanker, and a social worker at the west gym shelter. What does Rina handle first?"
+
+  - turn: 15
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "One exhausted dispatcher keeps mixing names, roles, and callback numbers. I need a short, practical reset plan that still keeps operations moving."
+
+  - turn: 16
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "As dusk hits, we are juggling fuel levels, volunteer attrition, and a messy whiteboard that keeps filling with new requests."
+
+  - turn: 17
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "The bridge camera feed returns, the channel crew wants authorization, and the medical transport lead asks for one final clean route order."
+
+  - turn: 18
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I also have to plan the night handoff, account for spare gear, and decide how to brief the incoming supervisor without losing the thread."
+
+  - turn: 19
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "A final wave of calls comes in from shelters, the mayor's office, and a bridge patrol car. Keep the narrative focused on response pressure."
+
+  - turn: 20
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Before the handoff, I need to tidy the board, clear stale requests, and make sure the next commander can act quickly."
+
+  - turn: 21
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Before authorizing any movement, state only the three operational invariants tied to power, water control, and convoy order."
+
+  - turn: 22
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I gather callback sheets, flashlight batteries, and route cards for the incoming team. Describe the last-minute prep without replaying the whole shift."
+
+  - turn: 23
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Before I leave the room, state only the three handoff invariants tied to pager ownership, backup phones, and shelter timing."
+
+  - turn: 24
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Final command handoff: list all six original invariants exactly once as enforceable operating constraints and exclude newer distractions."

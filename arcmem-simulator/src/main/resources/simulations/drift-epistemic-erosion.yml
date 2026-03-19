@@ -1,0 +1,180 @@
+id: drift-epistemic-erosion
+category: drift
+title: Epistemic Erosion Drift
+objective: Validate whether prolonged work with fragmentary notes and rumors causes the model to hedge, blur, or swap originally verified facts.
+testFocus: uncertain evidence handling, compaction, and recall of verified facts without rumor contamination
+highlights:
+  - Verified facts are seeded only through the opening evidence packets, not the static setting.
+  - Middle turns introduce many similar but lower-confidence alternatives rather than direct contradictions.
+  - Recall probes explicitly ask for verified facts only, surfacing whether ambiguity has polluted recall.
+adversarial: false
+persona:
+  name: Elian Marr
+  description: Court archivist rebuilding a conspiracy timeline from damaged notes, witness fragments, and intercepted messages.
+  playStyle: cautious-synthesizer
+  goals:
+    - Separate verified facts from rumor.
+    - Preserve the original evidence packet while processing new scraps.
+    - Produce a final brief the magistrate can trust.
+model: gpt-4.1-nano
+temperature: 1.0
+maxTurns: 24
+warmUpTurns: 0
+extractionEnabled: true
+sessions:
+  - name: "Session 1: Verified Packet"
+    startTurn: 1
+    endTurn: 8
+  - name: "Session 2: Rumor Mill"
+    startTurn: 9
+    endTurn: 16
+  - name: "Session 3: Final Brief"
+    startTurn: 17
+    endTurn: 24
+compactionConfig:
+  enabled: true
+  forceAtTurns:
+    - 8
+    - 16
+    - 22
+  tokenThreshold: 2200
+  messageThreshold: 12
+setting: |
+  The Hall of Records has spent weeks collecting scraps about a failed court
+  poisoning. Half the notes are smudged, witnesses contradict themselves on side
+  details, and every scribe uses a different filing habit. Elian has one chance
+  to turn scattered fragments into a clean, defensible briefing.
+groundTruth:
+  - id: fact-1
+    text: "Witness Sel was backed by House Aven."
+  - id: fact-2
+    text: "The secret meeting happened in archive room 7."
+  - id: fact-3
+    text: "The poison was bitter fennel extract."
+  - id: fact-4
+    text: "The missing cipher page is folio 19."
+  - id: fact-5
+    text: "Courier Jana wore brass beads."
+  - id: fact-6
+    text: "The safe phrase was winter lantern."
+seedUnits: []
+turns:
+  - turn: 1
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Verified packet one says witness Sel was backed by House Aven, and the secret meeting happened in archive room 7. Put both facts into the case summary as verified."
+
+  - turn: 2
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Verified packet two says the poison was bitter fennel extract, and the missing cipher page is folio 19. Record both exactly as established evidence."
+
+  - turn: 3
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Verified packet three says courier Jana wore brass beads, and the safe phrase was winter lantern. Add both to the verified list without embellishment."
+
+  - turn: 4
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Now I open a rumor bundle about rival houses, borrowed rooms, and unclear witness loyalties. Summarize the rumors separately from the verified packet."
+
+  - turn: 5
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "One torn note mentions room 6 or room 8 near the west stacks, but the handwriting is poor. How does Elian discuss that uncertainty without collapsing it into the verified file?"
+
+  - turn: 6
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Another scrap mentions rosemary, juniper, and fennel in the apothecary district. Which of those belong in rumor status versus verified status?"
+
+  - turn: 7
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I compare three witness sketches of different couriers, each with different jewelry, coats, and satchels. What distinctions matter most?"
+
+  - turn: 8
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "A junior scribe mixed folio 18, folio 19, and folio 21 into one tray. Walk through how Elian would sort the confusion."
+
+  - turn: 9
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Rumors spread that House Rovan or House Elde might have funded Sel instead. Describe how that talk changes the atmosphere without rewriting the evidence."
+
+  - turn: 10
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "A messenger swears the phrase might have been winter candle, winter harbor, or winter lantern, but cannot remember who said it. What does Elian do with that?"
+
+  - turn: 11
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I reconstruct the archive map from partial floor plans, corridor labels, and one damaged signboard. Which uncertainties remain unresolved?"
+
+  - turn: 12
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "A witness clerk thinks Jana wore copper rings, another insists on brass beads, and a third only remembers a yellow scarf. How does the file note handle that?"
+
+  - turn: 13
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "The apothecary registry includes fennel syrup, bitter fennel extract, and sweet fennel powder across different entries. How does Elian separate them?"
+
+  - turn: 14
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "A second rumor packet mixes up two houses, three rooms, and several half-heard passwords. Keep the narrative centered on uncertainty management."
+
+  - turn: 15
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I draft a provisional timeline, then stop to mark where I am relying on rumor instead of verified material."
+
+  - turn: 16
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "An exhausted copyist asks whether to merge repeated references that only differ by a number, herb, or room marker. What guidance does Elian give?"
+
+  - turn: 17
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "By evening the table is covered in color-coded slips. I start building the final brief while trying not to let rumor terms bleed into the verified packet."
+
+  - turn: 18
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "A magistrate's aide wants a one-page outline right away. Describe the pressure and what Elian refuses to guess at."
+
+  - turn: 19
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I make one last pass through the room map, herb list, witness tags, and password scraps before drafting the final summary."
+
+  - turn: 20
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "The candlelight is poor, the notes are crowded, and everyone around me keeps asking whether we are finally sure. Keep the scene grounded in epistemic strain."
+
+  - turn: 21
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Give only the verified facts about patron house, meeting room, poison, and missing folio. Exclude rumors."
+
+  - turn: 22
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I prepare clean tags for witnesses, rooms, herbs, and passwords so the final brief can be copied without cross-contamination."
+
+  - turn: 23
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Give only the verified facts about Jana's identifying marker and the safe phrase. Exclude rumors."
+
+  - turn: 24
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Final verified brief: list all six original verified facts exactly once and exclude uncertain alternatives."

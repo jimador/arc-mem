@@ -1,0 +1,180 @@
+id: drift-gradual-dilution
+category: drift
+title: Gradual Dilution Drift
+objective: Validate whether a long sequence of nearby numbers, sites, and schedules slowly dilutes the original control facts.
+testFocus: high-temperature agentic work with many near-neighbor values and delayed baseline recall
+highlights:
+  - The original six facts are introduced through an intake packet, not in the static setting.
+  - Middle turns add adjacent cohorts, temperatures, counts, and schedules without directly repeating the baseline facts.
+  - Recall probes ask for the original control packet only, forcing explicit separation from later noise.
+adversarial: false
+persona:
+  name: Dr. Mira Sol
+  description: Field epidemiologist coordinating a chaotic island vaccine study under heavy operational pressure.
+  playStyle: exacting-analyst
+  goals:
+    - Keep the trial moving without losing the baseline packet.
+    - Compare new cohorts without corrupting the control record.
+    - Deliver a clean final review to the oversight board.
+model: gpt-4.1-nano
+temperature: 1.0
+maxTurns: 24
+warmUpTurns: 0
+extractionEnabled: true
+sessions:
+  - name: "Session 1: Intake"
+    startTurn: 1
+    endTurn: 8
+  - name: "Session 2: Expansion"
+    startTurn: 9
+    endTurn: 16
+  - name: "Session 3: Review"
+    startTurn: 17
+    endTurn: 24
+compactionConfig:
+  enabled: true
+  forceAtTurns:
+    - 8
+    - 16
+    - 22
+  tokenThreshold: 2200
+  messageThreshold: 12
+setting: |
+  The Marrowlight Archipelago is running a distributed vaccine study while storms
+  delay boats, refrigerators fail without warning, and every clinic keeps filing
+  updates in a different format. Mira is trying to keep one clean baseline packet
+  intact while simultaneously onboarding new cohorts and solving field logistics.
+groundTruth:
+  - id: fact-1
+    text: "Cohort Azure uses a 12 milligram amber dose."
+  - id: fact-2
+    text: "Rook Site enrolled 48 patients."
+  - id: fact-3
+    text: "Cold samples must stay between 2 and 4 degrees Celsius."
+  - id: fact-4
+    text: "Analyst Nera Sol signed the chain-of-custody form."
+  - id: fact-5
+    text: "The primary review is on Thursday at 14:00."
+  - id: fact-6
+    text: "The original adverse-event cluster came from Harbor Clinic, not North Annex."
+seedUnits: []
+turns:
+  - turn: 1
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I read the baseline intake card aloud: Cohort Azure uses a 12 milligram amber dose, and Rook Site enrolled 48 patients. Restate those two facts exactly as the opening control record."
+
+  - turn: 2
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Next line on the intake card: cold samples must stay between 2 and 4 degrees Celsius, and Analyst Nera Sol signed the chain-of-custody form. Record both without paraphrasing away the key details."
+
+  - turn: 3
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Final baseline line items: the primary review is Thursday at 14:00, and the original adverse-event cluster came from Harbor Clinic rather than North Annex. Add both to the control summary."
+
+  - turn: 4
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "A new packet arrives for Cohort Tide with a 10 milligram green dose and 52 patients from Kestrel Site. I compare it against the baseline packet."
+
+  - turn: 5
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "North Annex reports a refrigeration wobble at 5 degrees and asks whether its courier log can be merged with Harbor Clinic's records. What do I do?"
+
+  - turn: 6
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "A transport boat brings two more cohorts, each with different temperatures, signatures, and review windows. Summarize the incoming paperwork in a way Mira can act on."
+
+  - turn: 7
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I spend the afternoon matching vial colors to patient rosters across Azure, Tide, and Ember. Which mismatches look operationally important?"
+
+  - turn: 8
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "The solar fridge loses power for twenty minutes. Walk me through the emergency handling, sample checks, and documentation scramble."
+
+  - turn: 9
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Three clinics send review requests for Wednesday noon, Thursday 16:00, and Friday dawn. I need to triage who gets board attention first."
+
+  - turn: 10
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "A courier named Hal claims he signed one of the custody sheets that Nera's team already logged. How does Mira resolve the mismatch?"
+
+  - turn: 11
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I compare Harbor Clinic, Harbor Annex, North Annex, and South Quay as possible sources of a new rash cluster. What distinctions matter?"
+
+  - turn: 12
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "The Tide cohort asks to shift from green labels to blue labels and from 10 milligrams to 11 milligrams for the next packet. What ripple effects does that create?"
+
+  - turn: 13
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Rook Site and Kestrel Site both request new patient counts after late arrivals. Describe the reconciliation work without collapsing the sites together."
+
+  - turn: 14
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Another refrigerator alert comes in, this time from a unit that briefly touched 6 degrees before returning to range. How does Mira document the difference from a normal cold lane?"
+
+  - turn: 15
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I spend the evening preparing a board packet that compares four cohorts, five schedules, and several signatories. What does the summary emphasize?"
+
+  - turn: 16
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "A volunteer has mixed patient wristbands between Azure and Ember. Walk through the clean-up and which records must be checked by hand."
+
+  - turn: 17
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "By sunrise we have enough data to stage the main review, but the team is exhausted and juggling too many almost-matching records."
+
+  - turn: 18
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I do one last pass over the ice boxes, courier seals, and board agenda while rain pounds the roof of the dockside lab."
+
+  - turn: 19
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "A clerk asks which values belong to the baseline packet and which belong to later cohorts. Mira starts sorting them verbally before writing anything down."
+
+  - turn: 20
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I am interrupted twice by supply requests and once by a boatmaster asking about return cargo. Keep the scene focused on the workflow pressure."
+
+  - turn: 21
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "For the original baseline packet only, state the numeric control values: dose, enrolled count, and temperature band."
+
+  - turn: 22
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Before the board sits down, I re-stack packets by cohort color, clinic, and courier route. Describe the table layout and confusion points."
+
+  - turn: 23
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "For the original baseline packet only, state the signatory, the review slot, and the clinic tied to the first adverse-event cluster."
+
+  - turn: 24
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Final baseline readback: give all six original control facts exactly once and exclude every later cohort."

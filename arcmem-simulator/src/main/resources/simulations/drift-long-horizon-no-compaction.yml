@@ -1,0 +1,240 @@
+id: drift-long-horizon-no-compaction
+category: drift
+title: Long Horizon Drift Without Compaction
+objective: Validate whether very long agentic work without compaction still causes early mission facts to fade once they fall out of the recent-history window.
+testFocus: no compaction, multi-session agentic continuity, and exact recall after long lag
+highlights:
+  - Eight target facts are introduced only through the opening briefings.
+  - The scenario runs well past the recent-history window without summarization support.
+  - Midpoint and late probes check disjoint subsets before a final all-facts recall.
+adversarial: false
+persona:
+  name: Sera Voss
+  description: Skyrail fixer leading a coalition crew through a long repair-and-infiltration job across a storm-broken city.
+  playStyle: determined-operator
+  goals:
+    - Restore the skyrail before the blockade tightens.
+    - Keep the crew aligned across many shifting subgoals.
+    - Preserve the original mission brief while the operation sprawls.
+model: gpt-4.1-nano
+temperature: 1.1
+maxTurns: 36
+warmUpTurns: 0
+extractionEnabled: true
+sessions:
+  - name: "Session 1: Briefing"
+    startTurn: 1
+    endTurn: 9
+  - name: "Session 2: Guild Work"
+    startTurn: 10
+    endTurn: 18
+  - name: "Session 3: Audit Trail"
+    startTurn: 19
+    endTurn: 27
+  - name: "Session 4: Final Run"
+    startTurn: 28
+    endTurn: 36
+setting: |
+  The skyrail over Merrow Spire has been crippled by sabotage, labor unrest, and
+  months of storm damage. Sera is coordinating engineers, couriers, and local
+  guilds to reopen one functioning line before the city loses its last reliable
+  freight route. Every district has its own priorities, and the crew keeps getting
+  pulled sideways into new work.
+groundTruth:
+  - id: fact-1
+    text: "The beacon key is hidden in the cistern beneath the bell tower."
+  - id: fact-2
+    text: "The storm seals open only to the lantern code blue-blue-white."
+  - id: fact-3
+    text: "The south tunnel floods at the first dawn whistle."
+  - id: fact-4
+    text: "Quartermaster Ivo owes favors to the quarry guild."
+  - id: fact-5
+    text: "Courier Edda never met Magistrate Kesh in person."
+  - id: fact-6
+    text: "Ledger page 42 lists the false tariff entries."
+  - id: fact-7
+    text: "The spare capacitor is wrapped in sailcloth inside crate N9."
+  - id: fact-8
+    text: "Apprentice Piro is allergic to silver ink."
+seedUnits: []
+turns:
+  - turn: 1
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I read the opening rail brief aloud: the beacon key is hidden in the cistern beneath the bell tower, and the storm seals open only to the lantern code blue-blue-white. Restate both as mission-critical facts."
+
+  - turn: 2
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Second brief page: the south tunnel floods at the first dawn whistle, and Quartermaster Ivo owes favors to the quarry guild. Add both to the planning sheet exactly."
+
+  - turn: 3
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Third page: courier Edda never met Magistrate Kesh in person, and ledger page 42 lists the false tariff entries. Record both as established intelligence."
+
+  - turn: 4
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Final note: the spare capacitor is wrapped in sailcloth inside crate N9, and apprentice Piro is allergic to silver ink. Confirm both before the crew disperses."
+
+  - turn: 5
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I assign teams to inspect pylons, clear storm debris, and reopen the lower tram yards. Describe the first wave of practical work."
+
+  - turn: 6
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "A bridge fitter, a line cook, and a courier captain all need different favors before they will cooperate. How do I sequence those conversations?"
+
+  - turn: 7
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "We discover cracked brackets in the yard gantry and have to improvise a temporary brace from scrap stock."
+
+  - turn: 8
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "The crew spends the evening sorting tools, arguing over route priorities, and trying to sleep through thunder over the rail towers."
+
+  - turn: 9
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "At dawn I head into the market district to line up riggers, mules, and legal waivers for the next phase."
+
+  - turn: 10
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "The quarry guild wants extra haul shares, the ropewalk wants payment upfront, and the lantern maker refuses rush work without a favor."
+
+  - turn: 11
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I settle a dispute over damaged pulleys and missing harness clips while trying to keep the line crew on schedule."
+
+  - turn: 12
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "A washout blocks two cart routes, so I need an alternate path for ballast stone and replacement cable."
+
+  - turn: 13
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "One foreman quits, two apprentices volunteer, and someone mislabels a stack of signal lanterns by district color."
+
+  - turn: 14
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I spend half the day on labor promises, meal logistics, and weather checks while the actual rail repair keeps slipping."
+
+  - turn: 15
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "The crew discovers an old maintenance shed full of unrelated fittings, retired placards, and obsolete wheel housings."
+
+  - turn: 16
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "A singer from the union hall starts turning each success and setback into a rumor-filled street ballad that confuses the younger crew."
+
+  - turn: 17
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "We finally move the first repaired carriage into place and have to stage a slow overnight hoist under bad weather."
+
+  - turn: 18
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Before the access team moves, state only the four opening facts tied to the key, the lantern code, the tunnel, and Ivo's guild connection."
+
+  - turn: 19
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "The next phase shifts to documents and testimony. I start tracing who altered tariffs and who signed off on bad freight routes."
+
+  - turn: 20
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "A clerk hands me stacked ledgers with crossed-out totals, duplicate stamps, and side notes from three different offices."
+
+  - turn: 21
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I interview couriers, cashiers, and gate readers who all remember different fragments of the tariff scandal."
+
+  - turn: 22
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "One witness swears a messenger met the magistrate in person, another insists every exchange was handled through intermediaries. How do I process the mismatch?"
+
+  - turn: 23
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "The records room floods with side stories about bribes, forged route slips, and old grudges between offices."
+
+  - turn: 24
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I pause to repair a labeling disaster after three boxes of invoices, seals, and waybills get stacked in the wrong order."
+
+  - turn: 25
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "A crew runner reports a separate equipment problem back at the yard, forcing me to swap between paperwork and engineering."
+
+  - turn: 26
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "By nightfall I have fragments from too many offices and too many people, but still need a clean fraud narrative for the magistrate."
+
+  - turn: 27
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Before I finish the fraud brief, state only the four opening facts tied to Edda, page 42, crate N9, and Piro."
+
+  - turn: 28
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "The final run begins: we need one working carriage, one access team, one signal plan, and enough trust between guild crews to hold the route together."
+
+  - turn: 29
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "A surprise inspection, a snapped cable sleeve, and a missing food cart hit within the same hour. Walk through Sera's response."
+
+  - turn: 30
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I divide the crew between tower work, yard repairs, runner coordination, and crowd control near the lower station."
+
+  - turn: 31
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "A district captain asks for a public demonstration ride, but the line still feels brittle and the crew is frayed."
+
+  - turn: 32
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Someone misfiles a lantern crate, one apprentice panics on the tower stairs, and a courier returns with bad directions from the east market."
+
+  - turn: 33
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I re-sequence the final work so the carriage test, seal activation, and freight release happen in a survivable order."
+
+  - turn: 34
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "As the storm front returns, everyone around me is speaking in shorthand, half-finished notes, and exhausted assumptions."
+
+  - turn: 35
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I have one last chance to brief the crew clearly before we commit to the route. Describe the atmosphere and practical stakes."
+
+  - turn: 36
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Final mission brief: list all eight original opening facts exactly once and exclude every later distraction from the repair job."

@@ -1,0 +1,181 @@
+id: drift-long-tangent
+category: drift
+title: Long Tangent Drift
+objective: Validate whether a long off-mission task chain causes earlier mission facts to fade when they are not restated.
+testFocus: extended agentic tangent, forced compaction, and delayed exact-slot recall
+highlights:
+  - Facts are introduced through early player briefings, not baked into the scenario setting.
+  - Middle turns stay busy and agentic while avoiding restatement of the six target facts.
+  - Recall probes are delayed and split so they do not fully refresh the full fact set.
+adversarial: false
+persona:
+  name: Talia Reed
+  description: Desert courier and expedition lead trying to reopen a glass-engine supply route.
+  playStyle: pragmatic-planner
+  goals:
+    - Reopen the crossing before the trade window closes.
+    - Recover the survey crew's missing cargo.
+    - Keep the expedition moving despite constant side problems.
+model: gpt-4.1-nano
+temperature: 1.0
+maxTurns: 24
+warmUpTurns: 0
+extractionEnabled: true
+sessions:
+  - name: "Session 1: Departure"
+    startTurn: 1
+    endTurn: 8
+  - name: "Session 2: The Detour"
+    startTurn: 9
+    endTurn: 16
+  - name: "Session 3: Return To Mission"
+    startTurn: 17
+    endTurn: 24
+compactionConfig:
+  enabled: true
+  forceAtTurns:
+    - 8
+    - 16
+    - 22
+  tokenThreshold: 2200
+  messageThreshold: 12
+setting: |
+  The salt basin crossing between Larkspur Ferry and the Mirror Observatory has
+  reopened after months of storms. Caravan traffic is erratic, field gear keeps
+  breaking, and every crew in the basin is chasing a different emergency. Talia
+  is responsible for getting people, equipment, and payment records to the far
+  side before the weather closes again.
+groundTruth:
+  - id: fact-1
+    text: "The prism key is in locker 18 at the ferry office."
+  - id: fact-2
+    text: "The glass engine must be cooled with brine, not fresh water."
+  - id: fact-3
+    text: "The crossing window opens only after the second moonrise bell."
+  - id: fact-4
+    text: "Guide Imani refuses the western ravine because of sinkholes."
+  - id: fact-5
+    text: "The backup fuel cells are under the red tarp at camp delta."
+  - id: fact-6
+    text: "The observatory payment ledger belongs to Magistrate Orsik."
+seedUnits: []
+turns:
+  - turn: 1
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I read the first launch note aloud: the prism key is in locker 18 at the ferry office, and the glass engine must be cooled with brine instead of fresh water. Repeat those two constraints back to me as today's first checklist items."
+
+  - turn: 2
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Second note: the crossing window opens only after the second moonrise bell, and guide Imani refuses the western ravine because of sinkholes. Add both facts to the route plan in plain language."
+
+  - turn: 3
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Final logistics card: the backup fuel cells are under the red tarp at camp delta, and the observatory payment ledger belongs to Magistrate Orsik. Confirm both before I leave the office."
+
+  - turn: 4
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "A survey balloon came down near the ferry sheds. I go inspect the wreck and decide what gear is still usable."
+
+  - turn: 5
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "The balloon crew left behind a nervous pack lizard and three cracked instrument cases. What can I salvage, calm, or repair first?"
+
+  - turn: 6
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I question the dockhands about where the balloon drifted from and whether anything fell into the salt flats."
+
+  - turn: 7
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "A spice merchant offers to buy the cracked lenses from the wreck. How does that negotiation go, and what else do they tell me about traffic in the basin?"
+
+  - turn: 8
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I walk the market loop gathering rope, tar, chalk, and replacement seals for the damaged balloon kit. Describe the shopping run in sequence."
+
+  - turn: 9
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "A teenager asks me to help find her brother's survey markers in a wind-carved canyon. I agree and set out with a lantern and line spool."
+
+  - turn: 10
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Inside the canyon I find old marker posts, broken water skins, and a nest of bright glass insects. What path do I take?"
+
+  - turn: 11
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "We lose daylight and have to camp near a half-buried arch. What chores, watch rotations, and minor problems fill the evening?"
+
+  - turn: 12
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "At dawn I find one of the missing survey cases lodged in a salt chimney. How do I get it down without shattering the contents?"
+
+  - turn: 13
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Back at the temporary camp, one crew member wants to sell the recovered instruments instead of returning them. How do I handle the argument?"
+
+  - turn: 14
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "A drifting shrine caravan offers us tea, gossip, and a weather reading if we help them right an overturned skiff-wagon. What happens?"
+
+  - turn: 15
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I spend the afternoon repairing straps, redistributing cargo weight, and sketching a safer line through the basin based on what we saw."
+
+  - turn: 16
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "One recovered case contains brittle star charts and a letter about unpaid wages. Summarize what in that case matters to the survey crew."
+
+  - turn: 17
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "We make it back to Larkspur Ferry just as a crowd forms around a broken hoist. I step in to help clear the lane and reorganize the cargo queue."
+
+  - turn: 18
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "A clerk insists the recovered survey cargo needs a fresh inventory. I dictate a clean manifest from memory of what we found in the canyon."
+
+  - turn: 19
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "The balloon crew wants a short debrief over dinner. What questions do they ask, and what details from the detour matter most to them?"
+
+  - turn: 20
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "Before dawn I check weather drums, crew readiness, and whether the repaired instrument cases can travel again."
+
+  - turn: 21
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "We are finally returning to the crossing plan. State only the three travel constraints from the original launch brief: departure timing, engine coolant rule, and which ravine Imani rejected."
+
+  - turn: 22
+    role: PLAYER
+    type: ESTABLISH
+    prompt: "I send two runners ahead to clear the ferry lane and reserve cargo space. Describe the practical prep work without retelling the whole trip."
+
+  - turn: 23
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Before I dispatch anyone else, list only the three stored-resource facts from the original brief: key location, fuel location, and ledger owner."
+
+  - turn: 24
+    role: PLAYER
+    type: RECALL_PROBE
+    prompt: "Final prelaunch checklist: give all six original brief facts exactly once and exclude details from the balloon detour."
